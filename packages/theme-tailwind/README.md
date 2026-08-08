@@ -23,11 +23,31 @@ them directly. Nothing needs to scan the component source.
 
 ## Dark mode
 
-The `dark:` variant is bound to a `.dark` class rather than the OS preference,
-so you drive the theme yourself:
+GridKit doesn't register its own `dark:` variant — it follows whatever your
+app's Tailwind build already resolves `dark:` to. Out of the box that's the
+OS preference. For the common class-toggle pattern, declare it yourself,
+same as any Tailwind v4 app would:
+
+```css
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+@import "@gridkitjs/theme-tailwind/styles.css";
+```
 
 ```js
 document.documentElement.classList.toggle("dark", isDark);
+```
+
+### Forcing a theme on one grid
+
+`.gridkit-light` / `.gridkit-dark` pin a grid to one palette regardless of
+the ambient `dark:` state. Put either on any ancestor of the grid, including
+the grid's own root:
+
+```tsx
+<div className="gridkit-dark">
+  <DataGridComponent ... />
+</div>
 ```
 
 ## Theming
@@ -54,7 +74,18 @@ Tailwind config:
 | `--gridkit-selected`        | Selected row, column or cell        |
 | `--gridkit-selected-strong` | A selected row or cell also hovered |
 
-Redefine them under `.dark` to change the dark palette too.
+Redefine them inside `@variant dark { }` (or under `.gridkit-dark`) to change
+the dark palette too:
+
+```css
+:root {
+  --gridkit-accent: oklch(0.6 0.17 145);
+
+  @variant dark {
+    --gridkit-accent: oklch(0.7 0.15 145);
+  }
+}
+```
 
 `--gridkit-selected-strong` earns its place because hover already claims
 `--gridkit-surface-muted`: with one token a selected row would lose its

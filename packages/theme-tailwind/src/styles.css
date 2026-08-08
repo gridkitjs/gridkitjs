@@ -4,50 +4,103 @@
  */
 
 /*
- * Tailwind's `dark:` variant follows the OS preference by default. Bind it to
- * a `.dark` class instead so consumers can drive the theme themselves.
- */
-@custom-variant dark (&:where(.dark, .dark *));
-
-/*
- * The palette. Light is the default; `.dark` redefines the same names, so a
- * token means "the header background", not "light grey".
+ * The palette. Each token is a raw `--gridkit-<name>-light` / `-dark` pair,
+ * defined once below; every rule in this file reads the live
+ * `--gridkit-<name>` name instead, which gets pointed at one pair by
+ * whichever of these applies:
+ *
+ *  - `:root`, by default — light.
+ *  - `@variant dark` nested inside it — whatever the app's own `dark:`
+ *    variant currently resolves to. GridKit does not register a
+ *    `@custom-variant dark` of its own, so it never conflicts with an app
+ *    that already has one (a class, a `data-` attribute, anything) —
+ *    absent one, this falls back to Tailwind's own `prefers-color-scheme`
+ *    default.
+ *  - `.gridkit-light` / `.gridkit-dark` — an explicit, per-instance
+ *    override. Put either on any ancestor of the grid, including the
+ *    grid's own root, to pin one grid to a palette regardless of the
+ *    ambient state. No specificity trick needed: custom properties inherit
+ *    from the nearest matching ancestor, so a wrapper closer to the grid
+ *    than `:root` simply wins.
  */
 :root {
-  color-scheme: light;
+  --gridkit-surface-light: oklch(1 0 0);
+  --gridkit-surface-dark: oklch(0.21 0.01 250);
+  --gridkit-surface-muted-light: oklch(0.97 0.003 250);
+  --gridkit-surface-muted-dark: oklch(0.26 0.012 250);
+  --gridkit-line-light: oklch(0.92 0.005 250);
+  --gridkit-line-dark: oklch(0.33 0.014 250);
+  --gridkit-hover-line-light: oklch(0.65 0.09 255);
+  --gridkit-hover-line-dark: oklch(0.75 0.09 255);
+  --gridkit-fg-light: oklch(0.21 0.01 250);
+  --gridkit-fg-dark: oklch(0.97 0.003 250);
+  --gridkit-fg-muted-light: oklch(0.55 0.015 250);
+  --gridkit-fg-muted-dark: oklch(0.7 0.015 250);
+  --gridkit-accent-light: oklch(0.6 0.17 255);
+  --gridkit-accent-dark: oklch(0.7 0.15 255);
+  --gridkit-selected-light: oklch(0.94 0.03 255);
+  --gridkit-selected-dark: oklch(0.32 0.05 255);
+  --gridkit-selected-strong-light: oklch(0.9 0.05 255);
+  --gridkit-selected-strong-dark: oklch(0.38 0.07 255);
 
-  --gridkit-surface: oklch(1 0 0);
-  --gridkit-surface-muted: oklch(0.97 0.003 250);
-  --gridkit-line: oklch(0.92 0.005 250);
-  --gridkit-hover-line: oklch(0.65 0.09 255);
-  --gridkit-fg: oklch(0.21 0.01 250);
-  --gridkit-fg-muted: oklch(0.55 0.015 250);
-  --gridkit-accent: oklch(0.6 0.17 255);
-  --gridkit-selected: oklch(0.94 0.03 255);
-  --gridkit-selected-strong: oklch(0.9 0.05 255);
+  color-scheme: light;
+  --gridkit-surface: var(--gridkit-surface-light);
+  --gridkit-surface-muted: var(--gridkit-surface-muted-light);
+  --gridkit-line: var(--gridkit-line-light);
+  --gridkit-hover-line: var(--gridkit-hover-line-light);
+  --gridkit-fg: var(--gridkit-fg-light);
+  --gridkit-fg-muted: var(--gridkit-fg-muted-light);
+  --gridkit-accent: var(--gridkit-accent-light);
+  --gridkit-selected: var(--gridkit-selected-light);
+  --gridkit-selected-strong: var(--gridkit-selected-strong-light);
+
+  @variant dark {
+    color-scheme: dark;
+    --gridkit-surface: var(--gridkit-surface-dark);
+    --gridkit-surface-muted: var(--gridkit-surface-muted-dark);
+    --gridkit-line: var(--gridkit-line-dark);
+    --gridkit-hover-line: var(--gridkit-hover-line-dark);
+    --gridkit-fg: var(--gridkit-fg-dark);
+    --gridkit-fg-muted: var(--gridkit-fg-muted-dark);
+    --gridkit-accent: var(--gridkit-accent-dark);
+    --gridkit-selected: var(--gridkit-selected-dark);
+    --gridkit-selected-strong: var(--gridkit-selected-strong-dark);
+  }
 }
 
-.dark {
-  color-scheme: dark;
+.gridkit-light {
+  color-scheme: light;
+  --gridkit-surface: var(--gridkit-surface-light);
+  --gridkit-surface-muted: var(--gridkit-surface-muted-light);
+  --gridkit-line: var(--gridkit-line-light);
+  --gridkit-hover-line: var(--gridkit-hover-line-light);
+  --gridkit-fg: var(--gridkit-fg-light);
+  --gridkit-fg-muted: var(--gridkit-fg-muted-light);
+  --gridkit-accent: var(--gridkit-accent-light);
+  --gridkit-selected: var(--gridkit-selected-light);
+  --gridkit-selected-strong: var(--gridkit-selected-strong-light);
+}
 
-  --gridkit-surface: oklch(0.21 0.01 250);
-  --gridkit-surface-muted: oklch(0.26 0.012 250);
-  --gridkit-line: oklch(0.33 0.014 250);
-  --gridkit-hover-line: oklch(0.75 0.09 255);
-  --gridkit-fg: oklch(0.97 0.003 250);
-  --gridkit-fg-muted: oklch(0.7 0.015 250);
-  --gridkit-accent: oklch(0.7 0.15 255);
-  --gridkit-selected: oklch(0.32 0.05 255);
-  --gridkit-selected-strong: oklch(0.38 0.07 255);
+.gridkit-dark {
+  color-scheme: dark;
+  --gridkit-surface: var(--gridkit-surface-dark);
+  --gridkit-surface-muted: var(--gridkit-surface-muted-dark);
+  --gridkit-line: var(--gridkit-line-dark);
+  --gridkit-hover-line: var(--gridkit-hover-line-dark);
+  --gridkit-fg: var(--gridkit-fg-dark);
+  --gridkit-fg-muted: var(--gridkit-fg-muted-dark);
+  --gridkit-accent: var(--gridkit-accent-dark);
+  --gridkit-selected: var(--gridkit-selected-dark);
+  --gridkit-selected-strong: var(--gridkit-selected-strong-dark);
 }
 
 /*
  * `inline` is what makes the swap work. Without it Tailwind emits
  * `--color-surface: var(--gridkit-surface)` on `:root`, which resolves once
- * against the light values and is then inherited already-resolved — a `.dark`
- * further down the tree would have nothing left to override. `inline`
- * substitutes the var into each utility instead, so it resolves at the element
- * the class sits on.
+ * against the light values and is then inherited already-resolved — a
+ * dark-mode switch further down the tree would have nothing left to
+ * override. `inline` substitutes the var into each utility instead, so it
+ * resolves at the element the class sits on.
  */
 @theme inline {
   --color-surface: var(--gridkit-surface);
