@@ -118,6 +118,8 @@ export {
   expandAllGroups,
   groupRowId,
   groupRows,
+  moveGroupByBefore,
+  movesGroupBy,
   toggleGroupExpansion,
 } from "./util/grouping";
 export {

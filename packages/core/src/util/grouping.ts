@@ -225,3 +225,65 @@ export function collapseAllGroups<Row>(
     .filter((entry): entry is ResolvedGroupRow => "kind" in entry)
     .map((entry) => entry.groupId);
 }
+
+/**
+ * `groupBy` with `columnId` positioned in front of `beforeColumnId` — or at
+ * the end when that is `null` — inserting a fresh entry if `columnId` isn't
+ * already part of the stack, or lifting its existing entry out and back in
+ * if it is. The one function both a header dropped on the group-by bar and
+ * a chip dragged within it need: the former's `columnId` is usually new to
+ * the stack, the latter's never is, and this doesn't need to be told which.
+ *
+ * An existing entry keeps its own object (and so its own `direction`)
+ * rather than being rebuilt, so a level merely repositioned stays
+ * reference-equal at its new index — the same reason `moveColumnBefore`
+ * moves ids rather than rebuilding them.
+ *
+ * Returns `groupBy` itself, untouched, when the move changes nothing: a
+ * drop on the entry's own id, or back into the gap it already occupies, or
+ * naming a `beforeColumnId` absent from the stack. Inserting a column not
+ * yet in the stack is never a no-op.
+ */
+export function moveGroupByBefore(
+  groupBy: GroupByState,
+  columnId: string,
+  beforeColumnId: string | null,
+): GroupByState {
+  if (columnId === beforeColumnId) {
+    return groupBy;
+  }
+
+  const without = groupBy.filter((entry) => entry.columnId !== columnId);
+  const moved = groupBy.find((entry) => entry.columnId === columnId) ?? {
+    columnId,
+  };
+  const target =
+    beforeColumnId === null
+      ? without.length
+      : without.findIndex((entry) => entry.columnId === beforeColumnId);
+  if (target === -1) {
+    return groupBy;
+  }
+
+  const next = [...without];
+  next.splice(target, 0, moved);
+  return next.length === groupBy.length &&
+    next.every((entry, index) => entry === groupBy[index])
+    ? groupBy
+    : next;
+}
+
+/**
+ * Whether moving `columnId` in front of `beforeColumnId` would change
+ * `groupBy` at all, so that a drop indicator promises exactly the move that
+ * happens. Defined against `moveGroupByBefore` rather than restating its
+ * conditions, the same relationship `movesColumn` keeps with
+ * `moveColumnBefore`.
+ */
+export function movesGroupBy(
+  groupBy: GroupByState,
+  columnId: string,
+  beforeColumnId: string | null,
+): boolean {
+  return moveGroupByBefore(groupBy, columnId, beforeColumnId) !== groupBy;
+}

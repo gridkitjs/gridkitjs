@@ -129,6 +129,22 @@ export interface ColumnDefinition<Row, Node = string> {
   /** Whether this column can be grouped by, overriding the grid-level default. */
   groupable?: boolean;
   /**
+   * Whether this column's header shows its group-toggle icon, overriding
+   * the grid-level default. Purely a rendering choice — it does not affect
+   * whether the column can be grouped by (`groupable`) or the
+   * `Alt+ArrowDown` shortcut, which keeps working with the icon hidden, the
+   * same way the resize handle stays `aria-hidden` while `Alt+ArrowLeft`/
+   * `ArrowRight` still resize.
+   */
+  groupToggleIcon?: boolean;
+  /**
+   * Whether this column's header may be dragged into the group-by bar to
+   * add it to the active grouping, overriding the grid-level default.
+   * Distinct from `groupable`: a column can be groupable via its header's
+   * click/`Alt+ArrowDown` toggle, via this drag, both, or neither.
+   */
+  groupByDraggable?: boolean;
+  /**
    * Lets this column's header and/or cell text wrap onto multiple lines
    * instead of the grid's default single line with an ellipsis. Off by
    * default: wrapping changes row height, so it stays a column's own choice
@@ -187,6 +203,8 @@ export interface ColumnResolveOptions {
   resizable?: boolean | undefined;
   /** Whether columns are reorderable, unless a column says otherwise. */
   reorderable?: boolean | undefined;
+  /** Whether columns may be dragged into the group-by bar, unless a column says otherwise. */
+  groupByDraggable?: boolean | undefined;
 }
 
 /**
@@ -214,6 +232,8 @@ export interface ResolvedColumn<Row, Node = string> {
   resizable: boolean;
   /** Whether this column can be dragged, after the grid-level default. */
   reorderable: boolean;
+  /** Whether this column's header may be dragged into the group-by bar, after the grid-level default. */
+  groupByDraggable: boolean;
   /** How this column's cells align, after falling back to its type. */
   alignment: ColumnAlignment;
 }

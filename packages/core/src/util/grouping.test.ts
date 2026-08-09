@@ -12,6 +12,8 @@ import {
   expandAllGroups,
   groupRowId,
   groupRows,
+  moveGroupByBefore,
+  movesGroupBy,
   toggleGroupExpansion,
 } from "./grouping";
 
@@ -44,6 +46,7 @@ function resolvedColumn(field: string): ResolvedColumn<SampleRow, unknown> {
     label: field,
     resizable: false,
     reorderable: false,
+    groupByDraggable: false,
     alignment: "left",
   };
 }
@@ -219,5 +222,100 @@ describe("collapseAllGroups", () => {
         groupRowId(["West", "Open"]),
       ]),
     );
+  });
+});
+
+describe("moveGroupByBefore", () => {
+  const groupBy: GroupByState = [
+    { columnId: "Region" },
+    { columnId: "Status", direction: "desc" },
+  ];
+
+  test("repositions an existing entry leftwards", () => {
+    expect(moveGroupByBefore(groupBy, "Status", "Region")).toEqual([
+      { columnId: "Status", direction: "desc" },
+      { columnId: "Region" },
+    ]);
+  });
+
+  test("repositions an existing entry rightwards, via a null target", () => {
+    expect(moveGroupByBefore(groupBy, "Region", null)).toEqual([
+      { columnId: "Status", direction: "desc" },
+      { columnId: "Region" },
+    ]);
+  });
+
+  test("keeps an existing entry's own object when repositioning it, preserving its direction", () => {
+    const next = moveGroupByBefore(groupBy, "Status", "Region");
+
+    expect(next[0]).toBe(groupBy[1]);
+  });
+
+  test("inserts a column not yet in the stack, at the front, in the middle, or appended", () => {
+    expect(moveGroupByBefore(groupBy, "Amount", "Region")).toEqual([
+      { columnId: "Amount" },
+      { columnId: "Region" },
+      { columnId: "Status", direction: "desc" },
+    ]);
+    expect(moveGroupByBefore(groupBy, "Amount", "Status")).toEqual([
+      { columnId: "Region" },
+      { columnId: "Amount" },
+      { columnId: "Status", direction: "desc" },
+    ]);
+    expect(moveGroupByBefore(groupBy, "Amount", null)).toEqual([
+      { columnId: "Region" },
+      { columnId: "Status", direction: "desc" },
+      { columnId: "Amount" },
+    ]);
+  });
+
+  test("returns the same stack when dropped on itself", () => {
+    expect(moveGroupByBefore(groupBy, "Region", "Region")).toBe(groupBy);
+  });
+
+  test("returns the same stack when dropped in the gap it already occupies", () => {
+    expect(moveGroupByBefore(groupBy, "Region", "Status")).toBe(groupBy);
+    expect(moveGroupByBefore(groupBy, "Status", null)).toBe(groupBy);
+  });
+
+  test("returns the same stack for a beforeColumnId naming no entry", () => {
+    expect(moveGroupByBefore(groupBy, "Region", "Missing")).toBe(groupBy);
+  });
+});
+
+describe("movesGroupBy", () => {
+  const groupBy: GroupByState = [
+    { columnId: "Region" },
+    { columnId: "Status", direction: "desc" },
+  ];
+
+  test("is false for a drop on the entry itself", () => {
+    expect(movesGroupBy(groupBy, "Region", "Region")).toBe(false);
+  });
+
+  test("is false for either gap the entry already sits in", () => {
+    expect(movesGroupBy(groupBy, "Region", "Status")).toBe(false);
+    expect(movesGroupBy(groupBy, "Status", null)).toBe(false);
+  });
+
+  test("is true for a gap the entry does not sit in", () => {
+    expect(movesGroupBy(groupBy, "Status", "Region")).toBe(true);
+    expect(movesGroupBy(groupBy, "Region", null)).toBe(true);
+  });
+
+  test("is true for inserting a column not yet grouped, at every position", () => {
+    expect(movesGroupBy(groupBy, "Amount", "Region")).toBe(true);
+    expect(movesGroupBy(groupBy, "Amount", "Status")).toBe(true);
+    expect(movesGroupBy(groupBy, "Amount", null)).toBe(true);
+  });
+
+  test("agrees with moveGroupByBefore on every gap, for both an existing and a not-yet-grouped columnId", () => {
+    for (const columnId of ["Region", "Status", "Amount"]) {
+      for (const beforeColumnId of ["Region", "Status", null]) {
+        expect(movesGroupBy(groupBy, columnId, beforeColumnId)).toBe(
+          moveGroupByBefore(groupBy, columnId, beforeColumnId) !== groupBy,
+        );
+      }
+    }
   });
 });
