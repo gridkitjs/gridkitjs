@@ -13,6 +13,12 @@ interface GroupByBarProps<Row> {
   columnName: (columnId: string) => string;
   /** Whether the header drag currently open (if any) could drop into this bar. */
   headerDragEligible: boolean;
+  /**
+   * Whether the header drag currently open (if any) is for a column already
+   * in the group-by stack — a drag this bar rejects outright, since
+   * repositioning a grouped column is the chip's job, not the header's.
+   */
+  headerDragBlocked: boolean;
   /** That header drag's own target within this bar, or `null`. */
   headerDropTarget: GroupByDropTarget | null;
 }
@@ -25,8 +31,11 @@ interface GroupByBarProps<Row> {
  * dragging at all; this bar shows the resulting stack, lets a level be
  * removed from it directly, lets a chip be dragged to reorder the stack (or
  * moved via `Ctrl+ArrowLeft`/`Ctrl+ArrowRight` on a focused one), and — for
- * a column whose header sets `groupByDraggable` — accepts a header dropped
- * onto it, at whatever position among the existing chips it's released.
+ * a column whose header sets `groupByDraggable` and isn't grouped yet —
+ * accepts a header dropped onto it, at whatever position among the existing
+ * chips it's released. A header for a column already in the stack is
+ * rejected outright (`is-drag-blocked`, `cursor: not-allowed`): the header
+ * only ever adds, and repositioning an existing level is the chip's job.
  *
  * Whether this component mounts at all is `DataGrid.tsx`'s call
  * (`groupByBarVisibility`), not this component's own — it never bails out
@@ -42,6 +51,7 @@ export default function GroupByBar<Row>({
   grouping,
   columnName,
   headerDragEligible,
+  headerDragBlocked,
   headerDropTarget,
 }: GroupByBarProps<Row>) {
   const { groupBy } = grouping;
@@ -85,6 +95,7 @@ export default function GroupByBar<Row>({
         "gridkit-group-by-bar",
         isDragTarget ? "is-drag-target" : "",
         isDragOver ? "is-drag-over" : "",
+        headerDragBlocked ? "is-drag-blocked" : "",
       )}
       data-gridkit-group-by-bar=""
       role="group"

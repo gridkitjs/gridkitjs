@@ -20,7 +20,10 @@ drag chips within the bar to reorder the stack.
   independent of `groupableColumns` — a column can be groupable via its
   header's click/keyboard toggle, via this drag, both, or neither. Dropped at
   a specific point among the bar's existing chips, it's inserted there, not
-  appended.
+  appended. A column already in the group-by stack rejects its own header
+  dragged back toward the bar — a `not-allowed` cursor and a muted outline in
+  place of the usual accent one — since repositioning an existing level is
+  the chip's job, not the header's.
 - Chips in the group-by bar are now draggable to reorder the stack, and each
   chip is its own focusable stop — focus one and press `Ctrl+ArrowLeft`/
   `Ctrl+ArrowRight` to move it, mirroring a column header's own reorder

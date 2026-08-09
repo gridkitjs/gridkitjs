@@ -643,18 +643,24 @@ export function DataGridComponent<Row>({
     onDrop: handleDrop,
   });
 
+  /** Whether the header drag currently open (if any) is for a column already in the group-by stack — reordering it is the chip's job, so dragging it back in is never a valid target. */
+  const draggedColumnAlreadyGrouped =
+    drag.draggedColumnId !== null &&
+    groupBy.some((entry) => entry.columnId === drag.draggedColumnId);
+
   /**
    * Whether the drag currently open (if any) could land on the group-by bar
    * — the signal `groupByBarVisibility="auto"` needs to show the bar as a
    * drop target even while `groupBy` is still empty. Depends only on
-   * `draggedColumnId` (set once the drag opens) and the static
-   * `groupByDraggableIds`, never the pointer's current position, so the bar
-   * mounts for the drag's whole duration rather than flickering in only
-   * while directly hovering it.
+   * `draggedColumnId` (set once the drag opens), the static
+   * `groupByDraggableIds`, and whether that column is already grouped, never
+   * the pointer's current position, so the bar mounts for the drag's whole
+   * duration rather than flickering in only while directly hovering it.
    */
   const dragEligibleForGroupBy =
     drag.draggedColumnId !== null &&
-    groupByDraggableIds.has(drag.draggedColumnId);
+    groupByDraggableIds.has(drag.draggedColumnId) &&
+    !draggedColumnAlreadyGrouped;
 
   const showGroupByBar =
     groupByBarVisibility === "always" ||
@@ -770,6 +776,7 @@ export function DataGridComponent<Row>({
           grouping={grouping}
           columnName={columnName}
           headerDragEligible={dragEligibleForGroupBy}
+          headerDragBlocked={draggedColumnAlreadyGrouped}
           headerDropTarget={headerGroupByDropTarget}
         />
       )}

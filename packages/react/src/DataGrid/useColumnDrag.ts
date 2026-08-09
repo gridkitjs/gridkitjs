@@ -89,7 +89,13 @@ export default function useColumnDrag<Row>({
           : null;
       }
 
-      return groupByDraggableIds.has(movedId)
+      // Already grouped: reordering it is the chip's job, not the header's —
+      // dragging it back into the bar is never a valid target.
+      const alreadyGrouped = groupBy.some(
+        (entry) => entry.columnId === movedId,
+      );
+
+      return groupByDraggableIds.has(movedId) && !alreadyGrouped
         ? resolveGroupByDropTarget(clientX, clientY, movedId, groupBy)
         : null;
     },
