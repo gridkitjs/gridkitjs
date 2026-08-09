@@ -20,11 +20,13 @@ Every entry in `columns` is a `ColumnDefinition<Row>`, the same shape `defineCol
 | `resizable`             | `boolean`                                                                                                     | `resizableColumns`               | Whether this column can be resized, overriding the grid-level default. See [column resizing](/docs/react/column-resizing). |
 | `reorderable`           | `boolean`                                                                                                     | `reorderableColumns`             | Whether this column can be dragged to a new position. See [column reordering](/docs/react/column-reordering).              |
 | `sortable`              | `boolean`                                                                                                     | `sortableColumns`                | Whether this column can be sorted. See [column sorting](/docs/react/column-sorting).                                       |
+| `groupable`             | `boolean`                                                                                                     | `groupableColumns`               | Whether this column can be grouped by. See [row grouping](/docs/react/row-grouping).                                       |
 | `wrap`                  | `{ header?, cells? }`                                                                                         | `all off`                        | Lets this column's header and/or cell text wrap onto multiple lines instead of eliding to one.                             |
 | `headerClassName`       | `string`                                                                                                      |                                  | Extra class names appended to this column's `th`.                                                                          |
 | `cellClassName`         | `string`                                                                                                      |                                  | Extra class names appended to this column's `td`, on every row.                                                            |
 
 ## See also
 
-- [DataGridComponent](/docs/react/data-grid) for the `columns` prop itself, and the grid-level defaults (`resizableColumns`, `reorderableColumns`, `sortableColumns`) each per-column override falls back to.
+- [DataGridComponent](/docs/react/data-grid) for the `columns` prop itself, and the grid-level defaults (`resizableColumns`, `reorderableColumns`, `sortableColumns`, `groupableColumns`) each per-column override falls back to.
 - [Column templates](/docs/react/column-templates), [resizing](/docs/react/column-resizing), [reordering](/docs/react/column-reordering), [sorting](/docs/react/column-sorting), and [filtering](/docs/react/column-filtering), each in depth.
+- [Row grouping](/docs/react/row-grouping) for `groupable`, in depth.

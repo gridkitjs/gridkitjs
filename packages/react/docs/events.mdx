@@ -13,11 +13,13 @@ Every interaction reports through a callback prop rather than a ref or an event 
 
 ## Resizing, reordering & sorting
 
-| Prop                  | Type                                 | Description                                                                                                                      |
-| --------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
-| `onColumnResize`      | `(event: ColumnResizeEvent) => void` | Fires continuously with phase "move" while dragging, once with "end" on release — the one to persist. Auto-fit does not call it. |
-| `onColumnOrderChange` | `(event: ColumnOrderEvent) => void`  | Fires once when the user drops a column somewhere new. A drop that leaves the order unchanged does not call it.                  |
-| `onColumnSortChange`  | `(event: ColumnSortEvent) => void`   | Fires once when the user changes the sort — a toggle, a stack, or a clear back to "none".                                        |
+| Prop                     | Type                                   | Description                                                                                                                      |
+| ------------------------ | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `onColumnResize`         | `(event: ColumnResizeEvent) => void`   | Fires continuously with phase "move" while dragging, once with "end" on release — the one to persist. Auto-fit does not call it. |
+| `onColumnOrderChange`    | `(event: ColumnOrderEvent) => void`    | Fires once when the user drops a column somewhere new. A drop that leaves the order unchanged does not call it.                  |
+| `onColumnSortChange`     | `(event: ColumnSortEvent) => void`     | Fires once when the user changes the sort — a toggle, a stack, or a clear back to "none".                                        |
+| `onGroupByChange`        | `(event: GroupByEvent) => void`        | Fires once when the user adds, removes, or reorders a group-by level.                                                            |
+| `onGroupExpansionChange` | `(event: GroupExpansionEvent) => void` | Fires once when the user expands or collapses a group, or every group at once.                                                   |
 
 ## Selection
 
@@ -30,4 +32,4 @@ Every interaction reports through a callback prop rather than a ref or an event 
 | `onCellSelect / onCellDeselect`                                                                     | `(event: CellSelectEvent) => void`          | Once for the cell selected, once for the cell deselected.                                                                                 |
 | `onCellSelectionChange`                                                                             | `(event: CellSelectionChangeEvent) => void` | Once per change with what was selected and deselected — one interaction can fill both, since moving between cells does so at once.        |
 
-Every payload's fields are broken down where its feature lives, rather than repeated here: [row selection](/docs/react/row-selection#payload-shape) for `RowSelectionChangeEvent`, [column selection](/docs/react/column-selection#payload-shapes) for `ColumnSelectEvent`/`ColumnsSelectEvent`/`ColumnSelectionChangeEvent`, and [cell selection](/docs/react/cell-selection#payload-shapes) for `CellSelectEvent`/`CellSelectionChangeEvent`.
+Every payload's fields are broken down where its feature lives, rather than repeated here: [row selection](/docs/react/row-selection#payload-shape) for `RowSelectionChangeEvent`, [column selection](/docs/react/column-selection#payload-shapes) for `ColumnSelectEvent`/`ColumnsSelectEvent`/`ColumnSelectionChangeEvent`, [cell selection](/docs/react/cell-selection#payload-shapes) for `CellSelectEvent`/`CellSelectionChangeEvent`, and [row grouping](/docs/react/row-grouping) for `GroupByEvent`/`GroupExpansionEvent`.

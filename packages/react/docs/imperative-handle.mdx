@@ -28,17 +28,20 @@ Sizing, order, sort, and selection stay uncontrolled exactly as they are without
 
 ## Reading state
 
-| Member                 | Returns                                     | Description                                               |
-| ---------------------- | ------------------------------------------- | --------------------------------------------------------- |
-| `getRows()`            | `readonly ResolvedRow<Row>[]`               | Rows as currently filtered and sorted — what's rendered.  |
-| `getColumns()`         | `readonly ResolvedColumn<Row>[]`            | Columns as currently sized and ordered — what's rendered. |
-| `getColumnSizing()`    | `ColumnSizingState`                         | Column widths, keyed by column id.                        |
-| `getColumnOrder()`     | `ColumnOrderState`                          | Column ids in their current render order.                 |
-| `getColumnSort()`      | `ColumnSortState`                           | The active sort, in priority order.                       |
-| `getRowSelection()`    | `SelectionState`                            | Selected row ids.                                         |
-| `getColumnSelection()` | `SelectionState`                            | Selected column ids.                                      |
-| `getCellSelection()`   | `CellSelectionState`                        | The selected cell, if any.                                |
-| `getFocusedCell()`     | `{ rowIndex: number; columnIndex: number }` | The cell currently holding the grid's single tab stop.    |
+| Member                 | Returns                                     | Description                                                                                                                                                    |
+| ---------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getRows()`            | `readonly ResolvedRow<Row>[]`               | Rows as currently filtered and sorted — what's rendered, ungrouped.                                                                                            |
+| `getDisplayRows()`     | `readonly DisplayRow<Row>[]`                | `getRows()` regrouped into the active `groupBy` — group headers interleaved with data rows, in render order. Identical to `getRows()` when `groupBy` is empty. |
+| `getColumns()`         | `readonly ResolvedColumn<Row>[]`            | Columns as currently sized and ordered — what's rendered.                                                                                                      |
+| `getColumnSizing()`    | `ColumnSizingState`                         | Column widths, keyed by column id.                                                                                                                             |
+| `getColumnOrder()`     | `ColumnOrderState`                          | Column ids in their current render order.                                                                                                                      |
+| `getColumnSort()`      | `ColumnSortState`                           | The active sort, in priority order.                                                                                                                            |
+| `getGroupBy()`         | `GroupByState`                              | The active group-by stack, outer to inner. See [row grouping](/docs/react/row-grouping).                                                                       |
+| `getGroupExpansion()`  | `GroupExpansionState`                       | Group ids currently collapsed.                                                                                                                                 |
+| `getRowSelection()`    | `SelectionState`                            | Selected row ids.                                                                                                                                              |
+| `getColumnSelection()` | `SelectionState`                            | Selected column ids.                                                                                                                                           |
+| `getCellSelection()`   | `CellSelectionState`                        | The selected cell, if any.                                                                                                                                     |
+| `getFocusedCell()`     | `{ rowIndex: number; columnIndex: number }` | The cell currently holding the grid's single tab stop.                                                                                                         |
 
 ## Resolved row and column
 
@@ -72,6 +75,8 @@ Sizing, order, sort, and selection stay uncontrolled exactly as they are without
 | `focusCell(rowIndex, columnIndex)`   | Moves the grid's tab stop, and the browser's focus, to a cell.                            |
 | `clearSelection()`                   | Clears row, column, and cell selection together — the same as pressing <Kbd>Escape</Kbd>. |
 | `selectAllRows()`                    | Selects every row — the same as <Kbd>Ctrl</Kbd>+<Kbd>A</Kbd>.                             |
+| `expandAllGroups()`                  | Expands every group at once — there's no dedicated UI control for it.                     |
+| `collapseAllGroups()`                | Collapses every group currently shown at once.                                            |
 | `scrollToRow(rowId, options?)`       | Scrolls the row with the given id into view, if it is currently shown.                    |
 | `scrollToColumn(columnId, options?)` | Scrolls the column with the given id into view.                                           |
 
@@ -83,3 +88,4 @@ passed straight through.
 
 - [DataGridComponent](/docs/react/data-grid) for the rest of the component's props.
 - [Events](/docs/react/events) for callbacks that report the same interactions as they happen, rather than being queried on demand.
+- [Row grouping](/docs/react/row-grouping) for `getGroupBy`/`getGroupExpansion`/`getDisplayRows`/`expandAllGroups`/`collapseAllGroups`, in depth.
