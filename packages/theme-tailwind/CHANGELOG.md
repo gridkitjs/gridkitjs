@@ -1,5 +1,19 @@
 # @gridkitjs/theme-tailwind
 
+## 0.5.0
+
+### Minor Changes
+
+- 388def3: Styles for dragging a header into the group-by bar and reordering its chips:
+  drop indicators on chips, a dashed drag-target outline on the bar itself, a
+  `not-allowed` cursor and muted outline for a header already in the group-by
+  stack dragged back toward it, a grab cursor and drag ghost for chips, and an
+  empty-bar placeholder shown only when at least one column is draggable into
+  it.
+- 388def3: Styles for `@gridkitjs/react`'s new row grouping: the group header row, its
+  expand/collapse toggle, each groupable column header's group icon, and the
+  group-by bar and its removable chips.
+
 ## 0.4.0
 
 ### Minor Changes

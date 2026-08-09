@@ -1,5 +1,94 @@
 # @gridkitjs/react
 
+## 0.7.0
+
+### Minor Changes
+
+- 388def3: Drag a column header into the group-by bar to add it to the grouping, and
+  drag chips within the bar to reorder the stack.
+
+  ```ts
+  <DataGridComponent
+    columns={columns}
+    dataSource={rows}
+    groupableColumns
+    groupByDraggableColumns
+    groupByBarVisibility="always"
+  />;
+  ```
+
+  - `groupByDraggableColumns` (grid-level) / `ColumnDefinition.groupByDraggable`
+    (per-column) let a header be dragged straight into the group-by bar,
+    independent of `groupableColumns` — a column can be groupable via its
+    header's click/keyboard toggle, via this drag, both, or neither. Dropped at
+    a specific point among the bar's existing chips, it's inserted there, not
+    appended. A column already in the group-by stack rejects its own header
+    dragged back toward the bar — a `not-allowed` cursor and a muted outline in
+    place of the usual accent one — since repositioning an existing level is
+    the chip's job, not the header's.
+  - Chips in the group-by bar are now draggable to reorder the stack, and each
+    chip is its own focusable stop — focus one and press `Ctrl+ArrowLeft`/
+    `Ctrl+ArrowRight` to move it, mirroring a column header's own reorder
+    shortcut.
+  - `groupToggleIconColumns` (grid-level) / `ColumnDefinition.groupToggleIcon`
+    (per-column) hide a groupable header's group-toggle icon without touching
+    its capability — `Alt+ArrowDown` keeps working with the icon hidden.
+  - `groupByBarVisibility` (`"always" | "auto" | "never"`, default `"auto"`)
+    controls when the group-by bar renders, decoupled from `groupableColumns`.
+    `"auto"` shows it once `groupBy` is non-empty, or while a header drag
+    eligible to drop into it is in progress, so there's a drop target even
+    from a fully empty grouping.
+
+  **Breaking**: the group-by bar's visibility no longer follows
+  `groupableColumns` — it's governed by the new `groupByBarVisibility` alone.
+  A grid grouping purely programmatically (`defaultGroupBy` with
+  `groupableColumns` off) previously showed no bar; under the new `"auto"`
+  default it now does once `groupBy` is non-empty. Pass
+  `groupByBarVisibility="never"` to keep the previous behavior.
+
+  Internally, `useColumnDrag`'s pointer-drag mechanics are extracted into a
+  new, reusable `useDragReorder` hook shared with the group-by bar's own chip
+  dragging — no change to any existing public API.
+
+- 388def3: Row grouping: stack one or more columns into nested, collapsible groups.
+
+  ```ts
+  <DataGridComponent
+    columns={columns}
+    dataSource={rows}
+    groupableColumns
+    defaultGroupBy={[{ columnId: "Region" }, { columnId: "Status" }]}
+    onGroupByChange={({ groupBy }) => persist(groupBy)}
+  />;
+  ```
+
+  - `groupableColumns` (grid-level) / `ColumnDefinition.groupable` (per-column)
+    turn on each header's group toggle — click its icon, or focus the header
+    and press `Alt+ArrowDown`, to add or remove that column from the group-by
+    stack. A group-by bar above the grid lists the active stack as removable
+    chips.
+  - `defaultGroupBy`/`onGroupByChange` and `defaultGroupExpansion`/
+    `onGroupExpansionChange` for the uncontrolled group-by stack and its
+    collapsed/expanded state. Click a group header, or focus it and press
+    `Space`/`Enter`, to toggle it.
+  - `DataGridApi` gains `getGroupBy()`, `getGroupExpansion()`, `getDisplayRows()`
+    (`getRows()`'s data regrouped, with group headers interleaved), and
+    `expandAllGroups()`/`collapseAllGroups()`. `getRows()` itself is unchanged —
+    it still returns the flat, ungrouped rows, exactly as before.
+  - The grid's `role` switches from `"grid"` to the WAI-ARIA `"treegrid"`
+    pattern whenever `groupBy` is non-empty, with `aria-expanded`/`aria-level`/
+    `aria-posinset`/`aria-setsize` on each group header row. An ungrouped grid
+    is unaffected — `role="grid"` stays exactly as it was.
+
+  Depends on `@gridkitjs/core`'s new grouping primitives (`groupRows` and
+  friends) — see that package's own changelog entry.
+
+### Patch Changes
+
+- Updated dependencies [388def3]
+- Updated dependencies [388def3]
+  - @gridkitjs/core@0.8.0
+
 ## 0.6.0
 
 ### Minor Changes

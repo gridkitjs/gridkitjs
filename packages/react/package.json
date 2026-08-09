@@ -1,6 +1,6 @@
 {
   "name": "@gridkitjs/react",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "React data-grid components built on @gridkitjs/core.",
   "license": "MIT",
   "author": "Blagoja Blazhevski",

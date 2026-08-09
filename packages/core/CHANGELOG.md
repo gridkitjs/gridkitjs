@@ -1,5 +1,25 @@
 # @gridkitjs/core
 
+## 0.8.0
+
+### Minor Changes
+
+- 388def3: `moveGroupByBefore`/`movesGroupBy` — the group-by counterpart of
+  `moveColumnBefore`/`movesColumn`, positioning a column within `GroupByState`
+  in front of another, or inserting it fresh if it isn't grouped yet. Backs the
+  new drag-a-header-into-the-group-by-bar and drag-a-chip-to-reorder
+  interactions in `@gridkitjs/react`.
+
+  `ColumnDefinition` gains `groupByDraggable` (whether a column's header may be
+  dragged into the group-by bar) and `groupToggleIcon` (whether a groupable
+  header shows its group-toggle icon), mirroring `sortable`/`reorderable`.
+  `ColumnResolveOptions`/`ResolvedColumn` gain the matching `groupByDraggable`
+  field.
+
+- 388def3: Row grouping primitives: `groupRows` reshapes filtered/sorted rows into a flat, depth-first list of group headers and data rows, stacked outer-to-inner by a `GroupByState`. New exports: `groupRows`, `groupRowId`, `toggleGroupExpansion`, `expandAllGroups`, `collapseAllGroups`, and the types `GroupByState`/`GroupByEntry`/`GroupByEvent`/`GroupExpansionState`/`GroupExpansionEvent`/`ResolvedGroupRow`/`DisplayRow`. `ColumnDefinition` gains a `groupable` field, mirroring `sortable`.
+
+  Breaking: `KeyShortcutCapabilities` (consumed by `buildKeyShortcuts`) gains a required `groupable: boolean` field.
+
 ## 0.7.0
 
 ### Minor Changes
