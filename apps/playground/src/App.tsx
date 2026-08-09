@@ -1,4 +1,5 @@
 import { FilteredGrid } from "./demos/FilteredGrid";
+import { GroupedGrid } from "./demos/GroupedGrid";
 import { LiveMetricsGrid } from "./demos/LiveMetricsGrid";
 import { PropsTable } from "./demos/PropsTable";
 import { ResizableSelectableGrid } from "./demos/ResizableSelectableGrid";
@@ -27,6 +28,18 @@ export default function App() {
       </h2>
       <div className="mt-2">
         <FilteredGrid />
+      </div>
+      <h2 className="mt-8 text-lg font-bold">
+        <code>groupableColumns</code>, grouped by Status
+      </h2>
+      <p className="mt-2 text-sm text-gray-600">
+        Click a header's group icon, or focus a header and press{" "}
+        <code>Alt+ArrowDown</code>, to add or remove it from the group-by stack.
+        Click a group row, or focus it and press <code>Space</code>/
+        <code>Enter</code>, to expand or collapse it.
+      </p>
+      <div className="mt-2">
+        <GroupedGrid />
       </div>
       <h2 className="mt-8 text-lg font-bold">Fast-changing async data</h2>
       <p className="mt-2 text-sm text-gray-600">

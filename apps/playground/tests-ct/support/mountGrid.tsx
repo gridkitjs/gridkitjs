@@ -19,6 +19,10 @@ export interface MountGridOptions {
  * Wraps CT's `mount()` with the plumbing every grid test needs: a container
  * of a known width, and a wait for the grid itself to be visible before the
  * test proceeds.
+ *
+ * Waits for either `role="grid"` or `role="treegrid"` — a grid with an
+ * active `groupBy` (or `defaultGroupBy`) renders the latter, per
+ * `DataGrid.tsx`'s own note on why the role switches dynamically.
  */
 export async function mountGrid(
   mount: ComponentFixtures["mount"],
@@ -27,7 +31,10 @@ export async function mountGrid(
 ): Promise<MountResult> {
   const width = options?.width ?? DEFAULT_WIDTH;
   const root = await mount(<div style={{ width }}>{ui}</div>);
-  await root.getByRole("grid").waitFor({ state: "visible" });
+  await root
+    .getByRole("grid")
+    .or(root.getByRole("treegrid"))
+    .waitFor({ state: "visible" });
   return root;
 }
 

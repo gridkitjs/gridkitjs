@@ -59,13 +59,23 @@ export function tabIndexFor(
  *
  * Ids can hold anything a consumer's data holds, and an attribute selector
  * built from one would have to escape it; positions need no quoting.
+ *
+ * `columnIndex` is clamped to the row's own last cell rather than read
+ * directly: a group-header row renders one `<td colSpan>` regardless of
+ * `columnCount`, so a focus arriving from a data row further right (or a
+ * `columnIndex` a keyboard `End` left behind) would otherwise address a cell
+ * that row doesn't have.
  */
 function cellAt(table: HTMLTableElement, focus: GridFocus): HTMLElement | null {
   const row =
     focus.rowIndex === HEADER_ROW
       ? (table.tHead?.rows[0] ?? null)
       : (table.tBodies[0]?.rows[focus.rowIndex] ?? null);
-  return row?.cells[focus.columnIndex] ?? null;
+  if (row === null) {
+    return null;
+  }
+  const columnIndex = Math.min(focus.columnIndex, row.cells.length - 1);
+  return row.cells[columnIndex] ?? null;
 }
 
 /**

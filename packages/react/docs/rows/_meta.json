@@ -1,4 +1,4 @@
 {
   "title": "Rows",
-  "order": ["row-selection"]
+  "order": ["row-selection", "row-grouping"]
 }

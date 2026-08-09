@@ -12,6 +12,7 @@ import {
   keyboardSelectIntent,
   type GridSelectionApi,
 } from "../useGridSelection";
+import type { RowGroupingApi } from "../useRowGrouping";
 
 interface GridHeaderProps<Row> {
   columns: readonly ResolvedColumn<Row>[];
@@ -19,6 +20,9 @@ interface GridHeaderProps<Row> {
   drag: ColumnDragApi<Row>;
   sort: ColumnSortApi<Row>;
   sortableColumns: boolean;
+  grouping: RowGroupingApi<Row>;
+  groupableColumns: boolean;
+  groupToggleIconColumns: boolean;
   nav: GridNavigationApi;
   selection: GridSelectionApi;
 }
@@ -62,16 +66,36 @@ function ChevronUpIcon() {
   );
 }
 
+/** Three stacked panes, standing in for "group by this column". */
+function GroupIcon() {
+  return (
+    <Icon>
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="8.5" y="14" width="7" height="7" rx="1" />
+    </Icon>
+  );
+}
+
 export default function GridHeader<Row>({
   columns,
   resize,
   drag,
   sort,
   sortableColumns,
+  grouping,
+  groupableColumns,
+  groupToggleIconColumns,
   nav,
   selection,
 }: GridHeaderProps<Row>) {
-  const { beforeId } = drag.dropTarget ?? {};
+  // Only meaningful for the "column-order" branch — a drop headed for the
+  // group-by bar instead (`kind: "group-by"`) draws no indicator here at
+  // all; `GroupByBar` draws its own from the same `drag.dropTarget`.
+  const beforeId =
+    drag.dropTarget?.kind === "column-order"
+      ? drag.dropTarget.beforeId
+      : undefined;
   const draggedEntry =
     columns.find((entry) => entry.id === drag.draggedColumnId) ?? null;
 
@@ -94,11 +118,20 @@ export default function GridHeader<Row>({
           const sortable = column.sortable ?? sortableColumns;
           const sortDirection = sort.directionFor(entry.id);
           const sortPriority = sort.priorityFor(entry.id);
+          const groupable = column.groupable ?? groupableColumns;
+          // Purely a rendering choice — see the prop's own doc comment. Never
+          // gates `groupable` itself, `aria-keyshortcuts`, or `Alt+ArrowDown`.
+          const showGroupToggleIcon =
+            column.groupToggleIcon ?? groupToggleIconColumns;
+          const isGrouped = grouping.groupBy.some(
+            (level) => level.columnId === entry.id,
+          );
 
           const shortcuts = buildKeyShortcuts({
             reorderable: entry.reorderable,
             resizable: entry.resizable,
             sortable,
+            groupable,
           });
 
           return (
@@ -136,7 +169,8 @@ export default function GridHeader<Row>({
                 if (
                   event.target instanceof Element &&
                   (event.target.closest(".header-resize-handle") !== null ||
-                    event.target.closest(".header-sort-toggle") !== null)
+                    event.target.closest(".header-sort-toggle") !== null ||
+                    event.target.closest(".header-group-toggle") !== null)
                 ) {
                   return;
                 }
@@ -169,6 +203,11 @@ export default function GridHeader<Row>({
                   sort.toggle(entry, { shiftKey: event.shiftKey });
                   return;
                 }
+                if (event.key === "ArrowDown" && event.altKey && groupable) {
+                  event.preventDefault();
+                  grouping.toggleGroupBy(entry.id);
+                  return;
+                }
                 // Space builds a selection up and Enter replaces it, as in the
                 // body. Taken either way, or Space scrolls the grid away.
                 if (event.key === " " || event.key === "Enter") {
@@ -183,7 +222,13 @@ export default function GridHeader<Row>({
               }}
               className={classNames(
                 "header-cell",
-                entry.reorderable ? "is-reorderable" : "",
+                // The grab affordance a header showing either drag
+                // destination shares — a column dragged only for grouping
+                // (`groupByDraggable` without `reorderable`) grabs the same
+                // way one dragged only for reordering does.
+                entry.reorderable || entry.groupByDraggable
+                  ? "is-reorderable"
+                  : "",
                 selected ? "is-selected" : "",
                 resizing ? "is-resizing" : "",
                 dragging ? "is-dragging" : "",
@@ -198,12 +243,42 @@ export default function GridHeader<Row>({
                 "aria-sort",
                 sortDirection === "asc" ? "ascending" : "descending",
               )}
-              {...(entry.reorderable && {
+              {...((entry.reorderable || entry.groupByDraggable) && {
                 onPointerDown: (event) => {
                   drag.startDrag(entry, event);
                 },
               })}
             >
+              {groupable && showGroupToggleIcon && (
+                /*
+                 * Inline, before the label, rather than absolutely
+                 * positioned like the sort toggle and resize handle: those
+                 * two already share the header's right edge, and a third
+                 * overlay there would need its own carve-out. Sitting in
+                 * normal flow costs nothing but a few pixels of label width.
+                 * A pointer affordance only, same as the other two — the
+                 * keyboard equivalent is Alt+ArrowDown on the header itself.
+                 */
+                <span
+                  className={classNames(
+                    "header-group-toggle",
+                    isGrouped ? "is-grouped" : "",
+                  )}
+                  aria-hidden="true"
+                  tabIndex={-1}
+                  onPointerDown={(event) => {
+                    // See the sort toggle's own note: otherwise a
+                    // reorderable header's drag would swallow this click.
+                    event.stopPropagation();
+                  }}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    grouping.toggleGroupBy(entry.id);
+                  }}
+                >
+                  <GroupIcon />
+                </span>
+              )}
               {entry.label}
               {sortable && (
                 /*

@@ -10,6 +10,7 @@ export {
   type ColumnsSelectEvent,
   type DataGridApi,
   type DataGridProps,
+  type GroupByBarVisibility,
   type HoverableConfig,
   type ResizeMode,
   type ResolvedColumn,

@@ -145,6 +145,7 @@ export interface KeyShortcutCapabilities {
   reorderable: boolean;
   resizable: boolean;
   sortable: boolean;
+  groupable: boolean;
 }
 
 /**
@@ -162,6 +163,9 @@ export function buildKeyShortcuts(
     // shortcuts, since both are resize actions.
     capabilities.resizable ? "Alt+ArrowLeft Alt+ArrowRight Alt+Enter" : "",
     capabilities.sortable ? "Alt+ArrowUp" : "",
+    // Down rather than reusing Up: it reads as "drill into groups", and Up is
+    // already sort's own mnemonic on the same header.
+    capabilities.groupable ? "Alt+ArrowDown" : "",
   ]
     .filter(Boolean)
     .join(" ");
