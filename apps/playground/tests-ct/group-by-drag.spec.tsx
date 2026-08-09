@@ -112,6 +112,44 @@ test("a groupByDraggable: false column dragged toward the bar shows no drag-targ
   await page.mouse.up();
 });
 
+test("a header already in the group-by stack dragged back toward the bar is rejected, not re-added", async ({
+  mount,
+  page,
+}) => {
+  const events: GroupByEvent[] = [];
+  const root = await mountGrid(
+    mount,
+    <RowIdentifiedGrid
+      columns={columns}
+      dataSource={buildRows()}
+      label="Already grouped"
+      defaultGroupBy={[{ columnId: "status" }]}
+      groupByBarVisibility="always"
+      onGroupByChange={(event) => {
+        events.push(event);
+      }}
+    />,
+  );
+  const statusHeader = headers(root).filter({ hasText: "status" });
+  const start = await dragStart(page, statusHeader);
+  await page.mouse.move(start.x + 20, start.y, { steps: 3 });
+  await expect(bar(root)).not.toHaveClass(/is-drag-target/);
+  await expect(bar(root)).toHaveClass(/is-drag-blocked/);
+
+  const barBox = await bar(root).boundingBox();
+  if (barBox === null) throw new Error("bar not visible");
+  await page.mouse.move(
+    barBox.x + barBox.width / 2,
+    barBox.y + barBox.height / 2,
+    { steps: 5 },
+  );
+  await expect(chips(root)).not.toHaveClass(/is-drop-before|is-drop-after/);
+  await page.mouse.up();
+
+  expect(events).toHaveLength(0);
+  await expect(chips(root)).toHaveCount(1);
+});
+
 test("a reorderable-but-not-group-draggable column dropped on another header still reorders columns, not the grouping", async ({
   mount,
   page,
