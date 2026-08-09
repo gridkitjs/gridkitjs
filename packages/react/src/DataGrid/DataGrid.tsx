@@ -10,6 +10,7 @@ import {
   applyColumnOrder,
   defineColumnsFromRows,
   fitColumnsToWidth,
+  groupRows,
   moveColumnBefore,
   resolveColumnWidths,
   resolveRowId,
@@ -24,7 +25,12 @@ import {
   type ColumnSizingState,
   type ColumnSortEvent,
   type ColumnSortState,
+  type DisplayRow,
   type FilterState,
+  type GroupByEvent,
+  type GroupByState,
+  type GroupExpansionEvent,
+  type GroupExpansionState,
   type ResolvedRow,
   type CellSelectionState,
   type SelectableConfig,
@@ -39,6 +45,7 @@ import {
 } from "@gridkitjs/core";
 import GridHeader from "./components/GridHeader";
 import GridBody from "./components/GridBody";
+import GroupByBar from "./components/GroupByBar";
 import { ariaAttr } from "./ariaAttr";
 import { classNames } from "./classNames";
 import useColumnDrag, { type DropTarget } from "./useColumnDrag";
@@ -47,6 +54,7 @@ import useColumnSort from "./useColumnSort";
 import useElementWidth from "./useElementWidth";
 import useGridNavigation, { HEADER_ROW } from "./useGridNavigation";
 import useGridSelection, { type SelectionCallbacks } from "./useGridSelection";
+import useRowGrouping from "./useRowGrouping";
 
 /**
  * A column whose header and cells may render arbitrary React content.
@@ -94,14 +102,22 @@ export interface DataGridApi<Row> {
   /** The grid's `<table>` element. */
   readonly table: HTMLTableElement | null;
 
-  /** Rows as currently filtered and sorted — what's rendered. */
+  /** Rows as currently filtered and sorted — what's rendered, ungrouped. */
   getRows(): readonly ResolvedRow<Row>[];
+  /**
+   * `getRows()` regrouped into the active `groupBy` — group headers
+   * interleaved with data rows, in render order. Identical to `getRows()`
+   * when `groupBy` is empty.
+   */
+  getDisplayRows(): readonly DisplayRow<Row>[];
   /** Columns as currently sized and ordered — what's rendered. */
   getColumns(): readonly ResolvedColumn<Row>[];
 
   getColumnSizing(): ColumnSizingState;
   getColumnOrder(): ColumnOrderState;
   getColumnSort(): ColumnSortState;
+  getGroupBy(): GroupByState;
+  getGroupExpansion(): GroupExpansionState;
   getRowSelection(): SelectionState;
   getColumnSelection(): SelectionState;
   getCellSelection(): CellSelectionState;
@@ -111,6 +127,10 @@ export interface DataGridApi<Row> {
   focusCell(rowIndex: number, columnIndex: number): void;
   clearSelection(): void;
   selectAllRows(): void;
+  /** Expands every group at once — there is no dedicated UI control for it. */
+  expandAllGroups(): void;
+  /** Collapses every group currently shown at once — see `collapseAllGroups` in `@gridkitjs/core` for what "currently shown" means for a group already nested under a collapsed one. */
+  collapseAllGroups(): void;
   /** Scrolls the row with the given id into view, if it is currently shown. */
   scrollToRow(rowId: string, options?: ScrollIntoViewOptions): void;
   /** Scrolls the column with the given id into view. */
@@ -128,6 +148,18 @@ export type Borders = "horizontal" | "vertical" | "all" | "none";
  * nothing else, and the grid scrolls or leaves a gap accordingly.
  */
 export type ResizeMode = "fit" | "fixed";
+
+/**
+ * How the group-by bar's visibility follows the active grouping. `"always"`
+ * renders it even with an empty `groupBy` — a fixed drop target and a
+ * constant reminder grouping exists. `"never"` never renders it, for a grid
+ * driving `groupBy` entirely by its own UI (a header toggle, `Alt+ArrowDown`)
+ * or programmatically. `"auto"` renders it once `groupBy` is non-empty, or
+ * while a header drag eligible to drop into it is in progress — so there is
+ * always somewhere to drop the very first column, even from a fully empty
+ * grouping.
+ */
+export type GroupByBarVisibility = "always" | "auto" | "never";
 
 export interface HoverableConfig {
   rows?: boolean;
@@ -218,6 +250,42 @@ export interface DataGridProps<Row> extends SelectionCallbacks<Row> {
    * clear back to "none".
    */
   onColumnSortChange?: ((event: ColumnSortEvent) => void) | undefined;
+  /**
+   * Whether columns can be grouped by — a header's click/`Alt+ArrowDown`
+   * toggle — unless a column says otherwise. The grouping itself still
+   * applies when this is off, via `defaultGroupBy` or the imperative API;
+   * this only gates that one interaction, the same way `sortableColumns`
+   * gates the sort toggle without disabling `defaultColumnSort`. Independent
+   * of `groupByBarVisibility` and `groupByDraggableColumns`, which gate the
+   * bar and the drag-in gesture respectively.
+   */
+  groupableColumns?: boolean | undefined;
+  /**
+   * Whether a groupable header shows its group-toggle icon, unless a column
+   * says otherwise. Purely a rendering choice: `Alt+ArrowDown` keeps working
+   * on a groupable header with the icon hidden.
+   */
+  groupToggleIconColumns?: boolean | undefined;
+  /**
+   * Whether a column's header may be dragged into the group-by bar to add
+   * it to the grouping, unless a column says otherwise. Independent of
+   * `groupableColumns`: a column can be groupable via its header's
+   * click/keyboard toggle, via this drag, both, or neither.
+   */
+  groupByDraggableColumns?: boolean | undefined;
+  /** How the group-by bar's visibility follows the active grouping. */
+  groupByBarVisibility?: GroupByBarVisibility | undefined;
+  /** The group-by stack to start with, outer to inner. Uncontrolled. */
+  defaultGroupBy?: GroupByState | undefined;
+  /**
+   * Called once when the user changes the group-by stack — adding, removing,
+   * or reordering a level.
+   */
+  onGroupByChange?: ((event: GroupByEvent) => void) | undefined;
+  /** Group keys collapsed to start with — every other group starts expanded. Uncontrolled. */
+  defaultGroupExpansion?: GroupExpansionState | undefined;
+  /** Called once when the user expands or collapses a group, or every group at once. */
+  onGroupExpansionChange?: ((event: GroupExpansionEvent) => void) | undefined;
   /** The filter to start with — every applied entry, ANDed together. Uncontrolled. */
   defaultFilter?: FilterState<Row> | undefined;
   /**
@@ -255,6 +323,14 @@ export function DataGridComponent<Row>({
   sortableColumns = false,
   defaultColumnSort,
   onColumnSortChange,
+  groupableColumns = false,
+  groupToggleIconColumns = true,
+  groupByDraggableColumns = false,
+  groupByBarVisibility = "auto",
+  defaultGroupBy,
+  onGroupByChange,
+  defaultGroupExpansion,
+  onGroupExpansionChange,
   defaultFilter,
   label,
   labelledBy,
@@ -275,6 +351,10 @@ export function DataGridComponent<Row>({
     defaultColumnOrder ?? [],
   );
   const [sort, setSort] = useState<ColumnSortState>(defaultColumnSort ?? []);
+  const [groupBy, setGroupBy] = useState<GroupByState>(defaultGroupBy ?? []);
+  const [expansion, setExpansion] = useState<GroupExpansionState>(
+    defaultGroupExpansion ?? [],
+  );
   const [filter] = useState<FilterState<Row>>(defaultFilter ?? []);
   const [announcement, setAnnouncement] = useState("");
   const [rowSelection, setRowSelection] = useState<SelectionState>(
@@ -333,6 +413,7 @@ export function DataGridComponent<Row>({
       sizes: columnSizeDefaults,
       resizable: resizableColumns,
       reorderable: reorderableColumns,
+      groupByDraggable: groupByDraggableColumns,
     });
     return resizeMode === "fit" && viewportWidth !== null
       ? fitColumnsToWidth(widths, viewportWidth, columnSizeDefaults)
@@ -345,6 +426,7 @@ export function DataGridComponent<Row>({
     columnSizeDefaults,
     resizableColumns,
     reorderableColumns,
+    groupByDraggableColumns,
   ]);
 
   /**
@@ -357,6 +439,37 @@ export function DataGridComponent<Row>({
   const shownRows = useMemo(
     () => resolveShownRows(rows, filter, sort, resolved),
     [rows, filter, sort, resolved],
+  );
+
+  /**
+   * `shownRows` regrouped into `groupBy` — group headers interleaved with
+   * data rows, in render order. `GridBody` renders this rather than
+   * `shownRows` directly, grouped or not: `groupRows` returns `shownRows`
+   * itself, untouched, when `groupBy` is empty, so an ungrouped grid pays
+   * only the cost of that check.
+   */
+  const displayRows = useMemo(
+    () => groupRows(shownRows, groupBy, expansion, resolved),
+    [shownRows, groupBy, expansion, resolved],
+  );
+
+  /**
+   * `displayRows` narrowed back to its data rows, in the same (possibly
+   * regrouped) order — what row/cell selection anchors its range-select
+   * against, so that a Shift-click spans the rows actually adjacent on
+   * screen rather than their pre-grouping order. A group collapsed at
+   * selection time contributes no rows here at all, so a range spanning its
+   * position includes only what was visible when the range was drawn, not
+   * the rows hidden beneath it.
+   */
+  const displayDataRows = useMemo(
+    () =>
+      groupBy.length === 0
+        ? shownRows
+        : displayRows.filter(
+            (entry): entry is ResolvedRow<Row> => !("kind" in entry),
+          ),
+    [displayRows, groupBy.length, shownRows],
   );
 
   /**
@@ -403,9 +516,65 @@ export function DataGridComponent<Row>({
     onColumnResize: handleColumnResize,
   });
 
+  /** Wrapped the same way `handleColumnResize` is, for its own announcement. */
+  function handleGroupByChange(event: GroupByEvent): void {
+    onGroupByChange?.(event);
+    const entry = event.groupBy.find(
+      (candidate) => candidate.columnId === event.columnId,
+    );
+    if (entry === undefined) {
+      announce(`${columnName(event.columnId)}, grouping removed`);
+      return;
+    }
+    announce(
+      event.groupBy.length > 1
+        ? `Grouped by ${columnName(event.columnId)}, level ${String(event.groupBy.indexOf(entry) + 1)} of ${String(event.groupBy.length)}`
+        : `Grouped by ${columnName(event.columnId)}`,
+    );
+  }
+
+  /**
+   * `groupId: null` marks `expandAll`/`collapseAll`, which touch every group
+   * in one call rather than one at a time — announced as a single summary
+   * instead of naming a group that doesn't apply.
+   */
+  function handleGroupExpansionChange(event: GroupExpansionEvent): void {
+    onGroupExpansionChange?.(event);
+    if (event.groupId === null) {
+      announce(
+        event.expansion.length === 0
+          ? "All groups expanded"
+          : "All groups collapsed",
+      );
+      return;
+    }
+    announce(
+      event.expansion.includes(event.groupId)
+        ? "Group collapsed"
+        : "Group expanded",
+    );
+  }
+
+  /**
+   * Constructed ahead of `handleDrop`/`drag` below (rather than alongside
+   * `columnSort`, its closest sibling) because `handleDrop`'s `"group-by"`
+   * arm calls `grouping.moveGroupBy` directly.
+   */
+  const grouping = useRowGrouping<Row>({
+    groupBy,
+    setGroupBy,
+    expansion,
+    setExpansion,
+    onGroupByChange: handleGroupByChange,
+    onGroupExpansionChange: handleGroupExpansionChange,
+  });
+
   const nav = useGridNavigation({
     tableRef,
-    rowCount: shownRows.length,
+    // Group headers are addressable rows too — the whole point of the flat
+    // `DisplayRow[]` shape is that they share one position space with data
+    // rows, so navigation counts them the same way.
+    rowCount: displayRows.length,
     columnCount: resolved.length,
   });
 
@@ -419,12 +588,33 @@ export function DataGridComponent<Row>({
     [orderedColumns],
   );
 
+  /** Column ids whose header may be dragged into the group-by bar at all. */
+  const groupByDraggableIds = useMemo(
+    () =>
+      new Set(
+        resolved
+          .filter((entry) => entry.groupByDraggable)
+          .map((entry) => entry.id),
+      ),
+    [resolved],
+  );
+
   /**
-   * The one place a drop is applied. A second drop zone — a grouping bar above
-   * the header — turns this into a switch on `target.kind` and touches nothing
-   * else.
+   * The one place a drop is applied — the two-armed switch on `target.kind`
+   * the group-by bar's own second drop zone was always going to need.
    */
   function handleDrop(target: DropTarget, movedId: string): void {
+    if (target.kind === "group-by") {
+      // Already announced: `grouping.moveGroupBy` commits through the same
+      // `onGroupByChange` pipeline the header toggle and the bar's own chip
+      // drag do, so this needs no announcement or focus-follow of its own —
+      // unlike a column-order drop, the moved thing leaves the grid's single
+      // tab-stop system entirely for the bar's own independently-focusable
+      // chips, which have no shared index to update.
+      grouping.moveGroupBy(movedId, target.beforeColumnId);
+      return;
+    }
+
     const next = moveColumnBefore(displayedIds, movedId, target.beforeId);
     // `moveColumnBefore` hands back the same reference for a move that changes
     // nothing, so a drop in place neither renders nor reports.
@@ -446,7 +636,39 @@ export function DataGridComponent<Row>({
     nav.focusCell(HEADER_ROW, position);
   }
 
-  const drag = useColumnDrag<Row>({ order: displayedIds, onDrop: handleDrop });
+  const drag = useColumnDrag<Row>({
+    order: displayedIds,
+    groupBy,
+    groupByDraggableIds,
+    onDrop: handleDrop,
+  });
+
+  /** Whether the header drag currently open (if any) is for a column already in the group-by stack — reordering it is the chip's job, so dragging it back in is never a valid target. */
+  const draggedColumnAlreadyGrouped =
+    drag.draggedColumnId !== null &&
+    groupBy.some((entry) => entry.columnId === drag.draggedColumnId);
+
+  /**
+   * Whether the drag currently open (if any) could land on the group-by bar
+   * — the signal `groupByBarVisibility="auto"` needs to show the bar as a
+   * drop target even while `groupBy` is still empty. Depends only on
+   * `draggedColumnId` (set once the drag opens), the static
+   * `groupByDraggableIds`, and whether that column is already grouped, never
+   * the pointer's current position, so the bar mounts for the drag's whole
+   * duration rather than flickering in only while directly hovering it.
+   */
+  const dragEligibleForGroupBy =
+    drag.draggedColumnId !== null &&
+    groupByDraggableIds.has(drag.draggedColumnId) &&
+    !draggedColumnAlreadyGrouped;
+
+  const showGroupByBar =
+    groupByBarVisibility === "always" ||
+    (groupByBarVisibility === "auto" &&
+      (groupBy.length > 0 || dragEligibleForGroupBy));
+
+  const headerGroupByDropTarget =
+    drag.dropTarget?.kind === "group-by" ? drag.dropTarget : null;
 
   /**
    * Wrapped the same way `handleColumnResize`/`handleDrop` are, so a toggle,
@@ -476,7 +698,7 @@ export function DataGridComponent<Row>({
   });
 
   const selection = useGridSelection<Row>({
-    rows: shownRows,
+    rows: displayDataRows,
     columns: resolved,
     selectable,
     rowSelection,
@@ -507,10 +729,13 @@ export function DataGridComponent<Row>({
       return tableRef.current;
     },
     getRows: () => shownRows,
+    getDisplayRows: () => displayRows,
     getColumns: () => resolved,
     getColumnSizing: () => sizing,
     getColumnOrder: () => order,
     getColumnSort: () => sort,
+    getGroupBy: () => groupBy,
+    getGroupExpansion: () => expansion,
     getRowSelection: () => rowSelection,
     getColumnSelection: () => columnSelection,
     getCellSelection: () => cellSelection,
@@ -518,8 +743,17 @@ export function DataGridComponent<Row>({
     focusCell: nav.focusCell,
     clearSelection: selection.clear,
     selectAllRows: selection.selectAllRows,
+    expandAllGroups: grouping.expandAll,
+    collapseAllGroups: () => {
+      grouping.collapseAll(displayRows);
+    },
     scrollToRow: (rowId, options) => {
-      const index = shownRows.findIndex((entry) => entry.rowId === rowId);
+      // `displayRows`, not `shownRows`: with grouping active a data row's DOM
+      // position is its place in the grouped, flattened output, not its
+      // pre-grouping index — group headers are siblings in the same `<tbody>`.
+      const index = displayRows.findIndex(
+        (entry) => !("kind" in entry) && entry.rowId === rowId,
+      );
       if (index === -1) return;
       tableRef.current?.tBodies[0]?.rows[index]?.scrollIntoView(options);
     },
@@ -536,6 +770,16 @@ export function DataGridComponent<Row>({
 
   return (
     <div className="gridkit-data-grid-viewport" ref={viewportRef}>
+      {showGroupByBar && (
+        <GroupByBar<Row>
+          columns={resolved}
+          grouping={grouping}
+          columnName={columnName}
+          headerDragEligible={dragEligibleForGroupBy}
+          headerDragBlocked={draggedColumnAlreadyGrouped}
+          headerDropTarget={headerGroupByDropTarget}
+        />
+      )}
       <table
         ref={tableRef}
         /*
@@ -543,10 +787,23 @@ export function DataGridComponent<Row>({
          * the arrow keys a navigation the grid owns, and later what lets a row
          * report whether it is selected. It obliges the single tab stop
          * `useGridNavigation` keeps.
+         *
+         * Switches to `"treegrid"` — the WAI-ARIA pattern for expandable,
+         * collapsible rows — whenever `groupBy` is non-empty, rather than
+         * committing to it unconditionally. The alternative (always
+         * `treegrid`) would change what every existing, ungrouped consumer
+         * announces to assistive technology the moment this feature shipped;
+         * that regression is certain, while the edge case this trades away —
+         * the role flipping mid-session if a consumer removes its last
+         * group-by level — is rare and, per the WAI-ARIA grid pattern, still
+         * a valid `role` change to make when the row structure itself
+         * changes shape. See the "Scope note" this mirrors: grouping stays
+         * an internal detail for an ungrouped grid, ARIA role included.
          */
-        role="grid"
-        // The header is a row too, and counted from one.
-        aria-rowcount={shownRows.length + 1}
+        role={groupBy.length > 0 ? "treegrid" : "grid"}
+        // The header is a row too, and counted from one; group headers count
+        // as rows here too, the same way they do in `nav`'s `rowCount`.
+        aria-rowcount={displayRows.length + 1}
         aria-colcount={resolved.length}
         {...ariaAttr(multiselectable, "aria-multiselectable", true)}
         {...ariaAttr(labelledBy !== undefined, "aria-labelledby", labelledBy)}
@@ -608,15 +865,19 @@ export function DataGridComponent<Row>({
           drag={drag}
           sort={columnSort}
           sortableColumns={sortableColumns}
+          grouping={grouping}
+          groupableColumns={groupableColumns}
+          groupToggleIconColumns={groupToggleIconColumns}
           nav={nav}
           selection={selection}
         />
         <GridBody<Row>
           columns={resolved}
-          rows={shownRows}
+          rows={displayRows}
           activeColumnId={resize.activeColumnId}
           nav={nav}
           selection={selection}
+          grouping={grouping}
         />
       </table>
       {/*

@@ -1,0 +1,104 @@
+---
+title: "Row grouping"
+description: "Stacking columns into nested, collapsible groups with groupBy, groupableColumns, and defaultGroupBy."
+---
+
+`groupBy` stacks one or more columns into nested groups, outer to inner: rows sharing the first column's value collect under one header, then split further by the second, and so on. Filtering and sorting run first and are unaffected by grouping — a row filtered out never leaves an empty group behind, and sort decides a row's order _within_ its group.
+
+## Enable grouping
+
+```ts
+<DataGridComponent
+  columns={columns}
+  dataSource={rows}
+  groupableColumns
+  groupByDraggableColumns
+  defaultGroupBy={[{ columnId: "Region" }, { columnId: "Status" }]}
+  onGroupByChange={({ groupBy }) => persist(groupBy)}
+/>;
+```
+
+`groupableColumns` turns on a groupable header's click/<Kbd>Alt</Kbd>+<Kbd>ArrowDown</Kbd> toggle. `groupByDraggableColumns` turns on dragging a header into the group-by bar — independent of `groupableColumns`: a column can be groupable via its header toggle, via this drag, both, or neither. Neither gates grouping itself: `defaultGroupBy` groups the grid whether or not either is on, the same way `defaultColumnSort` sorts a grid that never turns on `sortableColumns`. Turn both off — the default — for a grid whose grouping is entirely programmatic.
+
+`ColumnDefinition.groupable` and `ColumnDefinition.groupByDraggable` override their grid-level defaults per column, the same way `sortable` overrides `sortableColumns`.
+
+## The group toggle, the group-by bar, and dragging a header in
+
+A groupable header's icon (click it, or focus the header and press <Kbd>Alt</Kbd>+<Kbd>ArrowDown</Kbd>) adds the column to the end of the group-by stack, or removes it if it's already grouped. `ColumnDefinition.groupToggleIcon` (or the grid-level `groupToggleIconColumns`) hides the icon itself without touching the toggle's capability — `Alt+ArrowDown` keeps working on a groupable header with no visible icon, the same way the resize handle stays hidden from assistive technology while `Alt+ArrowLeft`/`ArrowRight` still resize.
+
+The group-by bar above the grid mirrors the active stack as chips, each with its own remove button. A column whose header sets `groupByDraggable` (or whose grid turns on `groupByDraggableColumns`) can also be dragged straight from its header into the bar — released at a specific point among the existing chips, it's inserted there, not just appended to the end. A column already in the stack rejects its own header dragged back toward the bar — a `not-allowed` cursor and a muted outline in place of the usual one — since repositioning an existing level is the chip's job; see [Reordering the group-by bar](#reordering-the-group-by-bar) below.
+
+```ts
+onGroupByChange?: (event: GroupByEvent) => void;
+```
+
+| Field      | Type           | Description                                                        |
+| ---------- | -------------- | ------------------------------------------------------------------ |
+| `columnId` | `string`       | The column just added to, removed from, or moved within the stack. |
+| `groupBy`  | `GroupByState` | The full stack after the change — the one to persist from.         |
+
+## Reordering the group-by bar
+
+Once a stack has two or more levels, drag a chip to reposition it — the same drag mechanics a header uses to reorder columns, applied to the bar instead. A chip is also its own focusable stop (plain DOM tab order, not the grid's own single roving tab stop, since a flat row of chips has no shared position to keep in sync): focus one and press <Kbd>Ctrl</Kbd>+<Kbd>ArrowLeft</Kbd> / <Kbd>Ctrl</Kbd>+<Kbd>ArrowRight</Kbd> to move it, mirroring a column header's own reorder shortcut. Both fire the same `onGroupByChange` a click or a header drop does.
+
+## Expand and collapse
+
+Click a group header, or focus it (it holds the grid's tab stop as a single unit — see [accessibility](/docs/react/accessibility)) and press <Kbd>Space</Kbd> or <Kbd>Enter</Kbd>, to toggle it. A collapsed group still reports its full leaf-row count in its header; only its descendants — nested group headers and data rows alike — drop out of what's rendered.
+
+```ts
+defaultGroupExpansion?: GroupExpansionState; // group ids collapsed to start with
+onGroupExpansionChange?: (event: GroupExpansionEvent) => void;
+```
+
+`GroupExpansionState` holds only the collapsed exceptions — a group id absent from it is expanded, the same way `ColumnSizingState` holds only resized widths. Build a group id with `groupRowId(path)` (`@gridkitjs/core`) rather than constructing one by hand; it's exposed on every group's `groupId` already, via the imperative API's `getDisplayRows()`.
+
+| Field       | Type                  | Description                                                                                                      |
+| ----------- | --------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `groupId`   | `string \| null`      | The group toggled, or `null` for `expandAllGroups()`/`collapseAllGroups()`, which touch every group in one call. |
+| `expansion` | `GroupExpansionState` | The full collapsed set after the change.                                                                         |
+
+There's no built-in "expand all" control — call `gridRef.current?.expandAllGroups()` or `collapseAllGroups()` from a button of your own. See [imperative handle](/docs/react/imperative-handle) for both, and for `getGroupBy()`/`getGroupExpansion()`/`getDisplayRows()`.
+
+## Group-by bar visibility
+
+`groupByBarVisibility` decides when the bar itself renders:
+
+- `"auto"` (the default) — once `groupBy` is non-empty, or while a header drag eligible to drop into the bar is in progress, so there's always somewhere to drop the very first column even from a fully empty grouping.
+- `"always"` — rendered unconditionally, a fixed drop target and a constant reminder grouping exists.
+- `"never"` — never rendered, for a grid driving `groupBy` entirely through header toggles or programmatically.
+
+```ts
+<DataGridComponent
+  columns={columns}
+  dataSource={rows}
+  groupableColumns
+  groupByBarVisibility="always"
+/>;
+```
+
+## Props
+
+| Prop                      | Type                                   | Default  | Description                                                                                                        |
+| ------------------------- | -------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------ |
+| `groupableColumns`        | `boolean`                              | `false`  | Whether a column's header shows a click/`Alt+ArrowDown` group toggle, unless a column says otherwise.              |
+| `groupToggleIconColumns`  | `boolean`                              | `true`   | Whether a groupable header shows its group-toggle icon, unless a column says otherwise. Purely a rendering choice. |
+| `groupByDraggableColumns` | `boolean`                              | `false`  | Whether a column's header may be dragged into the group-by bar, unless a column says otherwise.                    |
+| `groupByBarVisibility`    | `"always" \| "auto" \| "never"`        | `"auto"` | How the group-by bar's visibility follows the active grouping.                                                     |
+| `defaultGroupBy`          | `GroupByState`                         |          | The group-by stack to start with, outer to inner. Uncontrolled.                                                    |
+| `onGroupByChange`         | `(event: GroupByEvent) => void`        |          | Once when the user adds, removes, or reorders a level.                                                             |
+| `defaultGroupExpansion`   | `GroupExpansionState`                  |          | Group ids collapsed to start with — every other group starts expanded. Uncontrolled.                               |
+| `onGroupExpansionChange`  | `(event: GroupExpansionEvent) => void` |          | Once when the user expands or collapses a group, or every group at once.                                           |
+
+`GroupByState` is `readonly { columnId: string; direction?: "asc" | "desc" }[]` — each level's own `direction` orders _that level's_ group values (via the same comparator [column sorting](/docs/react/column-sorting) uses), not the row order within a group.
+
+## Scope
+
+Sorting groups by an aggregate value, and rendering an aggregate in a group's header or as a group footer, are both out of scope for this release. `ResolvedGroupRow` (returned by `getDisplayRows()`) carries no aggregate field yet; a future release adds one additively rather than reshaping what's here.
+
+## See also
+
+- [DataGridComponent](/docs/react/data-grid) for the rest of the component's props.
+- [Column definition](/docs/react/column-definition) for `groupable`, `groupToggleIcon`, and `groupByDraggable`.
+- [Column sorting](/docs/react/column-sorting) and [reordering](/docs/react/column-reordering) for the comparator and drag mechanics grouping reuses.
+- [Accessibility](/docs/react/accessibility) for the `treegrid` role and the ARIA attributes a grouped grid adds.
+- [Imperative handle](/docs/react/imperative-handle) for `getGroupBy`, `getGroupExpansion`, `getDisplayRows`, `expandAllGroups`, and `collapseAllGroups`.

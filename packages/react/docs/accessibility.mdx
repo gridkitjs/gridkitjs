@@ -3,7 +3,7 @@ title: "Accessibility"
 description: "The keyboard navigation model, ARIA attributes, and live announcements built into DataGridComponent."
 ---
 
-DataGridComponent implements the [WAI-ARIA grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/): `role="grid"`, a single roving tab stop, and a live region for changes no visual cue alone would reach a screen reader with.
+DataGridComponent implements the [WAI-ARIA grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/): `role="grid"`, a single roving tab stop, and a live region for changes no visual cue alone would reach a screen reader with. A grid with an active `groupBy` switches to `role="treegrid"` — the WAI-ARIA pattern for expandable, collapsible rows — instead; an ungrouped grid is unaffected either way.
 
 ## Keyboard navigation
 
@@ -21,25 +21,47 @@ One cell holds the grid's tab stop at a time — Tab reaches the grid once, and 
 column reorder respectively, not plain navigation — a focused header claims them
 first. See [column resizing](/docs/react/column-resizing) and [column
 reordering](/docs/react/column-reordering) for what they do there.
+<Kbd>Alt</Kbd>+<Kbd>ArrowDown</Kbd> is likewise reserved on a groupable header,
+for adding or removing it from the group-by stack — see [row
+grouping](/docs/react/row-grouping).
+
+A group header renders as one cell spanning every column, so it holds the tab
+stop as a single unit rather than N per-column cells: <Kbd>ArrowLeft</Kbd>/<Kbd>ArrowRight</Kbd> are a no-op on it, and <Kbd>Space</Kbd>/<Kbd>Enter</Kbd>
+expand or collapse it in place of selecting anything.
+
+The group-by bar sits outside the grid's own table and its single-roving-tab-stop
+model entirely — there's no shared position for a chip to keep in sync the way a
+cell has, so each chip (and its own remove button) is simply, always its own tab
+stop, in plain DOM order. Drag a chip to reorder the stack, or focus one and press
+
+<Kbd>Ctrl</Kbd>+<Kbd>ArrowLeft</Kbd> / <Kbd>Ctrl</Kbd>+<Kbd>ArrowRight</Kbd> —
+the same modifier and semantics a column header's own reorder shortcut uses. A
+groupable header whose column sets `groupByDraggable` can also be dragged
+straight into the bar, landing at whichever position among the existing chips
+it's released.
 
 ## ARIA attributes
 
-| Attribute              | Where                         | Description                                                                                                                                                                                                           |
-| ---------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `aria-rowcount`        | The grid                      | Total rows, header included — one more than the row count of `dataSource` as filtered and sorted.                                                                                                                     |
-| `aria-colcount`        | The grid                      | Total columns as currently sized and ordered.                                                                                                                                                                         |
-| `aria-rowindex`        | Every row                     | 1-based; the header is row 1, so the first body row is row 2.                                                                                                                                                         |
-| `aria-colindex`        | Every header and body cell    | 1-based, following the current column order.                                                                                                                                                                          |
-| `aria-multiselectable` | The grid                      | Set to `true` when `selectable.rows` or `selectable.columns` is `"multiple"`. Omitted otherwise.                                                                                                                      |
-| `aria-selected`        | Row, column header, and cell  | Reflects whether that row/column/cell is selected — but only when that dimension's selection is enabled at all. Omitted, not `false`, when it isn't: a display-only grid never claims to have an unselected anything. |
-| `aria-sort`            | Column headers                | `"ascending"` or `"descending"` once a sortable column has an active sort direction. Omitted — not `"none"` — for an unsorted or unsortable column.                                                                   |
-| `aria-keyshortcuts`    | Column headers and body cells | Lists whichever shortcuts that column or cell actually responds to (below), so they're discoverable rather than assumed.                                                                                              |
+| Attribute                        | Where                         | Description                                                                                                                                                                                                           |
+| -------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `aria-rowcount`                  | The grid                      | Total rows, header included — one more than the row count of `dataSource` as filtered and sorted.                                                                                                                     |
+| `aria-colcount`                  | The grid                      | Total columns as currently sized and ordered.                                                                                                                                                                         |
+| `aria-rowindex`                  | Every row                     | 1-based; the header is row 1, so the first body row is row 2.                                                                                                                                                         |
+| `aria-colindex`                  | Every header and body cell    | 1-based, following the current column order.                                                                                                                                                                          |
+| `aria-multiselectable`           | The grid                      | Set to `true` when `selectable.rows` or `selectable.columns` is `"multiple"`. Omitted otherwise.                                                                                                                      |
+| `aria-selected`                  | Row, column header, and cell  | Reflects whether that row/column/cell is selected — but only when that dimension's selection is enabled at all. Omitted, not `false`, when it isn't: a display-only grid never claims to have an unselected anything. |
+| `aria-sort`                      | Column headers                | `"ascending"` or `"descending"` once a sortable column has an active sort direction. Omitted — not `"none"` — for an unsorted or unsortable column.                                                                   |
+| `aria-keyshortcuts`              | Column headers and body cells | Lists whichever shortcuts that column or cell actually responds to (below), so they're discoverable rather than assumed.                                                                                              |
+| `aria-expanded`                  | Group header rows             | Whether that group is currently expanded or collapsed.                                                                                                                                                                |
+| `aria-level`                     | Group header rows             | 1-based nesting depth — 1 for a top-level group, 2 for one nested inside it, and so on.                                                                                                                               |
+| `aria-posinset` / `aria-setsize` | Group header rows             | That group's 1-based position among, and count of, the group headers sharing its level and immediate parent.                                                                                                          |
 
 A column header's `aria-keyshortcuts` names whichever of these apply, space-separated:
 
 - `Control+ArrowLeft Control+ArrowRight` when the column is [reorderable](/docs/react/column-reordering).
 - `Alt+ArrowLeft Alt+ArrowRight Alt+Enter` when the column is [resizable](/docs/react/column-resizing) — the first two nudge its width, the last sizes it to its content.
 - `Alt+ArrowUp` when the column is [sortable](/docs/react/column-sorting).
+- `Alt+ArrowDown` when the column is [groupable](/docs/react/row-grouping).
 
 A body cell's `aria-keyshortcuts` is `Space Enter` when cell selection is on — see [cell selection](/docs/react/cell-selection).
 
@@ -52,9 +74,12 @@ A `role="status" aria-live="polite"` region, outside the table itself, reports c
 - **Sort change** — a toggle, a stack, or a clear back to unsorted are each phrased differently: a plain toggle announces the column and its new direction; adding or updating a column in a multi-column sort also announces its priority ("key _n_ of _total_"); clearing a column's sort announces that its sort was cleared.
 - **Row and column selection changes** — only when more than one row or column changes in the same interaction (a range, a select-all, `Ctrl+A`). A single selection is already carried by that row's or column's own `aria-selected`, so announcing it too would talk over what a screen reader just read. Announces the resulting total, e.g. "3 rows selected".
 - **Cell selection** — every time a selection lands on a cell. Unlike row and column selection, a cell selection is always exactly one cell, so there's no multi-item threshold to cross — the announcement fires on every commit instead, naming the column and row the selected cell is in.
+- **Group-by change** — adding, removing, or repositioning a level (via the header toggle, a header dropped on the bar, a dragged chip, or a chip's own `Ctrl+Arrow`) announces the column and, once two or more levels are stacked, its position ("key _n_ of _total_"); removing the last level announces that grouping was removed. Every path funnels through the same announcement, so a drag and a click read identically.
+- **Group expand/collapse** — a single group toggle announces "Group expanded"/"Group collapsed"; `expandAllGroups()`/`collapseAllGroups()` announce the whole-tree result instead ("All groups expanded"/"All groups collapsed").
 
 ## See also
 
 - [DataGridComponent](/docs/react/data-grid) for the props these behaviors are built on.
 - [Row](/docs/react/row-selection), [column](/docs/react/column-selection), and [cell](/docs/react/cell-selection) selection, each in depth.
 - [Column resizing](/docs/react/column-resizing), [reordering](/docs/react/column-reordering), and [sorting](/docs/react/column-sorting), each in depth.
+- [Row grouping](/docs/react/row-grouping) for the `treegrid` role and group-by/expansion state, in depth.

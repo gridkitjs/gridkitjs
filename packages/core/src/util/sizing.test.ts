@@ -168,6 +168,36 @@ describe("resolveColumnWidths", () => {
     ]);
   });
 
+  test("takes the column's own groupByDraggable over the grid default", () => {
+    const columns: readonly ColumnDefinition<SampleRow>[] = [
+      { field: "Id", groupByDraggable: false },
+      { field: "Name" },
+      { field: "Status", groupByDraggable: true },
+    ];
+
+    const enabled = resolveColumnWidths(
+      columns,
+      {},
+      { groupByDraggable: true },
+    );
+    const disabled = resolveColumnWidths(
+      columns,
+      {},
+      { groupByDraggable: false },
+    );
+
+    expect(enabled.map((entry) => entry.groupByDraggable)).toEqual([
+      false,
+      true,
+      true,
+    ]);
+    expect(disabled.map((entry) => entry.groupByDraggable)).toEqual([
+      false,
+      false,
+      true,
+    ]);
+  });
+
   test("aligns from the column's type, letting an explicit alignment win", () => {
     const columns: readonly ColumnDefinition<SampleRow>[] = [
       { field: "Id", type: "number" },

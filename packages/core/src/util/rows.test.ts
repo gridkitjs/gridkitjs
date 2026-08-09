@@ -34,6 +34,7 @@ function resolvedColumn(
     label: field,
     resizable: false,
     reorderable: false,
+    groupByDraggable: false,
     alignment: "left",
   };
 }

@@ -69,6 +69,9 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         columnSizing: api.getColumnSizing(),
         columnOrder: api.getColumnOrder(),
         columnSort: api.getColumnSort(),
+        groupBy: api.getGroupBy(),
+        groupExpansion: api.getGroupExpansion(),
+        displayRowCount: api.getDisplayRows().length,
         rowSelection: api.getRowSelection(),
         columnSelection: api.getColumnSelection(),
         cellSelection: api.getCellSelection(),
@@ -112,6 +115,22 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         }}
       >
         clear-selection
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          gridRef.current?.expandAllGroups();
+        }}
+      >
+        expand-all-groups
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          gridRef.current?.collapseAllGroups();
+        }}
+      >
+        collapse-all-groups
       </button>
       <button
         type="button"
