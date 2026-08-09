@@ -6,6 +6,7 @@ import type { ColumnDefinition, GroupExpansionState } from "@gridkitjs/core";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
 import ImperativeApiGrid from "./support/ImperativeApiGrid";
+import MixedGroupValueGrid from "./support/MixedGroupValueGrid";
 import RowIdentifiedGrid from "./support/RowIdentifiedGrid";
 
 interface Row {
@@ -249,6 +250,38 @@ test("a range select spanning a collapsed group includes only the rows currently
     "aria-selected",
     "false",
   );
+});
+
+test("a group's header renders each value type's own format: blank for null/undefined, locale string for a Date, and JSON for anything else", async ({
+  mount,
+}) => {
+  const someDate = new Date(2024, 0, 15);
+  const rows = [
+    { id: "r1", category: null },
+    { id: "r2", category: undefined },
+    { id: "r3", category: someDate },
+    { id: "r4", category: { tag: "x" } },
+  ];
+
+  const root = await mountGrid(
+    mount,
+    <MixedGroupValueGrid
+      dataSource={rows}
+      label="Mixed group values"
+      defaultGroupBy={[{ columnId: "category" }]}
+    />,
+  );
+
+  const groups = groupHeaders(root);
+  await expect(groups).toHaveCount(3);
+  const blankGroup = groups.filter({ hasText: "(blank)" });
+  await expect(blankGroup).toContainText("(2)");
+  await expect(
+    groups.filter({ hasText: someDate.toLocaleString() }),
+  ).toHaveCount(1);
+  await expect(
+    groups.filter({ hasText: JSON.stringify({ tag: "x" }) }),
+  ).toHaveCount(1);
 });
 
 test("expandAllGroups/collapseAllGroups drive the whole tree at once", async ({
