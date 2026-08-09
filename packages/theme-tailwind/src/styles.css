@@ -631,17 +631,15 @@
 
   /*
    * Drawn while a chip or an eligible header is being dragged — a dashed
-   * outline marking the bar itself as a valid drop zone (load-bearing when
+   * outline marking the bar itself as a valid drop zone, load-bearing when
    * it's otherwise empty, with no chip of its own to show a drop indicator
-   * on), and a background wash once the pointer is actually over it.
+   * on. Where exactly the drop would land is the chips' own
+   * `is-drop-before`/`is-drop-after` marks; this outline doesn't also wash
+   * the bar's background once hovered — the marks are enough on their own.
    */
   .gridkit-group-by-bar.is-drag-target {
     outline: 2px dashed var(--gridkit-accent);
     outline-offset: -2px;
-  }
-
-  .gridkit-group-by-bar.is-drag-over {
-    background-color: var(--gridkit-selected);
   }
 
   /*
