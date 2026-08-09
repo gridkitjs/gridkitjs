@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import {
   collapseAllGroups,
   expandAllGroups,
+  moveGroupByBefore,
   toggleGroupExpansion,
   type DisplayRow,
   type GroupByEvent,
@@ -29,7 +30,12 @@ export interface RowGroupingApi<Row> {
   collapseAll: (rows: readonly DisplayRow<Row>[]) => void;
   /** Appends or removes columnId from the group-by stack — the state change a group-bar drop or a "group by this column" header action produces. */
   toggleGroupBy: (columnId: string) => void;
-  /** Reorders the group-by stack — what dragging within the group bar produces. */
+  /**
+   * Adds `columnId` to the group-by stack at a position, or repositions it
+   * if it's already there — what dragging a header into the bar, dragging a
+   * chip within it, or `Ctrl+ArrowLeft`/`Ctrl+ArrowRight` on a focused chip
+   * all produce.
+   */
   moveGroupBy: (columnId: string, beforeColumnId: string | null) => void;
 }
 
@@ -71,30 +77,10 @@ export default function useRowGrouping<Row>({
   }
 
   function moveGroupBy(columnId: string, beforeColumnId: string | null): void {
-    if (columnId === beforeColumnId) {
-      return;
-    }
-    const moved = groupBy.find((entry) => entry.columnId === columnId);
-    if (moved === undefined) {
-      return;
-    }
-    const without = groupBy.filter((entry) => entry.columnId !== columnId);
-    const targetIndex =
-      beforeColumnId === null
-        ? without.length
-        : without.findIndex((entry) => entry.columnId === beforeColumnId);
-    if (targetIndex === -1) {
-      return;
-    }
-
-    const rearranged = [...without];
-    rearranged.splice(targetIndex, 0, moved);
-    // Same reference-equality contract `moveColumnBefore` keeps: a move that
-    // lands every entry back where it started reports no change at all.
-    const next = rearranged.every((entry, index) => entry === groupBy[index])
-      ? groupBy
-      : rearranged;
-    commitGroupBy(next, columnId);
+    commitGroupBy(
+      moveGroupByBefore(groupBy, columnId, beforeColumnId),
+      columnId,
+    );
   }
 
   return {

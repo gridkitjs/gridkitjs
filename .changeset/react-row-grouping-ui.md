@@ -18,8 +18,7 @@ Row grouping: stack one or more columns into nested, collapsible groups.
   turn on each header's group toggle — click its icon, or focus the header
   and press `Alt+ArrowDown`, to add or remove that column from the group-by
   stack. A group-by bar above the grid lists the active stack as removable
-  chips. Dragging a column into the bar is not part of this release — the
-  toggle and the imperative API are the ways to change it for now.
+  chips.
 - `defaultGroupBy`/`onGroupByChange` and `defaultGroupExpansion`/
   `onGroupExpansionChange` for the uncontrolled group-by stack and its
   collapsed/expanded state. Click a group header, or focus it and press

@@ -22,6 +22,7 @@ interface GridHeaderProps<Row> {
   sortableColumns: boolean;
   grouping: RowGroupingApi<Row>;
   groupableColumns: boolean;
+  groupToggleIconColumns: boolean;
   nav: GridNavigationApi;
   selection: GridSelectionApi;
 }
@@ -84,10 +85,17 @@ export default function GridHeader<Row>({
   sortableColumns,
   grouping,
   groupableColumns,
+  groupToggleIconColumns,
   nav,
   selection,
 }: GridHeaderProps<Row>) {
-  const { beforeId } = drag.dropTarget ?? {};
+  // Only meaningful for the "column-order" branch — a drop headed for the
+  // group-by bar instead (`kind: "group-by"`) draws no indicator here at
+  // all; `GroupByBar` draws its own from the same `drag.dropTarget`.
+  const beforeId =
+    drag.dropTarget?.kind === "column-order"
+      ? drag.dropTarget.beforeId
+      : undefined;
   const draggedEntry =
     columns.find((entry) => entry.id === drag.draggedColumnId) ?? null;
 
@@ -111,6 +119,10 @@ export default function GridHeader<Row>({
           const sortDirection = sort.directionFor(entry.id);
           const sortPriority = sort.priorityFor(entry.id);
           const groupable = column.groupable ?? groupableColumns;
+          // Purely a rendering choice — see the prop's own doc comment. Never
+          // gates `groupable` itself, `aria-keyshortcuts`, or `Alt+ArrowDown`.
+          const showGroupToggleIcon =
+            column.groupToggleIcon ?? groupToggleIconColumns;
           const isGrouped = grouping.groupBy.some(
             (level) => level.columnId === entry.id,
           );
@@ -210,7 +222,13 @@ export default function GridHeader<Row>({
               }}
               className={classNames(
                 "header-cell",
-                entry.reorderable ? "is-reorderable" : "",
+                // The grab affordance a header showing either drag
+                // destination shares — a column dragged only for grouping
+                // (`groupByDraggable` without `reorderable`) grabs the same
+                // way one dragged only for reordering does.
+                entry.reorderable || entry.groupByDraggable
+                  ? "is-reorderable"
+                  : "",
                 selected ? "is-selected" : "",
                 resizing ? "is-resizing" : "",
                 dragging ? "is-dragging" : "",
@@ -225,13 +243,13 @@ export default function GridHeader<Row>({
                 "aria-sort",
                 sortDirection === "asc" ? "ascending" : "descending",
               )}
-              {...(entry.reorderable && {
+              {...((entry.reorderable || entry.groupByDraggable) && {
                 onPointerDown: (event) => {
                   drag.startDrag(entry, event);
                 },
               })}
             >
-              {groupable && (
+              {groupable && showGroupToggleIcon && (
                 /*
                  * Inline, before the label, rather than absolutely
                  * positioned like the sort toggle and resize handle: those

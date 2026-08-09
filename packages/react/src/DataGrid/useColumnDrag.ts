@@ -1,32 +1,34 @@
-import {
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-} from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import {
   movesColumn,
   resolveDropBefore,
   resolveKeyboardDropTarget,
   type ColumnOrderState,
-  type DropSide,
+  type GroupByState,
 } from "@gridkitjs/core";
 import type { ResolvedColumn } from "./DataGrid";
-import { startPointerGesture } from "./pointerGesture";
+import {
+  resolveGroupByDropTarget,
+  type GroupByDropTarget,
+} from "./groupByDropTarget";
+import useDragReorder, { elementAt, sideOf } from "./useDragReorder";
 
 /**
- * How far the pointer travels before a press becomes a drag. Below it the
- * gesture is still a click, which is what leaves the header free to take one.
+ * Where a drop would land. A second drop zone — the group-by bar — is a
+ * second member here rather than a reshaping of this state, exactly as
+ * originally planned: a header dragged past every other header and onto the
+ * bar produces `"group-by"` instead of `"column-order"`, and `handleDrop`
+ * switches on `kind`.
  */
-const DRAG_THRESHOLD = 4;
-
-/**
- * Where a drop would land. A union rather than the bare id it holds today, so
- * a second drop zone adds a member instead of reshaping this state.
- */
-export type DropTarget = { kind: "column-order"; beforeId: string | null };
+export type DropTarget =
+  { kind: "column-order"; beforeId: string | null } | GroupByDropTarget;
 
 interface UseColumnDragOptions {
   order: ColumnOrderState;
+  /** What a drop onto the group-by bar is resolved against. */
+  groupBy: GroupByState;
+  /** Column ids whose header may be dragged into the group-by bar at all. */
+  groupByDraggableIds: ReadonlySet<string>;
   onDrop: (target: DropTarget, movedId: string) => void;
 }
 
@@ -54,118 +56,51 @@ export interface ColumnDragApi<Row> {
 }
 
 /**
- * The header under `(x, y)`. `closest` is what makes the whole cell the drop
- * zone: a hit on the label or the resize handle resolves to its header.
- */
-function headerAt(x: number, y: number): Element | null {
-  const element = document.elementFromPoint(x, y);
-  return element?.closest("th[data-gridkit-column]") ?? null;
-}
-
-/** Which half of `element` `x` falls in. */
-function sideOf(element: Element, x: number): DropSide {
-  const rect = element.getBoundingClientRect();
-  return x < rect.left + rect.width / 2 ? "before" : "after";
-}
-
-/**
  * Turns a pointer drag over the header into a drop target, leaving `onDrop` to
- * apply it.
- *
- * Pointer events rather than HTML5 drag-and-drop: `dragenter`/`dragleave` fire
- * per descendant, so the header's text and resize handle would each report the
- * target leaving and re-entering as the pointer crossed them.
+ * apply it. Built on `useDragReorder`'s shared pointer mechanics — this hook
+ * supplies only the hit-testing: another header (reorder among columns) or
+ * the group-by bar (add this column to the grouping), tried in that order.
  */
 export default function useColumnDrag<Row>({
   order,
+  groupBy,
+  groupByDraggableIds,
   onDrop,
 }: UseColumnDragOptions): ColumnDragApi<Row> {
-  const [draggedColumnId, setDraggedColumnId] = useState<string | null>(null);
-  const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
-  const [ghostTransform, setGhostTransform] = useState<string | null>(null);
-  const dragged = useRef(false);
+  const drag = useDragReorder<DropTarget>({
+    resolveTarget(clientX, clientY, movedId) {
+      // Hit-tested rather than read from the event's target, which pointer
+      // capture pins to the header the drag opened on.
+      const over = elementAt(clientX, clientY, "th[data-gridkit-column]");
+      const overId = over?.getAttribute("data-gridkit-column");
 
-  function justDragged(): boolean {
-    const answer = dragged.current;
-    dragged.current = false;
-    return answer;
-  }
+      // The rect is read fresh each move, so a width changed mid-drag
+      // cannot leave the midpoint stale.
+      const beforeId =
+        over && overId
+          ? resolveDropBefore(order, overId, sideOf(over, clientX))
+          : undefined;
+
+      if (beforeId !== undefined) {
+        // A gap the column already sits in would promise a move that
+        // `moveColumnBefore` then declines to make.
+        return movesColumn(order, movedId, beforeId)
+          ? { kind: "column-order", beforeId }
+          : null;
+      }
+
+      return groupByDraggableIds.has(movedId)
+        ? resolveGroupByDropTarget(clientX, clientY, movedId, groupBy)
+        : null;
+    },
+    onDrop,
+  });
 
   function startDrag(
     entry: ResolvedColumn<Row>,
     event: ReactPointerEvent<HTMLElement>,
   ): void {
-    const header = event.currentTarget;
-    // Only the horizontal distance opens the drag: columns move along one
-    // axis, so vertical travel says nothing about the user's intent.
-    const { pointerId, clientX: startX } = event;
-    const grabX = startX - header.getBoundingClientRect().left;
-    let dragging = false;
-    let target: DropTarget | null = null;
-
-    /** Keeps the grab offset, so the pointer holds the spot it picked up. */
-    function placeGhost(x: number, y: number): void {
-      setGhostTransform(`translate(${String(x - grabX)}px, ${String(y)}px)`);
-    }
-
-    function reset(): void {
-      setGhostTransform(null);
-      setDraggedColumnId(null);
-      setDropTarget(null);
-    }
-
-    startPointerGesture(header, pointerId, {
-      onMove(moveEvent) {
-        const { clientX, clientY } = moveEvent;
-
-        if (!dragging) {
-          if (Math.abs(clientX - startX) < DRAG_THRESHOLD) {
-            return;
-          }
-          dragging = true;
-          // Latched for the `click` that follows the release, which is the
-          // only thing that can tell a drag apart from a press in the same
-          // spot.
-          dragged.current = true;
-          setDraggedColumnId(entry.id);
-        }
-
-        placeGhost(clientX, clientY);
-
-        // Hit-tested rather than read from the event's target, which pointer
-        // capture pins to the header the drag opened on.
-        const over = headerAt(clientX, clientY);
-        const overId = over?.getAttribute("data-gridkit-column");
-
-        // The rect is read fresh each move, so a width changed mid-drag
-        // cannot leave the midpoint stale.
-        const beforeId =
-          over && overId
-            ? resolveDropBefore(order, overId, sideOf(over, clientX))
-            : undefined;
-
-        // A gap the column already sits in would promise a move that
-        // `moveColumnBefore` then declines to make.
-        target =
-          beforeId !== undefined && movesColumn(order, entry.id, beforeId)
-            ? { kind: "column-order", beforeId }
-            : null;
-
-        setDropTarget(target);
-      },
-      onEnd() {
-        const dropped = target;
-        reset();
-        if (dragging && dropped !== null) {
-          onDrop(dropped, entry.id);
-        }
-      },
-      // Escape and a cancelled pointer both leave the order as it was.
-      onCancel() {
-        target = null;
-        reset();
-      },
-    });
+    drag.startDrag(entry.id, event.currentTarget, event);
   }
 
   function moveByKeyboard(entry: ResolvedColumn<Row>, direction: -1 | 1): void {
@@ -177,13 +112,13 @@ export default function useColumnDrag<Row>({
   }
 
   // A new object each render, as `useColumnResize` returns: the handlers close
-  // over `order`, and a stable identity would buy nothing.
+  // over `order`/`groupBy`, and a stable identity would buy nothing.
   return {
-    draggedColumnId,
-    dropTarget,
-    ghostTransform,
+    draggedColumnId: drag.draggedId,
+    dropTarget: drag.dropTarget,
+    ghostTransform: drag.ghostTransform,
     startDrag,
     moveByKeyboard,
-    justDragged,
+    justDragged: drag.justDragged,
   };
 }
