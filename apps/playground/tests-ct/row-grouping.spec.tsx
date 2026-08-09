@@ -163,6 +163,7 @@ test("Space and Enter on a focused group header toggle it, the same as a click",
       dataSource={buildRows()}
       label="Keyboard toggle"
       defaultGroupBy={[{ columnId: "region" }]}
+      groupByBarVisibility="never"
     />,
   );
   const active = root.locator('[tabindex="0"]');
@@ -190,6 +191,7 @@ test("ArrowLeft/ArrowRight on a focused group header are a no-op — it has only
       dataSource={buildRows()}
       label="No lateral move"
       defaultGroupBy={[{ columnId: "region" }]}
+      groupByBarVisibility="never"
     />,
   );
   const active = root.locator('[tabindex="0"]');
@@ -309,4 +311,92 @@ test("a column's group toggle adds and removes it from the group-by stack, and t
   await chip.locator(".group-by-chip-remove").click();
   await expect(groupHeaders(root)).toHaveCount(0);
   await expect(root.locator(".gridkit-group-by-bar")).toHaveCount(0);
+});
+
+test("groupToggleIcon: false hides only that column's icon, without disabling its group toggle", async ({
+  mount,
+}) => {
+  const mixedColumns: readonly ColumnDefinition<Row>[] = [
+    { field: "id", width: 80 },
+    { field: "region", width: 100, groupToggleIcon: false },
+    { field: "status", width: 100 },
+    { field: "amount", width: 100, type: "number" },
+  ];
+  const root = await mountGrid(
+    mount,
+    <RowIdentifiedGrid
+      columns={mixedColumns}
+      dataSource={buildRows()}
+      label="Icon visibility"
+      groupableColumns
+    />,
+  );
+  const headerLocators = root.locator("thead th");
+  const regionHeader = headerLocators.filter({ hasText: "region" });
+  await expect(regionHeader.locator(".header-group-toggle")).toHaveCount(0);
+  await expect(
+    headerLocators
+      .filter({ hasText: "status" })
+      .locator(".header-group-toggle"),
+  ).toHaveCount(1);
+
+  // Alt+ArrowDown still groups the icon-less column.
+  await regionHeader.focus();
+  await regionHeader.press("Alt+ArrowDown");
+  await expect(groupHeaders(root)).toHaveCount(2);
+});
+
+test("groupToggleIconColumns={false} hides every column's icon grid-wide, without disabling groupable", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <RowIdentifiedGrid
+      columns={columns}
+      dataSource={buildRows()}
+      label="No icons"
+      groupableColumns
+      groupToggleIconColumns={false}
+    />,
+  );
+  await expect(root.locator(".header-group-toggle")).toHaveCount(0);
+
+  const regionHeader = root.locator("thead th").filter({ hasText: "region" });
+  await regionHeader.focus();
+  await regionHeader.press("Alt+ArrowDown");
+  await expect(groupHeaders(root)).toHaveCount(2);
+});
+
+test('groupByBarVisibility="always" renders the bar even with an empty groupBy', async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <RowIdentifiedGrid
+      columns={columns}
+      dataSource={buildRows()}
+      label="Always visible bar"
+      groupByBarVisibility="always"
+    />,
+  );
+  await expect(root.locator(".gridkit-group-by-bar")).toHaveCount(1);
+  await expect(root.locator(".group-by-chip")).toHaveCount(0);
+});
+
+test('groupByBarVisibility="never" hides the bar even with a non-empty defaultGroupBy', async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <RowIdentifiedGrid
+      columns={columns}
+      dataSource={buildRows()}
+      label="Never visible bar"
+      defaultGroupBy={[{ columnId: "region" }]}
+      groupByBarVisibility="never"
+    />,
+  );
+  await expect(root.locator(".gridkit-group-by-bar")).toHaveCount(0);
+  // Grouping itself still applies — only the bar's visibility is off.
+  await expect(groupHeaders(root)).toHaveCount(2);
 });
