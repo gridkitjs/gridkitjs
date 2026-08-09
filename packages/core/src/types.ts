@@ -126,6 +126,8 @@ export interface ColumnDefinition<Row, Node = string> {
   reorderable?: boolean;
   /** Whether this column can be sorted, overriding the grid-level default. */
   sortable?: boolean;
+  /** Whether this column can be grouped by, overriding the grid-level default. */
+  groupable?: boolean;
   /**
    * Lets this column's header and/or cell text wrap onto multiple lines
    * instead of the grid's default single line with an ellipsis. Off by
@@ -284,6 +286,80 @@ export interface ColumnSortEvent {
   readonly columnId: string;
   readonly sort: ColumnSortState;
 }
+
+/** One level of a stacked group-by, outer to inner. Mirrors ColumnSortEntry. */
+export interface GroupByEntry {
+  readonly columnId: string;
+  /** Order of this level's own group values (not row order within a group). Defaults to "asc". */
+  readonly direction?: SortDirection;
+}
+
+/**
+ * The active grouping, outer to inner: index 0 groups first, each
+ * subsequent index nests inside it. Empty for an ungrouped grid, mirroring
+ * ColumnSortState's empty array for "no sort".
+ */
+export type GroupByState = readonly GroupByEntry[];
+
+/**
+ * Reports a user group-by change whole — the stack to persist from. Mirrors
+ * ColumnSortEvent's `{columnId, sort}` shape.
+ */
+export interface GroupByEvent {
+  readonly columnId: string;
+  readonly groupBy: GroupByState;
+}
+
+/**
+ * Group keys collapsed by the user — holding only the exceptions, the same
+ * way ColumnSizingState holds only resized widths. A key absent from this
+ * set is expanded; there is no separate "collapsed by default" concept.
+ */
+export type GroupExpansionState = readonly string[];
+
+/**
+ * Reports a user expansion change. `groupId` is the group toggled, or `null`
+ * for expandAllGroups/collapseAllGroups, which touch every group in one call
+ * rather than one at a time.
+ */
+export interface GroupExpansionEvent {
+  readonly groupId: string | null;
+  readonly expansion: GroupExpansionState;
+}
+
+/**
+ * One group header in a grouped result. `path` is every ancestor value
+ * down to and including this group's own, outermost first — what a header
+ * template needs to render "West / Enterprise", not just "Enterprise".
+ *
+ * Not parameterized by `Row`: nothing here holds a `Row`-typed value today.
+ * A future field that does (an aggregate) can add that parameter when it
+ * exists, rather than carrying an unused one now.
+ */
+export interface ResolvedGroupRow {
+  readonly kind: "group";
+  /** Stable id for this node: this plan's join of `path`, used as the React key and the GroupExpansionState entry. Opaque — build it with `groupRowId`, never construct one by hand. */
+  readonly groupId: string;
+  /** Nesting depth, 0 for a top-level group. */
+  readonly level: number;
+  readonly columnId: string;
+  /** This level's own value — the last entry of `path`. */
+  readonly value: unknown;
+  readonly path: readonly unknown[];
+  readonly expanded: boolean;
+  /** Leaf row count under this group, regardless of collapse state. */
+  readonly count: number;
+  /** Position among the display rows as rendered — same invariant ResolvedRow.rowIndex keeps. */
+  readonly rowIndex: number;
+}
+
+/**
+ * One entry of a grouped result: either an ordinary data row (no `kind`
+ * field at all — ResolvedRow is unchanged, so every existing consumer of
+ * plain ResolvedRow[] keeps compiling) or a group header. Discriminate with
+ * `"kind" in entry`.
+ */
+export type DisplayRow<Row> = ResolvedRow<Row> | ResolvedGroupRow;
 
 interface FilterEntryBase<Row> {
   readonly columnId?: FieldPath<Row> | (string & {});
