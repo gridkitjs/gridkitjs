@@ -69,7 +69,6 @@ export default function GroupByBar<Row>({
   // is ever active at once.
   const activeDropTarget = chipDrag.dropTarget ?? headerDropTarget;
   const isDragTarget = chipDrag.draggedColumnId !== null || headerDragEligible;
-  const isDragOver = activeDropTarget !== null;
   const showPlaceholder =
     groupBy.length === 0 && columns.some((entry) => entry.groupByDraggable);
 
@@ -94,7 +93,6 @@ export default function GroupByBar<Row>({
       className={classNames(
         "gridkit-group-by-bar",
         isDragTarget ? "is-drag-target" : "",
-        isDragOver ? "is-drag-over" : "",
         headerDragBlocked ? "is-drag-blocked" : "",
       )}
       data-gridkit-group-by-bar=""
