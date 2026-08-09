@@ -69,7 +69,10 @@ const [resizeMode, setResizeMode] = useState<ResizeMode>("fit");
 | `sortableColumns`                              | `boolean`                                                   | `false`        | Whether columns can be sorted by clicking their header toggle, unless a column says otherwise. Shift-click stacks a column into the sort instead of replacing it. |
 | `defaultColumnSort`                            | `readonly { columnId, direction }[]`                        |                | The sort to start with, in priority order. Uncontrolled.                                                                                                          |
 | `onColumnSortChange`                           | `(event: ColumnSortEvent) => void`                          |                | Called once when the user changes the sort — a toggle, a stack, or a clear back to "none".                                                                        |
-| `groupableColumns`                             | `boolean`                                                   | `false`        | Whether columns can be grouped by via the header toggle and the group-by bar. See [row grouping](/docs/react/row-grouping).                                       |
+| `groupableColumns`                             | `boolean`                                                   | `false`        | Whether a column's header shows a click/`Alt+ArrowDown` group toggle. See [row grouping](/docs/react/row-grouping).                                               |
+| `groupToggleIconColumns`                       | `boolean`                                                   | `true`         | Whether a groupable header shows its group-toggle icon. Purely a rendering choice.                                                                                |
+| `groupByDraggableColumns`                      | `boolean`                                                   | `false`        | Whether a column's header may be dragged into the group-by bar.                                                                                                   |
+| `groupByBarVisibility`                         | `"always" \| "auto" \| "never"`                             | `"auto"`       | How the group-by bar's visibility follows the active grouping.                                                                                                    |
 | `defaultGroupBy`                               | `GroupByState`                                              |                | The group-by stack to start with, outer to inner. Uncontrolled.                                                                                                   |
 | `onGroupByChange`                              | `(event: GroupByEvent) => void`                             |                | Called once when the user adds, removes, or reorders a group-by level.                                                                                            |
 | `defaultGroupExpansion`                        | `GroupExpansionState`                                       |                | Group ids collapsed to start with. Uncontrolled.                                                                                                                  |
@@ -89,7 +92,8 @@ const [resizeMode, setResizeMode] = useState<ResizeMode>("fit");
 - Click a row, column, or cell to select it; <Kbd>Ctrl</Kbd>+click toggles, <Kbd>Shift</Kbd>+click takes a range.
 - <Kbd>Ctrl</Kbd>+<Kbd>A</Kbd> selects every row; <Kbd>Escape</Kbd> clears every
   selection.
-- Click a groupable header's group icon, or focus the header and press <Kbd>Alt</Kbd>+<Kbd>ArrowDown</Kbd>, to add or remove it from the group-by stack.
+- Click a groupable header's group icon, or focus the header and press <Kbd>Alt</Kbd>+<Kbd>ArrowDown</Kbd>, to add or remove it from the group-by stack — or drag the header into the group-by bar, for a column that sets `groupByDraggable`.
+- Drag a chip in the group-by bar to reorder the stack; with a chip focused, <Kbd>Ctrl</Kbd>+<Kbd>ArrowLeft</Kbd> / <Kbd>Ctrl</Kbd>+<Kbd>ArrowRight</Kbd> moves it via keyboard.
 - Click a group header, or focus it and press <Kbd>Space</Kbd>/<Kbd>Enter</Kbd>, to expand or collapse it.
 
 ## See also
