@@ -644,6 +644,18 @@
     background-color: var(--gridkit-selected);
   }
 
+  /*
+   * A header already in the group-by stack, dragged back toward it — never a
+   * valid drop, so no accent outline invites it: a muted dashed line in the
+   * same neutral tone as the grid's own borders, plus a `not-allowed` cursor
+   * for the pointer icon itself.
+   */
+  .gridkit-group-by-bar.is-drag-blocked {
+    cursor: not-allowed;
+    outline: 2px dashed var(--gridkit-line);
+    outline-offset: -2px;
+  }
+
   .group-by-bar-placeholder {
     font-size: 0.8125rem;
     color: var(--gridkit-fg-muted);
