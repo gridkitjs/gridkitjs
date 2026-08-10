@@ -1,6 +1,7 @@
 import { FilteredGrid } from "./demos/FilteredGrid";
 import { GroupedGrid } from "./demos/GroupedGrid";
 import { LiveMetricsGrid } from "./demos/LiveMetricsGrid";
+import { PaginatedGrid } from "./demos/PaginatedGrid";
 import { PropsTable } from "./demos/PropsTable";
 import { ResizableSelectableGrid } from "./demos/ResizableSelectableGrid";
 
@@ -40,6 +41,18 @@ export default function App() {
       </p>
       <div className="mt-2">
         <GroupedGrid />
+      </div>
+      <h2 className="mt-8 text-lg font-bold">
+        <code>paginated</code>, grouped by Region
+      </h2>
+      <p className="mt-2 text-sm text-gray-600">
+        A page never splits a group — <code>pageSize</code> counts top-level
+        groups here, not leaf rows, so pages hold a different number of rendered
+        rows despite sharing one size. Change the page size, sort a column, or
+        add/remove a group-by level to see the grid jump back to page 1.
+      </p>
+      <div className="mt-2">
+        <PaginatedGrid />
       </div>
       <h2 className="mt-8 text-lg font-bold">Fast-changing async data</h2>
       <p className="mt-2 text-sm text-gray-600">
