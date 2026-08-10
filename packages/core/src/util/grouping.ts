@@ -135,8 +135,11 @@ function buildLevel<Row>(
       path,
       expanded,
       count: group.rows.length,
-      // Renumbered globally once `groupRows` has the whole flattened array.
+      // Renumbered globally once `groupRows` has the whole flattened array —
+      // a header has no row of its own to carry a dataset position, so
+      // `datasetIndex` takes the same renumbered value `rowIndex` does.
       rowIndex: -1,
+      datasetIndex: -1,
     };
     out.push(header);
     if (expanded) {
@@ -185,9 +188,14 @@ export function groupRows<Row>(
   const out: DisplayRow<Row>[] = [];
   buildLevel(rows, active, [], expansion, byId, out);
 
-  return out.map((entry, index) =>
-    entry.rowIndex === index ? entry : { ...entry, rowIndex: index },
-  );
+  return out.map((entry, index) => {
+    if ("kind" in entry) {
+      return entry.rowIndex === index && entry.datasetIndex === index
+        ? entry
+        : { ...entry, rowIndex: index, datasetIndex: index };
+    }
+    return entry.rowIndex === index ? entry : { ...entry, rowIndex: index };
+  });
 }
 
 /**

@@ -35,6 +35,8 @@ export type {
   GroupExpansionEvent,
   GroupExpansionState,
   GroupFilterEntry,
+  PaginationChangeEvent,
+  PaginationState,
   PredicateFilterEntry,
   ResolvedColumn,
   ResolvedGroupRow,
@@ -128,3 +130,5 @@ export {
   resolveRows,
   resolveShownRows,
 } from "./util/rows";
+export type { PaginatedRows } from "./util/paging";
+export { paginateRows } from "./util/paging";
