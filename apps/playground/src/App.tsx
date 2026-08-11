@@ -1,3 +1,4 @@
+import { CustomPagerGrid } from "./demos/CustomPagerGrid";
 import { FilteredGrid } from "./demos/FilteredGrid";
 import { GroupedGrid } from "./demos/GroupedGrid";
 import { LiveMetricsGrid } from "./demos/LiveMetricsGrid";
@@ -53,6 +54,17 @@ export default function App() {
       </p>
       <div className="mt-2">
         <PaginatedGrid />
+      </div>
+      <h2 className="mt-8 text-lg font-bold">
+        <code>pager.template</code>, a fully custom pager
+      </h2>
+      <p className="mt-2 text-sm text-gray-600">
+        Replaces the built-in pager's markup entirely — this one is styled
+        nothing like it, to show <code>paginated</code> row-windowing works the
+        same either way.
+      </p>
+      <div className="mt-2">
+        <CustomPagerGrid />
       </div>
       <h2 className="mt-8 text-lg font-bold">Fast-changing async data</h2>
       <p className="mt-2 text-sm text-gray-600">
