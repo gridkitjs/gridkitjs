@@ -132,3 +132,5 @@ export {
 } from "./util/rows";
 export type { PaginatedRows } from "./util/paging";
 export { paginateRows } from "./util/paging";
+export type { PaginationWindowEntry } from "./util/paginationWindow";
+export { paginationWindow } from "./util/paginationWindow";
