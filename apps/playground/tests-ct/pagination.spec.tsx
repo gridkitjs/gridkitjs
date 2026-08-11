@@ -272,6 +272,129 @@ test("a grid with paginated off renders every row on one implicit page", async (
   await expect(root.locator(".gridkit-grid-pager")).toHaveCount(0);
 });
 
+function pageButton(root: MountResult, page: number) {
+  return root.getByRole("button", { name: `Page ${String(page)}` });
+}
+
+function ellipses(root: MountResult) {
+  return root.locator(".grid-pager-ellipsis");
+}
+
+test.describe("numbered pager variant", () => {
+  test("renders page-number buttons instead of the status display", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildRows()}
+        label="Numbered pager"
+        paginated
+        defaultPagination={{ pageIndex: 0, pageSize: 1 }}
+        pager={{ variant: "numbered" }}
+      />,
+    );
+
+    await expect(pageButton(root, 1)).toBeVisible();
+    await expect(pagerStatus(root)).toHaveCount(0);
+  });
+
+  test("clicking a page button navigates to that page", async ({ mount }) => {
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildRows()}
+        label="Numbered navigation"
+        paginated
+        defaultPagination={{ pageIndex: 0, pageSize: 1 }}
+        pager={{ variant: "numbered" }}
+      />,
+    );
+
+    // Page 3's button isn't in the initial window (current page 1's siblings
+    // only reach page 2), so land on page 2 first to bring it into view.
+    await pageButton(root, 2).click();
+    expect(await rowIds(root)).toEqual(["r2"]);
+
+    await pageButton(root, 3).click();
+    expect(await rowIds(root)).toEqual(["r3"]);
+  });
+
+  test('the active page\'s button carries aria-current="page"', async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildRows()}
+        label="Numbered active page"
+        paginated
+        defaultPagination={{ pageIndex: 0, pageSize: 1 }}
+        pager={{ variant: "numbered" }}
+      />,
+    );
+
+    await expect(pageButton(root, 1)).toHaveAttribute("aria-current", "page");
+    await expect(pageButton(root, 2)).not.toHaveAttribute("aria-current");
+
+    await pageButton(root, 2).click();
+    await expect(pageButton(root, 2)).toHaveAttribute("aria-current", "page");
+    await expect(pageButton(root, 1)).not.toHaveAttribute("aria-current");
+  });
+
+  test("collapses the gap into an ellipsis once pageCount is large enough to need it", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildRows()}
+        label="Numbered ellipsis"
+        paginated
+        defaultPagination={{ pageIndex: 0, pageSize: 1 }}
+        pager={{ variant: "numbered" }}
+      />,
+    );
+
+    // 7 rows at pageSize 1 = 7 pages; from page 1 the boundary+sibling
+    // window is [1, 2, …, 7] — one ellipsis, on the right only.
+    await expect(ellipses(root)).toHaveCount(1);
+    await expect(pageButton(root, 7)).toBeVisible();
+  });
+
+  test("Previous/Next still work identically in numbered mode", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildRows()}
+        label="Numbered prev/next"
+        paginated
+        defaultPagination={{ pageIndex: 0, pageSize: 1 }}
+        pager={{ variant: "numbered" }}
+      />,
+    );
+
+    const previous = root.getByRole("button", { name: "Previous" });
+    const next = root.getByRole("button", { name: "Next" });
+
+    await expect(previous).toBeDisabled();
+    await next.click();
+    expect(await rowIds(root)).toEqual(["r2"]);
+    await expect(pageButton(root, 2)).toHaveAttribute("aria-current", "page");
+
+    await previous.click();
+    expect(await rowIds(root)).toEqual(["r1"]);
+    await expect(pageButton(root, 1)).toHaveAttribute("aria-current", "page");
+  });
+});
+
 test("aria-rowindex reports each row's absolute dataset position, not its page-relative one", async ({
   mount,
 }) => {
