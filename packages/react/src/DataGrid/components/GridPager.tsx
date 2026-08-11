@@ -3,12 +3,12 @@ import type { PaginationApi } from "../usePagination";
 interface GridPagerProps {
   pager: PaginationApi;
   /** Page sizes offered by the page-size `<select>`. No control renders when omitted or empty. */
-  pageSizeOptions: readonly number[] | undefined;
+  sizeOptions: readonly number[] | undefined;
 }
 
 /**
  * A minimal, semantically-classed pager: previous/next, a page-index
- * display, and — when `pageSizeOptions` is given — a page-size `<select>`.
+ * display, and — when `sizeOptions` is given — a page-size `<select>`.
  * Rendered as a sibling below the table, not a row inside it, the same
  * reasoning `GroupByBar` gives for its own placement: a control surface, not
  * grid content.
@@ -16,7 +16,7 @@ interface GridPagerProps {
  * Whether this mounts at all is `DataGrid.tsx`'s call (`paginated`), not
  * this component's own.
  */
-export default function GridPager({ pager, pageSizeOptions }: GridPagerProps) {
+export default function GridPager({ pager, sizeOptions }: GridPagerProps) {
   const { pagination, pageCount } = pager;
   const currentPage = Math.min(pagination.pageIndex + 1, pageCount);
 
@@ -45,7 +45,7 @@ export default function GridPager({ pager, pageSizeOptions }: GridPagerProps) {
       >
         Next
       </button>
-      {pageSizeOptions !== undefined && pageSizeOptions.length > 0 && (
+      {sizeOptions !== undefined && sizeOptions.length > 0 && (
         <label className="grid-pager-page-size">
           Rows per page
           <select
@@ -54,7 +54,7 @@ export default function GridPager({ pager, pageSizeOptions }: GridPagerProps) {
               pager.setPageSize(Number(event.target.value));
             }}
           >
-            {pageSizeOptions.map((size) => (
+            {sizeOptions.map((size) => (
               <option key={size} value={size}>
                 {size}
               </option>

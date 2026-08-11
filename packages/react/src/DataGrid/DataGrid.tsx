@@ -187,6 +187,12 @@ export interface HoverableConfig {
   cells?: boolean;
 }
 
+/** Presentation options for the grid's built-in pager. */
+export interface PagerConfig {
+  /** Page sizes offered by the built-in pager's page-size control. */
+  sizeOptions?: readonly number[] | undefined;
+}
+
 export interface DataGridProps<Row> extends SelectionCallbacks<Row> {
   columns?: readonly ColumnDefinition<Row>[] | undefined;
   dataSource?: readonly Row[] | undefined;
@@ -320,8 +326,8 @@ export interface DataGridProps<Row> extends SelectionCallbacks<Row> {
    * omitted.
    */
   defaultPagination?: PaginationState | undefined;
-  /** Page sizes offered by the built-in pager's page-size control. */
-  pageSizeOptions?: readonly number[] | undefined;
+  /** Presentation options for the built-in pager. */
+  pager?: PagerConfig | undefined;
   /** Called once when the user changes the page or the page size. */
   onPaginationChange?: ((event: PaginationChangeEvent) => void) | undefined;
   /**
@@ -370,7 +376,7 @@ export function DataGridComponent<Row>({
   defaultFilter,
   paginated = false,
   defaultPagination,
-  pageSizeOptions,
+  pager,
   onPaginationChange,
   label,
   labelledBy,
@@ -769,7 +775,7 @@ export function DataGridComponent<Row>({
     );
   }
 
-  const pager = usePagination<Row>({
+  const paginationApi = usePagination<Row>({
     pagination,
     setPagination,
     rows: displayRows,
@@ -857,10 +863,10 @@ export function DataGridComponent<Row>({
     collapseAllGroups: () => {
       grouping.collapseAll(displayRows);
     },
-    goToPage: pager.goToPage,
-    nextPage: pager.nextPage,
-    previousPage: pager.previousPage,
-    setPageSize: pager.setPageSize,
+    goToPage: paginationApi.goToPage,
+    nextPage: paginationApi.nextPage,
+    previousPage: paginationApi.previousPage,
+    setPageSize: paginationApi.setPageSize,
     scrollToRow: (rowId, options) => {
       // `paginatedRows.rows`, not `displayRows`: a data row's DOM position is
       // its place in the currently rendered page — with grouping active,
@@ -1000,7 +1006,7 @@ export function DataGridComponent<Row>({
         />
       </table>
       {paginated && (
-        <GridPager pager={pager} pageSizeOptions={pageSizeOptions} />
+        <GridPager pager={paginationApi} sizeOptions={pager?.sizeOptions} />
       )}
       {/*
        * Outside the table, which admits no `div`, and polite so it waits for a

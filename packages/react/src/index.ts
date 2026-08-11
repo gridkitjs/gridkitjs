@@ -12,6 +12,7 @@ export {
   type DataGridProps,
   type GroupByBarVisibility,
   type HoverableConfig,
+  type PagerConfig,
   type ResizeMode,
   type ResolvedColumn,
   type SelectedCell,

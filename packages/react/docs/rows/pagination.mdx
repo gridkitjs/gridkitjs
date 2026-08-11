@@ -1,6 +1,6 @@
 ---
 title: "Pagination"
-description: "Splitting rows into pages with paginated, defaultPagination, and pageSizeOptions."
+description: "Splitting rows into pages with paginated, defaultPagination, and pager."
 ---
 
 `paginated` splits the grid's rows into pages of `pagination.pageSize`. It composes after every other row transform — filtering, sorting, and grouping all run first, so a page is a window onto the finished result, never an input to anything else.
@@ -13,12 +13,12 @@ description: "Splitting rows into pages with paginated, defaultPagination, and p
   dataSource={rows}
   paginated
   defaultPagination={{ pageIndex: 0, pageSize: 25 }}
-  pageSizeOptions={[10, 25, 50]}
+  pager={{ sizeOptions: [10, 25, 50] }}
   onPaginationChange={({ pagination }) => persist(pagination)}
 />;
 ```
 
-Off by default, matching `sortableColumns`'s convention. `defaultPagination` seeds the uncontrolled starting page and page size — omit it and a paginated grid starts at `{ pageIndex: 0, pageSize: 25 }`. `pageSizeOptions` feeds the built-in pager's page-size `<select>`; omit it (or pass an empty array) and that control doesn't render, leaving just Previous/Next and the page display.
+Off by default, matching `sortableColumns`'s convention. `defaultPagination` seeds the uncontrolled starting page and page size — omit it and a paginated grid starts at `{ pageIndex: 0, pageSize: 25 }`. `pager.sizeOptions` feeds the built-in pager's page-size `<select>`; omit it (or pass an empty array) and that control doesn't render, leaving just Previous/Next and the page display.
 
 ## A page's unit is a group, not a leaf row
 
@@ -57,7 +57,7 @@ This is also why `aria-rowindex` on a rendered row reports the dataset position,
 
 ## The built-in pager
 
-Turning `paginated` on renders a minimal pager below the grid: a Previous button, a "Page X of Y" display, a Next button, and — when `pageSizeOptions` is given — a page-size `<select>`. It's semantically classed (`gridkit-grid-pager`, `grid-pager-button`, `grid-pager-status`, `grid-pager-page-size`) rather than carrying its own layout, the same as the rest of `@gridkitjs/react`; style it via `@gridkitjs/theme-tailwind` or your own CSS targeting those classes.
+Turning `paginated` on renders a minimal pager below the grid: a Previous button, a "Page X of Y" display, a Next button, and — when `pager.sizeOptions` is given — a page-size `<select>`. It's semantically classed (`gridkit-grid-pager`, `grid-pager-button`, `grid-pager-status`, `grid-pager-page-size`) rather than carrying its own layout, the same as the rest of `@gridkitjs/react`; style it via `@gridkitjs/theme-tailwind` or your own CSS targeting those classes.
 
 There's no prop to suppress the pager short of turning `paginated` off entirely — a paginated grid with no way to move between pages isn't a supported configuration. Drive pagination entirely through the imperative API (`goToPage`, `nextPage`, `previousPage`, `setPageSize` — see below) if you need a pager of your own instead; the built-in one and a custom one both end up calling the same actions.
 
@@ -71,14 +71,14 @@ A user looking at page 7 of a result that filtering, sorting, or regrouping just
 
 ## Props
 
-| Prop                 | Type                                     | Default                          | Description                                                   |
-| -------------------- | ---------------------------------------- | -------------------------------- | ------------------------------------------------------------- |
-| `paginated`          | `boolean`                                | `false`                          | Whether the grid's rows are split into pages.                 |
-| `defaultPagination`  | `PaginationState`                        | `{ pageIndex: 0, pageSize: 25 }` | The page and page size to start on. Uncontrolled.             |
-| `pageSizeOptions`    | `readonly number[]`                      |                                  | Page sizes offered by the built-in pager's page-size control. |
-| `onPaginationChange` | `(event: PaginationChangeEvent) => void` |                                  | Once when the user changes the page or the page size.         |
+| Prop                 | Type                                     | Default                          | Description                                           |
+| -------------------- | ---------------------------------------- | -------------------------------- | ----------------------------------------------------- |
+| `paginated`          | `boolean`                                | `false`                          | Whether the grid's rows are split into pages.         |
+| `defaultPagination`  | `PaginationState`                        | `{ pageIndex: 0, pageSize: 25 }` | The page and page size to start on. Uncontrolled.     |
+| `pager`              | `PagerConfig`                            |                                  | Presentation options for the built-in pager.          |
+| `onPaginationChange` | `(event: PaginationChangeEvent) => void` |                                  | Once when the user changes the page or the page size. |
 
-`PaginationState` is `{ pageIndex: number; pageSize: number }` (`pageIndex` 0-based). `PaginationChangeEvent` is `{ pagination: PaginationState; pageCount: number }` — the state to persist, plus the page count it produces, so a consumer doesn't have to recompute it.
+`PaginationState` is `{ pageIndex: number; pageSize: number }` (`pageIndex` 0-based). `PaginationChangeEvent` is `{ pagination: PaginationState; pageCount: number }` — the state to persist, plus the page count it produces, so a consumer doesn't have to recompute it. `PagerConfig` is `{ sizeOptions?: readonly number[] }`.
 
 ## Imperative handle
 
