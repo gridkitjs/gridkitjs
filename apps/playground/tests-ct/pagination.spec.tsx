@@ -154,7 +154,7 @@ test("changing the page size recomputes the page count and clamps the current pa
       label="Page size change"
       paginated
       defaultPagination={{ pageIndex: 2, pageSize: 3 }}
-      pageSizeOptions={[3, 7]}
+      pager={{ sizeOptions: [3, 7] }}
     />,
   );
 

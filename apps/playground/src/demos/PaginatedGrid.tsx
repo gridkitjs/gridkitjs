@@ -42,7 +42,7 @@ export function PaginatedGrid() {
       sortableColumns
       paginated
       defaultPagination={{ pageIndex: 0, pageSize: 2 }}
-      pageSizeOptions={[2, 4, 10]}
+      pager={{ sizeOptions: [2, 4, 10] }}
     />
   );
 }
