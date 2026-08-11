@@ -1,24 +1,29 @@
+import { paginationWindow } from "@gridkitjs/core";
+import type { PagerConfig } from "../DataGrid";
 import type { PaginationApi } from "../usePagination";
 
 interface GridPagerProps {
   pager: PaginationApi;
-  /** Page sizes offered by the page-size `<select>`. No control renders when omitted or empty. */
-  sizeOptions: readonly number[] | undefined;
+  /** Presentation options for the pager. `undefined` renders the `"compact"` default with no page-size control. */
+  config: PagerConfig | undefined;
 }
 
 /**
  * A minimal, semantically-classed pager: previous/next, a page-index
- * display, and — when `sizeOptions` is given — a page-size `<select>`.
- * Rendered as a sibling below the table, not a row inside it, the same
- * reasoning `GroupByBar` gives for its own placement: a control surface, not
- * grid content.
+ * display (or, under `config.variant === "numbered"`, a row of page
+ * buttons), and — when `config.sizeOptions` is given — a page-size
+ * `<select>`. Rendered as a sibling below the table, not a row inside it,
+ * the same reasoning `GroupByBar` gives for its own placement: a control
+ * surface, not grid content.
  *
  * Whether this mounts at all is `DataGrid.tsx`'s call (`paginated`), not
  * this component's own.
  */
-export default function GridPager({ pager, sizeOptions }: GridPagerProps) {
+export default function GridPager({ pager, config }: GridPagerProps) {
   const { pagination, pageCount } = pager;
   const currentPage = Math.min(pagination.pageIndex + 1, pageCount);
+  const variant = config?.variant ?? "compact";
+  const sizeOptions = config?.sizeOptions;
 
   return (
     <div className="gridkit-grid-pager" role="group" aria-label="Pagination">
@@ -32,9 +37,39 @@ export default function GridPager({ pager, sizeOptions }: GridPagerProps) {
       >
         Previous
       </button>
-      <span className="grid-pager-status">
-        Page {pageCount === 0 ? 0 : currentPage} of {pageCount}
-      </span>
+      {variant === "numbered" ? (
+        paginationWindow(currentPage, pageCount, {
+          boundaryCount: config?.boundaryCount,
+          siblingCount: config?.siblingCount,
+        }).map((entry, index) =>
+          entry === "ellipsis" ? (
+            <span
+              key={`ellipsis-${String(index)}`}
+              className="grid-pager-ellipsis"
+              aria-hidden="true"
+            >
+              …
+            </span>
+          ) : (
+            <button
+              key={entry}
+              type="button"
+              className="grid-pager-button"
+              aria-label={`Page ${String(entry)}`}
+              aria-current={entry === currentPage ? "page" : undefined}
+              onClick={() => {
+                pager.goToPage(entry - 1);
+              }}
+            >
+              {entry}
+            </button>
+          ),
+        )
+      ) : (
+        <span className="grid-pager-status">
+          Page {pageCount === 0 ? 0 : currentPage} of {pageCount}
+        </span>
+      )}
       <button
         type="button"
         className="grid-pager-button"

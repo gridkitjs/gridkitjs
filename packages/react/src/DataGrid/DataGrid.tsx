@@ -191,6 +191,12 @@ export interface HoverableConfig {
 export interface PagerConfig {
   /** Page sizes offered by the built-in pager's page-size control. */
   sizeOptions?: readonly number[] | undefined;
+  /** Defaults to `"compact"` — today's Prev/status/Next. */
+  variant?: "compact" | "numbered" | undefined;
+  /** Numbered variant only. How many pages to always show at each end. Defaults to 1. */
+  boundaryCount?: number | undefined;
+  /** Numbered variant only. How many pages to show on each side of the current page. Defaults to 1. */
+  siblingCount?: number | undefined;
 }
 
 export interface DataGridProps<Row> extends SelectionCallbacks<Row> {
@@ -1005,9 +1011,7 @@ export function DataGridComponent<Row>({
           grouping={grouping}
         />
       </table>
-      {paginated && (
-        <GridPager pager={paginationApi} sizeOptions={pager?.sizeOptions} />
-      )}
+      {paginated && <GridPager pager={paginationApi} config={pager} />}
       {/*
        * Outside the table, which admits no `div`, and polite so it waits for a
        * pause rather than cutting across what the user is already hearing.
