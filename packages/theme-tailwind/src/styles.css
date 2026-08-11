@@ -794,7 +794,23 @@
     opacity: 0.5;
   }
 
+  .grid-pager-button[aria-current="page"] {
+    color: var(--gridkit-fg);
+    background-color: var(--gridkit-selected-strong);
+    border-color: var(--gridkit-accent);
+  }
+
+  .grid-pager-button[aria-current="page"]:hover:not(:disabled) {
+    background-color: var(--gridkit-selected-strong);
+  }
+
   .grid-pager-status {
+    color: var(--gridkit-fg-muted);
+  }
+
+  .grid-pager-ellipsis {
+    padding: 0.25rem 0.625rem;
+    font-size: 0.8125rem;
     color: var(--gridkit-fg-muted);
   }
 
