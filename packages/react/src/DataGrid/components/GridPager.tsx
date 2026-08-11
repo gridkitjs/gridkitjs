@@ -20,8 +20,7 @@ interface GridPagerProps {
  * this component's own.
  */
 export default function GridPager({ pager, config }: GridPagerProps) {
-  const { pagination, pageCount } = pager;
-  const currentPage = Math.min(pagination.pageIndex + 1, pageCount);
+  const { pagination, pageCount, currentPage } = pager;
   const variant = config?.variant ?? "compact";
   const sizeOptions = config?.sizeOptions;
 

@@ -59,7 +59,7 @@ This is also why `aria-rowindex` on a rendered row reports the dataset position,
 
 Turning `paginated` on renders a minimal pager below the grid: a Previous button, a "Page X of Y" display, a Next button, and — when `pager.sizeOptions` is given — a page-size `<select>`. It's semantically classed (`gridkit-grid-pager`, `grid-pager-button`, `grid-pager-status`, `grid-pager-page-size`) rather than carrying its own layout, the same as the rest of `@gridkitjs/react`; style it via `@gridkitjs/theme-tailwind` or your own CSS targeting those classes.
 
-There's no prop to suppress the pager short of turning `paginated` off entirely — a paginated grid with no way to move between pages isn't a supported configuration. Drive pagination entirely through the imperative API (`goToPage`, `nextPage`, `previousPage`, `setPageSize` — see below) if you need a pager of your own instead; the built-in one and a custom one both end up calling the same actions.
+To suppress the built-in pager while keeping row-windowing and the imperative API active, pass `pager={{ template: () => null }}` rather than turning `paginated` off — see [Custom pager template](#custom-pager-template) below.
 
 ### Numbered pagination
 
@@ -79,6 +79,51 @@ There's no prop to suppress the pager short of turning `paginated` off entirely 
 
 Each page button carries `aria-label="Page N"`, and the active page's button carries `aria-current="page"` rather than a dedicated CSS class — style it with `.grid-pager-button[aria-current="page"]`.
 
+### Custom pager template
+
+`pager.template` replaces the built-in pager's markup entirely with your own. It's a render prop, called on every render where pagination-relevant state changed, so it's always current — unlike building a pager purely against the imperative handle, which has no "something changed, re-render" signal of its own for a silent page reset (filtering, sorting, or regrouping shrinking the page count) or a data-driven `pageCount` change.
+
+Reach for `template` only when `pager.variant: "numbered"` genuinely doesn't fit — it already gives you `[Prev][1][2][3]…[n][Next]` with no markup of your own to write.
+
+```ts
+<DataGridComponent
+  columns={columns}
+  dataSource={rows}
+  paginated
+  defaultPagination={{ pageIndex: 0, pageSize: 25 }}
+  pager={{
+    template: ({ currentPage, pageCount, previousPage, nextPage }) => (
+      <div className="my-pager">
+        <button onClick={previousPage} disabled={currentPage <= 1}>
+          Back
+        </button>
+        <span>
+          {currentPage} / {pageCount}
+        </span>
+        <button onClick={nextPage} disabled={currentPage >= pageCount}>
+          Forward
+        </button>
+      </div>
+    ),
+  }}
+/>;
+```
+
+`PagerTemplateContext` carries everything needed to rebuild the built-in pager yourself:
+
+| Field             | Type                             | Description                                                              |
+| ----------------- | -------------------------------- | ------------------------------------------------------------------------ |
+| `pagination`      | `PaginationState`                | Same shape as `DataGridApi.getPagination()` — 0-based `pageIndex`.       |
+| `currentPage`     | `number`                         | `pagination.pageIndex + 1`, clamped — the display-ready page number.     |
+| `pageCount`       | `number`                         | How many pages the current page size splits the rows into.               |
+| `pageSizeOptions` | `readonly number[] \| undefined` | Passthrough of `pager.sizeOptions`.                                      |
+| `goToPage`        | `(pageIndex: number) => void`    | 0-based, same as `DataGridApi.goToPage` — not `currentPage`'s numbering. |
+| `nextPage`        | `() => void`                     | Moves to the next page. A no-op on the last page.                        |
+| `previousPage`    | `() => void`                     | Moves to the previous page. A no-op on the first page.                   |
+| `setPageSize`     | `(pageSize: number) => void`     | Changes the page size, resetting to the first page.                      |
+
+`pager.template={() => null}` is the documented way to suppress the built-in pager UI while keeping `paginated` row-windowing and the imperative API active — no separate `visible`/`showPager` flag needed. `variant` is ignored when `template` is given.
+
 ## Changing pages resets keyboard navigation and range selection to the page
 
 Arrow-key navigation and Shift-click range selection both operate on what's actually rendered — the current page — not the whole dataset. A `Shift`-click range drawn on page 1 and then paged away from does not retroactively include rows revealed by a later page, the same way a range spanning a collapsed group excludes the rows hidden beneath it (see [row grouping](/docs/react/row-grouping)).
@@ -96,16 +141,17 @@ A user looking at page 7 of a result that filtering, sorting, or regrouping just
 | `pager`              | `PagerConfig`                            |                                  | Presentation options for the built-in pager.          |
 | `onPaginationChange` | `(event: PaginationChangeEvent) => void` |                                  | Once when the user changes the page or the page size. |
 
-`PaginationState` is `{ pageIndex: number; pageSize: number }` (`pageIndex` 0-based). `PaginationChangeEvent` is `{ pagination: PaginationState; pageCount: number }` — the state to persist, plus the page count it produces, so a consumer doesn't have to recompute it. `PagerConfig` is `{ sizeOptions?: readonly number[]; variant?: "compact" | "numbered"; boundaryCount?: number; siblingCount?: number }`.
+`PaginationState` is `{ pageIndex: number; pageSize: number }` (`pageIndex` 0-based). `PaginationChangeEvent` is `{ pagination: PaginationState; pageCount: number }` — the state to persist, plus the page count it produces, so a consumer doesn't have to recompute it. `PagerConfig` is `{ sizeOptions?: readonly number[]; variant?: "compact" | "numbered"; boundaryCount?: number; siblingCount?: number; template?: (context: PagerTemplateContext) => ReactNode }`.
 
 ### `pager` fields
 
-| Field           | Type                      | Default     | Description                                                                               |
-| --------------- | ------------------------- | ----------- | ----------------------------------------------------------------------------------------- |
-| `sizeOptions`   | `readonly number[]`       |             | Page sizes offered by the page-size `<select>`. No control renders when omitted or empty. |
-| `variant`       | `"compact" \| "numbered"` | `"compact"` | `"compact"` is the Prev/status/Next display; `"numbered"` shows page-number buttons.      |
-| `boundaryCount` | `number`                  | `1`         | Numbered variant only. Pages always shown at each end.                                    |
-| `siblingCount`  | `number`                  | `1`         | Numbered variant only. Pages shown on each side of the current page.                      |
+| Field           | Type                                           | Default     | Description                                                                               |
+| --------------- | ---------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------- |
+| `sizeOptions`   | `readonly number[]`                            |             | Page sizes offered by the page-size `<select>`. No control renders when omitted or empty. |
+| `variant`       | `"compact" \| "numbered"`                      | `"compact"` | `"compact"` is the Prev/status/Next display; `"numbered"` shows page-number buttons.      |
+| `boundaryCount` | `number`                                       | `1`         | Numbered variant only. Pages always shown at each end.                                    |
+| `siblingCount`  | `number`                                       | `1`         | Numbered variant only. Pages shown on each side of the current page.                      |
+| `template`      | `(context: PagerTemplateContext) => ReactNode` |             | Replaces the built-in pager entirely when given. `variant` is ignored.                    |
 
 ## Imperative handle
 

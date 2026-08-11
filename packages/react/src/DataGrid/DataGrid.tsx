@@ -187,6 +187,28 @@ export interface HoverableConfig {
   cells?: boolean;
 }
 
+/**
+ * Everything a `pager.template` render prop needs to rebuild the built-in
+ * pager's UI itself. Passed fresh on every render where pagination-relevant
+ * state changed, so it's current by construction — unlike `DataGridApi`'s
+ * imperative methods and snapshot getters, which carry no "something
+ * changed, re-render" signal of their own.
+ */
+export interface PagerTemplateContext {
+  /** Same shape as `DataGridApi.getPagination()` — 0-based `pageIndex`. */
+  pagination: PaginationState;
+  /** `pagination.pageIndex + 1`, clamped — the display-ready page number. */
+  currentPage: number;
+  pageCount: number;
+  /** Passthrough of `pager.sizeOptions`, undefined when not given. */
+  pageSizeOptions: readonly number[] | undefined;
+  /** 0-based, same as `DataGridApi.goToPage` — not `currentPage`'s numbering. */
+  goToPage: (pageIndex: number) => void;
+  nextPage: () => void;
+  previousPage: () => void;
+  setPageSize: (pageSize: number) => void;
+}
+
 /** Presentation options for the grid's built-in pager. */
 export interface PagerConfig {
   /** Page sizes offered by the built-in pager's page-size control. */
@@ -197,6 +219,8 @@ export interface PagerConfig {
   boundaryCount?: number | undefined;
   /** Numbered variant only. How many pages to show on each side of the current page. Defaults to 1. */
   siblingCount?: number | undefined;
+  /** Replaces the built-in pager entirely when given. `variant` is ignored. */
+  template?: ((context: PagerTemplateContext) => ReactNode) | undefined;
 }
 
 export interface DataGridProps<Row> extends SelectionCallbacks<Row> {
@@ -1011,7 +1035,21 @@ export function DataGridComponent<Row>({
           grouping={grouping}
         />
       </table>
-      {paginated && <GridPager pager={paginationApi} config={pager} />}
+      {paginated &&
+        (pager?.template ? (
+          pager.template({
+            pagination: paginationApi.pagination,
+            currentPage: paginationApi.currentPage,
+            pageCount: paginationApi.pageCount,
+            pageSizeOptions: pager.sizeOptions,
+            goToPage: paginationApi.goToPage,
+            nextPage: paginationApi.nextPage,
+            previousPage: paginationApi.previousPage,
+            setPageSize: paginationApi.setPageSize,
+          })
+        ) : (
+          <GridPager pager={paginationApi} config={pager} />
+        ))}
       {/*
        * Outside the table, which admits no `div`, and polite so it waits for a
        * pause rather than cutting across what the user is already hearing.

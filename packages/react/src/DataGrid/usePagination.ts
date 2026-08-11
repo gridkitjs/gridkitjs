@@ -18,6 +18,8 @@ interface UsePaginationOptions<Row> {
 export interface PaginationApi {
   pagination: PaginationState;
   pageCount: number;
+  /** `pagination.pageIndex + 1`, clamped to `pageCount` — the display-ready page number. */
+  currentPage: number;
   goToPage: (pageIndex: number) => void;
   nextPage: () => void;
   previousPage: () => void;
@@ -63,6 +65,7 @@ export default function usePagination<Row>({
   return {
     pagination,
     pageCount,
+    currentPage: Math.min(pagination.pageIndex + 1, pageCount),
     goToPage,
     nextPage: () => {
       goToPage(pageIndex + 1);
