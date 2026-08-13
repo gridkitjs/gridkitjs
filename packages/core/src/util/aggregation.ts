@@ -5,9 +5,11 @@ import type {
   BuiltInAggregate,
   ColumnDefinition,
   DisplayRow,
+  GroupAggregateDisplay,
   GroupByState,
   ResolvedColumn,
   ResolvedGroupRow,
+  ResolvedGroupSummaryRow,
   ResolvedRow,
 } from "../types";
 import { accessDotted } from "./grid";
@@ -212,30 +214,135 @@ function leafDescendantsOf<Row>(
  * aggregate (median, distinct count) is never silently wrong at a nested
  * level.
  *
+ * `display: "row"` additionally emits a `ResolvedGroupSummaryRow` right
+ * after each group's last visible entry (its last nested group/data row,
+ * or immediately after its own header when collapsed) — every level gets
+ * its own, the same way every level already gets its own `aggregates`.
+ * `display: "inline"` (the default) emits none; a header's `aggregates`
+ * field is populated either way, since `GridGroupRow`'s own inline
+ * rendering and a summary row both read from it.
+ *
+ * `rowIndex`/`datasetIndex` are renumbered across the whole output when a
+ * row was inserted, the same invariant `groupRows` itself keeps.
+ *
  * Returns `displayRows` itself, untouched, when `specs` is empty — the
  * same reference-equality no-op every other transform across
  * grouping/pagination uses.
  */
+/**
+ * One pass over a contiguous run of `displayRows` sharing one parent — the
+ * top-level call covers the whole array, and each group header found along
+ * the way recurses into its own span (every entry up to the next one at
+ * its level or shallower) the same way, so a group at any nesting depth
+ * gets its own `aggregates` computed and, under `display: "row"`, its own
+ * summary row appended right after everything beneath it.
+ *
+ * Returns the index just past the run this call consumed, so the caller
+ * (itself, one level up, or `withGroupAggregates`) knows where to resume.
+ */
+function appendAggregatedSpan<Row>(
+  displayRows: readonly DisplayRow<Row>[],
+  start: number,
+  levelFloor: number | null,
+  flatRows: readonly ResolvedRow<Row>[],
+  groupBy: GroupByState,
+  byId: ReadonlyMap<string, ColumnDefinition<Row, unknown>>,
+  specs: AggregateState<Row>,
+  columns: readonly ResolvedColumn<Row, unknown>[],
+  display: GroupAggregateDisplay,
+  out: DisplayRow<Row>[],
+): number {
+  let index = start;
+  while (index < displayRows.length) {
+    const entry = displayRows[index];
+    if (entry === undefined) {
+      index++;
+      continue;
+    }
+    if (
+      levelFloor !== null &&
+      "kind" in entry &&
+      entry.kind === "group" &&
+      entry.level <= levelFloor
+    ) {
+      // The next entry at this level or shallower ends the current span —
+      // handled by the caller's own iteration, not this one.
+      break;
+    }
+    index++;
+    if (!("kind" in entry) || entry.kind !== "group") {
+      out.push(entry);
+      continue;
+    }
+
+    const leaves = leafDescendantsOf(flatRows, entry.path, groupBy, byId);
+    const aggregates = computeAggregates(leaves, specs, columns);
+    const withAggregates: ResolvedGroupRow = { ...entry, aggregates };
+    out.push(withAggregates);
+
+    index = appendAggregatedSpan(
+      displayRows,
+      index,
+      entry.level,
+      flatRows,
+      groupBy,
+      byId,
+      specs,
+      columns,
+      display,
+      out,
+    );
+
+    if (display === "row") {
+      const summary: ResolvedGroupSummaryRow = {
+        kind: "group-summary",
+        groupId: entry.groupId,
+        level: entry.level,
+        rowIndex: -1,
+        datasetIndex: -1,
+        aggregates,
+      };
+      out.push(summary);
+    }
+  }
+  return index;
+}
+
 export function withGroupAggregates<Row>(
   displayRows: readonly DisplayRow<Row>[],
   flatRows: readonly ResolvedRow<Row>[],
   groupBy: GroupByState,
   specs: AggregateState<Row>,
   columns: readonly ResolvedColumn<Row, unknown>[],
+  display: GroupAggregateDisplay = "inline",
 ): readonly DisplayRow<Row>[] {
   if (specs.length === 0) {
     return displayRows;
   }
 
   const byId = new Map(columns.map((entry) => [entry.id, entry.column]));
+  const out: DisplayRow<Row>[] = [];
+  appendAggregatedSpan(
+    displayRows,
+    0,
+    null,
+    flatRows,
+    groupBy,
+    byId,
+    specs,
+    columns,
+    display,
+    out,
+  );
 
-  return displayRows.map((entry): DisplayRow<Row> => {
-    if (!("kind" in entry)) {
-      return entry;
+  return out.map((entry, position) => {
+    if ("kind" in entry) {
+      return entry.rowIndex === position && entry.datasetIndex === position
+        ? entry
+        : { ...entry, rowIndex: position, datasetIndex: position };
     }
-    const leaves = leafDescendantsOf(flatRows, entry.path, groupBy, byId);
-    const aggregates = computeAggregates(leaves, specs, columns);
-    const withAggregates: ResolvedGroupRow = { ...entry, aggregates };
-    return withAggregates;
+    return entry.rowIndex === position
+      ? entry
+      : { ...entry, rowIndex: position };
   });
 }

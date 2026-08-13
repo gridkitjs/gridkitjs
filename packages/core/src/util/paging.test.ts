@@ -1,11 +1,13 @@
 import { describe, expect, test } from "vitest";
 
 import type {
+  AggregateState,
   DisplayRow,
   GroupByState,
   ResolvedColumn,
   ResolvedRow,
 } from "../types";
+import { withGroupAggregates } from "./aggregation";
 import { groupRows } from "./grouping";
 import { paginateRows } from "./paging";
 
@@ -21,7 +23,7 @@ function resolvedRow(rowIndex: number, row: SampleRow): ResolvedRow<SampleRow> {
 function isGroup<Row>(
   entry: DisplayRow<Row>,
 ): entry is Extract<DisplayRow<Row>, { kind: "group" }> {
-  return "kind" in entry;
+  return "kind" in entry && entry.kind === "group";
 }
 
 function isDataRow<Row>(entry: DisplayRow<Row>): entry is ResolvedRow<Row> {
@@ -164,6 +166,49 @@ describe("paginateRows", () => {
       // different span length, still exactly one unit either way.
       const page1 = paginateRows(displayRows, { pageIndex: 1, pageSize: 1 });
       expect(page1.rows).toHaveLength(3);
+    });
+  });
+
+  describe('group-summary rows (groupAggregateDisplay: "row")', () => {
+    const columns = [resolvedColumn("Region")];
+
+    const rows: readonly ResolvedRow<SampleRow>[] = [
+      resolvedRow(0, { Id: 1, Region: "East" }),
+      resolvedRow(1, { Id: 2, Region: "East" }),
+      resolvedRow(2, { Id: 3, Region: "West" }),
+      resolvedRow(3, { Id: 4, Region: "West" }),
+      resolvedRow(4, { Id: 5, Region: "West" }),
+    ];
+
+    test("a top-level group's own summary row stays inside that group's unit, not treated as a new top-level boundary", () => {
+      const groupBy: GroupByState = [{ columnId: "Region" }];
+      const specs: AggregateState<SampleRow> = [
+        { columnId: "Id", fn: "count" },
+      ];
+      const displayRows = groupRows(rows, groupBy, [], columns);
+      const aggregatedRows = withGroupAggregates(
+        displayRows,
+        rows,
+        groupBy,
+        specs,
+        columns,
+        "row",
+      );
+
+      // East: header + 2 rows + its own summary row = 4 entries, all one
+      // unit. Without the paging fix, the summary row (level 0, like a
+      // top-level header) would incorrectly start a second unit of its own.
+      const page0 = paginateRows(aggregatedRows, { pageIndex: 0, pageSize: 1 });
+      expect(page0.pageCount).toBe(2);
+      expect(page0.rows).toHaveLength(4);
+      expect(
+        page0.rows.filter(
+          (entry) => "kind" in entry && entry.kind === "group-summary",
+        ),
+      ).toHaveLength(1);
+
+      const page1 = paginateRows(aggregatedRows, { pageIndex: 1, pageSize: 1 });
+      expect(page1.rows).toHaveLength(5); // West: header + 3 rows + summary
     });
   });
 

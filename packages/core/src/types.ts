@@ -412,12 +412,37 @@ export interface ResolvedGroupRow {
 }
 
 /**
- * One entry of a grouped result: either an ordinary data row (no `kind`
- * field at all — ResolvedRow is unchanged, so every existing consumer of
- * plain ResolvedRow[] keeps compiling) or a group header. Discriminate with
- * `"kind" in entry`.
+ * A group's own aggregate results, rendered as a row of its own rather than
+ * inline in its header — see `groupAggregateDisplay: "row"`. Emitted by
+ * `withGroupAggregates` immediately after a group's last visible
+ * descendant (its last nested group or data row, or immediately after its
+ * own header when collapsed), at that same group's `level`, one per group
+ * with `AggregateState` active — mirroring `ResolvedGroupRow` closely
+ * enough that the two are meant to be read side by side.
  */
-export type DisplayRow<Row> = ResolvedRow<Row> | ResolvedGroupRow;
+export interface ResolvedGroupSummaryRow {
+  readonly kind: "group-summary";
+  /** The group this summary belongs to — shared with that group's own `ResolvedGroupRow.groupId`, not a new id of its own. */
+  readonly groupId: string;
+  /** Nesting depth, matching the group's own `level`. */
+  readonly level: number;
+  /** Position among the display rows as rendered — same invariant every other DisplayRow's `rowIndex` keeps. */
+  readonly rowIndex: number;
+  /** This row's absolute position in the whole filtered/sorted/grouped dataset, matching ResolvedRow.datasetIndex. */
+  readonly datasetIndex: number;
+  /** This group's own aggregate results — identical to its `ResolvedGroupRow.aggregates`, computed once and shared rather than recomputed. */
+  readonly aggregates: AggregateResults;
+}
+
+/**
+ * One entry of a grouped result: an ordinary data row (no `kind` field at
+ * all — ResolvedRow is unchanged, so every existing consumer of plain
+ * ResolvedRow[] keeps compiling), a group header, or — only when
+ * `groupAggregateDisplay: "row"` is active — that group's own summary row.
+ * Discriminate with `"kind" in entry`, then `entry.kind`.
+ */
+export type DisplayRow<Row> =
+  ResolvedRow<Row> | ResolvedGroupRow | ResolvedGroupSummaryRow;
 
 /** A reducer this package computes without a custom `AggregateFn`. */
 export type BuiltInAggregate =
@@ -451,6 +476,17 @@ export type AggregateState<Row> = readonly AggregateSpec<Row>[];
 
 /** One computed aggregate result, keyed by `spec.id ?? spec.columnId`. */
 export type AggregateResults = ReadonlyMap<string, unknown>;
+
+/**
+ * Where a group's own aggregate results render. `"inline"` (the default)
+ * keeps them as text in the group header itself, next to its leaf-row
+ * count. `"row"` instead emits a `ResolvedGroupSummaryRow` immediately
+ * after that group's last visible descendant, with each aggregate's value
+ * in the `<td>` for its own column — the same alignment a grand-total
+ * footer cell has to its column, just scoped to one group instead of the
+ * whole dataset.
+ */
+export type GroupAggregateDisplay = "inline" | "row";
 
 interface FilterEntryBase<Row> {
   readonly columnId?: FieldPath<Row> | (string & {});
