@@ -1,3 +1,4 @@
+import { AggregatedGrid } from "./demos/AggregatedGrid";
 import { CustomPagerGrid } from "./demos/CustomPagerGrid";
 import { FilteredGrid } from "./demos/FilteredGrid";
 import { GroupedGrid } from "./demos/GroupedGrid";
@@ -65,6 +66,19 @@ export default function App() {
       </p>
       <div className="mt-2">
         <CustomPagerGrid />
+      </div>
+      <h2 className="mt-8 text-lg font-bold">
+        <code>aggregates</code>, grouped by Region
+      </h2>
+      <p className="mt-2 text-sm text-gray-600">
+        Each region's header shows its own <code>sum</code>/<code>avg</code>{" "}
+        subtotal of Amount, inline next to its row count — computed over the
+        full dataset, not just what's currently rendered. A grand-total footer
+        below the grid totals every row the same way, regardless of grouping or
+        collapse state.
+      </p>
+      <div className="mt-2">
+        <AggregatedGrid />
       </div>
       <h2 className="mt-8 text-lg font-bold">Fast-changing async data</h2>
       <p className="mt-2 text-sm text-gray-600">
