@@ -500,6 +500,37 @@
   }
 
   /*
+   * A group's own subtotals, inline after its count — `gap` on the parent
+   * `.grid-group-cell-content` already spaces every child, this just keeps
+   * multiple aggregates readable as a list rather than running together.
+   */
+  .gridkit-data-grid .grid-group-row .group-aggregates {
+    display: flex;
+    gap: 0.75rem;
+    margin-inline-start: 0.5rem;
+    font-weight: 400;
+  }
+
+  .gridkit-data-grid .grid-group-row .group-aggregate {
+    color: var(--gridkit-fg-muted);
+  }
+
+  /*
+   * The grand-total footer, styled as the header's counterpart: same
+   * surface, same cell padding. No border by default, matching the
+   * header's own `.header-cell` — see the `borders-*` variants below for
+   * the opt-in top border that echoes the header's bottom one.
+   */
+  .gridkit-data-grid .grid-footer {
+    background-color: var(--gridkit-surface);
+  }
+
+  .gridkit-data-grid .grid-footer-cell {
+    padding: 0.5rem;
+    font-weight: 600;
+  }
+
+  /*
    * Selection, after the hover rules so that a selected row hovered stays
    * selected — the two would otherwise be the same colour, since hover already
    * claims `--gridkit-surface-muted`.
@@ -558,6 +589,16 @@
   }
 
   /*
+   * The footer's own top border, echoing the header's bottom-anchored one —
+   * a `border-top` rather than a `border-bottom` on the last body row, since
+   * the footer sits in its own `<tfoot>` outside `<tbody>` entirely.
+   */
+  .gridkit-data-grid.borders-horizontal .grid-footer-cell,
+  .gridkit-data-grid.borders-all .grid-footer-cell {
+    border-top: 1px solid var(--gridkit-line);
+  }
+
+  /*
    * The last row's bottom edge has no row below it to collapse with, so
    * unlike every internal boundary it is a genuinely extra pixel — the same
    * reason `borders-vertical` drops its `:last-child` border-right below.
@@ -573,12 +614,14 @@
 
   /* Vertical borders */
   .gridkit-data-grid.borders-vertical .grid-header .header-cell,
-  .gridkit-data-grid.borders-vertical .grid-cell {
+  .gridkit-data-grid.borders-vertical .grid-cell,
+  .gridkit-data-grid.borders-vertical .grid-footer-cell {
     border-right: 1px solid var(--gridkit-line);
   }
 
   .gridkit-data-grid.borders-vertical .grid-header .header-cell:last-child,
-  .gridkit-data-grid.borders-vertical .grid-cell:last-child {
+  .gridkit-data-grid.borders-vertical .grid-cell:last-child,
+  .gridkit-data-grid.borders-vertical .grid-footer-cell:last-child {
     border-right: none;
   }
 
@@ -587,6 +630,10 @@
   .gridkit-data-grid.borders-all .grid-cell,
   .gridkit-data-grid.borders-all .grid-group-cell {
     border-bottom: 1px solid var(--gridkit-line);
+    border-right: 1px solid var(--gridkit-line);
+  }
+
+  .gridkit-data-grid.borders-all .grid-footer-cell {
     border-right: 1px solid var(--gridkit-line);
   }
 
@@ -599,13 +646,15 @@
    */
   .gridkit-data-grid.borders-all .grid-header .header-cell:first-child,
   .gridkit-data-grid.borders-all .grid-cell:first-child,
-  .gridkit-data-grid.borders-all .grid-group-cell {
+  .gridkit-data-grid.borders-all .grid-group-cell,
+  .gridkit-data-grid.borders-all .grid-footer-cell:first-child {
     border-left: none;
   }
 
   .gridkit-data-grid.borders-all .grid-header .header-cell:last-child,
   .gridkit-data-grid.borders-all .grid-cell:last-child,
-  .gridkit-data-grid.borders-all .grid-group-cell {
+  .gridkit-data-grid.borders-all .grid-group-cell,
+  .gridkit-data-grid.borders-all .grid-footer-cell:last-child {
     border-right: none;
   }
 
