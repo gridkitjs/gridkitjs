@@ -1,7 +1,10 @@
 import { memo, type ReactNode } from "react";
+import type { AggregateResults, AggregateState } from "@gridkitjs/core";
+import type { ResolvedColumn } from "../DataGrid";
 import { classNames } from "../classNames";
+import { formatAggregateValue } from "./formatAggregateValue";
 
-interface GridGroupRowProps {
+interface GridGroupRowProps<Row> {
   /** How many columns this group's header spans, matching the grid's own count. */
   columnCount: number;
   groupId: string;
@@ -22,6 +25,11 @@ interface GridGroupRowProps {
   setsize: number;
   /** Whether this row currently holds the grid's single tab stop. */
   focused: boolean;
+  /** Active aggregates — empty when none are active, in which case no subtotal renders. */
+  aggregates: AggregateState<Row>;
+  /** This group's own computed results, keyed the same way `aggregates` resolves each spec's key. */
+  results: AggregateResults;
+  columns: readonly ResolvedColumn<Row>[];
 }
 
 /**
@@ -51,7 +59,7 @@ function formatGroupValue(value: unknown): string {
   }
 }
 
-function GridGroupRowComponent({
+function GridGroupRowComponent<Row>({
   columnCount,
   groupId,
   level,
@@ -63,7 +71,12 @@ function GridGroupRowComponent({
   posinset,
   setsize,
   focused,
-}: GridGroupRowProps) {
+  aggregates,
+  results,
+  columns,
+}: GridGroupRowProps<Row>) {
+  const byId = new Map(columns.map((entry) => [entry.id, entry]));
+
   return (
     <tr
       role="row"
@@ -112,6 +125,26 @@ function GridGroupRowComponent({
             {columnLabel}: {formatGroupValue(value)}
           </span>
           <span className="group-count">({count})</span>
+          {aggregates.length > 0 && (
+            <span className="group-aggregates">
+              {aggregates.map((spec) => {
+                const key = spec.id ?? spec.columnId;
+                const aggregateValue = results.get(key);
+                const column = byId.get(spec.columnId);
+                const rendered = column?.column.footerTemplate
+                  ? column.column.footerTemplate({
+                      value: aggregateValue,
+                      rows: [],
+                    })
+                  : formatAggregateValue(aggregateValue);
+                return (
+                  <span key={key} className="group-aggregate">
+                    {column?.label ?? spec.columnId}: {rendered}
+                  </span>
+                );
+              })}
+            </span>
+          )}
         </div>
       </td>
     </tr>
@@ -124,6 +157,8 @@ function GridGroupRowComponent({
  * directly — `GridBody` delegates group-header clicks and keydowns the same
  * way it does for data rows.
  */
-const GridGroupRow = memo(GridGroupRowComponent);
+const GridGroupRow = memo(
+  GridGroupRowComponent,
+) as typeof GridGroupRowComponent;
 
 export default GridGroupRow;

@@ -1,4 +1,9 @@
 {
   "title": "Rows",
-  "order": ["row-selection", "row-grouping", "pagination"]
+  "order": [
+    "row-selection",
+    "row-grouping",
+    "pagination",
+    "aggregate-functions"
+  ]
 }

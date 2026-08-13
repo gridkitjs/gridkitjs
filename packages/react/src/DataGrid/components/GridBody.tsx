@@ -1,5 +1,10 @@
 import { useMemo } from "react";
-import { groupRowId, intentOf, type DisplayRow } from "@gridkitjs/core";
+import {
+  groupRowId,
+  intentOf,
+  type AggregateState,
+  type DisplayRow,
+} from "@gridkitjs/core";
 import type { ResolvedColumn } from "../DataGrid";
 import type { GridNavigationApi } from "../useGridNavigation";
 import type { RowGroupingApi } from "../useRowGrouping";
@@ -18,6 +23,8 @@ interface GridBodyProps<Row> {
   nav: GridNavigationApi;
   selection: GridSelectionApi;
   grouping: RowGroupingApi<Row>;
+  /** Active aggregates, for a group header to render its own subtotal inline. Empty when none are active. */
+  aggregates: AggregateState<Row>;
 }
 
 /** Where a cell sits, read off the table's own indices rather than an attribute. */
@@ -127,6 +134,7 @@ export default function GridBody<Row>({
   nav,
   selection,
   grouping,
+  aggregates,
 }: GridBodyProps<Row>) {
   const { selectedCell, rowMode, cellMode } = selection;
   const ariaMeta = useMemo(() => groupAriaMeta(rows), [rows]);
@@ -237,6 +245,9 @@ export default function GridBody<Row>({
             datasetIndex={entry.datasetIndex}
             posinset={ariaMeta.get(entry.groupId)?.posinset ?? 1}
             setsize={ariaMeta.get(entry.groupId)?.setsize ?? 1}
+            aggregates={aggregates}
+            results={entry.aggregates}
+            columns={columns}
             // Ignores `nav.focus.columnIndex`: with only one cell in this
             // row, whether it holds the tab stop depends on `rowIndex`
             // alone.
