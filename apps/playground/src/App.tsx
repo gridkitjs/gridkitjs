@@ -71,11 +71,15 @@ export default function App() {
         <code>aggregates</code>, grouped by Region
       </h2>
       <p className="mt-2 text-sm text-gray-600">
-        Each region's header shows its own <code>sum</code>/<code>avg</code>{" "}
-        subtotal of Amount, inline next to its row count — computed over the
-        full dataset, not just what's currently rendered. A grand-total footer
-        below the grid totals every row the same way, regardless of grouping or
-        collapse state.
+        Every built-in aggregate at once — <code>sum</code>/<code>avg</code>/
+        <code>min</code>/<code>max</code> of Amount, <code>min</code>/
+        <code>max</code> of the Closed date, <code>count</code> of every row,
+        <code>countDistinct</code> of Rep — plus a custom function computing the
+        percent of rows still Open. Each region's results render inline or as
+        their own summary row, per <code>groupAggregateDisplay</code>, computed
+        over the full dataset regardless of what's currently rendered. A
+        grand-total footer below the grid totals every row the same way,
+        regardless of grouping or collapse state.
       </p>
       <div className="mt-2">
         <AggregatedGrid />
