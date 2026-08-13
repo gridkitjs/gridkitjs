@@ -137,9 +137,15 @@ function GridGroupRowComponent<Row>({
                       rows: [],
                     })
                   : formatAggregateValue(aggregateValue);
+                // An explicit `id` disambiguates two specs on the same
+                // column (e.g. both `sum` and `avg` of Amount) — when given,
+                // it's the caller's own label for this result, so it takes
+                // priority over the column's shared label.
+                const aggregateLabel =
+                  spec.id ?? column?.label ?? spec.columnId;
                 return (
                   <span key={key} className="group-aggregate">
-                    {column?.label ?? spec.columnId}: {rendered}
+                    {aggregateLabel}: {rendered}
                   </span>
                 );
               })}

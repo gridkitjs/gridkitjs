@@ -18,6 +18,11 @@ interface GridFooterProps<Row> {
  * everything interactive: a footer cell is not resizable, sortable, or
  * selectable.
  *
+ * A column named by more than one spec (e.g. both `sum` and `avg` of the
+ * same column, disambiguated by `id`) renders every matching spec's result
+ * in its one cell, comma-separated — the cell grid stays one-per-column,
+ * but no result is dropped the way picking only the first match would.
+ *
  * Sits outside `<tbody>`'s row count on purpose — a `<tfoot>` is not part
  * of `aria-rowcount`/`aria-rowindex`/keyboard navigation's `rowCount`, the
  * same way `<thead>`'s header row is counted separately from data rows.
@@ -32,12 +37,9 @@ export default function GridFooter<Row>({
     <tfoot>
       <tr className="grid-footer" role="row">
         {columns.map((entry) => {
-          const spec = aggregates.find(
+          const specs = aggregates.filter(
             (candidate) => candidate.columnId === entry.id,
           );
-          const key =
-            spec === undefined ? undefined : (spec.id ?? spec.columnId);
-          const value = key === undefined ? undefined : results.get(key);
           const { column } = entry;
 
           return (
@@ -47,10 +49,18 @@ export default function GridFooter<Row>({
               data-gridkit-column={entry.id}
               className="grid-footer-cell"
             >
-              {spec !== undefined &&
-                (column.footerTemplate
-                  ? column.footerTemplate({ value, rows })
-                  : formatAggregateValue(value))}
+              {specs
+                .map((spec) => {
+                  const value = results.get(spec.id ?? spec.columnId);
+                  return column.footerTemplate
+                    ? column.footerTemplate({ value, rows })
+                    : formatAggregateValue(value);
+                })
+                // Two values in one cell need a visible separator; a single
+                // one (the common case) renders exactly as before.
+                .flatMap((rendered, index) =>
+                  index === 0 ? [rendered] : [", ", rendered],
+                )}
             </td>
           );
         })}
