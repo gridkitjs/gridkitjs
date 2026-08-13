@@ -72,6 +72,19 @@ export interface CellTemplateContext<Row> {
 }
 
 /**
+ * What a column's `footerTemplate` receives. Mirrors `CellTemplateContext`'s
+ * shape where it applies — `value`, `rows` — minus everything scoped to one
+ * rendered row (`rowIndex`, `rowId`, `selected`), since a footer addresses
+ * every row an aggregate was computed over at once, not a single one.
+ */
+export interface FooterTemplateContext<Row> {
+  /** This column's aggregate result, as `computeAggregates` produced it. */
+  value: unknown;
+  /** Every row the aggregate was computed over — the grand total's full dataset, or one group's full leaf descendants. */
+  rows: readonly Row[];
+}
+
+/**
  * @typeParam Node - What a header or cell renders to. This package is
  * framework-agnostic so it defaults to `string`; `@gridkitjs/react` binds it to
  * `ReactNode` so a template can return JSX.
@@ -97,6 +110,13 @@ export interface ColumnDefinition<Row, Node = string> {
    * it never repeats the field path.
    */
   cellTemplate?: ((context: CellTemplateContext<Row>) => Node) | undefined;
+  /**
+   * Renders this column's own aggregate result in a group footer or the
+   * grand-total footer, in place of the raw computed value. Absent for a
+   * column with no aggregate: nothing is shown, the same way a column
+   * missing from `AggregateState` contributes no cell to either footer.
+   */
+  footerTemplate?: ((context: FooterTemplateContext<Row>) => Node) | undefined;
   /**
    * The value type of this column's cells. This package is framework-agnostic so it
    * defaults to `string`;
@@ -363,9 +383,8 @@ export interface GroupExpansionEvent {
  * down to and including this group's own, outermost first — what a header
  * template needs to render "West / Enterprise", not just "Enterprise".
  *
- * Not parameterized by `Row`: nothing here holds a `Row`-typed value today.
- * A future field that does (an aggregate) can add that parameter when it
- * exists, rather than carrying an unused one now.
+ * Not parameterized by `Row`: nothing here holds a `Row`-typed value today —
+ * `aggregates` holds computed `unknown` results, not rows themselves.
  */
 export interface ResolvedGroupRow {
   readonly kind: "group";
@@ -384,6 +403,12 @@ export interface ResolvedGroupRow {
   readonly rowIndex: number;
   /** This header's absolute position in the whole filtered/sorted/grouped dataset, matching ResolvedRow.datasetIndex. */
   readonly datasetIndex: number;
+  /**
+   * This group's own aggregate results, computed over its full leaf-row
+   * descendants regardless of collapse state — see `withGroupAggregates`.
+   * Empty when no `AggregateState` is active.
+   */
+  readonly aggregates: AggregateResults;
 }
 
 /**
@@ -393,6 +418,39 @@ export interface ResolvedGroupRow {
  * `"kind" in entry`.
  */
 export type DisplayRow<Row> = ResolvedRow<Row> | ResolvedGroupRow;
+
+/** A reducer this package computes without a custom `AggregateFn`. */
+export type BuiltInAggregate =
+  "sum" | "avg" | "min" | "max" | "count" | "countDistinct";
+
+/**
+ * Called with every raw row in scope — always the full leaf set, never a
+ * partial reduction combined from child groups, so a non-associative
+ * aggregate (median, distinct count) is never computed from
+ * already-aggregated values. Mirrors `FilterPredicate`'s shape, minus the
+ * per-row `value` since an aggregate reduces across rows rather than
+ * testing one.
+ */
+export type AggregateFn<Row> = (rows: readonly Row[]) => unknown;
+
+/** One aggregate to compute against a column — a built-in reducer, or custom logic via `fn`. */
+export interface AggregateSpec<Row> {
+  readonly columnId: string;
+  readonly fn: BuiltInAggregate | AggregateFn<Row>;
+  /** Distinguishes two aggregates on the same column (e.g. both sum and avg of Amount). Defaults to columnId, mirroring ColumnDefinition.id defaulting to field. */
+  readonly id?: string;
+}
+
+/**
+ * The active aggregates to compute. Empty for a grid with none, mirroring
+ * `FilterState`'s empty array for "no filter". A fully controlled prop —
+ * unlike `sort`/`filter`/`groupBy`/`pagination`, there is no built-in UI
+ * affordance for a user to add or remove an aggregate interactively.
+ */
+export type AggregateState<Row> = readonly AggregateSpec<Row>[];
+
+/** One computed aggregate result, keyed by `spec.id ?? spec.columnId`. */
+export type AggregateResults = ReadonlyMap<string, unknown>;
 
 interface FilterEntryBase<Row> {
   readonly columnId?: FieldPath<Row> | (string & {});
