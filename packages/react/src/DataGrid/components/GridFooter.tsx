@@ -21,7 +21,12 @@ interface GridFooterProps<Row> {
  * A column named by more than one spec (e.g. both `sum` and `avg` of the
  * same column, disambiguated by `id`) renders every matching spec's result
  * in its one cell, comma-separated — the cell grid stays one-per-column,
- * but no result is dropped the way picking only the first match would.
+ * but no result is dropped the way picking only the first match would. The
+ * cell's own alignment follows the first matching spec's `AggregateSpec.
+ * alignment` override, falling back to the column's own `alignment` when
+ * neither is set — one `<td>` can only take one `text-align`, so a second
+ * spec's own override (if it disagrees) applies only to its value, not the
+ * cell.
  *
  * Sits outside `<tbody>`'s row count on purpose — a `<tfoot>` is not part
  * of `aria-rowcount`/`aria-rowindex`/keyboard navigation's `rowCount`, the
@@ -48,6 +53,7 @@ export default function GridFooter<Row>({
               role="gridcell"
               data-gridkit-column={entry.id}
               className="grid-footer-cell"
+              style={{ textAlign: specs[0]?.alignment ?? entry.alignment }}
             >
               {specs
                 .map((spec) => {

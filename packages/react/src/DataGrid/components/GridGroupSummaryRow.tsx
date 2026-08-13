@@ -29,6 +29,10 @@ interface GridGroupSummaryRowProps<Row> {
  * never a keyboard tab stop — `DataGrid.tsx`'s `isSkippableRow` steps over
  * it during arrow-key navigation the same way this component itself takes
  * no `tabIndex`, `role="row"`/`"gridcell"` only, no interactive attributes.
+ *
+ * Each cell's alignment follows the same rule `GridFooter`'s own cells do:
+ * the first matching spec's `AggregateSpec.alignment` override, falling
+ * back to the column's own `alignment` when neither is set.
  */
 function GridGroupSummaryRowComponent<Row>({
   groupId,
@@ -60,6 +64,7 @@ function GridGroupSummaryRowComponent<Row>({
             role="gridcell"
             data-gridkit-column={entry.id}
             className="grid-group-summary-cell"
+            style={{ textAlign: specs[0]?.alignment ?? entry.alignment }}
           >
             {entry.id === columns[0]?.id && (
               <span

@@ -14,8 +14,9 @@ Aggregates: compute a subtotal per group and a grand total over the whole filter
 />;
 ```
 
-- `aggregates` is a plain controlled prop — `AggregateState<Row>`, an array of `{ columnId, fn, id? }` specs. Unlike `sort`/`filter`/`groupBy`/`pagination`, there is no built-in UI to add or remove an aggregate interactively, so there's no `defaultAggregates`/`onAggregatesChange` pair.
+- `aggregates` is a plain controlled prop — `AggregateState<Row>`, an array of `{ columnId, fn, id?, alignment? }` specs. Unlike `sort`/`filter`/`groupBy`/`pagination`, there is no built-in UI to add or remove an aggregate interactively, so there's no `defaultAggregates`/`onAggregatesChange` pair.
 - `groupAggregateDisplay` chooses how a group's own subtotal renders: `"inline"` (the default) keeps it as text in the group header, next to its leaf-row count; `"row"` instead renders a dedicated row after that group's last visible entry, with each aggregate's value in the `<td>` for its own column, aligned the same way the grand-total footer's cells are.
+- A footer or `"row"`-mode summary cell aligns the same way its column's own data cells do, unless `AggregateSpec.alignment` overrides it for that specific aggregate — e.g. centering a `count` under an otherwise right-aligned currency column. When two specs share a column and disagree, the first one in `aggregates` wins for that shared cell.
 - A grand-total footer (a `<tfoot>`, outside `aria-rowcount`) renders below the body whenever `aggregates` is non-empty, regardless of `groupAggregateDisplay`.
 - `ColumnDefinition.footerTemplate` renders a column's own aggregate result in place of its plain formatted value, in the grand-total footer and — under `groupAggregateDisplay: "row"` — a group's own summary row.
 - A group's summary row is presentational: it occupies a real row slot (`aria-rowindex` counts it, same as a header or data row) but the arrow keys step over it rather than landing a tab stop there, and it never splits from its own group across a page boundary.

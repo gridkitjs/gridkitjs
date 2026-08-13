@@ -62,6 +62,21 @@ const aggregates: AggregateState<Row> = [
 
 `id` disambiguates two specs on the same column — here, `sum` keys its result as `"Amount"` (`id` defaults to `columnId`, mirroring `ColumnDefinition.id` defaulting to `field`) while `avg` needs its own `"avgAmount"` key so the two don't collide.
 
+## Cell alignment
+
+A footer or `"row"`-mode summary cell inherits its column's own `alignment` by default — a `type: "currency"` column's cells align right, and so does its `sum`. `AggregateSpec.alignment` overrides that for one specific aggregate:
+
+```ts
+const aggregates: AggregateState<Row> = [
+  { columnId: "Amount", fn: "sum" },
+  // Renders centered even though Amount's own cells (and its sum, above)
+  // align right.
+  { columnId: "Amount", fn: "count", id: "Transactions", alignment: "center" },
+];
+```
+
+Only the footer and `"row"`-mode summary cells read `alignment` — `"inline"` rendering is text inside the header's own cell, not a cell of its own, so alignment doesn't apply there. When two specs share a column and disagree, the **first one** in `aggregates` wins for that shared `<td>`: one cell can only take one `text-align`, and both results still render, comma-separated, regardless of which one's alignment was used.
+
 ## Writing a custom aggregate function
 
 `fn` can be your own function in place of a built-in name — called once with every raw row in scope, returning whatever value you want rendered:
@@ -139,7 +154,7 @@ gridRef.current?.getDisplayRows(); // each group header's own `aggregates` field
 | `aggregates`            | `AggregateState<Row>` |            | Aggregates to compute — a subtotal per group and a grand total. Controlled.            |
 | `groupAggregateDisplay` | `"inline" \| "row"`   | `"inline"` | Where a group's own subtotal renders. No effect when `aggregates` is empty or omitted. |
 
-`AggregateState<Row>` is `readonly AggregateSpec<Row>[]`. `AggregateSpec<Row>` is `{ columnId: string; fn: BuiltInAggregate | AggregateFn<Row>; id?: string }`. `BuiltInAggregate` is `"sum" | "avg" | "min" | "max" | "count" | "countDistinct"`. `AggregateFn<Row>` is `(rows: readonly Row[]) => unknown`. `AggregateResults` is `ReadonlyMap<string, unknown>`.
+`AggregateState<Row>` is `readonly AggregateSpec<Row>[]`. `AggregateSpec<Row>` is `{ columnId: string; fn: BuiltInAggregate | AggregateFn<Row>; id?: string; alignment?: ColumnAlignment }`. `BuiltInAggregate` is `"sum" | "avg" | "min" | "max" | "count" | "countDistinct"`. `AggregateFn<Row>` is `(rows: readonly Row[]) => unknown`. `AggregateResults` is `ReadonlyMap<string, unknown>`. `ColumnAlignment` is `"left" | "center" | "right"`, the same type `ColumnDefinition.alignment` uses.
 
 `ColumnDefinition.footerTemplate` is `(context: FooterTemplateContext<Row>) => Node`, where `FooterTemplateContext<Row>` is `{ value: unknown; rows: readonly Row[] }`.
 
