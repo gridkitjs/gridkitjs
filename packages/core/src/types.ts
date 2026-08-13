@@ -464,6 +464,16 @@ export interface AggregateSpec<Row> {
   readonly fn: BuiltInAggregate | AggregateFn<Row>;
   /** Distinguishes two aggregates on the same column (e.g. both sum and avg of Amount). Defaults to columnId, mirroring ColumnDefinition.id defaulting to field. */
   readonly id?: string;
+  /**
+   * Overrides this aggregate's own cell alignment, in the grand-total
+   * footer and a group's own summary row (`groupAggregateDisplay: "row"`)
+   * — inline rendering (`"inline"`) is text, not a cell, so this has no
+   * effect there. Falls back to the column's own `alignment` when omitted.
+   * When two specs share a column and disagree, the first one in
+   * `AggregateState` wins for that shared cell, since one `<td>` can only
+   * take one `text-align`.
+   */
+  readonly alignment?: ColumnAlignment;
 }
 
 /**
