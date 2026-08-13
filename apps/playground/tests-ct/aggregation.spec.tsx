@@ -355,3 +355,79 @@ test.describe('groupAggregateDisplay: "row"', () => {
     await expect(east.locator(".group-aggregate")).toHaveText("amount: 60");
   });
 });
+
+test.describe("cell alignment", () => {
+  test("a footer cell without an alignment override inherits its column's own alignment", async ({
+    mount,
+  }) => {
+    const alignedColumns: readonly ColumnDefinition<Row>[] = [
+      { field: "id", width: 80 },
+      { field: "region", width: 100 },
+      { field: "amount", width: 100, type: "number", alignment: "right" },
+    ];
+    const aggregates: AggregateState<Row> = [{ columnId: "amount", fn: "sum" }];
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={alignedColumns}
+        dataSource={buildRows()}
+        label="Footer inherits column alignment"
+        aggregates={aggregates}
+      />,
+    );
+
+    const amountCell = footer(root).locator('td[data-gridkit-column="amount"]');
+    await expect(amountCell).toHaveCSS("text-align", "right");
+  });
+
+  test("AggregateSpec.alignment overrides the column's own alignment, in both the footer and a group's summary row", async ({
+    mount,
+  }) => {
+    const aggregates: AggregateState<Row> = [
+      { columnId: "amount", fn: "sum", alignment: "center" },
+    ];
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildRows()}
+        label="Spec overrides alignment"
+        defaultGroupBy={[{ columnId: "region" }]}
+        aggregates={aggregates}
+        groupAggregateDisplay="row"
+      />,
+    );
+
+    const footerCell = footer(root).locator('td[data-gridkit-column="amount"]');
+    await expect(footerCell).toHaveCSS("text-align", "center");
+
+    const summaryCell = groupSummaryRows(root)
+      .first()
+      .locator('td[data-gridkit-column="amount"]');
+    await expect(summaryCell).toHaveCSS("text-align", "center");
+  });
+
+  test("when two specs share a column and disagree on alignment, the first one in AggregateState wins for the whole cell", async ({
+    mount,
+  }) => {
+    const aggregates: AggregateState<Row> = [
+      { columnId: "amount", fn: "sum", alignment: "left" },
+      { columnId: "amount", fn: "avg", id: "avg", alignment: "right" },
+    ];
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildRows()}
+        label="First spec wins"
+        aggregates={aggregates}
+      />,
+    );
+
+    const amountCell = footer(root).locator('td[data-gridkit-column="amount"]');
+    await expect(amountCell).toHaveCSS("text-align", "left");
+    // Both values still render — the alignment conflict resolves without
+    // dropping either result.
+    await expect(amountCell).toHaveText("150, 30");
+  });
+});

@@ -72,8 +72,11 @@ const aggregates: AggregateState<Row> = [
   { columnId: "Amount", fn: "max", id: "Highest" },
   { columnId: "Closed", fn: "min", id: "Earliest" },
   { columnId: "Closed", fn: "max", id: "Latest" },
-  // count — every row in scope, regardless of its own values.
-  { columnId: "Id", fn: "count" },
+  // count — every row in scope, regardless of its own values. `alignment`
+  // overrides Id's own left alignment for just this aggregate, since a
+  // plain count reads better centered than flush with the row numbers
+  // above it.
+  { columnId: "Id", fn: "count", alignment: "center" },
   // countDistinct — distinct non-empty Rep values in scope.
   { columnId: "Rep", fn: "countDistinct", id: "Reps" },
   // A custom aggregate function: the fraction of rows in scope still Open,
@@ -108,7 +111,10 @@ const displayModes: readonly {
  * a grand-total footer below the grid totals every row the same way,
  * regardless of grouping, collapse state, or which display mode is
  * selected. `Amount`/`Closed`'s own `footerTemplate` format their results
- * the same way their `cellTemplate` formats the plain cells.
+ * the same way their `cellTemplate` formats the plain cells; every other
+ * footer/summary cell aligns the same way its column's own data cells do,
+ * except `count`, whose `AggregateSpec.alignment: "center"` overrides
+ * Id's own left alignment for just that one aggregate.
  */
 export function AggregatedGrid() {
   const [groupAggregateDisplay, setGroupAggregateDisplay] = useState<
