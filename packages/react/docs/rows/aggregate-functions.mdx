@@ -21,6 +21,28 @@ description: "Computing group subtotals and a grand total with aggregates, the b
 
 With `groupBy` active, every group header shows its own subtotal next to its leaf-row count — `Region: West (3) amount: 90`. Whether or not grouping is active, a grand-total footer renders below the grid whenever `aggregates` is non-empty.
 
+## Inline vs. a group's own summary row
+
+`groupAggregateDisplay` chooses how a group's own subtotal renders:
+
+```ts
+<DataGridComponent
+  columns={columns}
+  dataSource={rows}
+  groupableColumns
+  defaultGroupBy={[{ columnId: "Region" }]}
+  aggregates={[{ columnId: "Amount", fn: "sum" }]}
+  groupAggregateDisplay="row"
+/>;
+```
+
+- **`"inline"`** (the default) — text in the group header itself, next to its leaf-row count, as shown above.
+- **`"row"`** — a dedicated row immediately after that group's last visible entry (its last nested group or data row, or right after its own header when collapsed), with each aggregate's value in the `<td>` for its own column — the same alignment the grand-total footer's own cells have to their columns. A column with no aggregate spec gets a blank cell, the same way the footer's does.
+
+Every nesting level gets its own summary row under `"row"`, the same way every level already gets its own `aggregates` — a nested `Status` group inside `Region` shows its own row right after its own last entry, and `Region`'s own summary row follows every nested one beneath it.
+
+A group's summary row is presentational: it takes up a real row (`aria-rowindex` counts it, matching a header or data row), but it is never a keyboard tab stop — <Kbd>ArrowUp</Kbd>/<Kbd>ArrowDown</Kbd>/<Kbd>PageUp</Kbd>/<Kbd>PageDown</Kbd> step over it rather than landing there, the same way they already skip nothing today for an ordinary grid. It also never splits from its own group across a page boundary: a page's unit is still the whole group, summary row included.
+
 ## The six built-in reducers
 
 Each `AggregateSpec` is `{ columnId, fn, id? }`. `fn` is either one of six built-in names, or a custom function (see below):
@@ -81,7 +103,7 @@ const columns: ColumnDefinition<Row>[] = [
 ];
 ```
 
-`FooterTemplateContext` is `{ value, rows }`: `value` is this column's own computed aggregate result, and `rows` is every row it was computed over — the grand-total footer's `rows` is the whole filtered/sorted dataset; a group header's inline subtotal does not thread its own leaf rows through (only its already-computed `value`), since the raw rows are not part of `ResolvedGroupRow`'s own shape.
+`FooterTemplateContext` is `{ value, rows }`: `value` is this column's own computed aggregate result, and `rows` is every row it was computed over — the grand-total footer's `rows` is the whole filtered/sorted dataset. A group's own rendering (inline, or its `"row"` summary row) does not thread its leaf rows through — `rows` is always `[]` there — since the raw rows are not part of `ResolvedGroupRow`'s own shape; only `value` is meaningful for a group-scoped `footerTemplate`.
 
 ## Subtotals never change with the page
 
@@ -112,9 +134,10 @@ gridRef.current?.getDisplayRows(); // each group header's own `aggregates` field
 
 ## Props
 
-| Prop         | Type                  | Default | Description                                                                 |
-| ------------ | --------------------- | ------- | --------------------------------------------------------------------------- |
-| `aggregates` | `AggregateState<Row>` |         | Aggregates to compute — a subtotal per group and a grand total. Controlled. |
+| Prop                    | Type                  | Default    | Description                                                                            |
+| ----------------------- | --------------------- | ---------- | -------------------------------------------------------------------------------------- |
+| `aggregates`            | `AggregateState<Row>` |            | Aggregates to compute — a subtotal per group and a grand total. Controlled.            |
+| `groupAggregateDisplay` | `"inline" \| "row"`   | `"inline"` | Where a group's own subtotal renders. No effect when `aggregates` is empty or omitted. |
 
 `AggregateState<Row>` is `readonly AggregateSpec<Row>[]`. `AggregateSpec<Row>` is `{ columnId: string; fn: BuiltInAggregate | AggregateFn<Row>; id?: string }`. `BuiltInAggregate` is `"sum" | "avg" | "min" | "max" | "count" | "countDistinct"`. `AggregateFn<Row>` is `(rows: readonly Row[]) => unknown`. `AggregateResults` is `ReadonlyMap<string, unknown>`.
 
