@@ -751,4 +751,87 @@
     outline: 2px solid var(--gridkit-accent);
     outline-offset: 1px;
   }
+
+  /*
+   * The pager. A sibling of the table, not a row inside it — the same
+   * reasoning `.gridkit-group-by-bar` gives for its own placement — so it's
+   * unscoped by `.gridkit-data-grid` the way that bar is.
+   */
+  .gridkit-grid-pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--gridkit-fg);
+    background-color: var(--gridkit-surface);
+    border-top: 1px solid var(--gridkit-line);
+  }
+
+  .grid-pager-button {
+    padding: 0.25rem 0.625rem;
+    font-size: 0.8125rem;
+    color: var(--gridkit-fg);
+    cursor: pointer;
+    background-color: var(--gridkit-surface);
+    border: 1px solid var(--gridkit-line);
+    border-radius: 0.25rem;
+  }
+
+  .grid-pager-button:hover:not(:disabled) {
+    background-color: var(--gridkit-surface-muted);
+  }
+
+  .grid-pager-button:focus-visible {
+    outline: 2px solid var(--gridkit-accent);
+    outline-offset: 1px;
+  }
+
+  .grid-pager-button:disabled {
+    color: var(--gridkit-fg-muted);
+    cursor: default;
+    opacity: 0.5;
+  }
+
+  .grid-pager-button[aria-current="page"] {
+    color: var(--gridkit-fg);
+    background-color: var(--gridkit-selected-strong);
+    border-color: var(--gridkit-accent);
+  }
+
+  .grid-pager-button[aria-current="page"]:hover:not(:disabled) {
+    background-color: var(--gridkit-selected-strong);
+  }
+
+  .grid-pager-status {
+    color: var(--gridkit-fg-muted);
+  }
+
+  .grid-pager-ellipsis {
+    padding: 0.25rem 0.625rem;
+    font-size: 0.8125rem;
+    color: var(--gridkit-fg-muted);
+  }
+
+  .grid-pager-page-size {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-inline-start: auto;
+    color: var(--gridkit-fg-muted);
+  }
+
+  .grid-pager-page-size select {
+    padding: 0.125rem 0.375rem;
+    color: var(--gridkit-fg);
+    background-color: var(--gridkit-surface);
+    border: 1px solid var(--gridkit-line);
+    border-radius: 0.25rem;
+  }
+
+  .grid-pager-page-size select:focus-visible {
+    outline: 2px solid var(--gridkit-accent);
+    outline-offset: 1px;
+  }
 }

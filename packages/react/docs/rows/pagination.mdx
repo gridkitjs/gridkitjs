@@ -1,0 +1,176 @@
+---
+title: "Pagination"
+description: "Splitting rows into pages with paginated, defaultPagination, and pager."
+---
+
+`paginated` splits the grid's rows into pages of `pagination.pageSize`. It composes after every other row transform — filtering, sorting, and grouping all run first, so a page is a window onto the finished result, never an input to anything else.
+
+## Enable pagination
+
+```ts
+<DataGridComponent
+  columns={columns}
+  dataSource={rows}
+  paginated
+  defaultPagination={{ pageIndex: 0, pageSize: 25 }}
+  pager={{ sizeOptions: [10, 25, 50] }}
+  onPaginationChange={({ pagination }) => persist(pagination)}
+/>;
+```
+
+Off by default, matching `sortableColumns`'s convention. `defaultPagination` seeds the uncontrolled starting page and page size — omit it and a paginated grid starts at `{ pageIndex: 0, pageSize: 25 }`. `pager.sizeOptions` feeds the built-in pager's page-size `<select>`; omit it (or pass an empty array) and that control doesn't render, leaving just Previous/Next and the page display.
+
+## A page's unit is a group, not a leaf row
+
+When grouping and pagination are both on, `pageSize` counts top-level groups, not leaf rows — a group is never split across a page boundary. This is the same behavior ag-Grid Enterprise and Excel's own "page break between groups" option use, because a group header on one page and its remaining rows on the next reads as broken, not as a smaller page.
+
+```ts
+<DataGridComponent
+  columns={columns}
+  dataSource={rows}
+  groupableColumns
+  defaultGroupBy={[{ columnId: "Region" }]}
+  paginated
+  defaultPagination={{ pageIndex: 0, pageSize: 2 }}
+/>;
+```
+
+With `pageSize: 2`, each page holds two whole top-level regions — however many rows each contains — never half of one. An ungrouped grid's units are just its rows, so this rule subsumes ordinary row-count pagination without a special case: `paginated` alone, with no `groupBy`, pages by row count exactly as expected.
+
+Nested group levels don't add extra units of their own — a top-level group's whole subtree (nested headers and their rows alike) counts as the one unit its own top-level header started.
+
+## `rowIndex` vs. the row's dataset position
+
+`CellTemplateContext.rowIndex` (and `ResolvedRow.rowIndex`) is the row's position within whatever is currently rendered — the index within the page, once `paginated` is on. A second field, `datasetIndex`, reports the row's absolute position in the whole filtered/sorted/grouped dataset, unaffected by which page is showing:
+
+```ts
+{
+  field: "Name",
+  cellTemplate: ({ rowIndex, datasetIndex }) =>
+    `${datasetIndex + 1}. ${/* ... */ ""}`, // a stable, dataset-wide row number
+}
+```
+
+Use `rowIndex` for anything about the row's position on screen (alternating row styling, "row 3 of this page"); use `datasetIndex` for anything that should stay stable across pages (a running row number, a reference back to the full dataset).
+
+This is also why `aria-rowindex` on a rendered row reports the dataset position, not the page-relative one — the WAI-ARIA grid pattern expects a row's index to reflect its true position in the full set even when only one page of it is in the DOM. `aria-rowcount` stays the total row count the same way. Neither of these changes for a grid that never turns `paginated` on: `datasetIndex` equals `rowIndex` whenever there's only one page, so this is additive rather than a behavior change for an existing, unpaginated grid.
+
+## The built-in pager
+
+Turning `paginated` on renders a minimal pager below the grid: a Previous button, a "Page X of Y" display, a Next button, and — when `pager.sizeOptions` is given — a page-size `<select>`. It's semantically classed (`gridkit-grid-pager`, `grid-pager-button`, `grid-pager-status`, `grid-pager-page-size`) rather than carrying its own layout, the same as the rest of `@gridkitjs/react`; style it via `@gridkitjs/theme-tailwind` or your own CSS targeting those classes.
+
+To suppress the built-in pager while keeping row-windowing and the imperative API active, pass `pager={{ template: () => null }}` rather than turning `paginated` off — see [Custom pager template](#custom-pager-template) below.
+
+### Numbered pagination
+
+`pager={{ variant: "numbered" }}` swaps the "Page X of Y" display for a row of page-number buttons — `[Prev][1][2][3]…[n][Next]` — instead of the default `"compact"` display:
+
+```ts
+<DataGridComponent
+  columns={columns}
+  dataSource={rows}
+  paginated
+  defaultPagination={{ pageIndex: 0, pageSize: 25 }}
+  pager={{ variant: "numbered" }}
+/>;
+```
+
+`pager.boundaryCount` (default `1`) sets how many pages are always shown at each end; `pager.siblingCount` (default `1`) sets how many pages are shown on each side of the current page. Once the current page sits far enough from an end that some pages would go unshown, the gap collapses into a single `…` (`.grid-pager-ellipsis`), never two adjacent ones. Both options are ignored under the default `"compact"` variant.
+
+Each page button carries `aria-label="Page N"`, and the active page's button carries `aria-current="page"` rather than a dedicated CSS class — style it with `.grid-pager-button[aria-current="page"]`.
+
+### Custom pager template
+
+`pager.template` replaces the built-in pager's markup entirely with your own. It's a render prop, called on every render where pagination-relevant state changed, so it's always current — unlike building a pager purely against the imperative handle, which has no "something changed, re-render" signal of its own for a silent page reset (filtering, sorting, or regrouping shrinking the page count) or a data-driven `pageCount` change.
+
+Reach for `template` only when `pager.variant: "numbered"` genuinely doesn't fit — it already gives you `[Prev][1][2][3]…[n][Next]` with no markup of your own to write.
+
+```ts
+<DataGridComponent
+  columns={columns}
+  dataSource={rows}
+  paginated
+  defaultPagination={{ pageIndex: 0, pageSize: 25 }}
+  pager={{
+    template: ({ currentPage, pageCount, previousPage, nextPage }) => (
+      <div className="my-pager">
+        <button onClick={previousPage} disabled={currentPage <= 1}>
+          Back
+        </button>
+        <span>
+          {currentPage} / {pageCount}
+        </span>
+        <button onClick={nextPage} disabled={currentPage >= pageCount}>
+          Forward
+        </button>
+      </div>
+    ),
+  }}
+/>;
+```
+
+`PagerTemplateContext` carries everything needed to rebuild the built-in pager yourself:
+
+| Field             | Type                             | Description                                                              |
+| ----------------- | -------------------------------- | ------------------------------------------------------------------------ |
+| `pagination`      | `PaginationState`                | Same shape as `DataGridApi.getPagination()` — 0-based `pageIndex`.       |
+| `currentPage`     | `number`                         | `pagination.pageIndex + 1`, clamped — the display-ready page number.     |
+| `pageCount`       | `number`                         | How many pages the current page size splits the rows into.               |
+| `pageSizeOptions` | `readonly number[] \| undefined` | Passthrough of `pager.sizeOptions`.                                      |
+| `goToPage`        | `(pageIndex: number) => void`    | 0-based, same as `DataGridApi.goToPage` — not `currentPage`'s numbering. |
+| `nextPage`        | `() => void`                     | Moves to the next page. A no-op on the last page.                        |
+| `previousPage`    | `() => void`                     | Moves to the previous page. A no-op on the first page.                   |
+| `setPageSize`     | `(pageSize: number) => void`     | Changes the page size, resetting to the first page.                      |
+
+`pager.template={() => null}` is the documented way to suppress the built-in pager UI while keeping `paginated` row-windowing and the imperative API active — no separate `visible`/`showPager` flag needed. `variant` is ignored when `template` is given.
+
+## Changing pages resets keyboard navigation and range selection to the page
+
+Arrow-key navigation and Shift-click range selection both operate on what's actually rendered — the current page — not the whole dataset. A `Shift`-click range drawn on page 1 and then paged away from does not retroactively include rows revealed by a later page, the same way a range spanning a collapsed group excludes the rows hidden beneath it (see [row grouping](/docs/react/row-grouping)).
+
+## Filtering, sorting, or regrouping resets to page 1
+
+A user looking at page 7 of a result that filtering, sorting, or regrouping just shrank to 2 pages is not silently stranded on an empty page — any of the three resets `pageIndex` back to `0`.
+
+## Props
+
+| Prop                 | Type                                     | Default                          | Description                                           |
+| -------------------- | ---------------------------------------- | -------------------------------- | ----------------------------------------------------- |
+| `paginated`          | `boolean`                                | `false`                          | Whether the grid's rows are split into pages.         |
+| `defaultPagination`  | `PaginationState`                        | `{ pageIndex: 0, pageSize: 25 }` | The page and page size to start on. Uncontrolled.     |
+| `pager`              | `PagerConfig`                            |                                  | Presentation options for the built-in pager.          |
+| `onPaginationChange` | `(event: PaginationChangeEvent) => void` |                                  | Once when the user changes the page or the page size. |
+
+`PaginationState` is `{ pageIndex: number; pageSize: number }` (`pageIndex` 0-based). `PaginationChangeEvent` is `{ pagination: PaginationState; pageCount: number }` — the state to persist, plus the page count it produces, so a consumer doesn't have to recompute it. `PagerConfig` is `{ sizeOptions?: readonly number[]; variant?: "compact" | "numbered"; boundaryCount?: number; siblingCount?: number; template?: (context: PagerTemplateContext) => ReactNode }`.
+
+### `pager` fields
+
+| Field           | Type                                           | Default     | Description                                                                               |
+| --------------- | ---------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------- |
+| `sizeOptions`   | `readonly number[]`                            |             | Page sizes offered by the page-size `<select>`. No control renders when omitted or empty. |
+| `variant`       | `"compact" \| "numbered"`                      | `"compact"` | `"compact"` is the Prev/status/Next display; `"numbered"` shows page-number buttons.      |
+| `boundaryCount` | `number`                                       | `1`         | Numbered variant only. Pages always shown at each end.                                    |
+| `siblingCount`  | `number`                                       | `1`         | Numbered variant only. Pages shown on each side of the current page.                      |
+| `template`      | `(context: PagerTemplateContext) => ReactNode` |             | Replaces the built-in pager entirely when given. `variant` is ignored.                    |
+
+## Imperative handle
+
+`DataGridApi` gains:
+
+| Method                  | Description                                                |
+| ----------------------- | ---------------------------------------------------------- |
+| `getPagination()`       | The active page and page size.                             |
+| `getPageCount()`        | How many pages the current page size splits the rows into. |
+| `goToPage(pageIndex)`   | Moves to the given page, clamped into range.               |
+| `nextPage()`            | Moves to the next page. A no-op on the last page.          |
+| `previousPage()`        | Moves to the previous page. A no-op on the first page.     |
+| `setPageSize(pageSize)` | Changes the page size, resetting to the first page.        |
+
+`getRows()`/`getDisplayRows()` are unaffected — they still return every row (filtered, sorted, and optionally grouped), never just the current page's slice. There is no `getPagedRows()`: `pageIndex`/`pageSize` from `getPagination()`, applied to `getDisplayRows()`, is enough to derive it, and the grid does exactly that internally.
+
+## See also
+
+- [Row grouping](/docs/react/row-grouping) for `groupBy` and the group-boundary rule pagination respects.
+- [Column sorting](/docs/react/column-sorting) and [column filtering](/docs/react/column-filtering) for the transforms that run ahead of pagination in the pipeline.
+- [Accessibility](/docs/react/accessibility) for the WAI-ARIA grid pattern `aria-rowindex`/`aria-rowcount` follow.
+- [Imperative handle](/docs/react/imperative-handle) for the full `DataGridApi` surface.

@@ -14,8 +14,8 @@ interface GridGroupRowProps {
   expanded: boolean;
   /** Leaf row count under this group, regardless of collapse state. */
   count: number;
-  /** Position among the display rows as rendered, matching `ResolvedGroupRow.rowIndex`. */
-  rowIndex: number;
+  /** This header's absolute position in the whole dataset, unaffected by which page is showing — see `ResolvedGroupRow.datasetIndex`. */
+  datasetIndex: number;
   /** This group's 1-based position among its own siblings, for `aria-posinset`. */
   posinset: number;
   /** How many siblings this group has, for `aria-setsize`. */
@@ -59,7 +59,7 @@ function GridGroupRowComponent({
   value,
   expanded,
   count,
-  rowIndex,
+  datasetIndex,
   posinset,
   setsize,
   focused,
@@ -68,8 +68,9 @@ function GridGroupRowComponent({
     <tr
       role="row"
       // Two past the index: rows are counted from one, and the header is the
-      // first of them — the same convention `GridRow` uses.
-      aria-rowindex={rowIndex + 2}
+      // first of them — the same convention `GridRow` uses. Built from
+      // `datasetIndex`, not the page-relative `rowIndex`, matching `GridRow`.
+      aria-rowindex={datasetIndex + 2}
       // 1-based, per the WAI-ARIA treegrid pattern.
       aria-level={level + 1}
       aria-expanded={expanded}

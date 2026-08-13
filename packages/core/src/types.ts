@@ -61,11 +61,10 @@ export interface CellTemplateContext<Row> {
   value: unknown;
   /** The whole row, for a template that needs a sibling field. */
   row: Row;
-  /**
-   * Position among the rows as rendered. Once paging exists this is the index
-   * within the page; an index into the whole dataset would be a second field.
-   */
+  /** Position among the rows as rendered — the index within the current page once paging is on. */
   rowIndex: number;
+  /** This row's absolute position in the whole filtered/sorted/grouped dataset, unaffected by which page is showing. */
+  datasetIndex: number;
   /** This row's id, as `resolveRowId` settled it. */
   rowId: string;
   /** Whether this row is selected, so a template can style itself to match. */
@@ -179,6 +178,18 @@ export interface ColumnWrapConfig {
  * still takes effect, and resetting is discarding the state.
  */
 export type ColumnSizingState = Readonly<Record<string, number>>;
+
+/** The active page, and how many rows/units make one up. */
+export interface PaginationState {
+  readonly pageIndex: number; // 0-based
+  readonly pageSize: number;
+}
+
+/** Reports a user page/page-size change whole — the one to persist from, mirroring ColumnSortEvent. */
+export interface PaginationChangeEvent {
+  readonly pagination: PaginationState;
+  readonly pageCount: number;
+}
 
 /** Sizes used for a column that does not specify its own. */
 export interface ColumnSizeDefaults {
@@ -371,6 +382,8 @@ export interface ResolvedGroupRow {
   readonly count: number;
   /** Position among the display rows as rendered — same invariant ResolvedRow.rowIndex keeps. */
   readonly rowIndex: number;
+  /** This header's absolute position in the whole filtered/sorted/grouped dataset, matching ResolvedRow.datasetIndex. */
+  readonly datasetIndex: number;
 }
 
 /**
@@ -522,6 +535,8 @@ export interface ResolvedRow<Row> {
   readonly row: Row;
   /** Position among the rows as rendered, matching `CellTemplateContext`. */
   readonly rowIndex: number;
+  /** This row's absolute position in the whole filtered/sorted/grouped dataset, matching `CellTemplateContext`. */
+  readonly datasetIndex: number;
 }
 
 /**

@@ -234,7 +234,7 @@ export default function GridBody<Row>({
             value={entry.value}
             expanded={entry.expanded}
             count={entry.count}
-            rowIndex={entry.rowIndex}
+            datasetIndex={entry.datasetIndex}
             posinset={ariaMeta.get(entry.groupId)?.posinset ?? 1}
             setsize={ariaMeta.get(entry.groupId)?.setsize ?? 1}
             // Ignores `nav.focus.columnIndex`: with only one cell in this
@@ -249,6 +249,7 @@ export default function GridBody<Row>({
             rowId={entry.rowId}
             row={entry.row}
             rowIndex={entry.rowIndex}
+            datasetIndex={entry.datasetIndex}
             activeColumnId={activeColumnId}
             selectedColumnIds={selection.selectedColumnIds}
             selected={selection.selectedRowIds.has(entry.rowId)}

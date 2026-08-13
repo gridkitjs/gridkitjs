@@ -42,10 +42,11 @@ const columns: readonly ColumnDefinition<Row>[] = [
 
 `cellTemplate` receives a single `CellTemplateContext<Row>` argument rather than positional arguments, so a later addition to it is not a breaking change to every template already written.
 
-| Field      | Type      | Description                                                                                                                                |
-| ---------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `value`    | `unknown` | This cell's value, read off the column's `field` path. Untyped since a dotted path's type can't be recovered here — a template narrows it. |
-| `row`      | `Row`     | The whole row, for a template that needs a sibling field.                                                                                  |
-| `rowIndex` | `number`  | Position among the rows as rendered — filtered and sorted, not the raw `dataSource` index.                                                 |
-| `rowId`    | `string`  | This row's id, as `getRowId` (or the position fallback) resolved it.                                                                       |
-| `selected` | `boolean` | Whether this row is selected, so a template can style itself to match.                                                                     |
+| Field          | Type      | Description                                                                                                                                               |
+| -------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `value`        | `unknown` | This cell's value, read off the column's `field` path. Untyped since a dotted path's type can't be recovered here — a template narrows it.                |
+| `row`          | `Row`     | The whole row, for a template that needs a sibling field.                                                                                                 |
+| `rowIndex`     | `number`  | Position among the rows as rendered — filtered, sorted, and paginated once `paginated` is on. Not the raw `dataSource` index.                             |
+| `datasetIndex` | `number`  | This row's absolute position in the whole filtered/sorted/grouped dataset, unaffected by which page is showing. See [pagination](/docs/react/pagination). |
+| `rowId`        | `string`  | This row's id, as `getRowId` (or the position fallback) resolved it.                                                                                      |
+| `selected`     | `boolean` | Whether this row is selected, so a template can style itself to match.                                                                                    |
