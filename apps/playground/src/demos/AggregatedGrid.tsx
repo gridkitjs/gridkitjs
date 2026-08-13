@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { AggregateState } from "@gridkitjs/core";
 import { DataGridComponent } from "@gridkitjs/react";
 import type { ColumnDefinition } from "@gridkitjs/react";
@@ -49,25 +50,62 @@ const aggregates: AggregateState<Row> = [
   { columnId: "Amount", fn: "avg", id: "Average" },
 ];
 
+const displayModes: readonly {
+  value: "inline" | "row";
+  description: string;
+}[] = [
+  { value: "inline", description: "subtotal as text in the group header" },
+  { value: "row", description: "subtotal as its own row, per-column cells" },
+];
+
 /**
  * Grouped by Region with `aggregates` computing both a `sum` and an `avg`
- * of Amount: each region's header shows its own subtotal inline, and a
+ * of Amount: each region's own subtotal renders either inline in its
+ * header or as its own summary row, per `groupAggregateDisplay` — and a
  * grand-total footer below the grid totals every row regardless of
- * grouping or collapse state. `Amount`'s `footerTemplate` formats both as
- * currency, the same way its `cellTemplate` formats the plain cells.
+ * grouping, collapse state, or which display mode is selected.
+ * `Amount`'s `footerTemplate` formats every one of these as currency, the
+ * same way its `cellTemplate` formats the plain cells.
  */
 export function AggregatedGrid() {
+  const [groupAggregateDisplay, setGroupAggregateDisplay] = useState<
+    "inline" | "row"
+  >("inline");
+
   return (
-    <DataGridComponent
-      columns={columns}
-      dataSource={rows}
-      getRowId={(row) => String(row.Id)}
-      label="Sales, grouped by region with subtotals and a grand total"
-      borders="all"
-      groupableColumns
-      defaultGroupBy={[{ columnId: "Region" }]}
-      sortableColumns
-      aggregates={aggregates}
-    />
+    <div>
+      <fieldset className="flex gap-4 text-sm">
+        <legend className="sr-only">Group aggregate display</legend>
+        {displayModes.map((mode) => (
+          <label key={mode.value} className="flex items-center gap-1.5">
+            <input
+              type="radio"
+              name="group-aggregate-display"
+              value={mode.value}
+              checked={groupAggregateDisplay === mode.value}
+              onChange={() => {
+                setGroupAggregateDisplay(mode.value);
+              }}
+            />
+            <code>{mode.value}</code>
+            <span className="text-gray-600">{mode.description}</span>
+          </label>
+        ))}
+      </fieldset>
+      <div className="mt-4">
+        <DataGridComponent
+          columns={columns}
+          dataSource={rows}
+          getRowId={(row) => String(row.Id)}
+          label="Sales, grouped by region with subtotals and a grand total"
+          borders="all"
+          groupableColumns
+          defaultGroupBy={[{ columnId: "Region" }]}
+          sortableColumns
+          aggregates={aggregates}
+          groupAggregateDisplay={groupAggregateDisplay}
+        />
+      </div>
+    </div>
   );
 }

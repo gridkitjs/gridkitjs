@@ -35,6 +35,10 @@ function groupHeaders(root: MountResult) {
   return root.locator("tr[data-gridkit-group]");
 }
 
+function groupSummaryRows(root: MountResult) {
+  return root.locator("tr[data-gridkit-group-summary]");
+}
+
 function footer(root: MountResult) {
   return root.locator(".grid-footer");
 }
@@ -183,4 +187,171 @@ test("a subtotal's value stays identical across pages once a group spans multipl
   // Page 2: West — its own subtotal is unaffected by which page shows it.
   const westHeader = groupHeaders(root).filter({ hasText: "West" });
   await expect(westHeader.locator(".group-aggregate")).toHaveText("amount: 90");
+});
+
+test.describe('groupAggregateDisplay: "row"', () => {
+  test("renders no inline aggregates in the header, and a separate summary row with each value in its own column's cell", async ({
+    mount,
+  }) => {
+    const aggregates: AggregateState<Row> = [{ columnId: "amount", fn: "sum" }];
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildRows()}
+        label="Row display"
+        defaultGroupBy={[{ columnId: "region" }]}
+        aggregates={aggregates}
+        groupAggregateDisplay="row"
+      />,
+    );
+
+    const east = groupHeaders(root).filter({ hasText: "East" });
+    await expect(east.locator(".group-aggregate")).toHaveCount(0);
+
+    await expect(groupSummaryRows(root)).toHaveCount(2);
+    const eastSummary = groupSummaryRows(root).first();
+    await expect(
+      eastSummary.locator('td[data-gridkit-column="amount"]'),
+    ).toHaveText("60");
+    // A column with no aggregate spec renders a blank summary cell, the
+    // same way GridFooter's own grand-total row does.
+    await expect(
+      eastSummary.locator('td[data-gridkit-column="id"]'),
+    ).toHaveText("");
+  });
+
+  test("a collapsed group's summary row still sits directly after its own header, with no descendants between them", async ({
+    mount,
+  }) => {
+    const aggregates: AggregateState<Row> = [{ columnId: "amount", fn: "sum" }];
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildRows()}
+        label="Collapsed row display"
+        defaultGroupBy={[{ columnId: "region" }]}
+        defaultGroupExpansion={['["East"]']}
+        aggregates={aggregates}
+        groupAggregateDisplay="row"
+      />,
+    );
+
+    const rowKinds = await root
+      .locator("tbody tr")
+      .evaluateAll((rows) =>
+        rows.map((row) =>
+          row.hasAttribute("data-gridkit-group")
+            ? "header"
+            : row.hasAttribute("data-gridkit-group-summary")
+              ? "summary"
+              : "data",
+        ),
+      );
+    // East (collapsed): header immediately followed by its own summary row,
+    // no data rows in between. West (expanded): header, its 3 rows, then
+    // its own summary row.
+    expect(rowKinds).toEqual([
+      "header",
+      "summary",
+      "header",
+      "data",
+      "data",
+      "data",
+      "summary",
+    ]);
+  });
+
+  test("a group's summary row never splits from its group across a page boundary", async ({
+    mount,
+  }) => {
+    const aggregates: AggregateState<Row> = [{ columnId: "amount", fn: "sum" }];
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildRows()}
+        label="Row display paginated"
+        defaultGroupBy={[{ columnId: "region" }]}
+        aggregates={aggregates}
+        groupAggregateDisplay="row"
+        paginated
+        defaultPagination={{ pageIndex: 0, pageSize: 1 }}
+      />,
+    );
+
+    // Page 1: East's header, its 2 rows, and its own summary row — all one
+    // unit, nothing from West.
+    await expect(groupHeaders(root)).toHaveCount(1);
+    await expect(groupSummaryRows(root)).toHaveCount(1);
+    await expect(groupHeaders(root).first()).toContainText("East");
+
+    await root.getByRole("button", { name: "Next" }).click();
+
+    // Page 2: West's own header, rows, and summary row.
+    await expect(groupHeaders(root)).toHaveCount(1);
+    await expect(groupSummaryRows(root)).toHaveCount(1);
+    await expect(groupHeaders(root).first()).toContainText("West");
+  });
+
+  test("ArrowDown/ArrowUp step over a group's summary row rather than landing a tab stop on it", async ({
+    mount,
+  }) => {
+    const aggregates: AggregateState<Row> = [{ columnId: "amount", fn: "sum" }];
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildRows()}
+        label="Keyboard skip"
+        defaultGroupBy={[{ columnId: "region" }]}
+        aggregates={aggregates}
+        groupAggregateDisplay="row"
+      />,
+    );
+
+    // Row order: East header, r2, r4, East summary, West header, r1, r3, r5,
+    // West summary. Start on the last East data row (r4) and arrow down —
+    // it should land on West's header, skipping the East summary row
+    // entirely.
+    const r4Cell = root
+      .locator("tbody tr")
+      .filter({ hasText: "r4" })
+      .locator("td")
+      .first();
+    await r4Cell.click();
+    await expect(r4Cell).toHaveAttribute("tabindex", "0");
+
+    await r4Cell.press("ArrowDown");
+    const westHeaderCell = groupHeaders(root)
+      .filter({ hasText: "West" })
+      .locator("td");
+    await expect(westHeaderCell).toHaveAttribute("tabindex", "0");
+
+    // ArrowUp from there returns to r4, stepping back over the same
+    // summary row in the opposite direction.
+    await westHeaderCell.press("ArrowUp");
+    await expect(r4Cell).toHaveAttribute("tabindex", "0");
+  });
+
+  test("groupAggregateDisplay defaults to inline when omitted", async ({
+    mount,
+  }) => {
+    const aggregates: AggregateState<Row> = [{ columnId: "amount", fn: "sum" }];
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildRows()}
+        label="Default display"
+        defaultGroupBy={[{ columnId: "region" }]}
+        aggregates={aggregates}
+      />,
+    );
+
+    await expect(groupSummaryRows(root)).toHaveCount(0);
+    const east = groupHeaders(root).filter({ hasText: "East" });
+    await expect(east.locator(".group-aggregate")).toHaveText("amount: 60");
+  });
 });
