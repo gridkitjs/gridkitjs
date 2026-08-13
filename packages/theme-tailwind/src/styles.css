@@ -531,6 +531,33 @@
   }
 
   /*
+   * A group's own summary row (`groupAggregateDisplay: "row"`) — the
+   * per-column-cell alternative to `.group-aggregates`' inline text.
+   * Shares the group header's muted surface so the pair read as one unit,
+   * but is presentational: no hover state, no pointer cursor, matching
+   * `GridGroupSummaryRow`'s own lack of any click/focus handling.
+   */
+  .gridkit-data-grid .grid-group-summary-row {
+    background-color: var(--gridkit-surface-muted);
+  }
+
+  .gridkit-data-grid .grid-group-summary-cell {
+    padding: 0.5rem;
+    font-weight: 600;
+  }
+
+  /*
+   * Indents only the first cell, matching how `GridGroupRow`'s own
+   * `paddingInlineStart` indents just the one spanning cell it has — an
+   * empty, `aria-hidden` inline spacer rather than padding on the `<td>`
+   * itself, so the cell's own content still aligns flush with the column
+   * above and below it once the indent's width is accounted for.
+   */
+  .gridkit-data-grid .grid-group-summary-indent {
+    display: inline-block;
+  }
+
+  /*
    * Selection, after the hover rules so that a selected row hovered stays
    * selected — the two would otherwise be the same colour, since hover already
    * claims `--gridkit-surface-muted`.
@@ -584,7 +611,8 @@
   /* Horizontal borders */
   .gridkit-data-grid.borders-horizontal .grid-header .header-cell,
   .gridkit-data-grid.borders-horizontal .grid-cell,
-  .gridkit-data-grid.borders-horizontal .grid-group-cell {
+  .gridkit-data-grid.borders-horizontal .grid-group-cell,
+  .gridkit-data-grid.borders-horizontal .grid-group-summary-cell {
     border-bottom: 1px solid var(--gridkit-line);
   }
 
@@ -608,27 +636,33 @@
   .gridkit-data-grid.borders-horizontal .grid-row:last-child .grid-cell,
   .gridkit-data-grid.borders-horizontal
     .grid-group-row:last-child
-    .grid-group-cell {
+    .grid-group-cell,
+  .gridkit-data-grid.borders-horizontal
+    .grid-group-summary-row:last-child
+    .grid-group-summary-cell {
     border-bottom: none;
   }
 
   /* Vertical borders */
   .gridkit-data-grid.borders-vertical .grid-header .header-cell,
   .gridkit-data-grid.borders-vertical .grid-cell,
-  .gridkit-data-grid.borders-vertical .grid-footer-cell {
+  .gridkit-data-grid.borders-vertical .grid-footer-cell,
+  .gridkit-data-grid.borders-vertical .grid-group-summary-cell {
     border-right: 1px solid var(--gridkit-line);
   }
 
   .gridkit-data-grid.borders-vertical .grid-header .header-cell:last-child,
   .gridkit-data-grid.borders-vertical .grid-cell:last-child,
-  .gridkit-data-grid.borders-vertical .grid-footer-cell:last-child {
+  .gridkit-data-grid.borders-vertical .grid-footer-cell:last-child,
+  .gridkit-data-grid.borders-vertical .grid-group-summary-cell:last-child {
     border-right: none;
   }
 
   /* Borders on all sides */
   .gridkit-data-grid.borders-all .grid-header .header-cell,
   .gridkit-data-grid.borders-all .grid-cell,
-  .gridkit-data-grid.borders-all .grid-group-cell {
+  .gridkit-data-grid.borders-all .grid-group-cell,
+  .gridkit-data-grid.borders-all .grid-group-summary-cell {
     border-bottom: 1px solid var(--gridkit-line);
     border-right: 1px solid var(--gridkit-line);
   }
@@ -647,19 +681,24 @@
   .gridkit-data-grid.borders-all .grid-header .header-cell:first-child,
   .gridkit-data-grid.borders-all .grid-cell:first-child,
   .gridkit-data-grid.borders-all .grid-group-cell,
-  .gridkit-data-grid.borders-all .grid-footer-cell:first-child {
+  .gridkit-data-grid.borders-all .grid-footer-cell:first-child,
+  .gridkit-data-grid.borders-all .grid-group-summary-cell:first-child {
     border-left: none;
   }
 
   .gridkit-data-grid.borders-all .grid-header .header-cell:last-child,
   .gridkit-data-grid.borders-all .grid-cell:last-child,
   .gridkit-data-grid.borders-all .grid-group-cell,
-  .gridkit-data-grid.borders-all .grid-footer-cell:last-child {
+  .gridkit-data-grid.borders-all .grid-footer-cell:last-child,
+  .gridkit-data-grid.borders-all .grid-group-summary-cell:last-child {
     border-right: none;
   }
 
   .gridkit-data-grid.borders-all .grid-row:last-child .grid-cell,
-  .gridkit-data-grid.borders-all .grid-group-row:last-child .grid-group-cell {
+  .gridkit-data-grid.borders-all .grid-group-row:last-child .grid-group-cell,
+  .gridkit-data-grid.borders-all
+    .grid-group-summary-row:last-child
+    .grid-group-summary-cell {
     border-bottom: none;
   }
 
