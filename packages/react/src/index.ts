@@ -49,3 +49,5 @@ export { default as useColumnSortState } from "./DataGrid/hooks/useColumnSortSta
 export { default as useSelectionState } from "./DataGrid/hooks/useSelectionState";
 export type { SelectionStateApi } from "./DataGrid/hooks/useSelectionState";
 export { default as useAggregateState } from "./DataGrid/hooks/useAggregateState";
+export { default as useColumnSizingState } from "./DataGrid/hooks/useColumnSizingState";
+export { default as useColumnOrderState } from "./DataGrid/hooks/useColumnOrderState";

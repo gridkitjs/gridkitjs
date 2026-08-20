@@ -2,6 +2,8 @@ import { useCallback, useRef } from "react";
 import {
   DataGridComponent,
   useAggregateState,
+  useColumnOrderState,
+  useColumnSizingState,
   useColumnSortState,
   useGroupByState,
   usePaginationState,
@@ -44,6 +46,8 @@ export default function ReactiveHooksGrid<Row extends RowWithId>(
     selectAllRows,
   } = useSelectionState(gridRef);
   const aggregates = useAggregateState(gridRef);
+  const columnSizing = useColumnSizingState(gridRef);
+  const columnOrder = useColumnOrderState(gridRef);
 
   return (
     <div>
@@ -59,6 +63,8 @@ export default function ReactiveHooksGrid<Row extends RowWithId>(
           columnSelection,
           cellSelection,
           aggregates: Array.from(aggregates.entries()),
+          columnSizing,
+          columnOrder,
         })}
       </pre>
       <button
