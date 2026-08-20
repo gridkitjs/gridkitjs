@@ -47,6 +47,7 @@ interface ReactiveStatus {
   rowSelection: readonly string[];
   columnSelection: readonly string[];
   cellSelection: CellSelectionState;
+  aggregates: [string, unknown][];
 }
 
 async function readReactiveStatus(root: MountResult): Promise<ReactiveStatus> {
@@ -247,4 +248,22 @@ test("useSelectionState's selectAllRows/clearSelection drive the grid", async ({
   await root.getByRole("button", { name: "reactive-clear-selection" }).click();
   status = await readReactiveStatus(root);
   expect(status.rowSelection).toEqual([]);
+});
+
+test("useAggregateState updates when a sort/filter-adjacent change alters the grand total, with no dedicated on*Change prop for aggregates", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ReactiveHooksGrid
+      columns={columns}
+      dataSource={buildRows()}
+      aggregates={[{ columnId: "amount", fn: "sum" }]}
+      selectable={{ rows: "multiple" }}
+    />,
+  );
+
+  const status = await readReactiveStatus(root);
+  const total = status.aggregates.find(([key]) => key === "amount")?.[1];
+  expect(total).toBe(280);
 });

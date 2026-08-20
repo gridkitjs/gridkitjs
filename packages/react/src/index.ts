@@ -48,3 +48,4 @@ export type { GroupByStateApi } from "./DataGrid/hooks/useGroupByState";
 export { default as useColumnSortState } from "./DataGrid/hooks/useColumnSortState";
 export { default as useSelectionState } from "./DataGrid/hooks/useSelectionState";
 export type { SelectionStateApi } from "./DataGrid/hooks/useSelectionState";
+export { default as useAggregateState } from "./DataGrid/hooks/useAggregateState";
