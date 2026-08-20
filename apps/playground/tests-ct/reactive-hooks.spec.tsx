@@ -3,6 +3,7 @@
 // file for why.
 import type { MountResult } from "@playwright/experimental-ct-react";
 import type {
+  CellSelectionState,
   ColumnSortState,
   GroupByState,
   GroupExpansionState,
@@ -43,6 +44,9 @@ interface ReactiveStatus {
   groupBy: GroupByState;
   groupExpansion: GroupExpansionState;
   columnSort: ColumnSortState;
+  rowSelection: readonly string[];
+  columnSelection: readonly string[];
+  cellSelection: CellSelectionState;
 }
 
 async function readReactiveStatus(root: MountResult): Promise<ReactiveStatus> {
@@ -202,4 +206,45 @@ test("useColumnSortState updates from a header click with no onColumnSortChange 
 
   status = await readReactiveStatus(root);
   expect(status.columnSort).toEqual([{ columnId: "amount", direction: "asc" }]);
+});
+
+test("useSelectionState updates from Ctrl+click row selection with no onRowSelectionChange passed", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ReactiveHooksGrid
+      columns={columns}
+      dataSource={buildRows()}
+      selectable={{ rows: "multiple" }}
+    />,
+  );
+
+  let status = await readReactiveStatus(root);
+  expect(status.rowSelection).toHaveLength(0);
+
+  await root.locator("tbody tr").first().locator("td").first().click();
+  status = await readReactiveStatus(root);
+  expect(status.rowSelection).toEqual(["r1"]);
+});
+
+test("useSelectionState's selectAllRows/clearSelection drive the grid", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ReactiveHooksGrid
+      columns={columns}
+      dataSource={buildRows()}
+      selectable={{ rows: "multiple" }}
+    />,
+  );
+
+  await root.getByRole("button", { name: "reactive-select-all-rows" }).click();
+  let status = await readReactiveStatus(root);
+  expect(status.rowSelection.length).toBe(7);
+
+  await root.getByRole("button", { name: "reactive-clear-selection" }).click();
+  status = await readReactiveStatus(root);
+  expect(status.rowSelection).toEqual([]);
 });

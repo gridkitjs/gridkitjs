@@ -55,3 +55,39 @@ selectable.rows takes a SelectionMode — false, "single", or "multiple" — off
 | `selection` | `SelectionState`              | The same rows, as ids only — `readonly string[]`.           |
 
 See [imperative handle](/docs/react/imperative-handle#resolved-row-and-column) for `ResolvedRow<Row>`'s own fields. `onRowSelect`/`onRowsSelect`/`onRowDeselect`/`onRowsDeselect` fire the row(s) they name, each as a `ResolvedRow<Row>`, alongside the `selection` at that point.
+
+## Reading selection outside the grid's own tree
+
+`useSelectionState` subscribes to row, column, _and_ cell selection together through the grid's `ref` — one combined hook, not three, matching how the grid treats all three as one concern internally — for a "N rows selected" toolbar living elsewhere on the page:
+
+```ts
+import { useRef } from "react";
+import {
+  DataGridComponent,
+  useSelectionState,
+  type DataGridApi,
+} from "@gridkitjs/react";
+
+function Toolbar({ gridRef }: { gridRef: RefObject<DataGridApi<Row> | null> }) {
+  const { rowSelection, clearSelection, selectAllRows } =
+    useSelectionState(gridRef);
+
+  return (
+    <div className="my-toolbar">
+      <span>{rowSelection.length} row(s) selected</span>
+      <button onClick={selectAllRows}>Select all</button>
+      <button onClick={clearSelection}>Clear</button>
+    </div>
+  );
+}
+```
+
+| Field             | Type                 | Description                                                                   |
+| ----------------- | -------------------- | ----------------------------------------------------------------------------- |
+| `rowSelection`    | `SelectionState`     | Selected row ids.                                                             |
+| `columnSelection` | `SelectionState`     | Selected column ids — see [column selection](/docs/react/column-selection).   |
+| `cellSelection`   | `CellSelectionState` | The selected cell, if any — see [cell selection](/docs/react/cell-selection). |
+| `clearSelection`  | `() => void`         | Clears row, column, and cell selection together.                              |
+| `selectAllRows`   | `() => void`         | Selects every row.                                                            |
+
+Before the grid mounts, the row/column fields read as empty arrays and the cell field reads `null`. See [imperative handle](/docs/react/imperative-handle) for `subscribe`, the primitive this hook is built on.

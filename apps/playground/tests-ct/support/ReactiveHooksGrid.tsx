@@ -4,6 +4,7 @@ import {
   useColumnSortState,
   useGroupByState,
   usePaginationState,
+  useSelectionState,
   type DataGridApi,
   type DataGridProps,
 } from "@gridkitjs/react";
@@ -34,6 +35,13 @@ export default function ReactiveHooksGrid<Row extends RowWithId>(
   const { groupBy, groupExpansion, expandAllGroups, collapseAllGroups } =
     useGroupByState(gridRef);
   const columnSort = useColumnSortState(gridRef);
+  const {
+    rowSelection,
+    columnSelection,
+    cellSelection,
+    clearSelection,
+    selectAllRows,
+  } = useSelectionState(gridRef);
 
   return (
     <div>
@@ -45,6 +53,9 @@ export default function ReactiveHooksGrid<Row extends RowWithId>(
           groupBy,
           groupExpansion,
           columnSort,
+          rowSelection,
+          columnSelection,
+          cellSelection,
         })}
       </pre>
       <button
@@ -71,6 +82,12 @@ export default function ReactiveHooksGrid<Row extends RowWithId>(
       </button>
       <button type="button" onClick={collapseAllGroups}>
         reactive-collapse-all-groups
+      </button>
+      <button type="button" onClick={selectAllRows}>
+        reactive-select-all-rows
+      </button>
+      <button type="button" onClick={clearSelection}>
+        reactive-clear-selection
       </button>
     </div>
   );
