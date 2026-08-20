@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -110,8 +111,15 @@ export default function useGridNavigation({
    * Clamped on the way out rather than written back, so that a coordinate
    * pushed out of range by a change to the data is restored when the data
    * comes back — and so the effect below cannot chase its own output.
+   * Memoized on the individual coordinates rather than recomputed on every
+   * render: `clampFocus` always returns a fresh object, and `getFocusedCell`
+   * on `DataGridApi` hands this same value to `useSyncExternalStore`-based
+   * hooks, which need a referentially stable snapshot when nothing changed.
    */
-  const focus = clampFocus(stored, rowCount, columnCount);
+  const focus = useMemo(
+    () => clampFocus(stored, rowCount, columnCount),
+    [stored, rowCount, columnCount],
+  );
 
   /**
    * Whether the browser's focus still has to be moved to match. Without it
