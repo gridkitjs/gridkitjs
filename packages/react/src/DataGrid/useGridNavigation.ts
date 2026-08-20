@@ -21,6 +21,14 @@ interface UseGridNavigationOptions {
   tableRef: RefObject<HTMLTableElement | null>;
   rowCount: number;
   columnCount: number;
+  /**
+   * Rows the vertical navigation keys step over rather than land a tab stop
+   * on — a group's own summary row (`groupAggregateDisplay: "row"`), which
+   * still occupies a real row slot for `rowCount` purposes but is
+   * presentational, not a stop of its own. Left unset (skips nothing) for a
+   * grid with no such rows.
+   */
+  isSkippableRow?: ((rowIndex: number) => boolean) | undefined;
 }
 
 export interface GridNavigationApi {
@@ -91,6 +99,7 @@ export default function useGridNavigation({
   tableRef,
   rowCount,
   columnCount,
+  isSkippableRow,
 }: UseGridNavigationOptions): GridNavigationApi {
   const [stored, setStored] = useState<GridFocus>({
     rowIndex: HEADER_ROW,
@@ -169,6 +178,7 @@ export default function useGridNavigation({
       rowCount,
       columnCount,
       pageSize(),
+      isSkippableRow,
     );
     if (next === null) {
       return;

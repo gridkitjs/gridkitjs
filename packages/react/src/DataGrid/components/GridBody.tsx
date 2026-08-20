@@ -1,5 +1,11 @@
 import { useMemo } from "react";
-import { groupRowId, intentOf, type DisplayRow } from "@gridkitjs/core";
+import {
+  groupRowId,
+  intentOf,
+  type AggregateState,
+  type DisplayRow,
+  type GroupAggregateDisplay,
+} from "@gridkitjs/core";
 import type { ResolvedColumn } from "../DataGrid";
 import type { GridNavigationApi } from "../useGridNavigation";
 import type { RowGroupingApi } from "../useRowGrouping";
@@ -8,6 +14,7 @@ import {
   type GridSelectionApi,
 } from "../useGridSelection";
 import GridGroupRow from "./GridGroupRow";
+import GridGroupSummaryRow from "./GridGroupSummaryRow";
 import GridRow from "./GridRow";
 
 interface GridBodyProps<Row> {
@@ -18,6 +25,10 @@ interface GridBodyProps<Row> {
   nav: GridNavigationApi;
   selection: GridSelectionApi;
   grouping: RowGroupingApi<Row>;
+  /** Active aggregates. Empty when none are active. */
+  aggregates: AggregateState<Row>;
+  /** Where a group's aggregates render — inline in its header, or as its own summary row. */
+  groupAggregateDisplay: GroupAggregateDisplay;
 }
 
 /** Where a cell sits, read off the table's own indices rather than an attribute. */
@@ -94,7 +105,7 @@ function groupAriaMeta<Row>(
 ): ReadonlyMap<string, GroupAriaMeta> {
   const totals = new Map<string, number>();
   for (const entry of rows) {
-    if (!("kind" in entry)) continue;
+    if (!("kind" in entry) || entry.kind !== "group") continue;
     const parentKey = groupRowId(entry.path.slice(0, -1));
     totals.set(parentKey, (totals.get(parentKey) ?? 0) + 1);
   }
@@ -102,7 +113,7 @@ function groupAriaMeta<Row>(
   const seen = new Map<string, number>();
   const meta = new Map<string, GroupAriaMeta>();
   for (const entry of rows) {
-    if (!("kind" in entry)) continue;
+    if (!("kind" in entry) || entry.kind !== "group") continue;
     const parentKey = groupRowId(entry.path.slice(0, -1));
     const posinset = (seen.get(parentKey) ?? 0) + 1;
     seen.set(parentKey, posinset);
@@ -127,6 +138,8 @@ export default function GridBody<Row>({
   nav,
   selection,
   grouping,
+  aggregates,
+  groupAggregateDisplay,
 }: GridBodyProps<Row>) {
   const { selectedCell, rowMode, cellMode } = selection;
   const ariaMeta = useMemo(() => groupAriaMeta(rows), [rows]);
@@ -220,8 +233,55 @@ export default function GridBody<Row>({
         nav.onKeyDown(event);
       }}
     >
-      {rows.map((entry) =>
-        "kind" in entry ? (
+      {rows.map((entry) => {
+        if (!("kind" in entry)) {
+          return (
+            <GridRow<Row>
+              key={entry.rowId}
+              columns={columns}
+              rowId={entry.rowId}
+              row={entry.row}
+              rowIndex={entry.rowIndex}
+              datasetIndex={entry.datasetIndex}
+              activeColumnId={activeColumnId}
+              selectedColumnIds={selection.selectedColumnIds}
+              selected={selection.selectedRowIds.has(entry.rowId)}
+              /*
+               * Narrowed to this row before it crosses the boundary, so
+               * that moving the selected cell re-renders the two rows it
+               * moved between rather than all of them.
+               */
+              selectedColumnId={
+                selectedCell?.rowId === entry.rowId
+                  ? selectedCell.columnId
+                  : null
+              }
+              focusedColumnIndex={
+                nav.focus.rowIndex === entry.rowIndex
+                  ? nav.focus.columnIndex
+                  : null
+              }
+              rowsSelectable={rowMode !== false}
+              cellsSelectable={cellMode !== false}
+            />
+          );
+        }
+
+        if (entry.kind === "group-summary") {
+          return (
+            <GridGroupSummaryRow<Row>
+              key={`${entry.groupId}-summary`}
+              groupId={entry.groupId}
+              level={entry.level}
+              datasetIndex={entry.datasetIndex}
+              results={entry.aggregates}
+              aggregates={aggregates}
+              columns={columns}
+            />
+          );
+        }
+
+        return (
           <GridGroupRow
             key={entry.groupId}
             columnCount={columns.length}
@@ -237,40 +297,19 @@ export default function GridBody<Row>({
             datasetIndex={entry.datasetIndex}
             posinset={ariaMeta.get(entry.groupId)?.posinset ?? 1}
             setsize={ariaMeta.get(entry.groupId)?.setsize ?? 1}
+            // Inline rendering only under "inline" display — under "row",
+            // the group's own summary row (above) already shows these, and
+            // showing them twice would be redundant.
+            aggregates={groupAggregateDisplay === "inline" ? aggregates : []}
+            results={entry.aggregates}
+            columns={columns}
             // Ignores `nav.focus.columnIndex`: with only one cell in this
             // row, whether it holds the tab stop depends on `rowIndex`
             // alone.
             focused={nav.focus.rowIndex === entry.rowIndex}
           />
-        ) : (
-          <GridRow<Row>
-            key={entry.rowId}
-            columns={columns}
-            rowId={entry.rowId}
-            row={entry.row}
-            rowIndex={entry.rowIndex}
-            datasetIndex={entry.datasetIndex}
-            activeColumnId={activeColumnId}
-            selectedColumnIds={selection.selectedColumnIds}
-            selected={selection.selectedRowIds.has(entry.rowId)}
-            /*
-             * Narrowed to this row before it crosses the boundary, so that
-             * moving the selected cell re-renders the two rows it moved
-             * between rather than all of them.
-             */
-            selectedColumnId={
-              selectedCell?.rowId === entry.rowId ? selectedCell.columnId : null
-            }
-            focusedColumnIndex={
-              nav.focus.rowIndex === entry.rowIndex
-                ? nav.focus.columnIndex
-                : null
-            }
-            rowsSelectable={rowMode !== false}
-            cellsSelectable={cellMode !== false}
-          />
-        ),
-      )}
+        );
+      })}
     </tbody>
   );
 }

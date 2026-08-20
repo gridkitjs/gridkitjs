@@ -72,6 +72,19 @@ export interface CellTemplateContext<Row> {
 }
 
 /**
+ * What a column's `footerTemplate` receives. Mirrors `CellTemplateContext`'s
+ * shape where it applies — `value`, `rows` — minus everything scoped to one
+ * rendered row (`rowIndex`, `rowId`, `selected`), since a footer addresses
+ * every row an aggregate was computed over at once, not a single one.
+ */
+export interface FooterTemplateContext<Row> {
+  /** This column's aggregate result, as `computeAggregates` produced it. */
+  value: unknown;
+  /** Every row the aggregate was computed over — the grand total's full dataset, or one group's full leaf descendants. */
+  rows: readonly Row[];
+}
+
+/**
  * @typeParam Node - What a header or cell renders to. This package is
  * framework-agnostic so it defaults to `string`; `@gridkitjs/react` binds it to
  * `ReactNode` so a template can return JSX.
@@ -97,6 +110,13 @@ export interface ColumnDefinition<Row, Node = string> {
    * it never repeats the field path.
    */
   cellTemplate?: ((context: CellTemplateContext<Row>) => Node) | undefined;
+  /**
+   * Renders this column's own aggregate result in a group footer or the
+   * grand-total footer, in place of the raw computed value. Absent for a
+   * column with no aggregate: nothing is shown, the same way a column
+   * missing from `AggregateState` contributes no cell to either footer.
+   */
+  footerTemplate?: ((context: FooterTemplateContext<Row>) => Node) | undefined;
   /**
    * The value type of this column's cells. This package is framework-agnostic so it
    * defaults to `string`;
@@ -363,9 +383,8 @@ export interface GroupExpansionEvent {
  * down to and including this group's own, outermost first — what a header
  * template needs to render "West / Enterprise", not just "Enterprise".
  *
- * Not parameterized by `Row`: nothing here holds a `Row`-typed value today.
- * A future field that does (an aggregate) can add that parameter when it
- * exists, rather than carrying an unused one now.
+ * Not parameterized by `Row`: nothing here holds a `Row`-typed value today —
+ * `aggregates` holds computed `unknown` results, not rows themselves.
  */
 export interface ResolvedGroupRow {
   readonly kind: "group";
@@ -384,15 +403,100 @@ export interface ResolvedGroupRow {
   readonly rowIndex: number;
   /** This header's absolute position in the whole filtered/sorted/grouped dataset, matching ResolvedRow.datasetIndex. */
   readonly datasetIndex: number;
+  /**
+   * This group's own aggregate results, computed over its full leaf-row
+   * descendants regardless of collapse state — see `withGroupAggregates`.
+   * Empty when no `AggregateState` is active.
+   */
+  readonly aggregates: AggregateResults;
 }
 
 /**
- * One entry of a grouped result: either an ordinary data row (no `kind`
- * field at all — ResolvedRow is unchanged, so every existing consumer of
- * plain ResolvedRow[] keeps compiling) or a group header. Discriminate with
- * `"kind" in entry`.
+ * A group's own aggregate results, rendered as a row of its own rather than
+ * inline in its header — see `groupAggregateDisplay: "row"`. Emitted by
+ * `withGroupAggregates` immediately after a group's last visible
+ * descendant (its last nested group or data row, or immediately after its
+ * own header when collapsed), at that same group's `level`, one per group
+ * with `AggregateState` active — mirroring `ResolvedGroupRow` closely
+ * enough that the two are meant to be read side by side.
  */
-export type DisplayRow<Row> = ResolvedRow<Row> | ResolvedGroupRow;
+export interface ResolvedGroupSummaryRow {
+  readonly kind: "group-summary";
+  /** The group this summary belongs to — shared with that group's own `ResolvedGroupRow.groupId`, not a new id of its own. */
+  readonly groupId: string;
+  /** Nesting depth, matching the group's own `level`. */
+  readonly level: number;
+  /** Position among the display rows as rendered — same invariant every other DisplayRow's `rowIndex` keeps. */
+  readonly rowIndex: number;
+  /** This row's absolute position in the whole filtered/sorted/grouped dataset, matching ResolvedRow.datasetIndex. */
+  readonly datasetIndex: number;
+  /** This group's own aggregate results — identical to its `ResolvedGroupRow.aggregates`, computed once and shared rather than recomputed. */
+  readonly aggregates: AggregateResults;
+}
+
+/**
+ * One entry of a grouped result: an ordinary data row (no `kind` field at
+ * all — ResolvedRow is unchanged, so every existing consumer of plain
+ * ResolvedRow[] keeps compiling), a group header, or — only when
+ * `groupAggregateDisplay: "row"` is active — that group's own summary row.
+ * Discriminate with `"kind" in entry`, then `entry.kind`.
+ */
+export type DisplayRow<Row> =
+  ResolvedRow<Row> | ResolvedGroupRow | ResolvedGroupSummaryRow;
+
+/** A reducer this package computes without a custom `AggregateFn`. */
+export type BuiltInAggregate =
+  "sum" | "avg" | "min" | "max" | "count" | "countDistinct";
+
+/**
+ * Called with every raw row in scope — always the full leaf set, never a
+ * partial reduction combined from child groups, so a non-associative
+ * aggregate (median, distinct count) is never computed from
+ * already-aggregated values. Mirrors `FilterPredicate`'s shape, minus the
+ * per-row `value` since an aggregate reduces across rows rather than
+ * testing one.
+ */
+export type AggregateFn<Row> = (rows: readonly Row[]) => unknown;
+
+/** One aggregate to compute against a column — a built-in reducer, or custom logic via `fn`. */
+export interface AggregateSpec<Row> {
+  readonly columnId: string;
+  readonly fn: BuiltInAggregate | AggregateFn<Row>;
+  /** Distinguishes two aggregates on the same column (e.g. both sum and avg of Amount). Defaults to columnId, mirroring ColumnDefinition.id defaulting to field. */
+  readonly id?: string;
+  /**
+   * Overrides this aggregate's own cell alignment, in the grand-total
+   * footer and a group's own summary row (`groupAggregateDisplay: "row"`)
+   * — inline rendering (`"inline"`) is text, not a cell, so this has no
+   * effect there. Falls back to the column's own `alignment` when omitted.
+   * When two specs share a column and disagree, the first one in
+   * `AggregateState` wins for that shared cell, since one `<td>` can only
+   * take one `text-align`.
+   */
+  readonly alignment?: ColumnAlignment;
+}
+
+/**
+ * The active aggregates to compute. Empty for a grid with none, mirroring
+ * `FilterState`'s empty array for "no filter". A fully controlled prop —
+ * unlike `sort`/`filter`/`groupBy`/`pagination`, there is no built-in UI
+ * affordance for a user to add or remove an aggregate interactively.
+ */
+export type AggregateState<Row> = readonly AggregateSpec<Row>[];
+
+/** One computed aggregate result, keyed by `spec.id ?? spec.columnId`. */
+export type AggregateResults = ReadonlyMap<string, unknown>;
+
+/**
+ * Where a group's own aggregate results render. `"inline"` (the default)
+ * keeps them as text in the group header itself, next to its leaf-row
+ * count. `"row"` instead emits a `ResolvedGroupSummaryRow` immediately
+ * after that group's last visible descendant, with each aggregate's value
+ * in the `<td>` for its own column — the same alignment a grand-total
+ * footer cell has to its column, just scoped to one group instead of the
+ * whole dataset.
+ */
+export type GroupAggregateDisplay = "inline" | "row";
 
 interface FilterEntryBase<Row> {
   readonly columnId?: FieldPath<Row> | (string & {});

@@ -29,6 +29,12 @@ interface Unit {
  * makes an entirely ungrouped `rows` produce one unit per row rather than
  * collapsing into a single unit for the whole array.
  *
+ * A `"group-summary"` row (`groupAggregateDisplay: "row"`) never opens a
+ * boundary of its own, at any level — including a top-level one, despite
+ * carrying that same `level: 0` a top-level header does. It always belongs
+ * to the unit its own group already opened, the same way a nested header
+ * and the data rows beneath it do.
+ *
  * `openedByGroup` tracks whether the unit currently being built started at a
  * top-level header (in which case everything until the next one, headers and
  * bare rows alike, belongs to it) or at a bare row (in which case it holds
@@ -43,7 +49,8 @@ function unitsOf<Row>(rows: readonly DisplayRow<Row>[]): readonly Unit[] {
     if (entry === undefined) {
       continue;
     }
-    const isTopLevelHeader = "kind" in entry && entry.level === 0;
+    const isTopLevelHeader =
+      "kind" in entry && entry.kind === "group" && entry.level === 0;
     const isBoundary = index !== start && (isTopLevelHeader || !openedByGroup);
     if (isBoundary) {
       units.push({ start, end: index });

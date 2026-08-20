@@ -1,0 +1,167 @@
+---
+title: "Aggregate functions"
+description: "Computing group subtotals and a grand total with aggregates, the built-in reducers, custom aggregate functions, and footerTemplate."
+---
+
+`aggregates` computes a subtotal per group (rendered inline in that group's header) and a grand total over the whole filtered/sorted/grouped dataset (rendered in a footer below the grid) — a built-in reducer per column, or your own function for anything they can't express.
+
+## Compute a subtotal and a grand total
+
+```ts
+<DataGridComponent
+  columns={columns}
+  dataSource={rows}
+  groupableColumns
+  defaultGroupBy={[{ columnId: "Region" }]}
+  aggregates={[{ columnId: "Amount", fn: "sum" }]}
+/>;
+```
+
+`aggregates` is a plain controlled prop, unlike `sort`/`filter`/`groupBy`/`pagination`: there is no built-in UI for a user to add or remove an aggregate interactively, so there's no `defaultAggregates`/`onAggregatesChange` pair — a consumer declares which aggregates to compute the same way it declares `columns`.
+
+With `groupBy` active, every group header shows its own subtotal next to its leaf-row count — `Region: West (3) amount: 90`. Whether or not grouping is active, a grand-total footer renders below the grid whenever `aggregates` is non-empty.
+
+## Inline vs. a group's own summary row
+
+`groupAggregateDisplay` chooses how a group's own subtotal renders:
+
+```ts
+<DataGridComponent
+  columns={columns}
+  dataSource={rows}
+  groupableColumns
+  defaultGroupBy={[{ columnId: "Region" }]}
+  aggregates={[{ columnId: "Amount", fn: "sum" }]}
+  groupAggregateDisplay="row"
+/>;
+```
+
+- **`"inline"`** (the default) — text in the group header itself, next to its leaf-row count, as shown above.
+- **`"row"`** — a dedicated row immediately after that group's last visible entry (its last nested group or data row, or right after its own header when collapsed), with each aggregate's value in the `<td>` for its own column — the same alignment the grand-total footer's own cells have to their columns. A column with no aggregate spec gets a blank cell, the same way the footer's does.
+
+Every nesting level gets its own summary row under `"row"`, the same way every level already gets its own `aggregates` — a nested `Status` group inside `Region` shows its own row right after its own last entry, and `Region`'s own summary row follows every nested one beneath it.
+
+A group's summary row is presentational: it takes up a real row (`aria-rowindex` counts it, matching a header or data row), but it is never a keyboard tab stop — <Kbd>ArrowUp</Kbd>/<Kbd>ArrowDown</Kbd>/<Kbd>PageUp</Kbd>/<Kbd>PageDown</Kbd> step over it rather than landing there, the same way they already skip nothing today for an ordinary grid. It also never splits from its own group across a page boundary: a page's unit is still the whole group, summary row included.
+
+## The six built-in reducers
+
+Each `AggregateSpec` is `{ columnId, fn, id? }`. `fn` is either one of six built-in names, or a custom function (see below):
+
+- **`sum`** / **`avg`** — numeric total / mean. Coerce every value numerically regardless of the column's own `type`, matching how a `number`/`decimal`/`currency`/`percent` column is expected to be used. Null/undefined entries are skipped, not treated as zero.
+- **`min`** / **`max`** — compare via the same type-aware comparator [column sorting](/docs/react/column-sorting) uses, so a `date`/`dateTime` column compares chronologically rather than numerically. Null/undefined entries are ignored entirely, rather than winning by sorting last the way they do in an actual sort.
+- **`count`** — every row in scope, regardless of that column's own value — it answers "how many rows", not "how many non-null values".
+- **`countDistinct`** — the number of distinct non-empty values at that column.
+
+```ts
+const aggregates: AggregateState<Row> = [
+  { columnId: "Amount", fn: "sum" },
+  { columnId: "Amount", fn: "avg", id: "avgAmount" },
+  { columnId: "Status", fn: "countDistinct" },
+];
+```
+
+`id` disambiguates two specs on the same column — here, `sum` keys its result as `"Amount"` (`id` defaults to `columnId`, mirroring `ColumnDefinition.id` defaulting to `field`) while `avg` needs its own `"avgAmount"` key so the two don't collide.
+
+## Cell alignment
+
+A footer or `"row"`-mode summary cell inherits its column's own `alignment` by default — a `type: "currency"` column's cells align right, and so does its `sum`. `AggregateSpec.alignment` overrides that for one specific aggregate:
+
+```ts
+const aggregates: AggregateState<Row> = [
+  { columnId: "Amount", fn: "sum" },
+  // Renders centered even though Amount's own cells (and its sum, above)
+  // align right.
+  { columnId: "Amount", fn: "count", id: "Transactions", alignment: "center" },
+];
+```
+
+Only the footer and `"row"`-mode summary cells read `alignment` — `"inline"` rendering is text inside the header's own cell, not a cell of its own, so alignment doesn't apply there. When two specs share a column and disagree, the **first one** in `aggregates` wins for that shared `<td>`: one cell can only take one `text-align`, and both results still render, comma-separated, regardless of which one's alignment was used.
+
+## Writing a custom aggregate function
+
+`fn` can be your own function in place of a built-in name — called once with every raw row in scope, returning whatever value you want rendered:
+
+```ts
+const aggregates: AggregateState<Row> = [
+  {
+    columnId: "Status",
+    id: "openRatio",
+    fn: (rows) => {
+      const open = rows.filter((row) => row.Status === "Open").length;
+      return rows.length === 0 ? 0 : open / rows.length;
+    },
+  },
+];
+
+<DataGridComponent columns={columns} dataSource={rows} aggregates={aggregates} />;
+```
+
+The function always receives the **full set of raw rows in scope** — every leaf row under a group (regardless of nesting depth or that group's own collapse state), or every row in the dataset for the grand total. It is never handed a partial reduction combined from child groups: the built-in reducers are associative, so combining a group's children's pre-computed values would give the same answer as recomputing from scratch, but a non-associative aggregate (a median, the distinct-count example above) would silently produce the wrong number if combined that way. Every aggregate, built-in or custom, is recomputed from its own full leaf-row set at every level — that's also why a collapsed group's header still shows a correct subtotal.
+
+## `footerTemplate`: rendering a column's own result
+
+By default, a computed result renders as plain text — locale-formatted for a number, blank for `null`/`undefined`. `ColumnDefinition.footerTemplate` takes over rendering for a specific column, the same way `cellTemplate` takes over a cell:
+
+```ts
+const columns: ColumnDefinition<Row>[] = [
+  {
+    field: "Amount",
+    type: "currency",
+    footerTemplate: ({ value }) =>
+      typeof value === "number"
+        ? value.toLocaleString(undefined, {
+            style: "currency",
+            currency: "USD",
+          })
+        : "",
+  },
+];
+```
+
+`FooterTemplateContext` is `{ value, rows }`: `value` is this column's own computed aggregate result, and `rows` is every row it was computed over — the grand-total footer's `rows` is the whole filtered/sorted dataset. A group's own rendering (inline, or its `"row"` summary row) does not thread its leaf rows through — `rows` is always `[]` there — since the raw rows are not part of `ResolvedGroupRow`'s own shape; only `value` is meaningful for a group-scoped `footerTemplate`.
+
+## Subtotals never change with the page
+
+A group's subtotal is always computed over its full leaf-row set, never scoped to whatever page currently shows it. This is deliberate: a subtotal that changed value as a user paged through the same group would read as a bug, not a feature, in any ERP context.
+
+```ts
+<DataGridComponent
+  columns={columns}
+  dataSource={rows}
+  groupableColumns
+  defaultGroupBy={[{ columnId: "Region" }]}
+  aggregates={[{ columnId: "Amount", fn: "sum" }]}
+  paginated
+  defaultPagination={{ pageIndex: 0, pageSize: 1 }}
+/>;
+```
+
+If the "West" region's rows span two pages' worth of siblings, its header shows the same total on both — the aggregate composes ahead of pagination in the render pipeline, so a page is a window onto an already-fully-aggregated result, never an input to the aggregation itself.
+
+## Reading results outside the render tree
+
+```ts
+gridRef.current?.getAggregates(); // AggregateResults — the grand total
+gridRef.current?.getDisplayRows(); // each group header's own `aggregates` field
+```
+
+`getAggregates()` returns the grand-total `AggregateResults` — a `ReadonlyMap<string, unknown>` keyed by each spec's `id` (or `columnId`). A specific group's own results are read off `getDisplayRows()` instead, on that group's `aggregates` field, populated the same way.
+
+## Props
+
+| Prop                    | Type                  | Default    | Description                                                                            |
+| ----------------------- | --------------------- | ---------- | -------------------------------------------------------------------------------------- |
+| `aggregates`            | `AggregateState<Row>` |            | Aggregates to compute — a subtotal per group and a grand total. Controlled.            |
+| `groupAggregateDisplay` | `"inline" \| "row"`   | `"inline"` | Where a group's own subtotal renders. No effect when `aggregates` is empty or omitted. |
+
+`AggregateState<Row>` is `readonly AggregateSpec<Row>[]`. `AggregateSpec<Row>` is `{ columnId: string; fn: BuiltInAggregate | AggregateFn<Row>; id?: string; alignment?: ColumnAlignment }`. `BuiltInAggregate` is `"sum" | "avg" | "min" | "max" | "count" | "countDistinct"`. `AggregateFn<Row>` is `(rows: readonly Row[]) => unknown`. `AggregateResults` is `ReadonlyMap<string, unknown>`. `ColumnAlignment` is `"left" | "center" | "right"`, the same type `ColumnDefinition.alignment` uses.
+
+`ColumnDefinition.footerTemplate` is `(context: FooterTemplateContext<Row>) => Node`, where `FooterTemplateContext<Row>` is `{ value: unknown; rows: readonly Row[] }`.
+
+## See also
+
+- [Row grouping](/docs/react/row-grouping) for `groupBy`, whose headers a subtotal attaches to.
+- [Pagination](/docs/react/pagination) for how a page composes after aggregation, never before it.
+- [Column sorting](/docs/react/column-sorting) for the `compareValues` comparator `min`/`max` reuse.
+- [Column filtering](/docs/react/column-filtering) for `PredicateFilterEntry`, the closest precedent for a caller-supplied function received per row.
+- [Imperative handle](/docs/react/imperative-handle) for `getAggregates` and `getDisplayRows`.

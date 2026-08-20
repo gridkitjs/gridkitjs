@@ -1,5 +1,10 @@
 // Framework-agnostic grid logic: sorting, filtering, paging will live here so it stays testable without a DOM.
 export type {
+  AggregateFn,
+  AggregateResults,
+  AggregateSpec,
+  AggregateState,
+  BuiltInAggregate,
   CellTemplateContext,
   ColumnDefinition,
   FieldPath,
@@ -29,6 +34,8 @@ export type {
   FilterEntry,
   FilterPredicate,
   FilterState,
+  FooterTemplateContext,
+  GroupAggregateDisplay,
   GroupByEntry,
   GroupByEvent,
   GroupByState,
@@ -40,6 +47,7 @@ export type {
   PredicateFilterEntry,
   ResolvedColumn,
   ResolvedGroupRow,
+  ResolvedGroupSummaryRow,
   ResolvedRow,
   RowSelectEvent,
   RowSelectionChangeEvent,
@@ -134,3 +142,4 @@ export type { PaginatedRows } from "./util/paging";
 export { paginateRows } from "./util/paging";
 export type { PaginationWindowEntry } from "./util/paginationWindow";
 export { paginationWindow } from "./util/paginationWindow";
+export { computeAggregates, withGroupAggregates } from "./util/aggregation";

@@ -1,3 +1,4 @@
+import { AggregatedGrid } from "./demos/AggregatedGrid";
 import { CustomPagerGrid } from "./demos/CustomPagerGrid";
 import { FilteredGrid } from "./demos/FilteredGrid";
 import { GroupedGrid } from "./demos/GroupedGrid";
@@ -65,6 +66,23 @@ export default function App() {
       </p>
       <div className="mt-2">
         <CustomPagerGrid />
+      </div>
+      <h2 className="mt-8 text-lg font-bold">
+        <code>aggregates</code>, grouped by Region
+      </h2>
+      <p className="mt-2 text-sm text-gray-600">
+        Every built-in aggregate at once — <code>sum</code>/<code>avg</code>/
+        <code>min</code>/<code>max</code> of Amount, <code>min</code>/
+        <code>max</code> of the Closed date, <code>count</code> of every row,
+        <code>countDistinct</code> of Rep — plus a custom function computing the
+        percent of rows still Open. Each region's results render inline or as
+        their own summary row, per <code>groupAggregateDisplay</code>, computed
+        over the full dataset regardless of what's currently rendered. A
+        grand-total footer below the grid totals every row the same way,
+        regardless of grouping or collapse state.
+      </p>
+      <div className="mt-2">
+        <AggregatedGrid />
       </div>
       <h2 className="mt-8 text-lg font-bold">Fast-changing async data</h2>
       <p className="mt-2 text-sm text-gray-600">

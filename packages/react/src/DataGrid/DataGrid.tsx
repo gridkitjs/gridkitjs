@@ -8,6 +8,7 @@ import {
 } from "react";
 import {
   applyColumnOrder,
+  computeAggregates,
   defineColumnsFromRows,
   fitColumnsToWidth,
   groupRows,
@@ -17,8 +18,11 @@ import {
   resolveRowId,
   resolveShownRows,
   totalColumnWidth,
+  withGroupAggregates,
   type ColumnDefinition as CoreColumnDefinition,
   type ResolvedColumn as CoreResolvedColumn,
+  type AggregateResults,
+  type AggregateState,
   type ColumnOrderEvent,
   type ColumnOrderState,
   type ColumnResizeEvent,
@@ -28,6 +32,7 @@ import {
   type ColumnSortState,
   type DisplayRow,
   type FilterState,
+  type GroupAggregateDisplay,
   type GroupByEvent,
   type GroupByState,
   type GroupExpansionEvent,
@@ -48,6 +53,7 @@ import {
 } from "@gridkitjs/core";
 import GridHeader from "./components/GridHeader";
 import GridBody from "./components/GridBody";
+import GridFooter from "./components/GridFooter";
 import GridPager from "./components/GridPager";
 import GroupByBar from "./components/GroupByBar";
 import { ariaAttr } from "./ariaAttr";
@@ -127,6 +133,13 @@ export interface DataGridApi<Row> {
   getPagination(): PaginationState;
   /** How many pages the current `pagination.pageSize` splits the grid's rows into — `1` whenever `paginated` is off. */
   getPageCount(): number;
+  /**
+   * The grand-total aggregate results — every active aggregate computed over
+   * the whole filtered/sorted dataset, ungrouped and unpaginated. A specific
+   * group's own results are read off `getDisplayRows()` instead, on that
+   * group header's `aggregates` field.
+   */
+  getAggregates(): AggregateResults;
   getRowSelection(): SelectionState;
   getColumnSelection(): SelectionState;
   getCellSelection(): CellSelectionState;
@@ -168,6 +181,15 @@ export type ResizeMode = "fit" | "fixed";
 
 /** `pagination.pageSize` a paginated grid starts at when `defaultPagination` omits one — a reasonable default for an ERP-grade dataset. */
 const DEFAULT_PAGE_SIZE = 25;
+
+/**
+ * A stable empty fallback for an omitted `aggregates` prop — a fresh `[]`
+ * every render would change identity each time and defeat the `useMemo`s
+ * that depend on it, the same reason `groupRows`/`withGroupAggregates`
+ * themselves return their input untouched for an empty array rather than a
+ * new one.
+ */
+const NO_AGGREGATES: AggregateState<never> = [];
 
 /**
  * How the group-by bar's visibility follows the active grouping. `"always"`
@@ -361,6 +383,25 @@ export interface DataGridProps<Row> extends SelectionCallbacks<Row> {
   /** Called once when the user changes the page or the page size. */
   onPaginationChange?: ((event: PaginationChangeEvent) => void) | undefined;
   /**
+   * Aggregates to compute — a subtotal per group (rendered in that group's
+   * header) plus a grand total over the whole filtered/grouped dataset
+   * (rendered in a footer). Always computed over every row, never scoped to
+   * the current page. A plain controlled prop, unlike `sort`/`filter`/
+   * `groupBy`/`pagination`: there is no built-in UI for a user to add or
+   * remove an aggregate interactively, so there is no `defaultAggregates`/
+   * `onAggregatesChange` pair to go with it.
+   */
+  aggregates?: AggregateState<Row> | undefined;
+  /**
+   * Where a group's own aggregate results render. `"inline"` (the default)
+   * keeps them as text in the group header, next to its leaf-row count.
+   * `"row"` instead renders a dedicated row after that group's last visible
+   * entry, with each aggregate's value in the `<td>` for its own column —
+   * the same alignment the grand-total footer's own cells have. Has no
+   * effect when `aggregates` is empty or omitted.
+   */
+  groupAggregateDisplay?: GroupAggregateDisplay | undefined;
+  /**
    * The grid's accessible name, announced when it takes focus. A grid without
    * one is read only as "grid", which says nothing about which grid.
    */
@@ -408,6 +449,8 @@ export function DataGridComponent<Row>({
   defaultPagination,
   pager,
   onPaginationChange,
+  aggregates,
+  groupAggregateDisplay = "inline",
   label,
   labelledBy,
   ref,
@@ -533,21 +576,71 @@ export function DataGridComponent<Row>({
     [shownRows, groupBy, expansion, resolved],
   );
 
+  const activeAggregates = aggregates ?? (NO_AGGREGATES as AggregateState<Row>);
+
   /**
-   * `displayRows` windowed to the current page — always last in the
-   * pipeline, after grouping, so a page never splits a group. `GridBody`
-   * renders this rather than `displayRows` directly, paginated or not: when
-   * `paginated` is off the grid is a single page over every row, and
-   * `pageCount`/`pageIndex` report that (`1`/`0`) rather than the
-   * possibly-stale values a consumer's own `pagination` prop state might
-   * otherwise carry.
+   * `displayRows` with each group header's `aggregates` field set — always
+   * ahead of pagination, so a subtotal is computed over a group's full
+   * dataset-wide leaf set rather than only the rows a page happens to show.
+   * `groupAggregateDisplay: "row"` additionally inserts a summary row after
+   * each group's last visible entry. `withGroupAggregates` returns
+   * `displayRows` itself, untouched, when no aggregates are active, so an
+   * aggregate-less grid pays only that check.
+   */
+  const aggregatedRows = useMemo(
+    () =>
+      withGroupAggregates(
+        displayRows,
+        shownRows,
+        groupBy,
+        activeAggregates,
+        resolved,
+        groupAggregateDisplay,
+      ),
+    [
+      displayRows,
+      shownRows,
+      groupBy,
+      activeAggregates,
+      resolved,
+      groupAggregateDisplay,
+    ],
+  );
+
+  /**
+   * The grand total: every aggregate over the whole filtered/sorted dataset,
+   * ungrouped — independent of `aggregatedRows`, which only ever attaches
+   * results to group headers. Recomputed from `shownRows` directly rather
+   * than derived from any per-group result, for the same reason a nested
+   * group's own subtotal is: a non-associative custom aggregate would be
+   * wrong if combined from parts instead of the full set.
+   */
+  const grandTotal = useMemo<AggregateResults>(
+    () =>
+      computeAggregates(
+        shownRows.map((entry) => entry.row),
+        activeAggregates,
+        resolved,
+      ),
+    [shownRows, activeAggregates, resolved],
+  );
+
+  /**
+   * `aggregatedRows` windowed to the current page — always last in the
+   * pipeline, after grouping and aggregation, so a page never splits a
+   * group and a subtotal never changes value depending on which page is
+   * showing. `GridBody` renders this rather than `aggregatedRows` directly,
+   * paginated or not: when `paginated` is off the grid is a single page
+   * over every row, and `pageCount`/`pageIndex` report that (`1`/`0`)
+   * rather than the possibly-stale values a consumer's own `pagination`
+   * prop state might otherwise carry.
    */
   const paginatedRows = useMemo(
     () =>
       paginated
-        ? paginateRows(displayRows, pagination)
-        : { rows: displayRows, pageCount: 1, pageIndex: 0 },
-    [paginated, displayRows, pagination],
+        ? paginateRows(aggregatedRows, pagination)
+        : { rows: aggregatedRows, pageCount: 1, pageIndex: 0 },
+    [paginated, aggregatedRows, pagination],
   );
 
   /**
@@ -676,6 +769,16 @@ export function DataGridComponent<Row>({
     // concept than `useGridNavigation`'s own Page Up/Down viewport scrolling.
     rowCount: paginatedRows.rows.length,
     columnCount: resolved.length,
+    // A group's own summary row (`groupAggregateDisplay: "row"`) occupies a
+    // real slot in `rowCount` above — its DOM position has to line up with
+    // everything else — but is presentational, never a tab stop: arrow-key
+    // vertical movement steps over it rather than landing there.
+    isSkippableRow: (rowIndex) => {
+      const entry = paginatedRows.rows[rowIndex];
+      return (
+        entry !== undefined && "kind" in entry && entry.kind === "group-summary"
+      );
+    },
   });
 
   /**
@@ -870,7 +973,11 @@ export function DataGridComponent<Row>({
       return tableRef.current;
     },
     getRows: () => shownRows,
-    getDisplayRows: () => displayRows,
+    // `aggregatedRows`, not the plain `displayRows` it's derived from: the
+    // same array shape and content, except every group header's own
+    // `aggregates` field is populated — the whole reason `getDisplayRows()`
+    // is where a consumer reads a specific group's computed results from.
+    getDisplayRows: () => aggregatedRows,
     getColumns: () => resolved,
     getColumnSizing: () => sizing,
     getColumnOrder: () => order,
@@ -882,6 +989,7 @@ export function DataGridComponent<Row>({
       pageSize: pagination.pageSize,
     }),
     getPageCount: () => paginatedRows.pageCount,
+    getAggregates: () => grandTotal,
     getRowSelection: () => rowSelection,
     getColumnSelection: () => columnSelection,
     getCellSelection: () => cellSelection,
@@ -953,12 +1061,15 @@ export function DataGridComponent<Row>({
          * an internal detail for an ungrouped grid, ARIA role included.
          */
         role={groupBy.length > 0 ? "treegrid" : "grid"}
-        // The header is a row too, and counted from one; group headers count
-        // as rows here too, the same way they do in `nav`'s `rowCount`. Total
-        // dataset count, not the current page's — `displayRows`, unlike
-        // `paginatedRows.rows`, is never windowed to one page, so this stays
-        // the true row count per the WAI-ARIA grid pattern even while paged.
-        aria-rowcount={displayRows.length + 1}
+        // The header is a row too, and counted from one; group headers (and,
+        // under `groupAggregateDisplay: "row"`, each group's own summary
+        // row) count as rows here too, the same way they do in `nav`'s
+        // `rowCount`. `aggregatedRows`, not `displayRows`: the latter is
+        // pre-aggregation and never carries summary rows at all. Total
+        // dataset count, not the current page's — neither array is ever
+        // windowed to one page, so this stays the true row count per the
+        // WAI-ARIA grid pattern even while paged.
+        aria-rowcount={aggregatedRows.length + 1}
         aria-colcount={resolved.length}
         {...ariaAttr(multiselectable, "aria-multiselectable", true)}
         {...ariaAttr(labelledBy !== undefined, "aria-labelledby", labelledBy)}
@@ -1033,7 +1144,17 @@ export function DataGridComponent<Row>({
           nav={nav}
           selection={selection}
           grouping={grouping}
+          aggregates={activeAggregates}
+          groupAggregateDisplay={groupAggregateDisplay}
         />
+        {activeAggregates.length > 0 && (
+          <GridFooter<Row>
+            columns={resolved}
+            aggregates={activeAggregates}
+            results={grandTotal}
+            rows={shownRows.map((entry) => entry.row)}
+          />
+        )}
       </table>
       {paginated &&
         (pager?.template ? (

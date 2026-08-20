@@ -93,12 +93,13 @@ There's no built-in "expand all" control — call `gridRef.current?.expandAllGro
 
 ## Scope
 
-Sorting groups by an aggregate value, and rendering an aggregate in a group's header or as a group footer, are both out of scope for this release. `ResolvedGroupRow` (returned by `getDisplayRows()`) carries no aggregate field yet; a future release adds one additively rather than reshaping what's here.
+Sorting groups by an aggregate value is still out of scope for this release. Rendering an aggregate in a group's header, though, is not: see [Aggregate functions](/docs/react/aggregate-functions) for the `aggregates` prop, which populates `ResolvedGroupRow.aggregates` (returned by `getDisplayRows()`) additively on top of everything described here.
 
 ## See also
 
 - [DataGridComponent](/docs/react/data-grid) for the rest of the component's props.
 - [Column definition](/docs/react/column-definition) for `groupable`, `groupToggleIcon`, and `groupByDraggable`.
 - [Column sorting](/docs/react/column-sorting) and [reordering](/docs/react/column-reordering) for the comparator and drag mechanics grouping reuses.
+- [Aggregate functions](/docs/react/aggregate-functions) for computing and rendering a subtotal per group.
 - [Accessibility](/docs/react/accessibility) for the `treegrid` role and the ARIA attributes a grouped grid adds.
 - [Imperative handle](/docs/react/imperative-handle) for `getGroupBy`, `getGroupExpansion`, `getDisplayRows`, `expandAllGroups`, and `collapseAllGroups`.

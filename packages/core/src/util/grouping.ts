@@ -35,8 +35,12 @@ interface ValueGroup<Row> {
  * that `compareValues`/`===` would treat as equal-but-not-identical (two
  * `Date` instances for the same instant) while keeping values of different
  * types apart (the number `1` and the string `"1"`).
+ *
+ * Exported for `aggregation.ts`, which needs the identical notion of
+ * "same value" to match a leaf row back against a group header's `path` —
+ * two producers of the same key would drift apart silently otherwise.
  */
-function bucketKey(value: unknown): string {
+export function bucketKey(value: unknown): string {
   if (value === null || value === undefined) {
     return "\0empty";
   }
@@ -140,6 +144,9 @@ function buildLevel<Row>(
       // `datasetIndex` takes the same renumbered value `rowIndex` does.
       rowIndex: -1,
       datasetIndex: -1,
+      // Set by `withGroupAggregates`, downstream of grouping — empty here
+      // since `groupRows` itself never knows about `AggregateState`.
+      aggregates: new Map(),
     };
     out.push(header);
     if (expanded) {
