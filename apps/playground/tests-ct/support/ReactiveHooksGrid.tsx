@@ -1,6 +1,7 @@
 import { useCallback, useRef } from "react";
 import {
   DataGridComponent,
+  useColumnSortState,
   useGroupByState,
   usePaginationState,
   type DataGridApi,
@@ -32,6 +33,7 @@ export default function ReactiveHooksGrid<Row extends RowWithId>(
     usePaginationState(gridRef);
   const { groupBy, groupExpansion, expandAllGroups, collapseAllGroups } =
     useGroupByState(gridRef);
+  const columnSort = useColumnSortState(gridRef);
 
   return (
     <div>
@@ -42,6 +44,7 @@ export default function ReactiveHooksGrid<Row extends RowWithId>(
           pageCount,
           groupBy,
           groupExpansion,
+          columnSort,
         })}
       </pre>
       <button

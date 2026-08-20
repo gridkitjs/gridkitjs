@@ -3,6 +3,7 @@
 // file for why.
 import type { MountResult } from "@playwright/experimental-ct-react";
 import type {
+  ColumnSortState,
   GroupByState,
   GroupExpansionState,
   PaginationState,
@@ -41,6 +42,7 @@ interface ReactiveStatus {
   pageCount: number;
   groupBy: GroupByState;
   groupExpansion: GroupExpansionState;
+  columnSort: ColumnSortState;
 }
 
 async function readReactiveStatus(root: MountResult): Promise<ReactiveStatus> {
@@ -175,4 +177,29 @@ test("useGroupByState's expandAllGroups/collapseAllGroups drive the grid", async
     .click();
   status = await readReactiveStatus(root);
   expect(status.groupExpansion).toEqual([]);
+});
+
+test("useColumnSortState updates from a header click with no onColumnSortChange passed", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ReactiveHooksGrid
+      columns={columns}
+      dataSource={buildRows()}
+      sortableColumns
+    />,
+  );
+
+  let status = await readReactiveStatus(root);
+  expect(status.columnSort).toEqual([]);
+
+  await root
+    .locator("thead th")
+    .filter({ hasText: "amount" })
+    .locator(".header-sort-toggle")
+    .click();
+
+  status = await readReactiveStatus(root);
+  expect(status.columnSort).toEqual([{ columnId: "amount", direction: "asc" }]);
 });

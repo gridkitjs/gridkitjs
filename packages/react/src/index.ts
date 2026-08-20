@@ -45,3 +45,4 @@ export { default as usePaginationState } from "./DataGrid/hooks/usePaginationSta
 export type { PaginationStateApi } from "./DataGrid/hooks/usePaginationState";
 export { default as useGroupByState } from "./DataGrid/hooks/useGroupByState";
 export type { GroupByStateApi } from "./DataGrid/hooks/useGroupByState";
+export { default as useColumnSortState } from "./DataGrid/hooks/useColumnSortState";
