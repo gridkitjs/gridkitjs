@@ -8,7 +8,18 @@ sortableColumns turns on a clickable sort toggle in every header, unless a colum
 ## Click to sort, Shift-click to stack
 
 <LiveExampleFrame title="sortableColumns">
-  <ColumnSortingExample />
+  <GridExample
+    fixture="deployment"
+    props={{ borders: "all", sortableColumns: true }}
+    events={{
+      onColumnSortChange: ({ sort }) =>
+        sort.length === 0
+          ? "cleared"
+          : sort
+              .map((entry) => `${entry.columnId} ${entry.direction}`)
+              .join(", then "),
+    }}
+  />
 </LiveExampleFrame>
 
 ```ts

@@ -18,7 +18,13 @@ applyColumnOrder and moveColumnBefore are the functions DataGridComponent calls 
 ## The same logic, in the React grid
 
 <LiveExampleFrame title="reorderableColumns">
-  <ColumnReorderingExample />
+  <GridExample
+    fixture="deployment"
+    props={{ borders: "all", reorderableColumns: true }}
+    events={{
+      onColumnOrderChange: ({ columnId }) => `${columnId} moved`,
+    }}
+  />
 </LiveExampleFrame>
 
 ```ts

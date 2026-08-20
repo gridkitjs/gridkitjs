@@ -8,7 +8,14 @@ selectable.columns takes a SelectionMode — false, "single", or "multiple" — 
 ## Multi-select columns
 
 <LiveExampleFrame title='selectable={{ columns: "multiple" }}'>
-  <ColumnSelectionExample />
+  <GridExample
+    fixture="deployment"
+    props={{ borders: "horizontal", selectable: { columns: "multiple" } }}
+    events={{
+      onColumnSelectionChange: ({ selected }) =>
+        `${selected.length} column(s) selected`,
+    }}
+  />
 </LiveExampleFrame>
 
 ```ts
