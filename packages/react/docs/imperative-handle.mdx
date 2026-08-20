@@ -17,7 +17,7 @@ gridRef.current?.scrollToRow("42");
 gridRef.current?.getColumnSizing();
 ```
 
-Sizing, order, sort, and selection stay uncontrolled exactly as they are without a ref — set their starting values with `defaultColumnSizing` and friends. `DataGridApi` is for reading current state and triggering the actions below, not a second way to drive that same state.
+Sizing, order, sort, and selection stay uncontrolled exactly as they are without a ref — set their starting values with `defaultColumnSizing` and friends. `DataGridApi` is for reading current state and triggering the actions below, not a second way to drive that same state. `subscribe` doesn't change that either: it's a read/notify channel for reacting to state that already lives here, not a write path.
 
 ## Elements
 
@@ -92,6 +92,28 @@ Sizing, order, sort, and selection stay uncontrolled exactly as they are without
 `options` on `scrollToRow`/`scrollToColumn` is a standard
 [`ScrollIntoViewOptions`](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView),
 passed straight through.
+
+## Subscribing to state changes
+
+```ts
+subscribe(listener: () => void): () => void;
+```
+
+Registers `listener` to be called after any render in which the grid's internal state may have changed — any getter above may return a different value once it fires, not just one. Returns an unsubscribe function.
+
+Most consumers should reach for one of the `use*State` hooks built on it instead of calling `subscribe` directly — each wraps it in [`useSyncExternalStore`](https://react.dev/reference/react/useSyncExternalStore) so a component elsewhere in the tree stays reactive with no `on*Change` prop to forward and no polling:
+
+| Hook                   | Reads                                                                                                                                                      |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `usePaginationState`   | `getPagination`, `getPageCount` — see [pagination](/docs/react/pagination#building-a-pager-outside-the-grids-own-tree).                                    |
+| `useGroupByState`      | `getGroupBy`, `getGroupExpansion` — see [row grouping](/docs/react/row-grouping#building-a-group-by-ui-outside-the-grids-own-tree).                        |
+| `useColumnSortState`   | `getColumnSort` — see [column sorting](/docs/react/column-sorting#reading-sort-state-outside-the-grids-own-tree).                                          |
+| `useSelectionState`    | `getRowSelection`, `getColumnSelection`, `getCellSelection` — see [row selection](/docs/react/row-selection#reading-selection-outside-the-grids-own-tree). |
+| `useAggregateState`    | `getAggregates` — see [aggregate functions](/docs/react/aggregate-functions#reactively-outside-the-grids-own-tree).                                        |
+| `useColumnSizingState` | `getColumnSizing`.                                                                                                                                         |
+| `useColumnOrderState`  | `getColumnOrder`.                                                                                                                                          |
+
+Each hook falls back to an empty/zero value before the grid mounts, the same way its matching getter would if called too early.
 
 ## See also
 
