@@ -38,3 +38,8 @@ export type {
   SelectionMode,
   SelectionState,
 } from "@gridkitjs/core";
+
+// Reactive hooks for building custom UI outside the grid's own DOM, each
+// subscribing to `DataGridApi.subscribe` via `useSyncExternalStore`.
+export { default as usePaginationState } from "./DataGrid/hooks/usePaginationState";
+export type { PaginationStateApi } from "./DataGrid/hooks/usePaginationState";

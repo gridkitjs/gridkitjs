@@ -124,6 +124,57 @@ Reach for `template` only when `pager.variant: "numbered"` genuinely doesn't fit
 
 `pager.template={() => null}` is the documented way to suppress the built-in pager UI while keeping `paginated` row-windowing and the imperative API active — no separate `visible`/`showPager` flag needed. `variant` is ignored when `template` is given.
 
+## Building a pager outside the grid's own tree
+
+`pager.template` only reaches the built-in pager's own DOM slot — `DataGridComponent` still renders it, so it's for replacing that one widget's markup, not for a toolbar or sidebar living elsewhere on the page. `usePaginationState` covers that case: it subscribes to the grid's pagination state through its `ref`, so a component anywhere in the tree stays current with no `on*Change` prop to forward and no polling.
+
+```ts
+import { useRef } from "react";
+import {
+  DataGridComponent,
+  usePaginationState,
+  type DataGridApi,
+} from "@gridkitjs/react";
+
+function Toolbar({ gridRef }: { gridRef: RefObject<DataGridApi<Row> | null> }) {
+  const { pagination, pageCount, nextPage, previousPage } =
+    usePaginationState(gridRef);
+
+  return (
+    <div className="my-toolbar">
+      <button onClick={previousPage}>Back</button>
+      <span>
+        {pagination.pageIndex + 1} / {pageCount}
+      </span>
+      <button onClick={nextPage}>Forward</button>
+    </div>
+  );
+}
+
+function App() {
+  const gridRef = useRef<DataGridApi<Row>>(null);
+  return (
+    <>
+      <Toolbar gridRef={gridRef} />
+      <DataGridComponent ref={gridRef} paginated columns={columns} dataSource={rows} />
+    </>
+  );
+}
+```
+
+`usePaginationState` updates on every pagination change, including the silent page-0 reset a filter/sort/regroup triggers — the case with no `onPaginationChange` of its own, since the change that caused it already reports its own callback. Before the grid mounts, `pagination` reads `{ pageIndex: 0, pageSize: 0 }` and `pageCount` reads `0`.
+
+| Field          | Type                          | Description                                                |
+| -------------- | ----------------------------- | ---------------------------------------------------------- |
+| `pagination`   | `PaginationState`             | Same shape as `DataGridApi.getPagination()`.               |
+| `pageCount`    | `number`                      | How many pages the current page size splits the rows into. |
+| `goToPage`     | `(pageIndex: number) => void` | Moves to the given page, clamped into range.               |
+| `nextPage`     | `() => void`                  | Moves to the next page. A no-op on the last page.          |
+| `previousPage` | `() => void`                  | Moves to the previous page. A no-op on the first page.     |
+| `setPageSize`  | `(pageSize: number) => void`  | Changes the page size, resetting to the first page.        |
+
+See [imperative handle](/docs/react/imperative-handle) for `subscribe`, the primitive this hook is built on.
+
 ## Changing pages resets keyboard navigation and range selection to the page
 
 Arrow-key navigation and Shift-click range selection both operate on what's actually rendered — the current page — not the whole dataset. A `Shift`-click range drawn on page 1 and then paged away from does not retroactively include rows revealed by a later page, the same way a range spanning a collapsed group excludes the rows hidden beneath it (see [row grouping](/docs/react/row-grouping)).
