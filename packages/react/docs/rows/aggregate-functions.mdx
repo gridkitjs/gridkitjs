@@ -147,6 +147,26 @@ gridRef.current?.getDisplayRows(); // each group header's own `aggregates` field
 
 `getAggregates()` returns the grand-total `AggregateResults` — a `ReadonlyMap<string, unknown>` keyed by each spec's `id` (or `columnId`). A specific group's own results are read off `getDisplayRows()` instead, on that group's `aggregates` field, populated the same way.
 
+### Reactively, outside the grid's own tree
+
+The imperative getters above have no "something changed, re-render" signal of their own. `useAggregateState` subscribes to the grand total through the grid's `ref` instead, for a summary footer or bar living elsewhere on the page:
+
+```ts
+import { useRef } from "react";
+import {
+  DataGridComponent,
+  useAggregateState,
+  type DataGridApi,
+} from "@gridkitjs/react";
+
+function SummaryBar({ gridRef }: { gridRef: RefObject<DataGridApi<Row> | null> }) {
+  const aggregates = useAggregateState(gridRef);
+  return <p>Total: {String(aggregates.get("Amount") ?? "")}</p>;
+}
+```
+
+Read-only, same as `getAggregates()` itself — there is no action to include, since nothing drives an aggregate result directly. It updates whenever a filter, sort, or regroup changes the grand total, even though none of those report a dedicated `on*Change` for aggregates specifically — the same "derived, not directly committed" shape [`usePaginationState`](/docs/react/pagination#building-a-pager-outside-the-grids-own-tree) has for the silent page-0 reset. A specific group's own subtotal is still read off `getDisplayRows()`'s per-header `aggregates` field — see [`useGroupByState`](/docs/react/row-grouping#building-a-group-by-ui-outside-the-grids-own-tree). Before the grid mounts, it reads as an empty map. See [imperative handle](/docs/react/imperative-handle) for `subscribe`, the primitive this hook is built on.
+
 ## Props
 
 | Prop                    | Type                  | Default    | Description                                                                            |
@@ -164,4 +184,4 @@ gridRef.current?.getDisplayRows(); // each group header's own `aggregates` field
 - [Pagination](/docs/react/pagination) for how a page composes after aggregation, never before it.
 - [Column sorting](/docs/react/column-sorting) for the `compareValues` comparator `min`/`max` reuse.
 - [Column filtering](/docs/react/column-filtering) for `PredicateFilterEntry`, the closest precedent for a caller-supplied function received per row.
-- [Imperative handle](/docs/react/imperative-handle) for `getAggregates` and `getDisplayRows`.
+- [Imperative handle](/docs/react/imperative-handle) for `getAggregates`, `getDisplayRows`, and `subscribe`.

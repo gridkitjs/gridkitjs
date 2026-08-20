@@ -59,3 +59,7 @@ Each carries the column as a `SelectedColumn<Row>`:
 | `columnId`    | `string`              | The column's id.                                                                                      |
 | `column`      | `ResolvedColumn<Row>` | The resolved column — see [imperative handle](/docs/react/imperative-handle#resolved-row-and-column). |
 | `columnIndex` | `number`              | Position among the columns as displayed, so after any reorder.                                        |
+
+## Reading selection outside the grid's own tree
+
+`useSelectionState`, documented on [row selection](/docs/react/row-selection#reading-selection-outside-the-grids-own-tree), covers row, column, and cell selection together as one hook rather than three — its `columnSelection` field is this page's `SelectionState`.

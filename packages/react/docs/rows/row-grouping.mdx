@@ -59,6 +59,43 @@ onGroupExpansionChange?: (event: GroupExpansionEvent) => void;
 
 There's no built-in "expand all" control — call `gridRef.current?.expandAllGroups()` or `collapseAllGroups()` from a button of your own. See [imperative handle](/docs/react/imperative-handle) for both, and for `getGroupBy()`/`getGroupExpansion()`/`getDisplayRows()`.
 
+## Building a group-by UI outside the grid's own tree
+
+`useGroupByState` subscribes to the grid's group-by and group-expansion state through its `ref`, for a custom summary sidebar or group-by bar of your own living elsewhere on the page:
+
+```ts
+import { useRef } from "react";
+import {
+  DataGridComponent,
+  useGroupByState,
+  type DataGridApi,
+} from "@gridkitjs/react";
+
+function Sidebar({ gridRef }: { gridRef: RefObject<DataGridApi<Row> | null> }) {
+  const { groupBy, expandAllGroups, collapseAllGroups } =
+    useGroupByState(gridRef);
+
+  return (
+    <div className="my-sidebar">
+      <p>Grouped by: {groupBy.map((level) => level.columnId).join(" → ")}</p>
+      <button onClick={expandAllGroups}>Expand all</button>
+      <button onClick={collapseAllGroups}>Collapse all</button>
+    </div>
+  );
+}
+```
+
+`DataGridApi` has no per-group toggle action today — only `expandAllGroups`/`collapseAllGroups`, both included above. A custom UI needing to toggle a single group has no imperative action to call yet. A specific group's own computed aggregates are read off `getDisplayRows()`'s per-header `aggregates` field rather than a getter here — see [`useAggregateState`](/docs/react/aggregate-functions) for the grand-total equivalent.
+
+| Field               | Type                  | Description                                    |
+| ------------------- | --------------------- | ---------------------------------------------- |
+| `groupBy`           | `GroupByState`        | The active group-by stack, outer to inner.     |
+| `groupExpansion`    | `GroupExpansionState` | Group ids currently collapsed.                 |
+| `expandAllGroups`   | `() => void`          | Expands every group at once.                   |
+| `collapseAllGroups` | `() => void`          | Collapses every group currently shown at once. |
+
+Before the grid mounts, both fields read as empty and the actions are no-ops. See [imperative handle](/docs/react/imperative-handle) for `subscribe`, the primitive this hook is built on.
+
 ## Group-by bar visibility
 
 `groupByBarVisibility` decides when the bar itself renders:
@@ -102,4 +139,4 @@ Sorting groups by an aggregate value is still out of scope for this release. Ren
 - [Column sorting](/docs/react/column-sorting) and [reordering](/docs/react/column-reordering) for the comparator and drag mechanics grouping reuses.
 - [Aggregate functions](/docs/react/aggregate-functions) for computing and rendering a subtotal per group.
 - [Accessibility](/docs/react/accessibility) for the `treegrid` role and the ARIA attributes a grouped grid adds.
-- [Imperative handle](/docs/react/imperative-handle) for `getGroupBy`, `getGroupExpansion`, `getDisplayRows`, `expandAllGroups`, and `collapseAllGroups`.
+- [Imperative handle](/docs/react/imperative-handle) for `getGroupBy`, `getGroupExpansion`, `getDisplayRows`, `expandAllGroups`, `collapseAllGroups`, and `subscribe`.
