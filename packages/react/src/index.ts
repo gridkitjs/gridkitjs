@@ -43,3 +43,5 @@ export type {
 // subscribing to `DataGridApi.subscribe` via `useSyncExternalStore`.
 export { default as usePaginationState } from "./DataGrid/hooks/usePaginationState";
 export type { PaginationStateApi } from "./DataGrid/hooks/usePaginationState";
+export { default as useGroupByState } from "./DataGrid/hooks/useGroupByState";
+export type { GroupByStateApi } from "./DataGrid/hooks/useGroupByState";

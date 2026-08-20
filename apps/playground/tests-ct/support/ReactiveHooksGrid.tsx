@@ -1,6 +1,7 @@
 import { useCallback, useRef } from "react";
 import {
   DataGridComponent,
+  useGroupByState,
   usePaginationState,
   type DataGridApi,
   type DataGridProps,
@@ -29,6 +30,8 @@ export default function ReactiveHooksGrid<Row extends RowWithId>(
   const getRowId = useCallback((row: Row) => row.id, []);
   const { pagination, pageCount, goToPage, previousPage, setPageSize } =
     usePaginationState(gridRef);
+  const { groupBy, groupExpansion, expandAllGroups, collapseAllGroups } =
+    useGroupByState(gridRef);
 
   return (
     <div>
@@ -37,6 +40,8 @@ export default function ReactiveHooksGrid<Row extends RowWithId>(
         {JSON.stringify({
           pagination,
           pageCount,
+          groupBy,
+          groupExpansion,
         })}
       </pre>
       <button
@@ -57,6 +62,12 @@ export default function ReactiveHooksGrid<Row extends RowWithId>(
         }}
       >
         reactive-set-page-size-2
+      </button>
+      <button type="button" onClick={expandAllGroups}>
+        reactive-expand-all-groups
+      </button>
+      <button type="button" onClick={collapseAllGroups}>
+        reactive-collapse-all-groups
       </button>
     </div>
   );

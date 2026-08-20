@@ -2,7 +2,11 @@
 // ./support/coverage rather than directly from the CT package — see that
 // file for why.
 import type { MountResult } from "@playwright/experimental-ct-react";
-import type { PaginationState } from "@gridkitjs/core";
+import type {
+  GroupByState,
+  GroupExpansionState,
+  PaginationState,
+} from "@gridkitjs/core";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
 import ReactiveHooksGrid from "./support/ReactiveHooksGrid";
@@ -35,6 +39,8 @@ const columns = [
 interface ReactiveStatus {
   pagination: PaginationState;
   pageCount: number;
+  groupBy: GroupByState;
+  groupExpansion: GroupExpansionState;
 }
 
 async function readReactiveStatus(root: MountResult): Promise<ReactiveStatus> {
@@ -120,4 +126,53 @@ test("usePaginationState updates on the silent page reset from a sort change, wi
 
   status = await readReactiveStatus(root);
   expect(status.pagination.pageIndex).toBe(0);
+});
+
+test("useGroupByState updates from a header's group toggle with no onGroupByChange passed", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ReactiveHooksGrid
+      columns={columns}
+      dataSource={buildRows()}
+      groupableColumns
+    />,
+  );
+
+  let status = await readReactiveStatus(root);
+  expect(status.groupBy).toEqual([]);
+
+  const regionHeader = root.locator("thead th").filter({ hasText: "region" });
+  await regionHeader.focus();
+  await regionHeader.press("Alt+ArrowDown");
+
+  status = await readReactiveStatus(root);
+  expect(status.groupBy).toEqual([{ columnId: "region" }]);
+});
+
+test("useGroupByState's expandAllGroups/collapseAllGroups drive the grid", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ReactiveHooksGrid
+      columns={columns}
+      dataSource={buildRows()}
+      groupableColumns
+      defaultGroupBy={[{ columnId: "region" }]}
+    />,
+  );
+
+  await root
+    .getByRole("button", { name: "reactive-collapse-all-groups" })
+    .click();
+  let status = await readReactiveStatus(root);
+  expect(status.groupExpansion.length).toBeGreaterThan(0);
+
+  await root
+    .getByRole("button", { name: "reactive-expand-all-groups" })
+    .click();
+  status = await readReactiveStatus(root);
+  expect(status.groupExpansion).toEqual([]);
 });
