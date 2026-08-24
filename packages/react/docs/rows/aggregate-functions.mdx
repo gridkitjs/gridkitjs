@@ -7,6 +7,18 @@ description: "Computing group subtotals and a grand total with aggregates, the b
 
 ## Compute a subtotal and a grand total
 
+<LiveExampleFrame title='aggregates={[{ columnId: "Cost", fn: "sum" }]}'>
+  <GridExample
+    fixture="deployment"
+    props={{
+      borders: "horizontal",
+      groupableColumns: true,
+      defaultGroupBy: [{ columnId: "Environment.Name" }],
+      aggregates: [{ columnId: "Cost", fn: "sum" }],
+    }}
+  />
+</LiveExampleFrame>
+
 ```ts
 <DataGridComponent
   columns={columns}

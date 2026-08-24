@@ -7,6 +7,22 @@ description: "Splitting rows into pages with paginated, defaultPagination, and p
 
 ## Enable pagination
 
+<LiveExampleFrame title="paginated">
+  <GridExample
+    fixture="deployment"
+    props={{
+      borders: "horizontal",
+      paginated: true,
+      defaultPagination: { pageIndex: 0, pageSize: 2 },
+      pager: { sizeOptions: [2, 3, 5] },
+    }}
+    events={{
+      onPaginationChange: ({ pagination }) =>
+        `page ${pagination.pageIndex + 1}, size ${pagination.pageSize}`,
+    }}
+  />
+</LiveExampleFrame>
+
 ```ts
 <DataGridComponent
   columns={columns}
