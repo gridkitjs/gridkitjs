@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -105,7 +106,11 @@ export type CellSelectionChangeEvent<Row> = CoreCellSelectionChangeEvent<
  * and the actions are the ones every grid ref carries (focus, clear/select
  * all, scroll-to). Sizing, order, sort, and selection stay uncontrolled via
  * their existing `default*` props — this is not a second, imperative-only
- * way to drive that same state.
+ * way to drive that same state. `subscribe` doesn't change that: it's a
+ * read/notify channel for reacting to state that already lives here, not a
+ * write path — nothing becomes newly *driven* through the ref by its
+ * existence. See `packages/react/src/DataGrid/hooks/` for the public hooks
+ * built on it.
  */
 export interface DataGridApi<Row> {
   /** The grid's scrollable viewport element. */
@@ -165,6 +170,16 @@ export interface DataGridApi<Row> {
   scrollToRow(rowId: string, options?: ScrollIntoViewOptions): void;
   /** Scrolls the column with the given id into view. */
   scrollToColumn(columnId: string, options?: ScrollIntoViewOptions): void;
+
+  /**
+   * Registers `listener` to be called after any render in which the grid's
+   * internal state may have changed — every getter above may return a
+   * different value once `listener` fires, not just one. Returns an
+   * unsubscribe function. The primitive the `use*State` hooks under
+   * `packages/react/src/DataGrid/hooks/` build on; most consumers should
+   * reach for one of those instead of calling `subscribe` directly.
+   */
+  subscribe(listener: () => void): () => void;
 }
 
 export type Borders = "horizontal" | "vertical" | "all" | "none";
@@ -463,6 +478,7 @@ export function DataGridComponent<Row>({
   const viewportRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLTableElement>(null);
   const viewportWidth = useElementWidth(viewportRef, resizeMode === "fit");
+  const subscribersRef = useRef(new Set<() => void>());
   const [sizing, setSizing] = useState<ColumnSizingState>(
     defaultColumnSizing ?? {},
   );
@@ -641,6 +657,19 @@ export function DataGridComponent<Row>({
         ? paginateRows(aggregatedRows, pagination)
         : { rows: aggregatedRows, pageCount: 1, pageIndex: 0 },
     [paginated, aggregatedRows, pagination],
+  );
+
+  /**
+   * Cached rather than built fresh on every `getPagination()` call: a
+   * `useSyncExternalStore`-based hook's `getSnapshot` must return a
+   * referentially stable value when nothing changed, or React warns/loops.
+   */
+  const paginationSnapshot = useMemo<PaginationState>(
+    () => ({
+      pageIndex: paginatedRows.pageIndex,
+      pageSize: pagination.pageSize,
+    }),
+    [paginatedRows.pageIndex, pagination.pageSize],
   );
 
   /**
@@ -960,6 +989,50 @@ export function DataGridComponent<Row>({
     selection.rowMode === "multiple" || selection.columnMode === "multiple";
 
   /**
+   * Deps list every getter's own backing value, not threaded through each
+   * individual `commitIfChanged`/`setState` call site across the various
+   * `use*` hooks above. Several of those bypass `commitIfChanged` on
+   * purpose (pagination's own filter/sort/group-triggered page reset,
+   * `useColumnResize`'s drag-move phase, `useGroupByDrag`/`useColumnDrag`'s
+   * transient drag state) or don't use it at all, so threading a `notify()`
+   * through each call site individually is real surface area to get wrong
+   * and silently miss a spot. Listing every value here instead means any
+   * future getter just needs adding to this array, not a new call site.
+   *
+   * A plain no-deps effect (fire after every render, let each `listener`'s
+   * own `useSyncExternalStore` reference-equality check filter out the
+   * no-op ones) looks equivalent but isn't: `useSyncExternalStore` schedules
+   * a re-render *before* that bail-out check runs, not after, so notifying
+   * on a render that changed nothing here still forces the subscribing
+   * component to re-render — and if that component also renders this same
+   * `DataGridComponent` as a plain (non-memoized) sibling, its own re-render
+   * re-runs this very effect, forever, even though no value below ever
+   * actually changes. Gating on the dependency array is what breaks that
+   * cycle, not the listener-side check.
+   */
+  useEffect(() => {
+    for (const listener of subscribersRef.current) {
+      listener();
+    }
+  }, [
+    shownRows,
+    aggregatedRows,
+    resolved,
+    sizing,
+    order,
+    sort,
+    groupBy,
+    expansion,
+    paginationSnapshot,
+    paginatedRows.pageCount,
+    grandTotal,
+    rowSelection,
+    columnSelection,
+    cellSelection,
+    nav.focus,
+  ]);
+
+  /**
    * No deps array: `nav`, `selection`, `resize`, and `drag` are all freshly
    * constructed every render (none of those hooks memoize their returned
    * API), so the handle has to be rebuilt every render too or its closures
@@ -984,10 +1057,7 @@ export function DataGridComponent<Row>({
     getColumnSort: () => sort,
     getGroupBy: () => groupBy,
     getGroupExpansion: () => expansion,
-    getPagination: () => ({
-      pageIndex: paginatedRows.pageIndex,
-      pageSize: pagination.pageSize,
-    }),
+    getPagination: () => paginationSnapshot,
     getPageCount: () => paginatedRows.pageCount,
     getAggregates: () => grandTotal,
     getRowSelection: () => rowSelection,
@@ -1025,6 +1095,12 @@ export function DataGridComponent<Row>({
           )
         : undefined;
       cell?.scrollIntoView(options);
+    },
+    subscribe: (listener) => {
+      subscribersRef.current.add(listener);
+      return () => {
+        subscribersRef.current.delete(listener);
+      };
     },
   }));
 

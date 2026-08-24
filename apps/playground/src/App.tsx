@@ -5,6 +5,7 @@ import { GroupedGrid } from "./demos/GroupedGrid";
 import { LiveMetricsGrid } from "./demos/LiveMetricsGrid";
 import { PaginatedGrid } from "./demos/PaginatedGrid";
 import { PropsTable } from "./demos/PropsTable";
+import { ReactiveToolbarGrid } from "./demos/ReactiveToolbarGrid";
 import { ResizableSelectableGrid } from "./demos/ResizableSelectableGrid";
 
 export default function App() {
@@ -83,6 +84,20 @@ export default function App() {
       </p>
       <div className="mt-2">
         <AggregatedGrid />
+      </div>
+      <h2 className="mt-8 text-lg font-bold">
+        <code>usePaginationState</code>/<code>useSelectionState</code>, an
+        external toolbar
+      </h2>
+      <p className="mt-2 text-sm text-gray-600">
+        The pager and selection count above the grid live entirely outside{" "}
+        <code>DataGridComponent</code>'s own tree — no <code>ref</code>-plus-
+        <code>on*Change</code> wiring, just the reactive hooks reading the grid
+        through its <code>ref</code>. Sort a column to see the toolbar follow
+        the silent page reset too.
+      </p>
+      <div className="mt-2">
+        <ReactiveToolbarGrid />
       </div>
       <h2 className="mt-8 text-lg font-bold">Fast-changing async data</h2>
       <p className="mt-2 text-sm text-gray-600">

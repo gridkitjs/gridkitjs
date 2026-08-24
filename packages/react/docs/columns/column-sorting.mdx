@@ -45,3 +45,23 @@ sortableColumns turns on a clickable sort toggle in every header, unless a colum
 - Click a header's sort toggle to cycle it through ascending, descending, and off.
 - Shift-click a toggle to add or update that column in the sort's stack instead of replacing it.
 - With a header focused, <Kbd>Alt</Kbd>+<Kbd>ArrowUp</Kbd> cycles its sort the same way a click does; <Kbd>Alt</Kbd>+<Kbd>Shift</Kbd>+<Kbd>ArrowUp</Kbd> stacks it the same way a Shift-click does.
+
+## Reading sort state outside the grid's own tree
+
+`useColumnSortState` subscribes to the grid's active sort through its `ref`, for a sort indicator living elsewhere on the page:
+
+```ts
+import { useRef } from "react";
+import {
+  DataGridComponent,
+  useColumnSortState,
+  type DataGridApi,
+} from "@gridkitjs/react";
+
+function SortIndicator({ gridRef }: { gridRef: RefObject<DataGridApi<Row> | null> }) {
+  const sort = useColumnSortState(gridRef);
+  return <p>{sort.map((entry) => `${entry.columnId} ${entry.direction}`).join(", ")}</p>;
+}
+```
+
+Read-only: `DataGridApi` has no sort-mutating action — sort stays uncontrolled via `defaultColumnSort`/the grid's own header toggle. Before the grid mounts, it reads as an empty array. See [imperative handle](/docs/react/imperative-handle) for `getColumnSort`/`subscribe`, and [row grouping](/docs/react/row-grouping) for `useGroupByState`'s equivalent.
