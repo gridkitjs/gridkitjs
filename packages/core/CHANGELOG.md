@@ -1,5 +1,21 @@
 # @gridkitjs/core
 
+## 0.9.0
+
+### Minor Changes
+
+- 6e8189b: Aggregate functions: `computeAggregates` reduces rows through built-in reducers (`sum`, `avg`, `min`, `max`, `count`, `countDistinct`) or a custom `AggregateFn`, and `withGroupAggregates` attaches each group's own subtotal to its header — or, with `display: "row"`, appends a `ResolvedGroupSummaryRow` carrying the same results as its own entry in the display list. `AggregateSpec.alignment` overrides that aggregate's own cell alignment, falling back to its column's own `alignment` when omitted. New exports: `computeAggregates`, `withGroupAggregates`, and the types `AggregateFn`/`AggregateSpec`/`AggregateState`/`AggregateResults`/`BuiltInAggregate`/`FooterTemplateContext`/`GroupAggregateDisplay`/`ResolvedGroupSummaryRow`.
+
+  Every aggregate — built-in or custom — is always computed from the full leaf-row set in scope, never combined from already-computed child results, so a non-associative aggregate (a custom "distinct count", for example) is never silently wrong at a nested group level. A collapsed group's subtotal is recomputed the same way, independent of its own collapse state. Under `display: "row"`, a group's own summary row is inserted immediately after its last visible entry at every nesting level, never splits from its group across a page boundary (`paginateRows` treats it as part of the same unit), and never receives a keyboard tab stop — `nextFocusForKey` takes a new optional `isSkippableRow` predicate so `ArrowUp`/`ArrowDown`/`PageUp`/`PageDown`/`Ctrl+End` step over it.
+
+  Breaking: `ResolvedGroupRow` gains a required `aggregates: AggregateResults` field (empty when no aggregates are active), and `DisplayRow<Row>` widens to include the new `ResolvedGroupSummaryRow` variant — a caller doing an exhaustive `"kind" in entry` check now needs to also narrow on `entry.kind` to tell a group header apart from a summary row. `ColumnDefinition` gains an optional `footerTemplate` for rendering a column's own aggregate result.
+
+- 6e8189b: Pagination primitives: `paginateRows` slices a `DisplayRow<Row>[]` into pages, treating a top-level group and its whole subtree as one unit so a page never splits a group. New exports: `paginateRows`, and the types `PaginationState`/`PaginationChangeEvent`.
+
+  Breaking: `ResolvedRow`/`ResolvedGroupRow`/`CellTemplateContext` gain a required `datasetIndex` field — a row's absolute position in the whole filtered/sorted/grouped dataset, distinct from `rowIndex` (which is scoped to what's currently rendered — the page, once pagination is in use). A caller constructing either of these directly, or reading a template context, needs to account for the new field.
+
+- 6e8189b: New export: `paginationWindow(currentPage, pageCount, options?)`, the boundary + sibling windowing logic behind a numbered pager — which page numbers to show and where to collapse a gap into a `PaginationWindowEntry` `"ellipsis"` entry.
+
 ## 0.8.0
 
 ### Minor Changes

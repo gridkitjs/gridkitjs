@@ -1,5 +1,13 @@
 # @gridkitjs/theme-tailwind
 
+## 0.6.0
+
+### Minor Changes
+
+- 6e8189b: Styles for aggregates (`@gridkitjs/react`'s new `aggregates` prop): `.group-aggregates`/`.group-aggregate` for a group header's inline subtotal (`groupAggregateDisplay: "inline"`), `.grid-group-summary-row`/`.grid-group-summary-cell` for a group's own summary row (`groupAggregateDisplay: "row"`), and `.grid-footer`/`.grid-footer-cell` for the grand-total footer — including each one's `borders-*` variants.
+- 6e8189b: Styles for the built-in pager's numbered variant (`@gridkitjs/react`'s `pager.variant: "numbered"`): `.grid-pager-button[aria-current="page"]` for the active page, and `.grid-pager-ellipsis`.
+- 6e8189b: Styles for the new built-in pager (`@gridkitjs/react`'s `paginated` prop): `.gridkit-grid-pager`, `.grid-pager-button`, `.grid-pager-status`, and `.grid-pager-page-size`.
+
 ## 0.5.0
 
 ### Minor Changes
