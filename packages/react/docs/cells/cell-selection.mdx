@@ -8,18 +8,9 @@ selectable.cells takes a CellSelectionMode — only false or "single": a cell ad
 ## Single-select cells
 
 <LiveExampleFrame title='selectable={{ cells: "single" }}'>
-  <GridExample
-    fixture="deployment"
-    props={{
-      borders: "all",
-      getRowId: (row) => String(row.Id),
-      selectable: { cells: "single" },
-    }}
-    events={{
-      onCellSelect: ({ cell }) =>
-        `${cell.columnId} of row ${cell.rowId} = ${String(cell.value)}`,
-      onCellDeselect: () => "cleared",
-    }}
+  <StackblitzExample
+    path="cell-selection"
+    title='selectable={{ cells: "single" }}'
   />
 </LiveExampleFrame>
 
