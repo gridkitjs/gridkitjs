@@ -8,7 +8,19 @@ selectable.cells takes a CellSelectionMode — only false or "single": a cell ad
 ## Single-select cells
 
 <LiveExampleFrame title='selectable={{ cells: "single" }}'>
-  <CellSelectionExample />
+  <GridExample
+    fixture="deployment"
+    props={{
+      borders: "all",
+      getRowId: (row) => String(row.Id),
+      selectable: { cells: "single" },
+    }}
+    events={{
+      onCellSelect: ({ cell }) =>
+        `${cell.columnId} of row ${cell.rowId} = ${String(cell.value)}`,
+      onCellDeselect: () => "cleared",
+    }}
+  />
 </LiveExampleFrame>
 
 ```ts
@@ -53,3 +65,7 @@ Each carries the cell as a `SelectedCell<Row>`, resolved down to the value it sh
 | `rowIndex`    | `number`              | Position among the rows as rendered.                                                                  |
 | `columnIndex` | `number`              | Position among the columns as displayed.                                                              |
 | `value`       | `unknown`             | The cell's value, read off the column's `field` path.                                                 |
+
+## Reading selection outside the grid's own tree
+
+`useSelectionState`, documented on [row selection](/docs/react/row-selection#reading-selection-outside-the-grids-own-tree), covers row, column, and cell selection together as one hook rather than three — its `cellSelection` field is this page's `CellSelectionState`.

@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -8,16 +9,21 @@ import {
 } from "react";
 import {
   applyColumnOrder,
+  computeAggregates,
   defineColumnsFromRows,
   fitColumnsToWidth,
   groupRows,
   moveColumnBefore,
+  paginateRows,
   resolveColumnWidths,
   resolveRowId,
   resolveShownRows,
   totalColumnWidth,
+  withGroupAggregates,
   type ColumnDefinition as CoreColumnDefinition,
   type ResolvedColumn as CoreResolvedColumn,
+  type AggregateResults,
+  type AggregateState,
   type ColumnOrderEvent,
   type ColumnOrderState,
   type ColumnResizeEvent,
@@ -27,10 +33,13 @@ import {
   type ColumnSortState,
   type DisplayRow,
   type FilterState,
+  type GroupAggregateDisplay,
   type GroupByEvent,
   type GroupByState,
   type GroupExpansionEvent,
   type GroupExpansionState,
+  type PaginationChangeEvent,
+  type PaginationState,
   type ResolvedRow,
   type CellSelectionState,
   type SelectableConfig,
@@ -45,6 +54,8 @@ import {
 } from "@gridkitjs/core";
 import GridHeader from "./components/GridHeader";
 import GridBody from "./components/GridBody";
+import GridFooter from "./components/GridFooter";
+import GridPager from "./components/GridPager";
 import GroupByBar from "./components/GroupByBar";
 import { ariaAttr } from "./ariaAttr";
 import { classNames } from "./classNames";
@@ -54,6 +65,7 @@ import useColumnSort from "./useColumnSort";
 import useElementWidth from "./useElementWidth";
 import useGridNavigation, { HEADER_ROW } from "./useGridNavigation";
 import useGridSelection, { type SelectionCallbacks } from "./useGridSelection";
+import usePagination from "./usePagination";
 import useRowGrouping from "./useRowGrouping";
 
 /**
@@ -94,7 +106,11 @@ export type CellSelectionChangeEvent<Row> = CoreCellSelectionChangeEvent<
  * and the actions are the ones every grid ref carries (focus, clear/select
  * all, scroll-to). Sizing, order, sort, and selection stay uncontrolled via
  * their existing `default*` props — this is not a second, imperative-only
- * way to drive that same state.
+ * way to drive that same state. `subscribe` doesn't change that: it's a
+ * read/notify channel for reacting to state that already lives here, not a
+ * write path — nothing becomes newly *driven* through the ref by its
+ * existence. See `packages/react/src/DataGrid/hooks/` for the public hooks
+ * built on it.
  */
 export interface DataGridApi<Row> {
   /** The grid's scrollable viewport element. */
@@ -118,6 +134,17 @@ export interface DataGridApi<Row> {
   getColumnSort(): ColumnSortState;
   getGroupBy(): GroupByState;
   getGroupExpansion(): GroupExpansionState;
+  /** The active page and page size. Meaningful even when `paginated` is off — it stays at page 0 over the grid's whole (single) page. */
+  getPagination(): PaginationState;
+  /** How many pages the current `pagination.pageSize` splits the grid's rows into — `1` whenever `paginated` is off. */
+  getPageCount(): number;
+  /**
+   * The grand-total aggregate results — every active aggregate computed over
+   * the whole filtered/sorted dataset, ungrouped and unpaginated. A specific
+   * group's own results are read off `getDisplayRows()` instead, on that
+   * group header's `aggregates` field.
+   */
+  getAggregates(): AggregateResults;
   getRowSelection(): SelectionState;
   getColumnSelection(): SelectionState;
   getCellSelection(): CellSelectionState;
@@ -131,10 +158,28 @@ export interface DataGridApi<Row> {
   expandAllGroups(): void;
   /** Collapses every group currently shown at once — see `collapseAllGroups` in `@gridkitjs/core` for what "currently shown" means for a group already nested under a collapsed one. */
   collapseAllGroups(): void;
+  /** Moves to the given page, clamped into range. */
+  goToPage(pageIndex: number): void;
+  /** Moves to the next page. A no-op on the last page. */
+  nextPage(): void;
+  /** Moves to the previous page. A no-op on the first page. */
+  previousPage(): void;
+  /** Changes the page size, resetting to the first page. */
+  setPageSize(pageSize: number): void;
   /** Scrolls the row with the given id into view, if it is currently shown. */
   scrollToRow(rowId: string, options?: ScrollIntoViewOptions): void;
   /** Scrolls the column with the given id into view. */
   scrollToColumn(columnId: string, options?: ScrollIntoViewOptions): void;
+
+  /**
+   * Registers `listener` to be called after any render in which the grid's
+   * internal state may have changed — every getter above may return a
+   * different value once `listener` fires, not just one. Returns an
+   * unsubscribe function. The primitive the `use*State` hooks under
+   * `packages/react/src/DataGrid/hooks/` build on; most consumers should
+   * reach for one of those instead of calling `subscribe` directly.
+   */
+  subscribe(listener: () => void): () => void;
 }
 
 export type Borders = "horizontal" | "vertical" | "all" | "none";
@@ -148,6 +193,18 @@ export type Borders = "horizontal" | "vertical" | "all" | "none";
  * nothing else, and the grid scrolls or leaves a gap accordingly.
  */
 export type ResizeMode = "fit" | "fixed";
+
+/** `pagination.pageSize` a paginated grid starts at when `defaultPagination` omits one — a reasonable default for an ERP-grade dataset. */
+const DEFAULT_PAGE_SIZE = 25;
+
+/**
+ * A stable empty fallback for an omitted `aggregates` prop — a fresh `[]`
+ * every render would change identity each time and defeat the `useMemo`s
+ * that depend on it, the same reason `groupRows`/`withGroupAggregates`
+ * themselves return their input untouched for an empty array rather than a
+ * new one.
+ */
+const NO_AGGREGATES: AggregateState<never> = [];
 
 /**
  * How the group-by bar's visibility follows the active grouping. `"always"`
@@ -165,6 +222,42 @@ export interface HoverableConfig {
   rows?: boolean;
   columns?: boolean;
   cells?: boolean;
+}
+
+/**
+ * Everything a `pager.template` render prop needs to rebuild the built-in
+ * pager's UI itself. Passed fresh on every render where pagination-relevant
+ * state changed, so it's current by construction — unlike `DataGridApi`'s
+ * imperative methods and snapshot getters, which carry no "something
+ * changed, re-render" signal of their own.
+ */
+export interface PagerTemplateContext {
+  /** Same shape as `DataGridApi.getPagination()` — 0-based `pageIndex`. */
+  pagination: PaginationState;
+  /** `pagination.pageIndex + 1`, clamped — the display-ready page number. */
+  currentPage: number;
+  pageCount: number;
+  /** Passthrough of `pager.sizeOptions`, undefined when not given. */
+  pageSizeOptions: readonly number[] | undefined;
+  /** 0-based, same as `DataGridApi.goToPage` — not `currentPage`'s numbering. */
+  goToPage: (pageIndex: number) => void;
+  nextPage: () => void;
+  previousPage: () => void;
+  setPageSize: (pageSize: number) => void;
+}
+
+/** Presentation options for the grid's built-in pager. */
+export interface PagerConfig {
+  /** Page sizes offered by the built-in pager's page-size control. */
+  sizeOptions?: readonly number[] | undefined;
+  /** Defaults to `"compact"` — today's Prev/status/Next. */
+  variant?: "compact" | "numbered" | undefined;
+  /** Numbered variant only. How many pages to always show at each end. Defaults to 1. */
+  boundaryCount?: number | undefined;
+  /** Numbered variant only. How many pages to show on each side of the current page. Defaults to 1. */
+  siblingCount?: number | undefined;
+  /** Replaces the built-in pager entirely when given. `variant` is ignored. */
+  template?: ((context: PagerTemplateContext) => ReactNode) | undefined;
 }
 
 export interface DataGridProps<Row> extends SelectionCallbacks<Row> {
@@ -289,6 +382,41 @@ export interface DataGridProps<Row> extends SelectionCallbacks<Row> {
   /** The filter to start with — every applied entry, ANDed together. Uncontrolled. */
   defaultFilter?: FilterState<Row> | undefined;
   /**
+   * Whether the grid's rows are split into pages. A page's unit is a
+   * top-level group or a bare data row, never a leaf row — a group is never
+   * split across a page boundary. Off by default, matching `sortableColumns`.
+   */
+  paginated?: boolean | undefined;
+  /**
+   * The page and page size to start on. Uncontrolled. Defaults to
+   * `{ pageIndex: 0, pageSize: 25 }` when `paginated` is on and this is
+   * omitted.
+   */
+  defaultPagination?: PaginationState | undefined;
+  /** Presentation options for the built-in pager. */
+  pager?: PagerConfig | undefined;
+  /** Called once when the user changes the page or the page size. */
+  onPaginationChange?: ((event: PaginationChangeEvent) => void) | undefined;
+  /**
+   * Aggregates to compute — a subtotal per group (rendered in that group's
+   * header) plus a grand total over the whole filtered/grouped dataset
+   * (rendered in a footer). Always computed over every row, never scoped to
+   * the current page. A plain controlled prop, unlike `sort`/`filter`/
+   * `groupBy`/`pagination`: there is no built-in UI for a user to add or
+   * remove an aggregate interactively, so there is no `defaultAggregates`/
+   * `onAggregatesChange` pair to go with it.
+   */
+  aggregates?: AggregateState<Row> | undefined;
+  /**
+   * Where a group's own aggregate results render. `"inline"` (the default)
+   * keeps them as text in the group header, next to its leaf-row count.
+   * `"row"` instead renders a dedicated row after that group's last visible
+   * entry, with each aggregate's value in the `<td>` for its own column —
+   * the same alignment the grand-total footer's own cells have. Has no
+   * effect when `aggregates` is empty or omitted.
+   */
+  groupAggregateDisplay?: GroupAggregateDisplay | undefined;
+  /**
    * The grid's accessible name, announced when it takes focus. A grid without
    * one is read only as "grid", which says nothing about which grid.
    */
@@ -332,6 +460,12 @@ export function DataGridComponent<Row>({
   defaultGroupExpansion,
   onGroupExpansionChange,
   defaultFilter,
+  paginated = false,
+  defaultPagination,
+  pager,
+  onPaginationChange,
+  aggregates,
+  groupAggregateDisplay = "inline",
   label,
   labelledBy,
   ref,
@@ -344,6 +478,7 @@ export function DataGridComponent<Row>({
   const viewportRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLTableElement>(null);
   const viewportWidth = useElementWidth(viewportRef, resizeMode === "fit");
+  const subscribersRef = useRef(new Set<() => void>());
   const [sizing, setSizing] = useState<ColumnSizingState>(
     defaultColumnSizing ?? {},
   );
@@ -356,6 +491,9 @@ export function DataGridComponent<Row>({
     defaultGroupExpansion ?? [],
   );
   const [filter] = useState<FilterState<Row>>(defaultFilter ?? []);
+  const [pagination, setPagination] = useState<PaginationState>(
+    defaultPagination ?? { pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE },
+  );
   const [announcement, setAnnouncement] = useState("");
   const [rowSelection, setRowSelection] = useState<SelectionState>(
     defaultRowSelection ?? [],
@@ -383,6 +521,7 @@ export function DataGridComponent<Row>({
         rowId: resolveRowId(row, rowIndex, getRowId),
         row,
         rowIndex,
+        datasetIndex: rowIndex,
       })) ?? [],
     [dataSource, getRowId],
   );
@@ -453,23 +592,103 @@ export function DataGridComponent<Row>({
     [shownRows, groupBy, expansion, resolved],
   );
 
+  const activeAggregates = aggregates ?? (NO_AGGREGATES as AggregateState<Row>);
+
   /**
-   * `displayRows` narrowed back to its data rows, in the same (possibly
-   * regrouped) order — what row/cell selection anchors its range-select
-   * against, so that a Shift-click spans the rows actually adjacent on
-   * screen rather than their pre-grouping order. A group collapsed at
-   * selection time contributes no rows here at all, so a range spanning its
-   * position includes only what was visible when the range was drawn, not
-   * the rows hidden beneath it.
+   * `displayRows` with each group header's `aggregates` field set — always
+   * ahead of pagination, so a subtotal is computed over a group's full
+   * dataset-wide leaf set rather than only the rows a page happens to show.
+   * `groupAggregateDisplay: "row"` additionally inserts a summary row after
+   * each group's last visible entry. `withGroupAggregates` returns
+   * `displayRows` itself, untouched, when no aggregates are active, so an
+   * aggregate-less grid pays only that check.
+   */
+  const aggregatedRows = useMemo(
+    () =>
+      withGroupAggregates(
+        displayRows,
+        shownRows,
+        groupBy,
+        activeAggregates,
+        resolved,
+        groupAggregateDisplay,
+      ),
+    [
+      displayRows,
+      shownRows,
+      groupBy,
+      activeAggregates,
+      resolved,
+      groupAggregateDisplay,
+    ],
+  );
+
+  /**
+   * The grand total: every aggregate over the whole filtered/sorted dataset,
+   * ungrouped — independent of `aggregatedRows`, which only ever attaches
+   * results to group headers. Recomputed from `shownRows` directly rather
+   * than derived from any per-group result, for the same reason a nested
+   * group's own subtotal is: a non-associative custom aggregate would be
+   * wrong if combined from parts instead of the full set.
+   */
+  const grandTotal = useMemo<AggregateResults>(
+    () =>
+      computeAggregates(
+        shownRows.map((entry) => entry.row),
+        activeAggregates,
+        resolved,
+      ),
+    [shownRows, activeAggregates, resolved],
+  );
+
+  /**
+   * `aggregatedRows` windowed to the current page — always last in the
+   * pipeline, after grouping and aggregation, so a page never splits a
+   * group and a subtotal never changes value depending on which page is
+   * showing. `GridBody` renders this rather than `aggregatedRows` directly,
+   * paginated or not: when `paginated` is off the grid is a single page
+   * over every row, and `pageCount`/`pageIndex` report that (`1`/`0`)
+   * rather than the possibly-stale values a consumer's own `pagination`
+   * prop state might otherwise carry.
+   */
+  const paginatedRows = useMemo(
+    () =>
+      paginated
+        ? paginateRows(aggregatedRows, pagination)
+        : { rows: aggregatedRows, pageCount: 1, pageIndex: 0 },
+    [paginated, aggregatedRows, pagination],
+  );
+
+  /**
+   * Cached rather than built fresh on every `getPagination()` call: a
+   * `useSyncExternalStore`-based hook's `getSnapshot` must return a
+   * referentially stable value when nothing changed, or React warns/loops.
+   */
+  const paginationSnapshot = useMemo<PaginationState>(
+    () => ({
+      pageIndex: paginatedRows.pageIndex,
+      pageSize: pagination.pageSize,
+    }),
+    [paginatedRows.pageIndex, pagination.pageSize],
+  );
+
+  /**
+   * `paginatedRows.rows` narrowed back to its data rows, in the same
+   * (possibly regrouped, possibly paginated) order — what row/cell selection
+   * anchors its range-select against, so that a Shift-click spans the rows
+   * actually adjacent on screen rather than their pre-grouping,
+   * pre-pagination order. A group collapsed at selection time, or a row on a
+   * different page, contributes no rows here at all, so a range spanning its
+   * position includes only what was visible when the range was drawn.
    */
   const displayDataRows = useMemo(
     () =>
-      groupBy.length === 0
+      groupBy.length === 0 && !paginated
         ? shownRows
-        : displayRows.filter(
+        : paginatedRows.rows.filter(
             (entry): entry is ResolvedRow<Row> => !("kind" in entry),
           ),
-    [displayRows, groupBy.length, shownRows],
+    [paginatedRows, groupBy.length, paginated, shownRows],
   );
 
   /**
@@ -573,9 +792,22 @@ export function DataGridComponent<Row>({
     tableRef,
     // Group headers are addressable rows too — the whole point of the flat
     // `DisplayRow[]` shape is that they share one position space with data
-    // rows, so navigation counts them the same way.
-    rowCount: displayRows.length,
+    // rows, so navigation counts them the same way. Page-relative
+    // (`paginatedRows`, not `displayRows`): arrow keys operate on what's
+    // actually in the DOM, which is the current page — a different "page"
+    // concept than `useGridNavigation`'s own Page Up/Down viewport scrolling.
+    rowCount: paginatedRows.rows.length,
     columnCount: resolved.length,
+    // A group's own summary row (`groupAggregateDisplay: "row"`) occupies a
+    // real slot in `rowCount` above — its DOM position has to line up with
+    // everything else — but is presentational, never a tab stop: arrow-key
+    // vertical movement steps over it rather than landing there.
+    isSkippableRow: (rowIndex) => {
+      const entry = paginatedRows.rows[rowIndex];
+      return (
+        entry !== undefined && "kind" in entry && entry.kind === "group-summary"
+      );
+    },
   });
 
   /**
@@ -697,6 +929,47 @@ export function DataGridComponent<Row>({
     onColumnSortChange: handleColumnSortChange,
   });
 
+  /** Wrapped the same way `handleColumnSortChange` is, for its own announcement. */
+  function handlePaginationChange(event: PaginationChangeEvent): void {
+    onPaginationChange?.(event);
+    announce(
+      `Page ${String(event.pagination.pageIndex + 1)} of ${String(event.pageCount)}`,
+    );
+  }
+
+  const paginationApi = usePagination<Row>({
+    pagination,
+    setPagination,
+    rows: displayRows,
+    onPaginationChange: handlePaginationChange,
+  });
+
+  /**
+   * A user looking at page 7 of a result that filtering, sorting, or
+   * regrouping just shrank to 2 pages must not be silently stranded on an
+   * empty page — reset to the first page whenever any of the three change.
+   *
+   * Adjusted during render (React's own pattern for "state changed, derive a
+   * reset" — see https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+   * rather than in a `useEffect`, which would `setState` a render after the
+   * change already committed and paint the stale page for one frame. A
+   * plain `setPagination` rather than `pager.goToPage(0)`: this is a
+   * consequence of another change, not a page navigation of its own, and so
+   * reports no `onPaginationChange` of its own either — the filter/sort/
+   * group change's own callback already covers it.
+   */
+  const [previous, setPrevious] = useState({ filter, sort, groupBy });
+  if (
+    previous.filter !== filter ||
+    previous.sort !== sort ||
+    previous.groupBy !== groupBy
+  ) {
+    setPrevious({ filter, sort, groupBy });
+    if (pagination.pageIndex !== 0) {
+      setPagination({ ...pagination, pageIndex: 0 });
+    }
+  }
+
   const selection = useGridSelection<Row>({
     rows: displayDataRows,
     columns: resolved,
@@ -716,6 +989,50 @@ export function DataGridComponent<Row>({
     selection.rowMode === "multiple" || selection.columnMode === "multiple";
 
   /**
+   * Deps list every getter's own backing value, not threaded through each
+   * individual `commitIfChanged`/`setState` call site across the various
+   * `use*` hooks above. Several of those bypass `commitIfChanged` on
+   * purpose (pagination's own filter/sort/group-triggered page reset,
+   * `useColumnResize`'s drag-move phase, `useGroupByDrag`/`useColumnDrag`'s
+   * transient drag state) or don't use it at all, so threading a `notify()`
+   * through each call site individually is real surface area to get wrong
+   * and silently miss a spot. Listing every value here instead means any
+   * future getter just needs adding to this array, not a new call site.
+   *
+   * A plain no-deps effect (fire after every render, let each `listener`'s
+   * own `useSyncExternalStore` reference-equality check filter out the
+   * no-op ones) looks equivalent but isn't: `useSyncExternalStore` schedules
+   * a re-render *before* that bail-out check runs, not after, so notifying
+   * on a render that changed nothing here still forces the subscribing
+   * component to re-render — and if that component also renders this same
+   * `DataGridComponent` as a plain (non-memoized) sibling, its own re-render
+   * re-runs this very effect, forever, even though no value below ever
+   * actually changes. Gating on the dependency array is what breaks that
+   * cycle, not the listener-side check.
+   */
+  useEffect(() => {
+    for (const listener of subscribersRef.current) {
+      listener();
+    }
+  }, [
+    shownRows,
+    aggregatedRows,
+    resolved,
+    sizing,
+    order,
+    sort,
+    groupBy,
+    expansion,
+    paginationSnapshot,
+    paginatedRows.pageCount,
+    grandTotal,
+    rowSelection,
+    columnSelection,
+    cellSelection,
+    nav.focus,
+  ]);
+
+  /**
    * No deps array: `nav`, `selection`, `resize`, and `drag` are all freshly
    * constructed every render (none of those hooks memoize their returned
    * API), so the handle has to be rebuilt every render too or its closures
@@ -729,13 +1046,20 @@ export function DataGridComponent<Row>({
       return tableRef.current;
     },
     getRows: () => shownRows,
-    getDisplayRows: () => displayRows,
+    // `aggregatedRows`, not the plain `displayRows` it's derived from: the
+    // same array shape and content, except every group header's own
+    // `aggregates` field is populated — the whole reason `getDisplayRows()`
+    // is where a consumer reads a specific group's computed results from.
+    getDisplayRows: () => aggregatedRows,
     getColumns: () => resolved,
     getColumnSizing: () => sizing,
     getColumnOrder: () => order,
     getColumnSort: () => sort,
     getGroupBy: () => groupBy,
     getGroupExpansion: () => expansion,
+    getPagination: () => paginationSnapshot,
+    getPageCount: () => paginatedRows.pageCount,
+    getAggregates: () => grandTotal,
     getRowSelection: () => rowSelection,
     getColumnSelection: () => columnSelection,
     getCellSelection: () => cellSelection,
@@ -747,11 +1071,17 @@ export function DataGridComponent<Row>({
     collapseAllGroups: () => {
       grouping.collapseAll(displayRows);
     },
+    goToPage: paginationApi.goToPage,
+    nextPage: paginationApi.nextPage,
+    previousPage: paginationApi.previousPage,
+    setPageSize: paginationApi.setPageSize,
     scrollToRow: (rowId, options) => {
-      // `displayRows`, not `shownRows`: with grouping active a data row's DOM
-      // position is its place in the grouped, flattened output, not its
-      // pre-grouping index — group headers are siblings in the same `<tbody>`.
-      const index = displayRows.findIndex(
+      // `paginatedRows.rows`, not `displayRows`: a data row's DOM position is
+      // its place in the currently rendered page — with grouping active,
+      // that's its place in the grouped, flattened output; with pagination
+      // also active, that's the page's own slice of it. A row on a different
+      // page isn't in the DOM at all, so there is nothing to scroll to.
+      const index = paginatedRows.rows.findIndex(
         (entry) => !("kind" in entry) && entry.rowId === rowId,
       );
       if (index === -1) return;
@@ -765,6 +1095,12 @@ export function DataGridComponent<Row>({
           )
         : undefined;
       cell?.scrollIntoView(options);
+    },
+    subscribe: (listener) => {
+      subscribersRef.current.add(listener);
+      return () => {
+        subscribersRef.current.delete(listener);
+      };
     },
   }));
 
@@ -801,9 +1137,15 @@ export function DataGridComponent<Row>({
          * an internal detail for an ungrouped grid, ARIA role included.
          */
         role={groupBy.length > 0 ? "treegrid" : "grid"}
-        // The header is a row too, and counted from one; group headers count
-        // as rows here too, the same way they do in `nav`'s `rowCount`.
-        aria-rowcount={displayRows.length + 1}
+        // The header is a row too, and counted from one; group headers (and,
+        // under `groupAggregateDisplay: "row"`, each group's own summary
+        // row) count as rows here too, the same way they do in `nav`'s
+        // `rowCount`. `aggregatedRows`, not `displayRows`: the latter is
+        // pre-aggregation and never carries summary rows at all. Total
+        // dataset count, not the current page's — neither array is ever
+        // windowed to one page, so this stays the true row count per the
+        // WAI-ARIA grid pattern even while paged.
+        aria-rowcount={aggregatedRows.length + 1}
         aria-colcount={resolved.length}
         {...ariaAttr(multiselectable, "aria-multiselectable", true)}
         {...ariaAttr(labelledBy !== undefined, "aria-labelledby", labelledBy)}
@@ -873,13 +1215,38 @@ export function DataGridComponent<Row>({
         />
         <GridBody<Row>
           columns={resolved}
-          rows={displayRows}
+          rows={paginatedRows.rows}
           activeColumnId={resize.activeColumnId}
           nav={nav}
           selection={selection}
           grouping={grouping}
+          aggregates={activeAggregates}
+          groupAggregateDisplay={groupAggregateDisplay}
         />
+        {activeAggregates.length > 0 && (
+          <GridFooter<Row>
+            columns={resolved}
+            aggregates={activeAggregates}
+            results={grandTotal}
+            rows={shownRows.map((entry) => entry.row)}
+          />
+        )}
       </table>
+      {paginated &&
+        (pager?.template ? (
+          pager.template({
+            pagination: paginationApi.pagination,
+            currentPage: paginationApi.currentPage,
+            pageCount: paginationApi.pageCount,
+            pageSizeOptions: pager.sizeOptions,
+            goToPage: paginationApi.goToPage,
+            nextPage: paginationApi.nextPage,
+            previousPage: paginationApi.previousPage,
+            setPageSize: paginationApi.setPageSize,
+          })
+        ) : (
+          <GridPager pager={paginationApi} config={pager} />
+        ))}
       {/*
        * Outside the table, which admits no `div`, and polite so it waits for a
        * pause rather than cutting across what the user is already hearing.

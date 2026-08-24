@@ -166,4 +166,139 @@ describe("nextFocusForKey", () => {
     expect(nextFocusForKey("Escape", noModifiers, focus, 5, 5, 2)).toBeNull();
     expect(nextFocusForKey("Tab", noModifiers, focus, 5, 5, 2)).toBeNull();
   });
+
+  describe("isSkippableRow", () => {
+    // Row 3 is skippable (a group summary row, say) among 0..4.
+    const isSkippableRow = (rowIndex: number) => rowIndex === 3;
+
+    test("ArrowDown steps past a skippable row onto the next reachable one", () => {
+      const atRow2 = { rowIndex: 2, columnIndex: 0 };
+      expect(
+        nextFocusForKey(
+          "ArrowDown",
+          noModifiers,
+          atRow2,
+          5,
+          1,
+          2,
+          isSkippableRow,
+        ),
+      ).toEqual({ rowIndex: 4, columnIndex: 0 });
+    });
+
+    test("ArrowUp steps past a skippable row the same way, in the opposite direction", () => {
+      const atRow4 = { rowIndex: 4, columnIndex: 0 };
+      expect(
+        nextFocusForKey(
+          "ArrowUp",
+          noModifiers,
+          atRow4,
+          5,
+          1,
+          2,
+          isSkippableRow,
+        ),
+      ).toEqual({ rowIndex: 2, columnIndex: 0 });
+    });
+
+    test("left/right movement never consults isSkippableRow — it is row-scoped only", () => {
+      const atRow3 = { rowIndex: 3, columnIndex: 2 };
+      const alwaysSkippable = () => true;
+      expect(
+        nextFocusForKey(
+          "ArrowRight",
+          noModifiers,
+          atRow3,
+          5,
+          5,
+          2,
+          alwaysSkippable,
+        ),
+      ).toEqual({ rowIndex: 3, columnIndex: 3 });
+    });
+
+    test("stays in place rather than clamping onto the skippable bound row (which would silently undo the skip), when there is nowhere valid to move to", () => {
+      const lastRowSkippable = (rowIndex: number) => rowIndex === 4;
+      const atRow3 = { rowIndex: 3, columnIndex: 0 };
+      expect(
+        nextFocusForKey(
+          "ArrowDown",
+          noModifiers,
+          atRow3,
+          5,
+          1,
+          2,
+          lastRowSkippable,
+        ),
+      ).toEqual({ rowIndex: 3, columnIndex: 0 });
+    });
+
+    test("Ctrl+End lands on the last reachable row when the true last row is skippable", () => {
+      const lastRowSkippable = (rowIndex: number) => rowIndex === 4;
+      expect(
+        nextFocusForKey(
+          "End",
+          { ...noModifiers, ctrlKey: true },
+          focus,
+          5,
+          5,
+          2,
+          lastRowSkippable,
+        ),
+      ).toEqual({ rowIndex: 3, columnIndex: 4 });
+    });
+
+    test("ArrowUp from row 0 reaches the header even when row 0 is itself skippable — the header is never a skippable concept", () => {
+      const firstRowSkippable = (rowIndex: number) => rowIndex === 0;
+      const atRow0 = { rowIndex: 0, columnIndex: 0 };
+      expect(
+        nextFocusForKey(
+          "ArrowUp",
+          noModifiers,
+          atRow0,
+          5,
+          1,
+          2,
+          firstRowSkippable,
+        ),
+      ).toEqual({ rowIndex: HEADER_ROW, columnIndex: 0 });
+    });
+
+    test("stays in place, without looping forever, when every row is skippable", () => {
+      const everyRowSkippable = () => true;
+      const atRow2 = { rowIndex: 2, columnIndex: 0 };
+      expect(
+        nextFocusForKey(
+          "ArrowDown",
+          noModifiers,
+          atRow2,
+          5,
+          1,
+          2,
+          everyRowSkippable,
+        ),
+      ).toEqual({ rowIndex: 2, columnIndex: 0 });
+    });
+
+    test("PageDown steps past a skippable landing row the same way ArrowDown does", () => {
+      const atRow1 = { rowIndex: 1, columnIndex: 0 };
+      expect(
+        nextFocusForKey(
+          "PageDown",
+          noModifiers,
+          atRow1,
+          5,
+          1,
+          2,
+          isSkippableRow,
+        ),
+      ).toEqual({ rowIndex: 4, columnIndex: 0 });
+    });
+
+    test("defaults to skipping nothing when omitted", () => {
+      expect(nextFocusForKey("ArrowDown", noModifiers, focus, 5, 5, 2)).toEqual(
+        { rowIndex: 3, columnIndex: 2 },
+      );
+    });
+  });
 });

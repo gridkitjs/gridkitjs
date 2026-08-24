@@ -1,7 +1,11 @@
+import { AggregatedGrid } from "./demos/AggregatedGrid";
+import { CustomPagerGrid } from "./demos/CustomPagerGrid";
 import { FilteredGrid } from "./demos/FilteredGrid";
 import { GroupedGrid } from "./demos/GroupedGrid";
 import { LiveMetricsGrid } from "./demos/LiveMetricsGrid";
+import { PaginatedGrid } from "./demos/PaginatedGrid";
 import { PropsTable } from "./demos/PropsTable";
+import { ReactiveToolbarGrid } from "./demos/ReactiveToolbarGrid";
 import { ResizableSelectableGrid } from "./demos/ResizableSelectableGrid";
 
 export default function App() {
@@ -40,6 +44,60 @@ export default function App() {
       </p>
       <div className="mt-2">
         <GroupedGrid />
+      </div>
+      <h2 className="mt-8 text-lg font-bold">
+        <code>paginated</code>, grouped by Region
+      </h2>
+      <p className="mt-2 text-sm text-gray-600">
+        A page never splits a group — <code>pageSize</code> counts top-level
+        groups here, not leaf rows, so pages hold a different number of rendered
+        rows despite sharing one size. Change the page size, sort a column, or
+        add/remove a group-by level to see the grid jump back to page 1.
+      </p>
+      <div className="mt-2">
+        <PaginatedGrid />
+      </div>
+      <h2 className="mt-8 text-lg font-bold">
+        <code>pager.template</code>, a fully custom pager
+      </h2>
+      <p className="mt-2 text-sm text-gray-600">
+        Replaces the built-in pager's markup entirely — this one is styled
+        nothing like it, to show <code>paginated</code> row-windowing works the
+        same either way.
+      </p>
+      <div className="mt-2">
+        <CustomPagerGrid />
+      </div>
+      <h2 className="mt-8 text-lg font-bold">
+        <code>aggregates</code>, grouped by Region
+      </h2>
+      <p className="mt-2 text-sm text-gray-600">
+        Every built-in aggregate at once — <code>sum</code>/<code>avg</code>/
+        <code>min</code>/<code>max</code> of Amount, <code>min</code>/
+        <code>max</code> of the Closed date, <code>count</code> of every row,
+        <code>countDistinct</code> of Rep — plus a custom function computing the
+        percent of rows still Open. Each region's results render inline or as
+        their own summary row, per <code>groupAggregateDisplay</code>, computed
+        over the full dataset regardless of what's currently rendered. A
+        grand-total footer below the grid totals every row the same way,
+        regardless of grouping or collapse state.
+      </p>
+      <div className="mt-2">
+        <AggregatedGrid />
+      </div>
+      <h2 className="mt-8 text-lg font-bold">
+        <code>usePaginationState</code>/<code>useSelectionState</code>, an
+        external toolbar
+      </h2>
+      <p className="mt-2 text-sm text-gray-600">
+        The pager and selection count above the grid live entirely outside{" "}
+        <code>DataGridComponent</code>'s own tree — no <code>ref</code>-plus-
+        <code>on*Change</code> wiring, just the reactive hooks reading the grid
+        through its <code>ref</code>. Sort a column to see the toolbar follow
+        the silent page reset too.
+      </p>
+      <div className="mt-2">
+        <ReactiveToolbarGrid />
       </div>
       <h2 className="mt-8 text-lg font-bold">Fast-changing async data</h2>
       <p className="mt-2 text-sm text-gray-600">

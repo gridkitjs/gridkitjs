@@ -58,7 +58,7 @@ const columns: readonly ResolvedColumn<SampleRow, unknown>[] = [
 ];
 
 function resolvedRow(rowIndex: number, row: SampleRow): ResolvedRow<SampleRow> {
-  return { rowId: String(row.Id), row, rowIndex };
+  return { rowId: String(row.Id), row, rowIndex, datasetIndex: rowIndex };
 }
 
 const rows: readonly ResolvedRow<SampleRow>[] = [

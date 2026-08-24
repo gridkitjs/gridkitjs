@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -21,6 +22,14 @@ interface UseGridNavigationOptions {
   tableRef: RefObject<HTMLTableElement | null>;
   rowCount: number;
   columnCount: number;
+  /**
+   * Rows the vertical navigation keys step over rather than land a tab stop
+   * on — a group's own summary row (`groupAggregateDisplay: "row"`), which
+   * still occupies a real row slot for `rowCount` purposes but is
+   * presentational, not a stop of its own. Left unset (skips nothing) for a
+   * grid with no such rows.
+   */
+  isSkippableRow?: ((rowIndex: number) => boolean) | undefined;
 }
 
 export interface GridNavigationApi {
@@ -91,6 +100,7 @@ export default function useGridNavigation({
   tableRef,
   rowCount,
   columnCount,
+  isSkippableRow,
 }: UseGridNavigationOptions): GridNavigationApi {
   const [stored, setStored] = useState<GridFocus>({
     rowIndex: HEADER_ROW,
@@ -101,8 +111,15 @@ export default function useGridNavigation({
    * Clamped on the way out rather than written back, so that a coordinate
    * pushed out of range by a change to the data is restored when the data
    * comes back — and so the effect below cannot chase its own output.
+   * Memoized on the individual coordinates rather than recomputed on every
+   * render: `clampFocus` always returns a fresh object, and `getFocusedCell`
+   * on `DataGridApi` hands this same value to `useSyncExternalStore`-based
+   * hooks, which need a referentially stable snapshot when nothing changed.
    */
-  const focus = clampFocus(stored, rowCount, columnCount);
+  const focus = useMemo(
+    () => clampFocus(stored, rowCount, columnCount),
+    [stored, rowCount, columnCount],
+  );
 
   /**
    * Whether the browser's focus still has to be moved to match. Without it
@@ -169,6 +186,7 @@ export default function useGridNavigation({
       rowCount,
       columnCount,
       pageSize(),
+      isSkippableRow,
     );
     if (next === null) {
       return;

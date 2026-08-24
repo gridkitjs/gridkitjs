@@ -8,7 +8,13 @@ reorderableColumns turns on dragging a header to a new position, unless a column
 ## Drag a header to reorder it
 
 <LiveExampleFrame title="reorderableColumns">
-  <ColumnReorderingExample />
+  <GridExample
+    fixture="deployment"
+    props={{ borders: "all", reorderableColumns: true }}
+    events={{
+      onColumnOrderChange: ({ columnId }) => `${columnId} moved`,
+    }}
+  />
 </LiveExampleFrame>
 
 ```ts

@@ -10,6 +10,8 @@ interface GridRowProps<Row> {
   rowId: string;
   row: Row;
   rowIndex: number;
+  /** This row's absolute position in the whole dataset, unaffected by which page is showing — see `CellTemplateContext.datasetIndex`. */
+  datasetIndex: number;
   /** The column being resized, so its cells outline with its header. */
   activeColumnId: string | null;
   selectedColumnIds: ReadonlySet<string>;
@@ -27,6 +29,7 @@ function GridRowComponent<Row>({
   rowId,
   row,
   rowIndex,
+  datasetIndex,
   activeColumnId,
   selectedColumnIds,
   selected,
@@ -39,8 +42,11 @@ function GridRowComponent<Row>({
     <tr
       role="row"
       // Two past the index: rows are counted from one, and the header is the
-      // first of them.
-      aria-rowindex={rowIndex + 2}
+      // first of them. Built from `datasetIndex` rather than the
+      // page-relative `rowIndex`, so a paginated grid still reports each
+      // row's true position in the whole dataset — the two only diverge once
+      // pagination is on.
+      aria-rowindex={datasetIndex + 2}
       // Omitted rather than `false` when rows cannot be selected, which would
       // otherwise have every row announce that it is not.
       {...ariaAttr(rowsSelectable, "aria-selected", selected)}
@@ -71,7 +77,14 @@ function GridRowComponent<Row>({
             style={{ textAlign: alignment }}
           >
             {column.cellTemplate
-              ? column.cellTemplate({ value, row, rowIndex, rowId, selected })
+              ? column.cellTemplate({
+                  value,
+                  row,
+                  rowIndex,
+                  datasetIndex,
+                  rowId,
+                  selected,
+                })
               : (value as ReactNode)}
           </td>
         );

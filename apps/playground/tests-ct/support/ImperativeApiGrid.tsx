@@ -72,6 +72,8 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         groupBy: api.getGroupBy(),
         groupExpansion: api.getGroupExpansion(),
         displayRowCount: api.getDisplayRows().length,
+        pagination: api.getPagination(),
+        pageCount: api.getPageCount(),
         rowSelection: api.getRowSelection(),
         columnSelection: api.getColumnSelection(),
         cellSelection: api.getCellSelection(),
@@ -131,6 +133,22 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         }}
       >
         collapse-all-groups
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          gridRef.current?.nextPage();
+        }}
+      >
+        next-page
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          gridRef.current?.previousPage();
+        }}
+      >
+        previous-page
       </button>
       <button
         type="button"

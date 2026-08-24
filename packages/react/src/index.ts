@@ -12,6 +12,8 @@ export {
   type DataGridProps,
   type GroupByBarVisibility,
   type HoverableConfig,
+  type PagerConfig,
+  type PagerTemplateContext,
   type ResizeMode,
   type ResolvedColumn,
   type SelectedCell,
@@ -36,3 +38,16 @@ export type {
   SelectionMode,
   SelectionState,
 } from "@gridkitjs/core";
+
+// Reactive hooks for building custom UI outside the grid's own DOM, each
+// subscribing to `DataGridApi.subscribe` via `useSyncExternalStore`.
+export { default as usePaginationState } from "./DataGrid/hooks/usePaginationState";
+export type { PaginationStateApi } from "./DataGrid/hooks/usePaginationState";
+export { default as useGroupByState } from "./DataGrid/hooks/useGroupByState";
+export type { GroupByStateApi } from "./DataGrid/hooks/useGroupByState";
+export { default as useColumnSortState } from "./DataGrid/hooks/useColumnSortState";
+export { default as useSelectionState } from "./DataGrid/hooks/useSelectionState";
+export type { SelectionStateApi } from "./DataGrid/hooks/useSelectionState";
+export { default as useAggregateState } from "./DataGrid/hooks/useAggregateState";
+export { default as useColumnSizingState } from "./DataGrid/hooks/useColumnSizingState";
+export { default as useColumnOrderState } from "./DataGrid/hooks/useColumnOrderState";

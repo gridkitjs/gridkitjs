@@ -500,6 +500,64 @@
   }
 
   /*
+   * A group's own subtotals, inline after its count — `gap` on the parent
+   * `.grid-group-cell-content` already spaces every child, this just keeps
+   * multiple aggregates readable as a list rather than running together.
+   */
+  .gridkit-data-grid .grid-group-row .group-aggregates {
+    display: flex;
+    gap: 0.75rem;
+    margin-inline-start: 0.5rem;
+    font-weight: 400;
+  }
+
+  .gridkit-data-grid .grid-group-row .group-aggregate {
+    color: var(--gridkit-fg-muted);
+  }
+
+  /*
+   * The grand-total footer, styled as the header's counterpart: same
+   * surface, same cell padding. No border by default, matching the
+   * header's own `.header-cell` — see the `borders-*` variants below for
+   * the opt-in top border that echoes the header's bottom one.
+   */
+  .gridkit-data-grid .grid-footer {
+    background-color: var(--gridkit-surface);
+  }
+
+  .gridkit-data-grid .grid-footer-cell {
+    padding: 0.5rem;
+    font-weight: 600;
+  }
+
+  /*
+   * A group's own summary row (`groupAggregateDisplay: "row"`) — the
+   * per-column-cell alternative to `.group-aggregates`' inline text.
+   * Shares the group header's muted surface so the pair read as one unit,
+   * but is presentational: no hover state, no pointer cursor, matching
+   * `GridGroupSummaryRow`'s own lack of any click/focus handling.
+   */
+  .gridkit-data-grid .grid-group-summary-row {
+    background-color: var(--gridkit-surface-muted);
+  }
+
+  .gridkit-data-grid .grid-group-summary-cell {
+    padding: 0.5rem;
+    font-weight: 600;
+  }
+
+  /*
+   * Indents only the first cell, matching how `GridGroupRow`'s own
+   * `paddingInlineStart` indents just the one spanning cell it has — an
+   * empty, `aria-hidden` inline spacer rather than padding on the `<td>`
+   * itself, so the cell's own content still aligns flush with the column
+   * above and below it once the indent's width is accounted for.
+   */
+  .gridkit-data-grid .grid-group-summary-indent {
+    display: inline-block;
+  }
+
+  /*
    * Selection, after the hover rules so that a selected row hovered stays
    * selected — the two would otherwise be the same colour, since hover already
    * claims `--gridkit-surface-muted`.
@@ -553,8 +611,19 @@
   /* Horizontal borders */
   .gridkit-data-grid.borders-horizontal .grid-header .header-cell,
   .gridkit-data-grid.borders-horizontal .grid-cell,
-  .gridkit-data-grid.borders-horizontal .grid-group-cell {
+  .gridkit-data-grid.borders-horizontal .grid-group-cell,
+  .gridkit-data-grid.borders-horizontal .grid-group-summary-cell {
     border-bottom: 1px solid var(--gridkit-line);
+  }
+
+  /*
+   * The footer's own top border, echoing the header's bottom-anchored one —
+   * a `border-top` rather than a `border-bottom` on the last body row, since
+   * the footer sits in its own `<tfoot>` outside `<tbody>` entirely.
+   */
+  .gridkit-data-grid.borders-horizontal .grid-footer-cell,
+  .gridkit-data-grid.borders-all .grid-footer-cell {
+    border-top: 1px solid var(--gridkit-line);
   }
 
   /*
@@ -567,26 +636,38 @@
   .gridkit-data-grid.borders-horizontal .grid-row:last-child .grid-cell,
   .gridkit-data-grid.borders-horizontal
     .grid-group-row:last-child
-    .grid-group-cell {
+    .grid-group-cell,
+  .gridkit-data-grid.borders-horizontal
+    .grid-group-summary-row:last-child
+    .grid-group-summary-cell {
     border-bottom: none;
   }
 
   /* Vertical borders */
   .gridkit-data-grid.borders-vertical .grid-header .header-cell,
-  .gridkit-data-grid.borders-vertical .grid-cell {
+  .gridkit-data-grid.borders-vertical .grid-cell,
+  .gridkit-data-grid.borders-vertical .grid-footer-cell,
+  .gridkit-data-grid.borders-vertical .grid-group-summary-cell {
     border-right: 1px solid var(--gridkit-line);
   }
 
   .gridkit-data-grid.borders-vertical .grid-header .header-cell:last-child,
-  .gridkit-data-grid.borders-vertical .grid-cell:last-child {
+  .gridkit-data-grid.borders-vertical .grid-cell:last-child,
+  .gridkit-data-grid.borders-vertical .grid-footer-cell:last-child,
+  .gridkit-data-grid.borders-vertical .grid-group-summary-cell:last-child {
     border-right: none;
   }
 
   /* Borders on all sides */
   .gridkit-data-grid.borders-all .grid-header .header-cell,
   .gridkit-data-grid.borders-all .grid-cell,
-  .gridkit-data-grid.borders-all .grid-group-cell {
+  .gridkit-data-grid.borders-all .grid-group-cell,
+  .gridkit-data-grid.borders-all .grid-group-summary-cell {
     border-bottom: 1px solid var(--gridkit-line);
+    border-right: 1px solid var(--gridkit-line);
+  }
+
+  .gridkit-data-grid.borders-all .grid-footer-cell {
     border-right: 1px solid var(--gridkit-line);
   }
 
@@ -599,18 +680,25 @@
    */
   .gridkit-data-grid.borders-all .grid-header .header-cell:first-child,
   .gridkit-data-grid.borders-all .grid-cell:first-child,
-  .gridkit-data-grid.borders-all .grid-group-cell {
+  .gridkit-data-grid.borders-all .grid-group-cell,
+  .gridkit-data-grid.borders-all .grid-footer-cell:first-child,
+  .gridkit-data-grid.borders-all .grid-group-summary-cell:first-child {
     border-left: none;
   }
 
   .gridkit-data-grid.borders-all .grid-header .header-cell:last-child,
   .gridkit-data-grid.borders-all .grid-cell:last-child,
-  .gridkit-data-grid.borders-all .grid-group-cell {
+  .gridkit-data-grid.borders-all .grid-group-cell,
+  .gridkit-data-grid.borders-all .grid-footer-cell:last-child,
+  .gridkit-data-grid.borders-all .grid-group-summary-cell:last-child {
     border-right: none;
   }
 
   .gridkit-data-grid.borders-all .grid-row:last-child .grid-cell,
-  .gridkit-data-grid.borders-all .grid-group-row:last-child .grid-group-cell {
+  .gridkit-data-grid.borders-all .grid-group-row:last-child .grid-group-cell,
+  .gridkit-data-grid.borders-all
+    .grid-group-summary-row:last-child
+    .grid-group-summary-cell {
     border-bottom: none;
   }
 
@@ -748,6 +836,89 @@
   }
 
   .group-by-chip-remove:focus-visible {
+    outline: 2px solid var(--gridkit-accent);
+    outline-offset: 1px;
+  }
+
+  /*
+   * The pager. A sibling of the table, not a row inside it — the same
+   * reasoning `.gridkit-group-by-bar` gives for its own placement — so it's
+   * unscoped by `.gridkit-data-grid` the way that bar is.
+   */
+  .gridkit-grid-pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--gridkit-fg);
+    background-color: var(--gridkit-surface);
+    border-top: 1px solid var(--gridkit-line);
+  }
+
+  .grid-pager-button {
+    padding: 0.25rem 0.625rem;
+    font-size: 0.8125rem;
+    color: var(--gridkit-fg);
+    cursor: pointer;
+    background-color: var(--gridkit-surface);
+    border: 1px solid var(--gridkit-line);
+    border-radius: 0.25rem;
+  }
+
+  .grid-pager-button:hover:not(:disabled) {
+    background-color: var(--gridkit-surface-muted);
+  }
+
+  .grid-pager-button:focus-visible {
+    outline: 2px solid var(--gridkit-accent);
+    outline-offset: 1px;
+  }
+
+  .grid-pager-button:disabled {
+    color: var(--gridkit-fg-muted);
+    cursor: default;
+    opacity: 0.5;
+  }
+
+  .grid-pager-button[aria-current="page"] {
+    color: var(--gridkit-fg);
+    background-color: var(--gridkit-selected-strong);
+    border-color: var(--gridkit-accent);
+  }
+
+  .grid-pager-button[aria-current="page"]:hover:not(:disabled) {
+    background-color: var(--gridkit-selected-strong);
+  }
+
+  .grid-pager-status {
+    color: var(--gridkit-fg-muted);
+  }
+
+  .grid-pager-ellipsis {
+    padding: 0.25rem 0.625rem;
+    font-size: 0.8125rem;
+    color: var(--gridkit-fg-muted);
+  }
+
+  .grid-pager-page-size {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-inline-start: auto;
+    color: var(--gridkit-fg-muted);
+  }
+
+  .grid-pager-page-size select {
+    padding: 0.125rem 0.375rem;
+    color: var(--gridkit-fg);
+    background-color: var(--gridkit-surface);
+    border: 1px solid var(--gridkit-line);
+    border-radius: 0.25rem;
+  }
+
+  .grid-pager-page-size select:focus-visible {
     outline: 2px solid var(--gridkit-accent);
     outline-offset: 1px;
   }
