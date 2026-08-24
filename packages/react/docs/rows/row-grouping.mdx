@@ -8,21 +8,7 @@ description: "Stacking columns into nested, collapsible groups with groupBy, gro
 ## Enable grouping
 
 <LiveExampleFrame title="groupableColumns">
-  <GridExample
-    fixture="deployment"
-    props={{
-      borders: "horizontal",
-      groupableColumns: true,
-      groupByDraggableColumns: true,
-      defaultGroupBy: [{ columnId: "Environment.Name" }],
-    }}
-    events={{
-      onGroupByChange: ({ groupBy }) =>
-        groupBy.length === 0
-          ? "cleared"
-          : groupBy.map((level) => level.columnId).join(" → "),
-    }}
-  />
+  <StackblitzExample path="row-grouping" title="groupableColumns" />
 </LiveExampleFrame>
 
 ```ts

@@ -8,17 +8,9 @@ selectable.rows takes a SelectionMode — false, "single", or "multiple" — off
 ## Multi-select rows
 
 <LiveExampleFrame title='selectable={{ rows: "multiple" }}'>
-  <GridExample
-    fixture="deployment"
-    props={{
-      borders: "horizontal",
-      getRowId: (row) => String(row.Id),
-      selectable: { rows: "multiple" },
-    }}
-    events={{
-      onRowSelectionChange: ({ selected }) =>
-        `${selected.length} row(s) selected`,
-    }}
+  <StackblitzExample
+    path="row-selection"
+    title='selectable={{ rows: "multiple" }}'
   />
 </LiveExampleFrame>
 
