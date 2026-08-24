@@ -1,5 +1,83 @@
 # @gridkitjs/react
 
+## 0.8.0
+
+### Minor Changes
+
+- 6e8189b: Aggregates: compute a subtotal per group and a grand total over the whole filtered/grouped dataset.
+
+  ```ts
+  <DataGridComponent
+    columns={columns}
+    dataSource={rows}
+    groupableColumns
+    defaultGroupBy={[{ columnId: "Region" }]}
+    aggregates={[{ columnId: "Amount", fn: "sum" }]}
+  />;
+  ```
+
+  - `aggregates` is a plain controlled prop — `AggregateState<Row>`, an array of `{ columnId, fn, id?, alignment? }` specs. Unlike `sort`/`filter`/`groupBy`/`pagination`, there is no built-in UI to add or remove an aggregate interactively, so there's no `defaultAggregates`/`onAggregatesChange` pair.
+  - `groupAggregateDisplay` chooses how a group's own subtotal renders: `"inline"` (the default) keeps it as text in the group header, next to its leaf-row count; `"row"` instead renders a dedicated row after that group's last visible entry, with each aggregate's value in the `<td>` for its own column, aligned the same way the grand-total footer's cells are.
+  - A footer or `"row"`-mode summary cell aligns the same way its column's own data cells do, unless `AggregateSpec.alignment` overrides it for that specific aggregate — e.g. centering a `count` under an otherwise right-aligned currency column. When two specs share a column and disagree, the first one in `aggregates` wins for that shared cell.
+  - A grand-total footer (a `<tfoot>`, outside `aria-rowcount`) renders below the body whenever `aggregates` is non-empty, regardless of `groupAggregateDisplay`.
+  - `ColumnDefinition.footerTemplate` renders a column's own aggregate result in place of its plain formatted value, in the grand-total footer and — under `groupAggregateDisplay: "row"` — a group's own summary row.
+  - A group's summary row is presentational: it occupies a real row slot (`aria-rowindex` counts it, same as a header or data row) but the arrow keys step over it rather than landing a tab stop there, and it never splits from its own group across a page boundary.
+  - Aggregates are always computed over the full dataset, never scoped to the current page — composed ahead of pagination in the render pipeline, so a group's subtotal reads identically regardless of which page currently shows it.
+  - `DataGridApi` gains `getAggregates()` for the grand total; a specific group's own results are read off `getDisplayRows()`, which now returns rows carrying a populated `aggregates` field.
+
+  Depends on `@gridkitjs/core`'s new aggregate primitives (`computeAggregates`/`withGroupAggregates`) — see that package's own changelog entry, including the additive `aggregates` field it adds to `ResolvedGroupRow`.
+
+- 6e8189b: `pager.template` — a render prop that replaces the built-in pager's markup entirely, called on every render where pagination-relevant state changed. Also exports the new `PagerTemplateContext` type. As a side effect, `pager={{ template: () => null }}` is now the documented way to suppress the built-in pager while keeping `paginated` row-windowing and the imperative API active — previously there was no way to do that short of turning `paginated` off entirely.
+- 6e8189b: Opt-in numbered pager: `pager={{ variant: "numbered" }}` swaps the built-in pager's "Page X of Y" display for `[Prev][1][2][3]…[n][Next]` page buttons. `pager.boundaryCount` (default `1`) and `pager.siblingCount` (default `1`) control how many pages are always shown at each end and around the current page. Default stays `"compact"` — today's Prev/status/Next — so no existing consumer's rendered output changes.
+- 6e8189b: `DataGridProps.pageSizeOptions` is now grouped under a `pager` config object,
+  so future pager presentation options (a variant, a custom template) can land
+  without another breaking rename:
+
+  ```diff
+   <DataGridComponent
+     paginated
+  -  pageSizeOptions={[10, 25, 50]}
+  +  pager={{ sizeOptions: [10, 25, 50] }}
+   />;
+  ```
+
+- 6e8189b: Pagination: split the grid's rows into pages, respecting group boundaries.
+
+  ```ts
+  <DataGridComponent
+    columns={columns}
+    dataSource={rows}
+    paginated
+    defaultPagination={{ pageIndex: 0, pageSize: 25 }}
+    pager={{ sizeOptions: [10, 25, 50] }}
+    onPaginationChange={({ pagination }) => persist(pagination)}
+  />;
+  ```
+
+  - `paginated` turns pagination on; `defaultPagination`/`onPaginationChange` are the uncontrolled page/page-size pair and its change callback, mirroring `defaultColumnSort`/`onColumnSortChange`. Pagination always composes after filtering, sorting, and grouping — a page is a window onto the finished result. When grouping is also active, a page's unit is a top-level group, never a leaf row, so a group is never split across a page boundary.
+  - Turning `paginated` on renders a minimal, semantically-classed pager below the grid (Previous/Next, a page display, and — with `pager.sizeOptions` — a page-size select). Style it via `@gridkitjs/theme-tailwind` or your own CSS.
+  - `DataGridApi` gains `getPagination()`, `getPageCount()`, `goToPage()`, `nextPage()`, `previousPage()`, and `setPageSize()`.
+  - Filtering, sorting, or changing the group-by stack resets to the first page, so a user is never silently stranded on a page a smaller result set no longer has.
+
+  Depends on `@gridkitjs/core`'s new pagination primitives (`paginateRows` and friends) — see that package's own changelog entry, including the `datasetIndex` field this adds to `ResolvedRow`/`ResolvedGroupRow`/`CellTemplateContext`.
+
+  Breaking: `aria-rowindex` on a rendered row is now built from that row's absolute dataset position rather than its rendered position — the two only diverge once `paginated` is on, but the change applies unconditionally. `GridGroupRow`'s exported prop shape (if consumed directly, which is not the supported path) drops `rowIndex` in favor of `datasetIndex`.
+
+- 6e8189b: `DataGridApi` gains `subscribe(listener)`, a read/notify channel for reacting to grid state without polling the imperative getters — not a second, imperative-only way to drive that state. It's the primitive the new `use*State` hooks (added in following changes) are built on with `useSyncExternalStore`; most consumers should reach for one of those instead of calling `subscribe` directly.
+- 6e8189b: New `useAggregateState(gridRef)` hook: the grand-total aggregate results, read reactively off a mounted `DataGridComponent`'s `ref`, for a summary footer or bar living outside the grid's own DOM. Read-only, and updates even on changes with no dedicated `on*Change` prop of their own — a filter/sort/regroup altering the grand total.
+- 6e8189b: New `useColumnSizingState(gridRef)` and `useColumnOrderState(gridRef)` hooks: column widths and column order, read reactively off a mounted `DataGridComponent`'s `ref`. Read-only — sizing and order stay uncontrolled via `defaultColumnSizing`/`defaultColumnOrder` and the grid's own resize/reorder handles.
+- 6e8189b: New `useColumnSortState(gridRef)` hook: the grid's active sort, read reactively off a mounted `DataGridComponent`'s `ref`, for a sort indicator living outside the grid's own DOM. Read-only — `DataGridApi` has no sort-mutating action.
+- 6e8189b: New `useGroupByState(gridRef)` hook: reactive group-by and group-expansion state read off a mounted `DataGridComponent`'s `ref`, with `expandAllGroups`/`collapseAllGroups` actions, for a custom group-by UI living outside the grid's own DOM.
+- 6e8189b: New `usePaginationState(gridRef)` hook: reactive pagination state and actions (`goToPage`, `nextPage`, `previousPage`, `setPageSize`) read off a mounted `DataGridComponent`'s `ref`, for building a pager entirely outside the grid's own DOM. Updates on every pagination change, including the silent page-0 reset a filter/sort/regroup triggers.
+- 6e8189b: New `useSelectionState(gridRef)` hook: row, column, and cell selection read together as one reactive concern off a mounted `DataGridComponent`'s `ref`, with `clearSelection`/`selectAllRows` actions, for a "N rows selected" toolbar living outside the grid's own DOM.
+
+### Patch Changes
+
+- Updated dependencies [6e8189b]
+- Updated dependencies [6e8189b]
+- Updated dependencies [6e8189b]
+  - @gridkitjs/core@0.9.0
+
 ## 0.7.0
 
 ### Minor Changes
