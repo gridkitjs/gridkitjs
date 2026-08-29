@@ -9,6 +9,7 @@ import {
 import type { ResolvedColumn } from "../DataGrid";
 import type { GridNavigationApi } from "../useGridNavigation";
 import type { RowGroupingApi } from "../useRowGrouping";
+import type { RowVirtualizerApi } from "../useRowVirtualizer";
 import {
   keyboardSelectIntent,
   type GridSelectionApi,
@@ -29,6 +30,8 @@ interface GridBodyProps<Row> {
   aggregates: AggregateState<Row>;
   /** Where a group's aggregates render — inline in its header, or as its own summary row. */
   groupAggregateDisplay: GroupAggregateDisplay;
+  /** Windows `rows` down to the rows near the current scroll position. `null` when `virtualized` is off, in which case every row of `rows` renders exactly as it always has. */
+  virtualRange: RowVirtualizerApi | null;
 }
 
 /** Where a cell sits, read off the table's own indices rather than an attribute. */
@@ -36,6 +39,12 @@ interface CellPosition {
   rowIndex: number;
   columnIndex: number;
   columnId: string;
+}
+
+/** A row's position in the full (unsliced) `rows` array, off the attribute every row `<tr>` carries — see `GridRow`'s own `data-gridkit-row-index` for why this isn't the DOM's `sectionRowIndex`. `null` when the attribute is missing (a spacer row, or no row at all). */
+function rowIndexOf(row: Element): number | null {
+  const attribute = row.getAttribute("data-gridkit-row-index");
+  return attribute === null ? null : Number(attribute);
 }
 
 /**
@@ -54,16 +63,18 @@ function cellFrom(target: EventTarget): CellPosition | null {
   const cell = target.closest("td[data-gridkit-column]");
   const row = cell?.parentElement;
   const columnId = cell?.getAttribute("data-gridkit-column");
+  const rowIndex = row === null || row === undefined ? null : rowIndexOf(row);
   if (
     !(cell instanceof HTMLTableCellElement) ||
     !(row instanceof HTMLTableRowElement) ||
     columnId === null ||
-    columnId === undefined
+    columnId === undefined ||
+    rowIndex === null
   ) {
     return null;
   }
   return {
-    rowIndex: row.sectionRowIndex,
+    rowIndex,
     columnIndex: cell.cellIndex,
     columnId,
   };
@@ -78,14 +89,16 @@ function groupRowFrom(
   }
   const row = target.closest("tr[data-gridkit-group]");
   const groupId = row?.getAttribute("data-gridkit-group");
+  const rowIndex = row === null ? null : rowIndexOf(row);
   if (
     !(row instanceof HTMLTableRowElement) ||
     groupId === null ||
-    groupId === undefined
+    groupId === undefined ||
+    rowIndex === null
   ) {
     return null;
   }
-  return { rowIndex: row.sectionRowIndex, groupId };
+  return { rowIndex, groupId };
 }
 
 interface GroupAriaMeta {
@@ -140,9 +153,17 @@ export default function GridBody<Row>({
   grouping,
   aggregates,
   groupAggregateDisplay,
+  virtualRange,
 }: GridBodyProps<Row>) {
   const { selectedCell, rowMode, cellMode } = selection;
   const ariaMeta = useMemo(() => groupAriaMeta(rows), [rows]);
+  // The full `rows` array otherwise — `virtualRange` is `null` whenever
+  // `virtualized` is off, so this slice, and the spacer rows below, are a
+  // no-op that reproduces today's output exactly.
+  const visibleRows =
+    virtualRange === null
+      ? rows
+      : rows.slice(virtualRange.startIndex, virtualRange.endIndex + 1);
 
   /** The row and cell an event addresses, resolved once for every handler. */
   function targetOf(
@@ -233,11 +254,29 @@ export default function GridBody<Row>({
         nav.onKeyDown(event);
       }}
     >
-      {rows.map((entry) => {
+      {virtualRange !== null && virtualRange.offsetBefore > 0 && (
+        // `aria-hidden` and carrying neither `data-gridkit-column` nor
+        // `data-gridkit-group`/`data-gridkit-row-index`, so `cellFrom`/
+        // `groupRowFrom` never mistake it for a real row — it exists purely
+        // to give the browser's scrollbar the correct total height and thumb
+        // position, the same way `GridFooter`'s `<tfoot>` isn't a "row" to
+        // any of this grid's own row-counting logic.
+        <tr aria-hidden="true">
+          <td
+            style={{
+              height: virtualRange.offsetBefore,
+              padding: 0,
+              border: "none",
+            }}
+          />
+        </tr>
+      )}
+      {visibleRows.map((entry) => {
         if (!("kind" in entry)) {
           return (
             <GridRow<Row>
               key={entry.rowId}
+              ref={virtualRange?.measureRow(entry.rowIndex)}
               columns={columns}
               rowId={entry.rowId}
               row={entry.row}
@@ -271,8 +310,10 @@ export default function GridBody<Row>({
           return (
             <GridGroupSummaryRow<Row>
               key={`${entry.groupId}-summary`}
+              ref={virtualRange?.measureRow(entry.rowIndex)}
               groupId={entry.groupId}
               level={entry.level}
+              rowIndex={entry.rowIndex}
               datasetIndex={entry.datasetIndex}
               results={entry.aggregates}
               aggregates={aggregates}
@@ -284,6 +325,7 @@ export default function GridBody<Row>({
         return (
           <GridGroupRow
             key={entry.groupId}
+            ref={virtualRange?.measureRow(entry.rowIndex)}
             columnCount={columns.length}
             groupId={entry.groupId}
             level={entry.level}
@@ -294,6 +336,7 @@ export default function GridBody<Row>({
             value={entry.value}
             expanded={entry.expanded}
             count={entry.count}
+            rowIndex={entry.rowIndex}
             datasetIndex={entry.datasetIndex}
             posinset={ariaMeta.get(entry.groupId)?.posinset ?? 1}
             setsize={ariaMeta.get(entry.groupId)?.setsize ?? 1}
@@ -310,6 +353,17 @@ export default function GridBody<Row>({
           />
         );
       })}
+      {virtualRange !== null && virtualRange.offsetAfter > 0 && (
+        <tr aria-hidden="true">
+          <td
+            style={{
+              height: virtualRange.offsetAfter,
+              padding: 0,
+              border: "none",
+            }}
+          />
+        </tr>
+      )}
     </tbody>
   );
 }

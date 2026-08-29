@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, type Ref } from "react";
 import type { AggregateResults, AggregateState } from "@gridkitjs/core";
 import type { ResolvedColumn } from "../DataGrid";
 import { classNames } from "../classNames";
@@ -8,12 +8,15 @@ interface GridGroupSummaryRowProps<Row> {
   groupId: string;
   /** Nesting depth, matching the group's own level — indents the row the same amount `GridGroupRow` does. */
   level: number;
+  /** This row's position in the full (unsliced) display-rows array — see `ResolvedGroupSummaryRow.rowIndex`. */
+  rowIndex: number;
   /** This row's absolute position in the whole dataset, unaffected by which page is showing — see `ResolvedGroupSummaryRow.datasetIndex`. */
   datasetIndex: number;
   /** The group's own computed results — identical to its header's `aggregates`. */
   results: AggregateResults;
   aggregates: AggregateState<Row>;
   columns: readonly ResolvedColumn<Row>[];
+  ref?: Ref<HTMLTableRowElement> | undefined;
 }
 
 /**
@@ -37,16 +40,22 @@ interface GridGroupSummaryRowProps<Row> {
 function GridGroupSummaryRowComponent<Row>({
   groupId,
   level,
+  rowIndex,
   datasetIndex,
   results,
   aggregates,
   columns,
+  ref,
 }: GridGroupSummaryRowProps<Row>) {
   return (
     <tr
+      ref={ref}
       role="row"
       aria-rowindex={datasetIndex + 2}
       data-gridkit-group-summary={groupId}
+      // See `GridRow`'s own `data-gridkit-row-index` for why this reads off
+      // the array position rather than the DOM's `sectionRowIndex`.
+      data-gridkit-row-index={rowIndex}
       className={classNames(
         "grid-group-summary-row",
         `is-group-level-${String(level)}`,

@@ -69,6 +69,7 @@ import useGridNavigation, { HEADER_ROW } from "./useGridNavigation";
 import useGridSelection, { type SelectionCallbacks } from "./useGridSelection";
 import usePagination from "./usePagination";
 import useRowGrouping from "./useRowGrouping";
+import useRowVirtualizer from "./useRowVirtualizer";
 
 /**
  * A column whose header and cells may render arbitrary React content.
@@ -432,6 +433,27 @@ export interface DataGridProps<Row> extends SelectionCallbacks<Row> {
    */
   height?: number | string | undefined;
   /**
+   * Renders only the rows near the current scroll position rather than every
+   * row at once — for a dataset too large to mount in full. Requires
+   * `height` to be set; a grid without a bounded body has no viewport to
+   * window rows against (a dev-time console warning fires when it's
+   * missing). Off by default, matching every other opt-in behavior here.
+   */
+  virtualized?: boolean | undefined;
+  /**
+   * Rows rendered outside the visible range on each side, to reduce
+   * blank-frame flashes on fast scrolling. Only meaningful with `virtualized`
+   * on.
+   */
+  overscan?: number | undefined;
+  /**
+   * Assumed height for a row never yet measured — only matters for the very
+   * first paint and for `scrollToRow`'s initial jump before it corrects
+   * itself against that row's real, measured height. Only meaningful with
+   * `virtualized` on.
+   */
+  estimatedRowHeight?: number | undefined;
+  /**
    * The grid's accessible name, announced when it takes focus. A grid without
    * one is read only as "grid", which says nothing about which grid.
    */
@@ -482,6 +504,9 @@ export function DataGridComponent<Row>({
   aggregates,
   groupAggregateDisplay = "inline",
   height,
+  virtualized = false,
+  overscan = 4,
+  estimatedRowHeight = 40,
   label,
   labelledBy,
   ref,
@@ -494,6 +519,7 @@ export function DataGridComponent<Row>({
   const viewportRef = useRef<HTMLDivElement>(null);
   const headerTableRef = useRef<HTMLTableElement>(null);
   const bodyTableRef = useRef<HTMLTableElement>(null);
+  const bodyScrollRef = useRef<HTMLDivElement>(null);
   const viewportWidth = useElementWidth(viewportRef, resizeMode === "fit");
   const subscribersRef = useRef(new Set<() => void>());
   const [sizing, setSizing] = useState<ColumnSizingState>(
@@ -677,6 +703,29 @@ export function DataGridComponent<Row>({
   );
 
   /**
+   * `enabled` is `virtualized` alone, independent of `height`: an `auto`
+   * height body has no `overflow`, so its measured `clientHeight` covers
+   * the whole content and the computed range naturally comes out as
+   * everything anyway — the dev-time warning below is what tells a consumer
+   * that combination does nothing useful, not a behavioral gate here.
+   */
+  const virtualizer = useRowVirtualizer({
+    enabled: virtualized,
+    rows: paginatedRows.rows,
+    bodyScrollRef,
+    estimatedRowHeight,
+    overscan,
+  });
+
+  useEffect(() => {
+    if (virtualized && height === undefined) {
+      console.error(
+        "DataGridComponent: `virtualized` has no effect without `height` — a body with no bounded height has no viewport to window rows against.",
+      );
+    }
+  }, [virtualized, height]);
+
+  /**
    * Cached rather than built fresh on every `getPagination()` call: a
    * `useSyncExternalStore`-based hook's `getSnapshot` must return a
    * referentially stable value when nothing changed, or React warns/loops.
@@ -811,6 +860,9 @@ export function DataGridComponent<Row>({
   const nav = useGridNavigation({
     headerTableRef,
     bodyTableRef,
+    // `null` when virtualization is off, in which case behavior is
+    // byte-for-byte unchanged from before this feature existed.
+    virtualRange: virtualized ? virtualizer : null,
     // Group headers are addressable rows too — the whole point of the flat
     // `DisplayRow[]` shape is that they share one position space with data
     // rows, so navigation counts them the same way. Page-relative
@@ -1106,6 +1158,14 @@ export function DataGridComponent<Row>({
         (entry) => !("kind" in entry) && entry.rowId === rowId,
       );
       if (index === -1) return;
+      // Under virtualization the target row may not be mounted at all —
+      // `virtualizer.scrollToIndex` estimates, scrolls, and self-corrects
+      // once it mounts and is measured, rather than reaching for a DOM row
+      // that may not exist.
+      if (virtualized) {
+        virtualizer.scrollToIndex(index, options);
+        return;
+      }
       bodyTableRef.current?.tBodies[0]?.rows[index]?.scrollIntoView(options);
     },
     scrollToColumn: (columnId, options) => {
@@ -1254,6 +1314,7 @@ export function DataGridComponent<Row>({
 
         <div
           className="gridkit-data-grid-body"
+          ref={bodyScrollRef}
           style={
             height === undefined
               ? undefined
@@ -1278,6 +1339,7 @@ export function DataGridComponent<Row>({
               grouping={grouping}
               aggregates={activeAggregates}
               groupAggregateDisplay={groupAggregateDisplay}
+              virtualRange={virtualized ? virtualizer : null}
             />
           </table>
         </div>
