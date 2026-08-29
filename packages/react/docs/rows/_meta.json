@@ -4,6 +4,7 @@
     "row-selection",
     "row-grouping",
     "pagination",
-    "aggregate-functions"
+    "aggregate-functions",
+    "row-virtualization"
   ]
 }

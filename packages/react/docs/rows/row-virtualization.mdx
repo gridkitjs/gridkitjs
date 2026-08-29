@@ -1,0 +1,72 @@
+---
+title: "Row virtualization"
+description: "Rendering only the rows near the current scroll position with virtualized, for a dataset too large to mount in full."
+---
+
+`virtualized` renders only the rows near the current scroll position rather than every row `dataSource` holds at once. It's the safe default for a dataset with thousands of rows or more: without it, every row mounts as a real `<tr>` regardless of how many are actually visible.
+
+## Enable virtualization
+
+`virtualized` requires `height` to be set — the row area needs a real, bounded viewport to compute a visible-row window against. A body left at its default content-driven height has nothing to window relative to, so combining `virtualized` with no `height` fires a `console.error` in development and otherwise does nothing useful.
+
+```tsx
+<DataGridComponent
+  columns={columns}
+  dataSource={rows}
+  height={400}
+  virtualized
+/>
+```
+
+## Row height is measured, not assumed
+
+Rows in this grid are not uniform: a column with `wrap: { cells: true }` allows multi-line content, and group header/summary rows (see [row grouping](/docs/react/row-grouping)) differ in height from data rows. `virtualized` measures each rendered row's real height rather than assuming a fixed one, so none of that is out of scope — a `.is-wrapped` column keeps wrapping exactly as it does without `virtualized`.
+
+This does mean a row's height isn't known until it has actually rendered once. Two props tune how that unmeasured state behaves:
+
+```tsx
+<DataGridComponent
+  columns={columns}
+  dataSource={rows}
+  height={400}
+  virtualized
+  estimatedRowHeight={48}
+  overscan={8}
+/>
+```
+
+- `estimatedRowHeight` (default `40`) is the assumed height for a row never yet measured. It only matters for the very first paint and for `scrollToRow`'s initial jump — real measurements replace it row by row as rows render, and the on-screen result self-corrects.
+- `overscan` (default `4`) is how many rows render outside the visible range on each side. A larger value trades a few more mounted rows for fewer blank-frame flashes on fast scrolling.
+
+## `scrollToRow` and keyboard navigation reach unmounted rows
+
+Without virtualization, every row is already in the DOM, so `scrollToRow` and arrow-key navigation only ever need to move focus or scroll to an existing element. With it, a target row — `scrollToRow`'s argument, or wherever `ArrowDown`/`End`/`Ctrl+End` would land — may not be mounted at all.
+
+Both handle this the same way, in two passes: jump to an estimated scroll offset (using measured heights where known, `estimatedRowHeight` for the rest), let the target row mount, then correct the scroll position once its real height is measured. This happens automatically; there is nothing extra to call.
+
+```tsx
+const gridRef = useRef<DataGridApi<Row>>(null);
+
+// Works the same whether row-2000 is currently mounted or not.
+gridRef.current?.scrollToRow("row-2000");
+```
+
+## Interaction with pagination and grouping
+
+`virtualized` windows whatever the grid is about to render — the current page's rows when `paginated` is on, the full set otherwise — so the two compose freely. Virtualizing an already-small paginated page still works, it's just low-value: there's rarely enough rows on one page for windowing to matter.
+
+`groupBy` is unaffected: a flattened row list mixing data, group-header, and group-summary rows is exactly what measuring each row's real height is for, and virtualization doesn't distinguish between the three.
+
+## Props
+
+| Prop                 | Type      | Default | Description                                                                         |
+| -------------------- | --------- | ------- | ----------------------------------------------------------------------------------- |
+| `virtualized`        | `boolean` | `false` | Renders only the rows near the current scroll position. Requires `height`.          |
+| `overscan`           | `number`  | `4`     | Rows rendered outside the visible range on each side.                               |
+| `estimatedRowHeight` | `number`  | `40`    | Assumed height for a row never yet measured — only matters before it first renders. |
+
+## See also
+
+- [Scrollable layout](/docs/react/data-grid#scrollable-layout) for `height`, the bounded viewport `virtualized` windows against.
+- [Row grouping](/docs/react/row-grouping) and [pagination](/docs/react/pagination) for the two transforms `virtualized` composes with.
+- [Imperative handle](/docs/react/imperative-handle) for `scrollToRow`.
