@@ -5,6 +5,7 @@
     "row-grouping",
     "pagination",
     "aggregate-functions",
-    "row-virtualization"
+    "row-virtualization",
+    "infinite-scroll"
   ]
 }
