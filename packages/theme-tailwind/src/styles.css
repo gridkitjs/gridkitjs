@@ -569,6 +569,17 @@
   }
 
   /*
+   * `infiniteScroll`'s built-in loading row — aria-hidden and outside
+   * `aria-rowcount` (see `GridBody`), so this is a purely visual cue, not an
+   * announced one.
+   */
+  .gridkit-data-grid .grid-loading-cell {
+    padding: 0.5rem;
+    color: var(--gridkit-fg-muted);
+    text-align: center;
+  }
+
+  /*
    * Indents only the first cell, matching how `GridGroupRow`'s own
    * `paddingInlineStart` indents just the one spanning cell it has — an
    * empty, `aria-hidden` inline spacer rather than padding on the `<td>`
