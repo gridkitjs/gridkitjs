@@ -3,8 +3,20 @@
 // file for why.
 import type { ColumnDefinition } from "@gridkitjs/core";
 import { DataGridComponent } from "@gridkitjs/react";
+import type { MountResult } from "@playwright/experimental-ct-react";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
+
+/**
+ * The header `<table>` — one of three (header/body/footer) that now share
+ * the `role="grid"`/`"treegrid"` wrapper `mountGrid` waits on, each carrying
+ * its own width, colgroup, and borders/hover/selectable classes. Any one of
+ * them proves the same computation `getByRole("grid")` used to prove
+ * directly, back when a single `<table>` carried the role itself.
+ */
+function gridTable(root: MountResult) {
+  return root.locator(".gridkit-data-grid-header");
+}
 
 interface Row {
   id: string;
@@ -110,7 +122,7 @@ test.describe("structural rendering", () => {
         resizeMode="fixed"
       />,
     );
-    const table = root.getByRole("grid");
+    const table = gridTable(root);
     const colWidths = await table
       .locator("colgroup col")
       .evaluateAll((elements) =>
@@ -139,7 +151,7 @@ test.describe("structural rendering", () => {
           borders={borders}
         />,
       );
-      const table = root.getByRole("grid");
+      const table = gridTable(root);
       for (const other of BORDER_VALUES) {
         if (other === borders) {
           await expect(table).toHaveClass(new RegExp(`borders-${other}`));
@@ -161,7 +173,7 @@ test.describe("structural rendering", () => {
         label="No borders prop"
       />,
     );
-    await expect(root.getByRole("grid")).not.toHaveClass(/borders-/);
+    await expect(gridTable(root)).not.toHaveClass(/borders-/);
   });
 
   test("hoverable={{ rows: false }} adds no-hover-rows and leaves the other two hoverable", async ({
@@ -176,7 +188,7 @@ test.describe("structural rendering", () => {
         hoverable={{ rows: false }}
       />,
     );
-    const table = root.getByRole("grid");
+    const table = gridTable(root);
     await expect(table).toHaveClass(/no-hover-rows/);
     await expect(table).not.toHaveClass(/no-hover-columns/);
     await expect(table).not.toHaveClass(/no-hover-cells/);
@@ -195,9 +207,9 @@ test.describe("structural rendering", () => {
       />,
       { width: 1000 },
     );
-    const tableWidth = await root
-      .getByRole("grid")
-      .evaluate((element) => parseFloat((element as HTMLElement).style.width));
+    const tableWidth = await gridTable(root).evaluate((element) =>
+      parseFloat((element as HTMLElement).style.width),
+    );
     expect(tableWidth).toBeCloseTo(200, 0);
   });
 
@@ -213,9 +225,9 @@ test.describe("structural rendering", () => {
       />,
       { width: 500 },
     );
-    const tableWidth = await root
-      .getByRole("grid")
-      .evaluate((element) => parseFloat((element as HTMLElement).style.width));
+    const tableWidth = await gridTable(root).evaluate((element) =>
+      parseFloat((element as HTMLElement).style.width),
+    );
     expect(tableWidth).toBeCloseTo(500, 0);
   });
 
