@@ -12,6 +12,7 @@ export {
   type DataGridProps,
   type GroupByBarVisibility,
   type HoverableConfig,
+  type InfiniteScrollConfig,
   type PagerConfig,
   type PagerTemplateContext,
   type ResizeMode,

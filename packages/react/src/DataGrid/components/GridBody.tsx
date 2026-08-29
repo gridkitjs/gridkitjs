@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, type RefObject } from "react";
 import {
   groupRowId,
   intentOf,
@@ -6,7 +6,7 @@ import {
   type DisplayRow,
   type GroupAggregateDisplay,
 } from "@gridkitjs/core";
-import type { ResolvedColumn } from "../DataGrid";
+import type { InfiniteScrollConfig, ResolvedColumn } from "../DataGrid";
 import type { GridNavigationApi } from "../useGridNavigation";
 import type { RowGroupingApi } from "../useRowGrouping";
 import type { RowVirtualizerApi } from "../useRowVirtualizer";
@@ -32,6 +32,10 @@ interface GridBodyProps<Row> {
   groupAggregateDisplay: GroupAggregateDisplay;
   /** Windows `rows` down to the rows near the current scroll position. `null` when `virtualized` is off, in which case every row of `rows` renders exactly as it always has. */
   virtualRange: RowVirtualizerApi | null;
+  /** Renders a sentinel row (and, while loading, a loading row) as the last child of `<tbody>` when set. `undefined` renders neither. */
+  infiniteScroll: InfiniteScrollConfig | undefined;
+  /** Ref the sentinel row attaches to — owned and observed by `DataGrid.tsx`'s `useInfiniteScroll`, not by this component. */
+  sentinelRef: RefObject<HTMLTableRowElement | null>;
 }
 
 /** Where a cell sits, read off the table's own indices rather than an attribute. */
@@ -154,6 +158,8 @@ export default function GridBody<Row>({
   aggregates,
   groupAggregateDisplay,
   virtualRange,
+  infiniteScroll,
+  sentinelRef,
 }: GridBodyProps<Row>) {
   const { selectedCell, rowMode, cellMode } = selection;
   const ariaMeta = useMemo(() => groupAriaMeta(rows), [rows]);
@@ -363,6 +369,37 @@ export default function GridBody<Row>({
             }}
           />
         </tr>
+      )}
+      {/*
+       * Presentational, like the spacer rows above: neither carries
+       * `data-gridkit-row-index`/`data-gridkit-column`, so `cellFrom`/
+       * `groupRowFrom` never match them, and neither is part of `rows` (the
+       * array `aria-rowcount` and `useGridNavigation`'s `rowCount` are
+       * computed from in `DataGrid.tsx`), so both are already excluded from
+       * row counting and keyboard navigation without any extra check here.
+       */}
+      {infiniteScroll?.hasMore && (
+        <>
+          {infiniteScroll.isLoadingMore === true && (
+            <tr aria-hidden="true" className="grid-loading-row">
+              <td colSpan={columns.length} className="grid-loading-cell">
+                {infiniteScroll.loadingTemplate
+                  ? infiniteScroll.loadingTemplate()
+                  : "Loading more…"}
+              </td>
+            </tr>
+          )}
+          <tr
+            aria-hidden="true"
+            ref={sentinelRef}
+            className="grid-sentinel-row"
+          >
+            <td
+              colSpan={columns.length}
+              style={{ padding: 0, border: "none" }}
+            />
+          </tr>
+        </>
       )}
     </tbody>
   );

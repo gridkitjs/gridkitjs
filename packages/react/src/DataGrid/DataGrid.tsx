@@ -67,6 +67,7 @@ import useColumnSort from "./useColumnSort";
 import useElementWidth from "./useElementWidth";
 import useGridNavigation, { HEADER_ROW } from "./useGridNavigation";
 import useGridSelection, { type SelectionCallbacks } from "./useGridSelection";
+import useInfiniteScroll from "./useInfiniteScroll";
 import usePagination from "./usePagination";
 import useRowGrouping from "./useRowGrouping";
 import useRowVirtualizer from "./useRowVirtualizer";
@@ -268,6 +269,32 @@ export interface PagerConfig {
   template?: ((context: PagerTemplateContext) => ReactNode) | undefined;
 }
 
+/**
+ * Loads more rows as the user scrolls near the bottom, in place of paging.
+ * Appends only — there is no equivalent of `paginated`'s reset-to-page-0 for
+ * a result set that shrinks out from under the current position.
+ */
+export interface InfiniteScrollConfig {
+  /** Whether a further `onLoadMore` could still return more rows. `false` removes the sentinel entirely, so no further scrolling can trigger a load. */
+  readonly hasMore: boolean;
+  /**
+   * Called at most once per genuine threshold-crossing: fires when the
+   * sentinel comes within `rootMargin` of the body's viewport, and not again
+   * until `isLoadingMore` has gone back to `false`.
+   */
+  readonly onLoadMore: () => void;
+  /** Whether a load triggered by `onLoadMore` is still in flight. Suppresses further calls to it until this goes back to `false`. */
+  readonly isLoadingMore?: boolean | undefined;
+  /**
+   * `IntersectionObserver`'s `rootMargin` — how far from the bottom of the
+   * scrollable body `onLoadMore` fires, ahead of the sentinel actually
+   * scrolling into view. Defaults to `"200px"`.
+   */
+  readonly rootMargin?: string | undefined;
+  /** Replaces the built-in "Loading more…" row. */
+  readonly loadingTemplate?: (() => ReactNode) | undefined;
+}
+
 export interface DataGridProps<Row> extends SelectionCallbacks<Row> {
   columns?: readonly ColumnDefinition<Row>[] | undefined;
   dataSource?: readonly Row[] | undefined;
@@ -406,6 +433,14 @@ export interface DataGridProps<Row> extends SelectionCallbacks<Row> {
   /** Called once when the user changes the page or the page size. */
   onPaginationChange?: ((event: PaginationChangeEvent) => void) | undefined;
   /**
+   * Loads more rows as the user scrolls near the bottom, instead of paging.
+   * Mutually exclusive with `paginated` — setting both logs a dev-time
+   * `console.error` and only `paginated` takes effect. Recommended (not
+   * required) alongside `virtualized` for a dataset that grows without
+   * bound, so the mounted row count never grows with it either.
+   */
+  infiniteScroll?: InfiniteScrollConfig | undefined;
+  /**
    * Aggregates to compute — a subtotal per group (rendered in that group's
    * header) plus a grand total over the whole filtered/grouped dataset
    * (rendered in a footer). Always computed over every row, never scoped to
@@ -501,6 +536,7 @@ export function DataGridComponent<Row>({
   defaultPagination,
   pager,
   onPaginationChange,
+  infiniteScroll,
   aggregates,
   groupAggregateDisplay = "inline",
   height,
@@ -520,6 +556,7 @@ export function DataGridComponent<Row>({
   const headerTableRef = useRef<HTMLTableElement>(null);
   const bodyTableRef = useRef<HTMLTableElement>(null);
   const bodyScrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLTableRowElement>(null);
   const viewportWidth = useElementWidth(viewportRef, resizeMode === "fit");
   const subscribersRef = useRef(new Set<() => void>());
   const [sizing, setSizing] = useState<ColumnSizingState>(
@@ -724,6 +761,21 @@ export function DataGridComponent<Row>({
       );
     }
   }, [virtualized, height]);
+
+  const hasInfiniteScroll = infiniteScroll !== undefined;
+  useEffect(() => {
+    if (paginated && hasInfiniteScroll) {
+      console.error(
+        "DataGridComponent: `paginated` and `infiniteScroll` are mutually exclusive — only `paginated` takes effect while both are set.",
+      );
+    }
+  }, [paginated, hasInfiniteScroll]);
+
+  useInfiniteScroll({
+    rootRef: bodyScrollRef,
+    sentinelRef,
+    config: infiniteScroll,
+  });
 
   /**
    * Cached rather than built fresh on every `getPagination()` call: a
@@ -1340,6 +1392,8 @@ export function DataGridComponent<Row>({
               aggregates={activeAggregates}
               groupAggregateDisplay={groupAggregateDisplay}
               virtualRange={virtualized ? virtualizer : null}
+              infiniteScroll={infiniteScroll}
+              sentinelRef={sentinelRef}
             />
           </table>
         </div>
