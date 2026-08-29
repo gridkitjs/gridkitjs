@@ -7,6 +7,7 @@ import { PaginatedGrid } from "./demos/PaginatedGrid";
 import { PropsTable } from "./demos/PropsTable";
 import { ReactiveToolbarGrid } from "./demos/ReactiveToolbarGrid";
 import { ResizableSelectableGrid } from "./demos/ResizableSelectableGrid";
+import { VirtualizedGrid } from "./demos/VirtualizedGrid";
 
 export default function App() {
   return (
@@ -98,6 +99,18 @@ export default function App() {
       </p>
       <div className="mt-2">
         <ReactiveToolbarGrid />
+      </div>
+      <h2 className="mt-8 text-lg font-bold">
+        <code>virtualized</code>, 5,000 rows
+      </h2>
+      <p className="mt-2 text-sm text-gray-600">
+        Only the rows near the current scroll position are ever mounted — watch
+        the DOM node count in devtools stay flat while scrolling instead of
+        climbing with the dataset. <code>Notes</code> wraps on roughly one row
+        in five, so heights are measured per row rather than assumed uniform.
+      </p>
+      <div className="mt-2">
+        <VirtualizedGrid />
       </div>
       <h2 className="mt-8 text-lg font-bold">Fast-changing async data</h2>
       <p className="mt-2 text-sm text-gray-600">
