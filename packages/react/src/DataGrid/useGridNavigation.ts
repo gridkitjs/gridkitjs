@@ -19,7 +19,8 @@ export { HEADER_ROW, type GridFocus };
 const FALLBACK_PAGE = 10;
 
 interface UseGridNavigationOptions {
-  tableRef: RefObject<HTMLTableElement | null>;
+  headerTableRef: RefObject<HTMLTableElement | null>;
+  bodyTableRef: RefObject<HTMLTableElement | null>;
   rowCount: number;
   columnCount: number;
   /**
@@ -63,8 +64,11 @@ export function tabIndexFor(
 }
 
 /**
- * The cell at a coordinate, found through the table's own row and cell
- * collections rather than a selector.
+ * The cell at a coordinate, found through the header or body table's own row
+ * and cell collections rather than a selector. Each table still has its own
+ * real `<thead>`/`<tbody>`, so `.tHead`/`.tBodies` resolve the same way they
+ * did against the one shared table before the header/body split — just
+ * scoped to a smaller table each.
  *
  * Ids can hold anything a consumer's data holds, and an attribute selector
  * built from one would have to escape it; positions need no quoting.
@@ -75,11 +79,15 @@ export function tabIndexFor(
  * `columnIndex` a keyboard `End` left behind) would otherwise address a cell
  * that row doesn't have.
  */
-function cellAt(table: HTMLTableElement, focus: GridFocus): HTMLElement | null {
+function cellAt(
+  headerTable: HTMLTableElement | null,
+  bodyTable: HTMLTableElement | null,
+  focus: GridFocus,
+): HTMLElement | null {
   const row =
     focus.rowIndex === HEADER_ROW
-      ? (table.tHead?.rows[0] ?? null)
-      : (table.tBodies[0]?.rows[focus.rowIndex] ?? null);
+      ? (headerTable?.tHead?.rows[0] ?? null)
+      : (bodyTable?.tBodies[0]?.rows[focus.rowIndex] ?? null);
   if (row === null) {
     return null;
   }
@@ -97,7 +105,8 @@ function cellAt(table: HTMLTableElement, focus: GridFocus): HTMLElement | null {
  * with selection turned off entirely, so it cannot depend on it.
  */
 export default function useGridNavigation({
-  tableRef,
+  headerTableRef,
+  bodyTableRef,
   rowCount,
   columnCount,
   isSkippableRow,
@@ -132,19 +141,24 @@ export default function useGridNavigation({
       return;
     }
     pending.current = false;
-    const table = tableRef.current;
-    if (table === null) {
-      return;
-    }
-    cellAt(table, { rowIndex: focus.rowIndex, columnIndex: focus.columnIndex })
+    cellAt(headerTableRef.current, bodyTableRef.current, {
+      rowIndex: focus.rowIndex,
+      columnIndex: focus.columnIndex,
+    })
       // Focusing the cell the browser already sits on is a no-op, which is what
       // makes one method serve both a key press and a cell reporting a click.
       ?.focus();
-  }, [tableRef, focus.rowIndex, focus.columnIndex]);
+  }, [headerTableRef, bodyTableRef, focus.rowIndex, focus.columnIndex]);
 
-  /** How many rows fit the viewport, which is what a page key should move. */
+  /**
+   * How many rows fit the viewport, which is what a page key should move.
+   * `bodyTable.parentElement` is the `.gridkit-data-grid-body` scroll
+   * wrapper — the row area alone, not the header/footer/pager chrome
+   * around it, unlike the shared-table days when a table's own parent was
+   * the whole `.gridkit-data-grid-viewport`.
+   */
   function pageSize(): number {
-    const table = tableRef.current;
+    const table = bodyTableRef.current;
     const firstRow = table?.tBodies[0]?.rows[0];
     const viewport = table?.parentElement;
     if (
