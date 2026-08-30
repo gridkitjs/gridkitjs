@@ -120,10 +120,32 @@
 @layer base {
   /*
    * The table is exactly as wide as its columns, so anything wider than the
-   * space available scrolls here rather than squashing the columns.
+   * space available scrolls here rather than squashing the columns. Scrolls
+   * the header, body, and footer tables together, since all three are
+   * descendants of this one viewport.
    */
   .gridkit-data-grid-viewport {
     overflow-x: auto;
+  }
+
+  /*
+   * The row area alone. `height` unset leaves this `auto` — exactly the
+   * content-driven height the single-table layout had before the
+   * header/body/footer split — and a consumer-set `height` bounds only this
+   * div, so the group-by bar, header, footer, and pager stay outside it and
+   * always visible while the rows scroll independently.
+   *
+   * No `position: sticky` here or anywhere else in this file for the header/
+   * footer: they don't need it. Splitting header, body, and footer into
+   * sibling `<table>`s already keeps the header and footer out of the region
+   * that scrolls — there's nothing to "stick," since they were never going
+   * to scroll away. A consumer wanting a divider or shadow at the seam adds
+   * their own CSS targeting `.gridkit-data-grid-header`/
+   * `.gridkit-data-grid-footer`.
+   */
+  .gridkit-data-grid-body {
+    overflow-y: auto;
+    height: var(--gridkit-body-height, auto);
   }
 
   /*
@@ -547,6 +569,17 @@
   }
 
   /*
+   * `infiniteScroll`'s built-in loading row — aria-hidden and outside
+   * `aria-rowcount` (see `GridBody`), so this is a purely visual cue, not an
+   * announced one.
+   */
+  .gridkit-data-grid .grid-loading-cell {
+    padding: 0.5rem;
+    color: var(--gridkit-fg-muted);
+    text-align: center;
+  }
+
+  /*
    * Indents only the first cell, matching how `GridGroupRow`'s own
    * `paddingInlineStart` indents just the one spanning cell it has — an
    * empty, `aria-hidden` inline spacer rather than padding on the `<td>`
@@ -608,7 +641,23 @@
     user-select: none;
   }
 
-  /* Horizontal borders */
+  /*
+   * Horizontal borders.
+   *
+   * Header, body, and footer are three separate `<table>`s, so
+   * `border-collapse` only ever merges borders within one of them — it
+   * cannot merge a header border against a body border the way it would
+   * merge two adjacent body rows' borders in one shared `<tbody>`. Each seam
+   * below is therefore deliberately defined from one side only, never both,
+   * or the two tables' independent borders would render as a doubled line
+   * instead of collapsing into one:
+   *   - header/body seam: the header's own `border-bottom` here. The body's
+   *     first row never sets a `border-top` of its own.
+   *   - body/footer seam: the footer's own `border-top` (below, alongside
+   *     `.grid-footer-cell`). The body's last row has its `border-bottom`
+   *     stripped (below, `.grid-row:last-child`) specifically so it never
+   *     supplies the other half of this seam.
+   */
   .gridkit-data-grid.borders-horizontal .grid-header .header-cell,
   .gridkit-data-grid.borders-horizontal .grid-cell,
   .gridkit-data-grid.borders-horizontal .grid-group-cell,
@@ -619,7 +668,7 @@
   /*
    * The footer's own top border, echoing the header's bottom-anchored one —
    * a `border-top` rather than a `border-bottom` on the last body row, since
-   * the footer sits in its own `<tfoot>` outside `<tbody>` entirely.
+   * the footer sits in its own `<table>` entirely, sibling to the body's.
    */
   .gridkit-data-grid.borders-horizontal .grid-footer-cell,
   .gridkit-data-grid.borders-all .grid-footer-cell {

@@ -1,5 +1,5 @@
 import { accessDotted } from "@gridkitjs/core";
-import { memo, type ReactNode } from "react";
+import { memo, type ReactNode, type Ref } from "react";
 import type { ResolvedColumn } from "../DataGrid";
 import { ariaAttr } from "../ariaAttr";
 import { classNames } from "../classNames";
@@ -22,6 +22,7 @@ interface GridRowProps<Row> {
   focusedColumnIndex: number | null;
   rowsSelectable: boolean;
   cellsSelectable: boolean;
+  ref?: Ref<HTMLTableRowElement> | undefined;
 }
 
 function GridRowComponent<Row>({
@@ -37,9 +38,11 @@ function GridRowComponent<Row>({
   focusedColumnIndex,
   rowsSelectable,
   cellsSelectable,
+  ref,
 }: GridRowProps<Row>) {
   return (
     <tr
+      ref={ref}
       role="row"
       // Two past the index: rows are counted from one, and the header is the
       // first of them. Built from `datasetIndex` rather than the
@@ -47,6 +50,11 @@ function GridRowComponent<Row>({
       // row's true position in the whole dataset — the two only diverge once
       // pagination is on.
       aria-rowindex={datasetIndex + 2}
+      // This row's position in the full (unsliced) rows array — read by
+      // `GridBody`'s event delegation (`cellFrom`) instead of the DOM's own
+      // `sectionRowIndex`, which under virtualization no longer matches a
+      // row's array position once a leading spacer `<tr>` shifts it.
+      data-gridkit-row-index={rowIndex}
       // Omitted rather than `false` when rows cannot be selected, which would
       // otherwise have every row announce that it is not.
       {...ariaAttr(rowsSelectable, "aria-selected", selected)}

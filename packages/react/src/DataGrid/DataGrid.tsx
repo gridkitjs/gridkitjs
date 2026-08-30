@@ -4,6 +4,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type ReactNode,
   type Ref,
 } from "react";
@@ -52,6 +53,7 @@ import {
   type ColumnSelectionChangeEvent as CoreColumnSelectionChangeEvent,
   type ColumnsSelectEvent as CoreColumnsSelectEvent,
 } from "@gridkitjs/core";
+import GridColgroup from "./components/GridColgroup";
 import GridHeader from "./components/GridHeader";
 import GridBody from "./components/GridBody";
 import GridFooter from "./components/GridFooter";
@@ -65,8 +67,10 @@ import useColumnSort from "./useColumnSort";
 import useElementWidth from "./useElementWidth";
 import useGridNavigation, { HEADER_ROW } from "./useGridNavigation";
 import useGridSelection, { type SelectionCallbacks } from "./useGridSelection";
+import useInfiniteScroll from "./useInfiniteScroll";
 import usePagination from "./usePagination";
 import useRowGrouping from "./useRowGrouping";
+import useRowVirtualizer from "./useRowVirtualizer";
 
 /**
  * A column whose header and cells may render arbitrary React content.
@@ -115,7 +119,12 @@ export type CellSelectionChangeEvent<Row> = CoreCellSelectionChangeEvent<
 export interface DataGridApi<Row> {
   /** The grid's scrollable viewport element. */
   readonly element: HTMLDivElement | null;
-  /** The grid's `<table>` element. */
+  /**
+   * The grid's row-area `<table>` element — the one holding `<tbody>`. The
+   * header and, when aggregates are active, footer render as their own
+   * sibling `<table>`s outside this one; use `element` to reach the whole
+   * scrollable viewport instead.
+   */
   readonly table: HTMLTableElement | null;
 
   /** Rows as currently filtered and sorted — what's rendered, ungrouped. */
@@ -260,6 +269,32 @@ export interface PagerConfig {
   template?: ((context: PagerTemplateContext) => ReactNode) | undefined;
 }
 
+/**
+ * Loads more rows as the user scrolls near the bottom, in place of paging.
+ * Appends only — there is no equivalent of `paginated`'s reset-to-page-0 for
+ * a result set that shrinks out from under the current position.
+ */
+export interface InfiniteScrollConfig {
+  /** Whether a further `onLoadMore` could still return more rows. `false` removes the sentinel entirely, so no further scrolling can trigger a load. */
+  readonly hasMore: boolean;
+  /**
+   * Called at most once per genuine threshold-crossing: fires when the
+   * sentinel comes within `rootMargin` of the body's viewport, and not again
+   * until `isLoadingMore` has gone back to `false`.
+   */
+  readonly onLoadMore: () => void;
+  /** Whether a load triggered by `onLoadMore` is still in flight. Suppresses further calls to it until this goes back to `false`. */
+  readonly isLoadingMore?: boolean | undefined;
+  /**
+   * `IntersectionObserver`'s `rootMargin` — how far from the bottom of the
+   * scrollable body `onLoadMore` fires, ahead of the sentinel actually
+   * scrolling into view. Defaults to `"200px"`.
+   */
+  readonly rootMargin?: string | undefined;
+  /** Replaces the built-in "Loading more…" row. */
+  readonly loadingTemplate?: (() => ReactNode) | undefined;
+}
+
 export interface DataGridProps<Row> extends SelectionCallbacks<Row> {
   columns?: readonly ColumnDefinition<Row>[] | undefined;
   dataSource?: readonly Row[] | undefined;
@@ -398,6 +433,14 @@ export interface DataGridProps<Row> extends SelectionCallbacks<Row> {
   /** Called once when the user changes the page or the page size. */
   onPaginationChange?: ((event: PaginationChangeEvent) => void) | undefined;
   /**
+   * Loads more rows as the user scrolls near the bottom, instead of paging.
+   * Mutually exclusive with `paginated` — setting both logs a dev-time
+   * `console.error` and only `paginated` takes effect. Recommended (not
+   * required) alongside `virtualized` for a dataset that grows without
+   * bound, so the mounted row count never grows with it either.
+   */
+  infiniteScroll?: InfiniteScrollConfig | undefined;
+  /**
    * Aggregates to compute — a subtotal per group (rendered in that group's
    * header) plus a grand total over the whole filtered/grouped dataset
    * (rendered in a footer). Always computed over every row, never scoped to
@@ -416,6 +459,35 @@ export interface DataGridProps<Row> extends SelectionCallbacks<Row> {
    * effect when `aggregates` is empty or omitted.
    */
   groupAggregateDisplay?: GroupAggregateDisplay | undefined;
+  /**
+   * Bounds the row area's height, independently scrollable — the grid's own
+   * chrome (group-by bar, header, footer, pager) stays outside it and
+   * always visible. A number is pixels; a string is passed through as a CSS
+   * length (e.g. "60vh"). Omitted, the body's height stays content-driven,
+   * same as today.
+   */
+  height?: number | string | undefined;
+  /**
+   * Renders only the rows near the current scroll position rather than every
+   * row at once — for a dataset too large to mount in full. Requires
+   * `height` to be set; a grid without a bounded body has no viewport to
+   * window rows against (a dev-time console warning fires when it's
+   * missing). Off by default, matching every other opt-in behavior here.
+   */
+  virtualized?: boolean | undefined;
+  /**
+   * Rows rendered outside the visible range on each side, to reduce
+   * blank-frame flashes on fast scrolling. Only meaningful with `virtualized`
+   * on.
+   */
+  overscan?: number | undefined;
+  /**
+   * Assumed height for a row never yet measured — only matters for the very
+   * first paint and for `scrollToRow`'s initial jump before it corrects
+   * itself against that row's real, measured height. Only meaningful with
+   * `virtualized` on.
+   */
+  estimatedRowHeight?: number | undefined;
   /**
    * The grid's accessible name, announced when it takes focus. A grid without
    * one is read only as "grid", which says nothing about which grid.
@@ -464,8 +536,13 @@ export function DataGridComponent<Row>({
   defaultPagination,
   pager,
   onPaginationChange,
+  infiniteScroll,
   aggregates,
   groupAggregateDisplay = "inline",
+  height,
+  virtualized = false,
+  overscan = 4,
+  estimatedRowHeight = 40,
   label,
   labelledBy,
   ref,
@@ -476,7 +553,10 @@ export function DataGridComponent<Row>({
   const hoverCells = hoverable?.cells ?? true;
 
   const viewportRef = useRef<HTMLDivElement>(null);
-  const tableRef = useRef<HTMLTableElement>(null);
+  const headerTableRef = useRef<HTMLTableElement>(null);
+  const bodyTableRef = useRef<HTMLTableElement>(null);
+  const bodyScrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLTableRowElement>(null);
   const viewportWidth = useElementWidth(viewportRef, resizeMode === "fit");
   const subscribersRef = useRef(new Set<() => void>());
   const [sizing, setSizing] = useState<ColumnSizingState>(
@@ -660,6 +740,44 @@ export function DataGridComponent<Row>({
   );
 
   /**
+   * `enabled` is `virtualized` alone, independent of `height`: an `auto`
+   * height body has no `overflow`, so its measured `clientHeight` covers
+   * the whole content and the computed range naturally comes out as
+   * everything anyway — the dev-time warning below is what tells a consumer
+   * that combination does nothing useful, not a behavioral gate here.
+   */
+  const virtualizer = useRowVirtualizer({
+    enabled: virtualized,
+    rows: paginatedRows.rows,
+    bodyScrollRef,
+    estimatedRowHeight,
+    overscan,
+  });
+
+  useEffect(() => {
+    if (virtualized && height === undefined) {
+      console.error(
+        "DataGridComponent: `virtualized` has no effect without `height` — a body with no bounded height has no viewport to window rows against.",
+      );
+    }
+  }, [virtualized, height]);
+
+  const hasInfiniteScroll = infiniteScroll !== undefined;
+  useEffect(() => {
+    if (paginated && hasInfiniteScroll) {
+      console.error(
+        "DataGridComponent: `paginated` and `infiniteScroll` are mutually exclusive — only `paginated` takes effect while both are set.",
+      );
+    }
+  }, [paginated, hasInfiniteScroll]);
+
+  useInfiniteScroll({
+    rootRef: bodyScrollRef,
+    sentinelRef,
+    config: infiniteScroll,
+  });
+
+  /**
    * Cached rather than built fresh on every `getPagination()` call: a
    * `useSyncExternalStore`-based hook's `getSnapshot` must return a
    * referentially stable value when nothing changed, or React warns/loops.
@@ -728,7 +846,10 @@ export function DataGridComponent<Row>({
   }
 
   const resize = useColumnResize<Row>({
-    tableRef,
+    // `measureColumnContent` only ever matches `td[data-gridkit-column]`
+    // (never `th`), so the header table has nothing for it to find — the
+    // body table alone was already the effective scope before this split.
+    tableRef: bodyTableRef,
     sizing,
     setSizing,
     columnSizeDefaults,
@@ -789,7 +910,11 @@ export function DataGridComponent<Row>({
   });
 
   const nav = useGridNavigation({
-    tableRef,
+    headerTableRef,
+    bodyTableRef,
+    // `null` when virtualization is off, in which case behavior is
+    // byte-for-byte unchanged from before this feature existed.
+    virtualRange: virtualized ? virtualizer : null,
     // Group headers are addressable rows too — the whole point of the flat
     // `DisplayRow[]` shape is that they share one position space with data
     // rows, so navigation counts them the same way. Page-relative
@@ -1043,7 +1168,7 @@ export function DataGridComponent<Row>({
       return viewportRef.current;
     },
     get table() {
-      return tableRef.current;
+      return bodyTableRef.current;
     },
     getRows: () => shownRows,
     // `aggregatedRows`, not the plain `displayRows` it's derived from: the
@@ -1085,10 +1210,24 @@ export function DataGridComponent<Row>({
         (entry) => !("kind" in entry) && entry.rowId === rowId,
       );
       if (index === -1) return;
-      tableRef.current?.tBodies[0]?.rows[index]?.scrollIntoView(options);
+      // Under virtualization the target row may not be mounted at all —
+      // `virtualizer.scrollToIndex` estimates, scrolls, and self-corrects
+      // once it mounts and is measured, rather than reaching for a DOM row
+      // that may not exist.
+      if (virtualized) {
+        virtualizer.scrollToIndex(index, options);
+        return;
+      }
+      bodyTableRef.current?.tBodies[0]?.rows[index]?.scrollIntoView(options);
     },
     scrollToColumn: (columnId, options) => {
-      const cells = tableRef.current?.querySelectorAll("[data-gridkit-column]");
+      // The whole viewport, not just one table: a column's cells with
+      // `data-gridkit-column` now live across three sibling tables
+      // (header/body/footer) rather than one, and the header's `<th>` is
+      // the one guaranteed to exist even when the body has no rows.
+      const cells = viewportRef.current?.querySelectorAll(
+        "[data-gridkit-column]",
+      );
       const cell = cells
         ? Array.from(cells).find(
             (entry) => entry.getAttribute("data-gridkit-column") === columnId,
@@ -1104,6 +1243,27 @@ export function DataGridComponent<Row>({
     },
   }));
 
+  // Shared by all three tables below, so borders/hover/selectable styling —
+  // every `.gridkit-data-grid.<modifier>` rule in `theme-tailwind` — applies
+  // identically to each rather than only to whichever one happened to carry
+  // it. Each rule's own descendant selector (e.g. `.borders-horizontal
+  // .grid-cell`) still needs the modifier class on that cell's own table
+  // ancestor, which is exactly what splitting into one table per section
+  // would otherwise lose.
+  const gridTableClassName = classNames(
+    "gridkit-data-grid",
+    borders ? `borders-${borders}` : "",
+    // Hover is on by default and selection off, so one set of classes
+    // turns styling off and the other turns it on. The polarity differs
+    // because the defaults do.
+    hoverRows ? "" : "no-hover-rows",
+    hoverColumns ? "" : "no-hover-columns",
+    hoverCells ? "" : "no-hover-cells",
+    selection.rowMode === false ? "" : "selectable-rows",
+    selection.columnMode === false ? "" : "selectable-columns",
+    selection.cellMode === false ? "" : "selectable-cells",
+  );
+
   return (
     <div className="gridkit-data-grid-viewport" ref={viewportRef}>
       {showGroupByBar && (
@@ -1116,13 +1276,15 @@ export function DataGridComponent<Row>({
           headerDropTarget={headerGroupByDropTarget}
         />
       )}
-      <table
-        ref={tableRef}
+      <div
+        className="gridkit-data-grid-tables"
         /*
-         * `role="grid"` rather than the table's own semantics: it is what makes
-         * the arrow keys a navigation the grid owns, and later what lets a row
-         * report whether it is selected. It obliges the single tab stop
-         * `useGridNavigation` keeps.
+         * `role="grid"` sits on this wrapper rather than any one of the
+         * three `<table>`s below: the WAI-ARIA grid pattern needs a single
+         * ancestor holding every row — header, body, and (when aggregates
+         * are active) footer alike — and no one table is an ancestor of the
+         * other two's rows now that they're split. It obliges the single
+         * tab stop `useGridNavigation` keeps.
          *
          * Switches to `"treegrid"` — the WAI-ARIA pattern for expandable,
          * collapsible rows — whenever `groupBy` is non-empty, rather than
@@ -1179,59 +1341,81 @@ export function DataGridComponent<Row>({
             selection.selectAllRows();
           }
         }}
-        // Widths are only honoured exactly when the table is as wide as its
-        // columns; at `100%` the fixed layout redistributes the difference.
-        style={{ width: totalColumnWidth(resolved) }}
-        className={classNames(
-          "gridkit-data-grid",
-          borders ? `borders-${borders}` : "",
-          // Hover is on by default and selection off, so one set of classes
-          // turns styling off and the other turns it on. The polarity differs
-          // because the defaults do.
-          hoverRows ? "" : "no-hover-rows",
-          hoverColumns ? "" : "no-hover-columns",
-          hoverCells ? "" : "no-hover-cells",
-          selection.rowMode === false ? "" : "selectable-rows",
-          selection.columnMode === false ? "" : "selectable-columns",
-          selection.cellMode === false ? "" : "selectable-cells",
-        )}
       >
-        <colgroup>
-          {resolved.map((entry) => (
-            <col key={entry.id} style={{ width: entry.width }} />
-          ))}
-        </colgroup>
-        <GridHeader<Row>
-          columns={resolved}
-          resize={resize}
-          drag={drag}
-          sort={columnSort}
-          sortableColumns={sortableColumns}
-          grouping={grouping}
-          groupableColumns={groupableColumns}
-          groupToggleIconColumns={groupToggleIconColumns}
-          nav={nav}
-          selection={selection}
-        />
-        <GridBody<Row>
-          columns={resolved}
-          rows={paginatedRows.rows}
-          activeColumnId={resize.activeColumnId}
-          nav={nav}
-          selection={selection}
-          grouping={grouping}
-          aggregates={activeAggregates}
-          groupAggregateDisplay={groupAggregateDisplay}
-        />
-        {activeAggregates.length > 0 && (
-          <GridFooter<Row>
+        <table
+          ref={headerTableRef}
+          // Widths are only honoured exactly when the table is as wide as its
+          // columns; at `100%` the fixed layout redistributes the difference.
+          style={{ width: totalColumnWidth(resolved) }}
+          className={classNames(gridTableClassName, "gridkit-data-grid-header")}
+        >
+          <GridColgroup columns={resolved} />
+          <GridHeader<Row>
             columns={resolved}
-            aggregates={activeAggregates}
-            results={grandTotal}
-            rows={shownRows.map((entry) => entry.row)}
+            resize={resize}
+            drag={drag}
+            sort={columnSort}
+            sortableColumns={sortableColumns}
+            grouping={grouping}
+            groupableColumns={groupableColumns}
+            groupToggleIconColumns={groupToggleIconColumns}
+            nav={nav}
+            selection={selection}
           />
+        </table>
+
+        <div
+          className="gridkit-data-grid-body"
+          ref={bodyScrollRef}
+          style={
+            height === undefined
+              ? undefined
+              : ({
+                  "--gridkit-body-height":
+                    typeof height === "number" ? `${String(height)}px` : height,
+                } as CSSProperties)
+          }
+        >
+          <table
+            ref={bodyTableRef}
+            style={{ width: totalColumnWidth(resolved) }}
+            className={gridTableClassName}
+          >
+            <GridColgroup columns={resolved} />
+            <GridBody<Row>
+              columns={resolved}
+              rows={paginatedRows.rows}
+              activeColumnId={resize.activeColumnId}
+              nav={nav}
+              selection={selection}
+              grouping={grouping}
+              aggregates={activeAggregates}
+              groupAggregateDisplay={groupAggregateDisplay}
+              virtualRange={virtualized ? virtualizer : null}
+              infiniteScroll={infiniteScroll}
+              sentinelRef={sentinelRef}
+            />
+          </table>
+        </div>
+
+        {activeAggregates.length > 0 && (
+          <table
+            style={{ width: totalColumnWidth(resolved) }}
+            className={classNames(
+              gridTableClassName,
+              "gridkit-data-grid-footer",
+            )}
+          >
+            <GridColgroup columns={resolved} />
+            <GridFooter<Row>
+              columns={resolved}
+              aggregates={activeAggregates}
+              results={grandTotal}
+              rows={shownRows.map((entry) => entry.row)}
+            />
+          </table>
         )}
-      </table>
+      </div>
       {paginated &&
         (pager?.template ? (
           pager.template({

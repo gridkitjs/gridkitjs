@@ -1,4 +1,4 @@
-import { memo, type ReactNode } from "react";
+import { memo, type ReactNode, type Ref } from "react";
 import type { AggregateResults, AggregateState } from "@gridkitjs/core";
 import type { ResolvedColumn } from "../DataGrid";
 import { classNames } from "../classNames";
@@ -17,6 +17,8 @@ interface GridGroupRowProps<Row> {
   expanded: boolean;
   /** Leaf row count under this group, regardless of collapse state. */
   count: number;
+  /** This row's position in the full (unsliced) display-rows array — see `ResolvedGroupRow.rowIndex`. */
+  rowIndex: number;
   /** This header's absolute position in the whole dataset, unaffected by which page is showing — see `ResolvedGroupRow.datasetIndex`. */
   datasetIndex: number;
   /** This group's 1-based position among its own siblings, for `aria-posinset`. */
@@ -30,6 +32,7 @@ interface GridGroupRowProps<Row> {
   /** This group's own computed results, keyed the same way `aggregates` resolves each spec's key. */
   results: AggregateResults;
   columns: readonly ResolvedColumn<Row>[];
+  ref?: Ref<HTMLTableRowElement> | undefined;
 }
 
 /**
@@ -67,6 +70,7 @@ function GridGroupRowComponent<Row>({
   value,
   expanded,
   count,
+  rowIndex,
   datasetIndex,
   posinset,
   setsize,
@@ -74,11 +78,13 @@ function GridGroupRowComponent<Row>({
   aggregates,
   results,
   columns,
+  ref,
 }: GridGroupRowProps<Row>) {
   const byId = new Map(columns.map((entry) => [entry.id, entry]));
 
   return (
     <tr
+      ref={ref}
       role="row"
       // Two past the index: rows are counted from one, and the header is the
       // first of them — the same convention `GridRow` uses. Built from
@@ -90,6 +96,9 @@ function GridGroupRowComponent<Row>({
       aria-setsize={setsize}
       aria-posinset={posinset}
       data-gridkit-group={groupId}
+      // See `GridRow`'s own `data-gridkit-row-index` for why this reads off
+      // the array position rather than the DOM's `sectionRowIndex`.
+      data-gridkit-row-index={rowIndex}
       className={classNames(
         "grid-group-row",
         `is-group-level-${String(level)}`,

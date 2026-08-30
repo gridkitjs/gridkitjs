@@ -1,0 +1,102 @@
+---
+title: "Infinite scroll"
+description: "Loading more rows as the user scrolls near the bottom, instead of paging."
+---
+
+`infiniteScroll` loads more rows as the user scrolls near the bottom of the grid's body, in place of `paginated`'s page-by-page navigation. It's a config object, the same shape convention `pager` follows — `hasMore` and `onLoadMore` are required, everything else tunes presentation.
+
+```tsx
+<DataGridComponent
+  columns={columns}
+  dataSource={rows}
+  height={400}
+  infiniteScroll={{
+    hasMore,
+    isLoadingMore,
+    onLoadMore: () => {
+      // fetch the next page and append it to `rows`
+    },
+  }}
+/>
+```
+
+- `hasMore` — whether a further `onLoadMore` could still return more rows. `false` removes the loading sentinel entirely, so no further scrolling can trigger a load.
+- `onLoadMore` — called at most once per genuine threshold-crossing: when the sentinel comes within `rootMargin` of the body's visible area, and not again until `isLoadingMore` has gone back to `false`.
+- `isLoadingMore` — whether a load triggered by `onLoadMore` is still in flight. Suppresses further calls to it until this goes back to `false`.
+
+## Mutually exclusive with `paginated`
+
+`paginated` and `infiniteScroll` are two different answers to the same question — how the grid moves through more rows than fit on screen — and don't compose. Setting both logs a dev-time `console.error` and only `paginated` takes effect:
+
+```tsx
+// console.error: DataGridComponent: `paginated` and `infiniteScroll` are
+// mutually exclusive — only `paginated` takes effect while both are set.
+<DataGridComponent paginated infiniteScroll={{ hasMore, onLoadMore }} />
+```
+
+## `rootMargin` fires the load early
+
+Under the hood, an `IntersectionObserver` watches a sentinel row rendered at the true end of the loaded rows, rooted against the grid's own scrollable body — not the page — so this fires correctly even when the grid sits inside a page that itself doesn't scroll. `rootMargin` (default `"200px"`) extends that body's effective bounds outward, so `onLoadMore` fires while the sentinel is still `rootMargin` away from actually being visible rather than only once the user has scrolled all the way to the literal bottom:
+
+```tsx
+<DataGridComponent
+  columns={columns}
+  dataSource={rows}
+  height={400}
+  infiniteScroll={{ hasMore, onLoadMore, rootMargin: "400px" }}
+/>
+```
+
+## The loading row
+
+While `isLoadingMore` is `true`, a "Loading more…" row renders above the sentinel. `loadingTemplate` replaces it, the same built-in-with-override-slot pattern `pager.template` follows for pagination's own UI:
+
+```tsx
+<DataGridComponent
+  columns={columns}
+  dataSource={rows}
+  height={400}
+  infiniteScroll={{
+    hasMore,
+    isLoadingMore,
+    onLoadMore,
+    loadingTemplate: () => <Spinner />,
+  }}
+/>
+```
+
+Both the loading row and the sentinel are presentational: neither counts toward `aria-rowcount`, and neither is a stop keyboard navigation's arrow keys can land on — the same treatment [row virtualization](/docs/react/row-virtualization)'s own spacer rows get.
+
+## Appends only
+
+Unlike `paginated`, which resets to page 0 when a filter, sort, or group-by change shrinks the result set out from under the current page, `infiniteScroll` has no equivalent reset — it only ever appends what `onLoadMore` provides. If `dataSource` changes for some other reason while infinite scroll is active, the sentinel and its guard simply re-evaluate against the new array on the next render.
+
+## Pair with `virtualized`
+
+`infiniteScroll` and [`virtualized`](/docs/react/row-virtualization) are independent — the sentinel renders as the true last row regardless of whether virtualization is on, after virtualization's own trailing spacer when it is. But loading an ever-growing dataset into a grid that mounts every row it has ever loaded defers the exact DOM-bloat problem virtualization exists to avoid. For a dataset that grows without bound, pairing the two is the recommended combination, not a requirement:
+
+```tsx
+<DataGridComponent
+  columns={columns}
+  dataSource={rows}
+  height={400}
+  virtualized
+  infiniteScroll={{ hasMore, isLoadingMore, onLoadMore }}
+/>
+```
+
+## Props
+
+| Prop              | Type              | Default   | Description                                                         |
+| ----------------- | ----------------- | --------- | ------------------------------------------------------------------- |
+| `hasMore`         | `boolean`         | —         | Whether a further `onLoadMore` could still return more rows.        |
+| `onLoadMore`      | `() => void`      | —         | Called at most once per threshold-crossing.                         |
+| `isLoadingMore`   | `boolean`         | `false`   | Suppresses `onLoadMore` until this goes back to `false`.            |
+| `rootMargin`      | `string`          | `"200px"` | `IntersectionObserver` `rootMargin` — how early `onLoadMore` fires. |
+| `loadingTemplate` | `() => ReactNode` | —         | Replaces the built-in "Loading more…" row.                          |
+
+## See also
+
+- [Scrollable layout](/docs/react/data-grid#scrollable-layout) for `height`, the bounded viewport the sentinel is observed against.
+- [Row virtualization](/docs/react/row-virtualization) for `virtualized`, the recommended pairing for a dataset that grows without bound.
+- [Pagination](/docs/react/pagination) for `paginated`, the alternative `infiniteScroll` is mutually exclusive with.

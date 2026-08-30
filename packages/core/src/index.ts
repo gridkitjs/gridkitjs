@@ -143,3 +143,5 @@ export { paginateRows } from "./util/paging";
 export type { PaginationWindowEntry } from "./util/paginationWindow";
 export { paginationWindow } from "./util/paginationWindow";
 export { computeAggregates, withGroupAggregates } from "./util/aggregation";
+export type { RowHeights, VisibleRange } from "./util/virtualization";
+export { visibleRange } from "./util/virtualization";
