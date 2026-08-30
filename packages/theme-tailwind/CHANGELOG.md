@@ -1,5 +1,12 @@
 # @gridkitjs/theme-tailwind
 
+## 0.7.0
+
+### Minor Changes
+
+- bedd76c: `.grid-loading-cell`: styles `@gridkitjs/react`'s new `infiniteScroll` loading row — centered, muted text, matching the grand-total footer's own cell padding. The row is `aria-hidden` and outside `aria-rowcount`, so this is a purely visual cue.
+- bedd76c: `.gridkit-data-grid-body`: the row area's scroll container, styled to honor `@gridkitjs/react`'s new `height` prop (`overflow-y: auto`, height driven by the prop or `auto` when it's unset). No `position: sticky` is added for the header or footer — splitting them into their own tables already keeps them out of the region that scrolls, so there's nothing to stick. Add your own CSS targeting `.gridkit-data-grid-header`/`.gridkit-data-grid-footer` for a divider or shadow at the seam.
+
 ## 0.6.0
 
 ### Minor Changes
