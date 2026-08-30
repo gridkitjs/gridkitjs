@@ -1,5 +1,58 @@
 # @gridkitjs/react
 
+## 0.9.0
+
+### Minor Changes
+
+- bedd76c: `infiniteScroll`: loads more rows as the user scrolls near the bottom of the grid's body, in place of `paginated`'s page-by-page navigation.
+
+  ```tsx
+  <DataGridComponent
+    columns={columns}
+    dataSource={rows}
+    height={400}
+    infiniteScroll={{ hasMore, isLoadingMore, onLoadMore }}
+  />
+  ```
+
+  `hasMore` and `onLoadMore` are required; `isLoadingMore` suppresses further calls while a load is in flight; `rootMargin` (default `"200px"`) tunes how early it fires relative to the grid's own scrollable body; `loadingTemplate` replaces the built-in "Loading more…" row.
+
+  Mutually exclusive with `paginated` — setting both logs a dev-time `console.error` and only `paginated` takes effect. Independent of `virtualized`, though pairing the two is the recommended combination for a dataset that grows without bound.
+
+- bedd76c: `height`: bounds the row area to a fixed size, independently scrollable — the group-by bar, header, footer, and pager stay outside it and always visible.
+
+  ```tsx
+  <DataGridComponent columns={columns} dataSource={rows} height={400} />
+  ```
+
+  A number is pixels; a string is passed through as a CSS length (e.g. `"60vh"`). Omitted, the body's height stays content-driven, exactly as before this prop existed.
+
+  Breaking: the header, body, and footer now render as three separate `<table>`s — `.gridkit-data-grid-header`, the body's own (wrapped in a new `.gridkit-data-grid-body` scroll container), and `.gridkit-data-grid-footer` — inside a new `.gridkit-data-grid-tables` wrapper `<div>` that now carries `role="grid"`/`"treegrid"` and the grid's other grid-level ARIA attributes. Previously all three sat inside one `<table>`, which itself carried that role. This only matters to a consumer whose own CSS or tests reach into the grid's raw table structure (unsupported usage, but possible) — every cell-level role, and everything reachable through `DataGridApi`, is unchanged. One exception: `DataGridApi.table` now points at the body's `<table>` specifically (the one holding `<tbody>`) rather than a single table that also held the header and footer.
+
+- bedd76c: `virtualized`: renders only the rows near the current scroll position rather than every row at once, for a dataset too large to mount in full. Requires `height` to be set — a body with no bounded height has no viewport to window rows against, and a dev-time `console.error` fires if `virtualized` is on without it.
+
+  ```tsx
+  <DataGridComponent
+    columns={columns}
+    dataSource={rows}
+    height={400}
+    virtualized
+  />
+  ```
+
+  Row height is measured per row rather than assumed uniform, so `.is-wrapped` cells and group header/summary rows (which differ in height from data rows) lay out correctly. Two new props tune it: `overscan` (rows rendered outside the visible range on each side, default `4`) and `estimatedRowHeight` (the assumed height for a row never yet measured, default `40`) — both meaningful only with `virtualized` on.
+
+  `scrollToRow` and keyboard navigation (arrow keys, `Home`/`End`, `Ctrl+Home`/`Ctrl+End`) both work correctly when their target row isn't currently mounted: they scroll it into range first, using measured heights where known, then correct the exact position once it mounts and is measured.
+
+  Fully orthogonal to `paginated` and `groupBy` — combinable with either, though virtualizing an already-small paginated page is low-value.
+
+  `@gridkitjs/core` gains `visibleRange` (plus its `RowHeights`/`VisibleRange` types) — the pure range math `virtualized` is built on. Not something most consumers need directly; it's exported for the same reason `paginateRows` is.
+
+### Patch Changes
+
+- Updated dependencies [bedd76c]
+  - @gridkitjs/core@0.10.0
+
 ## 0.8.0
 
 ### Minor Changes
