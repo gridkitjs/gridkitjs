@@ -16,6 +16,7 @@ import {
   movesGroupBy,
   toggleGroupExpansion,
 } from "./grouping";
+import { withGroupAggregates } from "./aggregation";
 
 describe("groupRowId", () => {
   test("does not collide when a value itself contains characters a naive delimiter join might use", () => {
@@ -222,6 +223,23 @@ describe("collapseAllGroups", () => {
         groupRowId(["West", "Open"]),
       ]),
     );
+  });
+
+  test("skips summary rows, which share their group's id", () => {
+    const groupBy: GroupByState = [{ columnId: "Region" }];
+    const displayRows = withGroupAggregates(
+      groupRows(rows, groupBy, [], columns),
+      rows,
+      groupBy,
+      [{ columnId: "Id", fn: "count" }],
+      columns,
+      "row",
+    );
+
+    expect(collapseAllGroups(displayRows)).toEqual([
+      groupRowId(["East"]),
+      groupRowId(["West"]),
+    ]);
   });
 });
 
