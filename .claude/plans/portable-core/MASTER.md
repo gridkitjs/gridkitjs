@@ -124,16 +124,16 @@ phases). An effort word may follow (`opus xhigh`, `sonnet low`); none means `hig
 | 02  | `resolveGridView` and the width-free pipeline        | [phase-02-grid-view.md](phase-02-grid-view.md)                   | done        | 01         | opus        | feat/grid-view              | 1ffa0c7..fa8df01 |
 | 03  | Column model: header, formatting, locale, visibility | [phase-03-column-model.md](phase-03-column-model.md)             | done        | 02         | opus        | feat/column-model           | 8bca2fc..6f0cf5b |
 | 04  | `GridOptions` and `createGridController`             | [phase-04-controller.md](phase-04-controller.md)                 | done        | 03         | opus xhigh  | feat/grid-controller        | 37815bc..5d52fb9 |
-| 05  | Serialisable filters and the filter-editor model     | [phase-05-filters.md](phase-05-filters.md)                       | in-progress | 04         | opus        | feat/serialisable-filters   |                  |
-| 06  | Row hooks, simple multi-select, messages             | [phase-06-row-hooks-messages.md](phase-06-row-hooks-messages.md) | todo        | 04         | opus        |                             |                  |
+| 05  | Serialisable filters and the filter-editor model     | [phase-05-filters.md](phase-05-filters.md)                       | done        | 04         | opus        | feat/serialisable-filters   | ee1ef74..b47eaca |
+| 06  | Row hooks, simple multi-select, messages             | [phase-06-row-hooks-messages.md](phase-06-row-hooks-messages.md) | in-progress | 04         | opus        | feat/row-hooks-messages     |                  |
 | 07  | `@gridkitjs/dom`: behaviours out of React            | [phase-07-dom-package.md](phase-07-dom-package.md)               | todo        | 04         | opus xhigh  |                             |                  |
 
 Phases 05, 06 and 07 are independent of each other and may run in any order after 04.
 
 ## Now
 
-- **In progress:** 05
-- **Next:** 06, then 07
+- **In progress:** 06
+- **Next:** 07
 - **Waiting on the user:** nothing
 
 ## Handoffs
@@ -248,6 +248,23 @@ ReactRenderSlots & SelectionCallbacks & { ref }`.
 - `DataGrid.tsx` is still ~1180 lines; Phase 07 moves DOM behaviours out.
 - Counts: 471 core Vitest, 228 Playwright CT; coverage ~96 % lines.
 
+### Phase 05
+
+- New filter kind: `OperatorFilterEntry<Row>` (required `columnId`, `FilterOperator`,
+  `FilterScalar`) in the `FilterEntry` union; compiled by `compileOperatorEntry` in
+  `util/filterOperators.ts` (also exports `isEmptyCell`, `toDate`, `isDateType`, `isScalarList`,
+  `filterValueKey`).
+- Internal `compileFilter(filter, columns)` in `util/filtering.ts` returns `(row) => boolean` or
+  `undefined`; `compileFilterEntry` now tests a raw `Row`. `reviveFilter` requires
+  `dataColumns` (revives `Date`s only on date/dateTime/time columns).
+- Headless filter editor in `util/filterEditor.ts`: `describeColumnFilter`,
+  `columnValueOptions` (takes raw rows; returns a `blanks` count), `initialFilterEditorDraft`,
+  `filterEditorReducer` (6 actions), `draftToFilter`, `visibleFilterOptions`, `selectAllState`.
+  Docs: `packages/core/docs/filtering.mdx`.
+- No React source changed in this phase.
+- Core `lib` has no `performance` global; use `Date.now()` in tests.
+- Counts: 570 core Vitest, 228 Playwright CT.
+
 ## Decisions to review
 
 (Choices sub-agents made that the user should look at, tagged with their phase.)
@@ -276,14 +293,18 @@ ReactRenderSlots & SelectionCallbacks & { ref }`.
   add id lists to that public event type. Agent recommends keeping `onSelectionDiff`.
 - [04] Setters skip structurally equal values; `setColumnSizing` reports a removed entry at its
   definition width; `resizeColumn` merges into the current sizing, not the drag-start base.
+- [05] Operator semantics: `ne`/`notContains` are the exact complement of `eq`/`contains`
+  (blanks and wrong-kind cells match them); an operand of the wrong kind matches no row; text
+  comparisons are case-insensitive but `in` is case-sensitive (keys by `bucketKey`); `between` is
+  inclusive. A custom filter shape opens in the editor as "no filter" and applying replaces it.
 
 ## Follow-ups
 
 - [later] `goToPage`/`nextPage` still report when the page doesn't change (old behaviour),
   contradicting `DataGridApi.nextPage`'s "no-op" doc.
-- [later] `column-filtering.mdx` shows a value entry with a string value (older doc bug).
-- [phase 05] Handle operator entries in `serializeEntry`/`reviveEntry` (`util/serialize.ts`) and
-  `sameEntry` (`controller/changes.ts`).
+- [later] Filter editor: on a date column whose cells are ISO strings, a restored `in` list
+  (revived to `Date`s) filters correctly but opens in the checklist with those values unchecked
+  (the draft keys by plain `bucketKey`).
 - [phase 06] Announcement text lives in `DataGrid.tsx` handlers and `countMessage`.
 - [phase 06] Boolean text ("true"/"false") and the group header's "(blank)" are candidates for
   `messages`.
@@ -316,3 +337,5 @@ ReactRenderSlots & SelectionCallbacks & { ref }`.
 - 2026-11-02 · phase 04 · started on feat/grid-controller
 - 2026-11-02 · phase 04 · done · GridOptions, createGridController, controlled slices, setters (37815bc..5d52fb9)
 - 2026-11-02 · phase 05 · started on feat/serialisable-filters
+- 2026-11-02 · phase 05 · done · operator filter entries, headless filter-editor model (ee1ef74..b47eaca)
+- 2026-11-02 · phase 06 · started on feat/row-hooks-messages
