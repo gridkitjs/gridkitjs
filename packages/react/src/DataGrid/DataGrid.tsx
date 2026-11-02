@@ -128,6 +128,11 @@ export interface DataGridApi<Row> {
    * when `groupBy` is empty.
    */
   getDisplayRows(): readonly DisplayRow<Row>[];
+  /**
+   * The current page of `getDisplayRows()` — exactly the rows the body
+   * renders. All of `getDisplayRows()` when `paginated` is off.
+   */
+  getPageRows(): readonly DisplayRow<Row>[];
   /** Columns as currently sized and ordered — what's rendered. */
   getColumns(): readonly ResolvedColumn<Row>[];
 
@@ -1036,6 +1041,7 @@ export function DataGrid<Row>({
     // whole reason `getDisplayRows()` is where a consumer reads a specific
     // group's computed results from.
     getDisplayRows: () => view.displayRows,
+    getPageRows: () => view.pageRows,
     getColumns: () => view.columns,
     getColumnSizing: () => sizing,
     getColumnOrder: () => order,
