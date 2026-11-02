@@ -16,6 +16,7 @@ import type {
   SelectIntent,
   SelectionDiff,
   SelectionState,
+  SerializedGridState,
 } from "../types";
 
 /**
@@ -103,6 +104,18 @@ export interface GridController<Row, Node = string> {
    * change. Returns the function that unsubscribes it.
    */
   readonly subscribe: (listener: () => void) => () => void;
+  /**
+   * Puts back state saved earlier — from `getState()`, or from
+   * `serializeGridState` and back through JSON. Every slice given is set as
+   * its own `set*` action would set it, so each that changes fires its
+   * callback and a controlled one only asks; slices left out keep their value.
+   * Subscribers are called once, after every slice is in place, and a
+   * restored pagination is kept even when the same call changed the sort,
+   * filter or grouping that would otherwise send it back to the first page.
+   */
+  readonly restoreState: (
+    saved: Partial<GridState<Row>> | Partial<SerializedGridState<Row>>,
+  ) => void;
 
   /**
    * Replaces the column widths. Reported through `onColumnResize` as the
@@ -158,8 +171,9 @@ export interface GridController<Row, Node = string> {
   readonly hideColumns: (columnIds: readonly string[]) => void;
 
   /**
-   * Replaces the filter. Reported through `onFilterChange`; the same
-   * entries in the same order report nothing.
+   * Replaces the filter. Reported through `onFilterChange`; a filter equal to
+   * the current one — the same entries in the same order, a `Date` value
+   * compared by time and a predicate by identity — reports nothing.
    */
   readonly setFilter: (filter: FilterState<Row>) => void;
 

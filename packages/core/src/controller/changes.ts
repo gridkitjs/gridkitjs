@@ -1,4 +1,9 @@
-import type { PaginationState, SortDirection } from "../types";
+import type {
+  FilterEntry,
+  FilterState,
+  PaginationState,
+  SortDirection,
+} from "../types";
 
 /** A sort or group-by level: a column, and which way it orders. */
 interface ColumnEntry {
@@ -79,5 +84,62 @@ export function samePagination(
 ): boolean {
   return (
     previous.pageIndex === next.pageIndex && previous.pageSize === next.pageSize
+  );
+}
+
+function sameValue(previous: unknown, next: unknown): boolean {
+  return previous instanceof Date && next instanceof Date
+    ? previous.getTime() === next.getTime()
+    : previous === next;
+}
+
+function sameEntry<Row>(
+  previous: FilterEntry<Row>,
+  next: FilterEntry<Row>,
+): boolean {
+  if ("combinator" in previous || "combinator" in next) {
+    return (
+      "combinator" in previous &&
+      "combinator" in next &&
+      previous.combinator === next.combinator &&
+      sameFilter(previous.entries, next.entries)
+    );
+  }
+  if (previous.columnId !== next.columnId) {
+    return false;
+  }
+  if ("predicate" in previous || "predicate" in next) {
+    return (
+      "predicate" in previous &&
+      "predicate" in next &&
+      previous.predicate === next.predicate
+    );
+  }
+  if ("value" in previous || "value" in next) {
+    return (
+      "value" in previous &&
+      "value" in next &&
+      sameValue(previous.value, next.value)
+    );
+  }
+  return previous.query === next.query;
+}
+
+/**
+ * Whether two filters match the same rows by construction: the same entries,
+ * in the same order, each asking the same thing — a `Date` value compared by
+ * time, a predicate by identity. A filter read back from JSON is equal to the
+ * one that was saved, though not one entry is the same object.
+ */
+export function sameFilter<Row>(
+  previous: FilterState<Row>,
+  next: FilterState<Row>,
+): boolean {
+  return (
+    previous.length === next.length &&
+    previous.every((entry, index) => {
+      const other = next[index];
+      return other !== undefined && sameEntry(entry, other);
+    })
   );
 }

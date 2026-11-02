@@ -97,3 +97,25 @@ Every action works out the next value, stops if it is the value the slice alread
 | `setPagination(pagination)`                                        | `onPaginationChange`       | Replaces the page and page size as given.                                                                                                  |
 
 Every `set*` action also stops for a value equal to the current one, so setting what is already there reports nothing.
+
+## Saving and restoring state
+
+`restoreState(saved)` puts back state read earlier with `getState()`. Every slice it is given is set as its own `set*` action would set it — each one that changes fires its callback, and a controlled one only asks — while slices left out keep their value. Subscribers are called once, after every slice is in place, and a restored pagination is kept even when the same call changed the sort, filter or grouping.
+
+`getState()` holds plain data except in the filter, where a `Date` value does not survive JSON and a predicate entry is a function. `serializeGridState(state)` returns state that does: a `Date` value becomes its ISO string, which `restoreState` turns back into a `Date`, and a predicate entry is left out with a `console.error` naming its column — along with any group it leaves empty.
+
+```ts
+import { serializeGridState } from "@gridkitjs/core";
+
+localStorage.setItem(
+  "orders-grid",
+  JSON.stringify(serializeGridState(controller.getState())),
+);
+
+const stored = localStorage.getItem("orders-grid");
+if (stored !== null) {
+  controller.restoreState(JSON.parse(stored));
+}
+```
+
+A saved state may be partial — `{ columnSizing, columnOrder, columnVisibility }` restores a column layout and leaves the sort, filter and selection alone.

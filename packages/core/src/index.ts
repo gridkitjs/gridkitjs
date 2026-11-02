@@ -74,6 +74,11 @@ export type {
   SelectionDiff,
   SelectionMode,
   SelectionState,
+  SerializedFilterEntry,
+  SerializedFilterState,
+  SerializedGridState,
+  SerializedGroupFilterEntry,
+  SerializedValueFilterEntry,
   SortDirection,
   TextFilterEntry,
   ValueFilterEntry,
@@ -178,6 +183,7 @@ export {
   setColumnVisibility,
 } from "./util/visibility";
 export { createGridViewResolver, resolveGridView } from "./util/view";
+export { serializeGridState } from "./util/serialize";
 export type { FormatLocale } from "./util/format";
 export { formatAggregateValue, formatCellValue } from "./util/format";
 export type { RowHeights, VisibleRange } from "./util/virtualization";

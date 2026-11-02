@@ -20,6 +20,7 @@ import { memoizeLast } from "../util/memoize";
 import { moveColumnBefore } from "../util/ordering";
 import { paginateRows } from "../util/paging";
 import { reportError } from "../util/report";
+import { reviveFilter } from "../util/serialize";
 import { resolveColumnWidths, revertColumnSize } from "../util/sizing";
 import { toggleColumnSort as toggledColumnSort } from "../util/sorting";
 import { createGridViewResolver } from "../util/view";
@@ -28,6 +29,7 @@ import {
   changedEntryColumnId,
   changedId,
   changedKeys,
+  sameFilter,
   sameItems,
   samePagination,
 } from "./changes";
@@ -149,6 +151,11 @@ export function createGridController<Row, Node = string>(
   const listeners = new Set<() => void>();
   /** Slices already reported as given both ways, so each is reported once. */
   const reportedConflicts = new Set<SliceKey>();
+  /**
+   * While `restoreState` applies its slices, the callbacks they would fire,
+   * held back until every slice is in place.
+   */
+  let heldReports: (() => void)[] | undefined;
 
   let state = resolveSlices();
   let pagingInputs = pagingInputsOf(state);
@@ -256,6 +263,10 @@ export function createGridController<Row, Node = string>(
     }
     if (!isControlled(key)) {
       own[key] = next;
+    }
+    if (heldReports !== undefined) {
+      heldReports.push(report);
+      return;
     }
     refresh();
     report();
@@ -401,7 +412,7 @@ export function createGridController<Row, Node = string>(
     commit,
   });
 
-  return {
+  const controller: GridController<Row, Node> = {
     ...selection,
     getOptions: () => options,
     setOptions(next) {
@@ -411,6 +422,27 @@ export function createGridController<Row, Node = string>(
     },
     getState: () => state,
     getView,
+    restoreState(saved) {
+      const reports: (() => void)[] = [];
+      heldReports = reports;
+      try {
+        restoreSlices(saved);
+      } finally {
+        heldReports = undefined;
+      }
+      if (saved.pagination !== undefined) {
+        // Taken as already seen, so the sort, filter or grouping this same
+        // call restored does not send the restored page back to the first.
+        pagingInputs = pagingInputsOf(resolveSlices());
+      }
+      refresh();
+      for (const report of reports) {
+        report();
+      }
+      if (reports.length > 0) {
+        notify();
+      }
+    },
     subscribe(listener) {
       listeners.add(listener);
       return () => {
@@ -484,7 +516,7 @@ export function createGridController<Row, Node = string>(
     },
 
     setFilter(filter) {
-      if (sameItems(state.filter, filter)) {
+      if (sameFilter(state.filter, filter)) {
         return;
       }
       commit("filter", filter, () => {
@@ -570,4 +602,45 @@ export function createGridController<Row, Node = string>(
       });
     },
   };
+
+  /** Each slice `saved` holds, through the action that sets it. */
+  function restoreSlices(
+    saved: Parameters<GridController<Row, Node>["restoreState"]>[0],
+  ): void {
+    if (saved.columnSizing !== undefined) {
+      controller.setColumnSizing(saved.columnSizing);
+    }
+    if (saved.columnOrder !== undefined) {
+      controller.setColumnOrder(saved.columnOrder);
+    }
+    if (saved.columnVisibility !== undefined) {
+      controller.setColumnVisibility(saved.columnVisibility);
+    }
+    if (saved.columnSort !== undefined) {
+      controller.setColumnSort(saved.columnSort);
+    }
+    if (saved.filter !== undefined) {
+      controller.setFilter(reviveFilter(saved.filter));
+    }
+    if (saved.groupBy !== undefined) {
+      controller.setGroupBy(saved.groupBy);
+    }
+    if (saved.groupExpansion !== undefined) {
+      controller.setGroupExpansion(saved.groupExpansion);
+    }
+    if (saved.pagination !== undefined) {
+      controller.setPagination(saved.pagination);
+    }
+    if (saved.rowSelection !== undefined) {
+      controller.setRowSelection(saved.rowSelection);
+    }
+    if (saved.columnSelection !== undefined) {
+      controller.setColumnSelection(saved.columnSelection);
+    }
+    if (saved.cellSelection !== undefined) {
+      controller.setCellSelection(saved.cellSelection);
+    }
+  }
+
+  return controller;
 }
