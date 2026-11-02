@@ -7,9 +7,10 @@ type FormatOptions = Intl.NumberFormatOptions | Intl.DateTimeFormatOptions;
 
 /**
  * The fields `Date.prototype.toLocaleString` and its date-/time-only
- * siblings print, so a column with no `format` reads exactly as those always
- * have. `Intl.DateTimeFormat` with no fields at all prints the date alone,
- * which suits `"date"` but would drop the time from a date-and-time column.
+ * siblings print, so a column given a `locale` but no `format` reads as
+ * those would in that locale. `Intl.DateTimeFormat` with no fields at all
+ * prints the date alone, which suits `"date"` but would drop the time from a
+ * date-and-time column.
  */
 const DATE_FIELDS: Intl.DateTimeFormatOptions = {
   year: "numeric",
@@ -165,9 +166,13 @@ function formatDate(
  * Anything without a reading of its own. A plain object or an array is
  * written out as JSON, since `String` would make every one of them
  * `"[object Object]"`. One JSON cannot write — a cycle, a `bigint` inside
- * — is left at that `"[object Object]"` after all.
+ * — is left at that `"[object Object]"` after all. A function is named
+ * rather than printed, since `String` would print its source.
  */
 function formatOther(value: unknown): string {
+  if (typeof value === "function") {
+    return "(function)";
+  }
   if (typeof value === "object" && value !== null) {
     try {
       return JSON.stringify(value);
@@ -183,19 +188,22 @@ function formatOther(value: unknown): string {
  * has no `cellTemplate`, and what an export or a print writes, so the two
  * cannot disagree.
  *
- * A `valueFormatter` decides outright. Otherwise the value's own kind picks
- * the formatter and the column's `type` refines it:
+ * A `valueFormatter` decides outright. `null`/`undefined` read `""`, a
+ * boolean `"true"`/`"false"`, a string as it is, a plain object or array as
+ * JSON.
  *
- * - `null`/`undefined` → `""`.
+ * Dates and numbers are formatted through `Intl` only once asked to — the
+ * column has a `format`, or a `locale` is given. Until then they print as a
+ * grid always printed them, so adopting this changes nothing on screen: a
+ * `Date` through `toLocaleString()`, a number as-is (`1234.5`, never
+ * `1,234.5`). Once asked:
+ *
  * - A `Date` → `Intl.DateTimeFormat`: the date alone under `"date"`, the time
  *   alone under `"time"`, both otherwise.
  * - A number under a numeric `type` → `Intl.NumberFormat`: `"currency"` with
  *   a currency symbol once `format.currency` names one (two fraction digits
  *   until then), `"percent"` reading `0.25` as 25 %. Under any other type it
- *   is printed as-is, the way a number id should be.
- * - A boolean → `"true"`/`"false"`.
- * - A string as it is; a plain object or array as JSON; anything else
- *   through `String`.
+ *   is still printed as-is, the way a number id should be.
  *
  * `format` and `locale` go to the `Intl` constructor unchanged, so any
  * option it accepts is honoured.
@@ -213,10 +221,14 @@ export function formatCellValue<Row>(
     return "";
   }
   const { type, format } = column;
+  const formatted = format !== undefined || locale !== undefined;
   if (value instanceof Date) {
-    return formatDate(value, type, format, locale);
+    return formatted
+      ? formatDate(value, type, format, locale)
+      : value.toLocaleString();
   }
   if (
+    formatted &&
     (typeof value === "number" || typeof value === "bigint") &&
     isNumericType(type)
   ) {
@@ -262,10 +274,14 @@ function aggregateFormatColumn<Row>(
 
 /**
  * The text an aggregate result reads as — a footer cell, a group's subtotal
- * — through `formatCellValue`, so a `sum` of a currency column reads as
- * currency and a `max` of a date column as a date. `column` is `undefined`
- * for a spec naming a column the grid does not have, which then formats by
- * its value alone.
+ * — through `formatCellValue`, so once a `format` or `locale` asks for it a
+ * `sum` of a currency column reads as currency and a `max` of a date column
+ * as a date. `column` is `undefined` for a spec naming a column the grid
+ * does not have, which then formats by its value alone.
+ *
+ * Until then a numeric result reads through `toLocaleString()`, with digit
+ * grouping, where a cell prints its number as-is: that is how a grid has
+ * always shown its totals, and a sum easily runs into the thousands.
  */
 export function formatAggregateValue<Row>(
   value: unknown,
@@ -273,9 +289,14 @@ export function formatAggregateValue<Row>(
   column: ColumnDefinition<Row, unknown> | undefined,
   locale?: FormatLocale,
 ): string {
-  return formatCellValue(
-    value,
-    aggregateFormatColumn(value, spec, column),
-    locale,
-  );
+  const target = aggregateFormatColumn(value, spec, column);
+  if (
+    typeof value === "number" &&
+    target.valueFormatter === undefined &&
+    target.format === undefined &&
+    locale === undefined
+  ) {
+    return value.toLocaleString();
+  }
+  return formatCellValue(value, target, locale);
 }

@@ -133,7 +133,9 @@ export interface ColumnDefinition<Row, Node = string> {
    * `Intl` options for how this column's values read as text: number options
    * for a numeric `type`, date options for a date or time one. Passed to
    * `Intl.NumberFormat`/`Intl.DateTimeFormat` with the grid's `locale` — see
-   * `formatCellValue` for the defaults each `type` starts from.
+   * `formatCellValue` for the defaults each `type` starts from. Setting it,
+   * or the grid's `locale`, is what turns that formatting on: without either,
+   * numbers print as-is and dates through `toLocaleString()`.
    */
   format?: Intl.NumberFormatOptions | Intl.DateTimeFormatOptions | undefined;
   /**

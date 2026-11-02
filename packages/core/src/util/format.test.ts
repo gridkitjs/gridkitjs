@@ -43,6 +43,25 @@ describe("formatCellValue", () => {
     expect(formatCellValue(1001, column("string"))).toBe("1001");
   });
 
+  test.each<ColumnType>(["number", "decimal", "currency", "percent"])(
+    "prints a number under %s as-is with neither format nor locale",
+    (type) => {
+      expect(formatCellValue(1234.5678, column(type))).toBe("1234.5678");
+      expect(formatCellValue(0.25, column(type))).toBe("0.25");
+      expect(formatCellValue(10n, column(type))).toBe("10");
+    },
+  );
+
+  test("turns on Intl formatting for a format alone, with no locale", () => {
+    const format = { currency: "USD" };
+
+    expect(formatCellValue(1234.5, column("currency", { format }))).toBe(
+      new Intl.NumberFormat(undefined, { style: "currency", ...format }).format(
+        1234.5,
+      ),
+    );
+  });
+
   test("formats number and decimal through Intl.NumberFormat", () => {
     expect(formatCellValue(1234.5, column("number"), "en-US")).toBe("1,234.5");
     expect(formatCellValue(1234.5, column("decimal"), "en-US")).toBe("1,234.5");
@@ -123,15 +142,23 @@ describe("formatCellValue", () => {
     );
   });
 
-  test("matches Date.prototype.toLocaleString with no format or locale", () => {
-    expect(formatCellValue(march15, column("dateTime"))).toBe(
-      march15.toLocaleString(),
+  test.each<ColumnType | undefined>([undefined, "dateTime", "date", "time"])(
+    "prints a Date under %s through toLocaleString with neither format nor locale",
+    (type) => {
+      expect(formatCellValue(march15, column(type))).toBe(
+        march15.toLocaleString(),
+      );
+    },
+  );
+
+  test("matches toLocaleDateString and toLocaleTimeString in the runtime's locale once a locale is given", () => {
+    const runtime = new Intl.DateTimeFormat().resolvedOptions().locale;
+
+    expect(formatCellValue(march15, column("date"), runtime)).toBe(
+      march15.toLocaleDateString(runtime),
     );
-    expect(formatCellValue(march15, column("date"))).toBe(
-      march15.toLocaleDateString(),
-    );
-    expect(formatCellValue(march15, column("time"))).toBe(
-      march15.toLocaleTimeString(),
+    expect(formatCellValue(march15, column("time"), runtime)).toBe(
+      march15.toLocaleTimeString(runtime),
     );
   });
 
@@ -149,6 +176,9 @@ describe("formatCellValue", () => {
     expect(formatCellValue(new Date(Number.NaN), column("date"))).toBe(
       "Invalid Date",
     );
+    expect(formatCellValue(new Date(Number.NaN), column("date"), "en-GB")).toBe(
+      "Invalid Date",
+    );
   });
 
   test("prints a boolean as true or false", () => {
@@ -161,6 +191,10 @@ describe("formatCellValue", () => {
       '{"tag":"x"}',
     );
     expect(formatCellValue([1, 2], column(undefined))).toBe("[1,2]");
+  });
+
+  test("names a function rather than printing its source", () => {
+    expect(formatCellValue(() => 1, column(undefined))).toBe("(function)");
   });
 
   test("gives valueFormatter precedence over format and type", () => {
@@ -190,6 +224,45 @@ describe("formatCellValue", () => {
 
 describe("formatAggregateValue", () => {
   const currency = column("currency", { format: { currency: "USD" } });
+
+  test("reads a number through toLocaleString with neither format nor locale", () => {
+    const plainCurrency = column("currency");
+
+    expect(
+      formatAggregateValue(
+        1234.5,
+        { columnId: "Amount", fn: "sum" },
+        plainCurrency,
+      ),
+    ).toBe((1234.5).toLocaleString());
+    expect(
+      formatAggregateValue(1234, { columnId: "Amount", fn: "count" }, currency),
+    ).toBe((1234).toLocaleString());
+    expect(
+      formatAggregateValue(
+        1234.5,
+        { columnId: "Amount", fn: "avg" },
+        column(undefined),
+      ),
+    ).toBe((1234.5).toLocaleString());
+  });
+
+  test("prints a bigint or a Date result as before with neither format nor locale", () => {
+    expect(
+      formatAggregateValue(
+        12n,
+        { columnId: "Amount", fn: "max" },
+        column("number"),
+      ),
+    ).toBe("12");
+    expect(
+      formatAggregateValue(
+        march15,
+        { columnId: "Amount", fn: "max" },
+        column("date"),
+      ),
+    ).toBe(march15.toLocaleString());
+  });
 
   test("formats a sum like one of the column's own values", () => {
     expect(
