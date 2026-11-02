@@ -3,6 +3,11 @@
 // no framework's types.
 export { createLiveAnnouncer, type LiveAnnouncer } from "./announcer";
 export {
+  attachInfiniteScroll,
+  type InfiniteScroll,
+  type InfiniteScrollOptions,
+} from "./infiniteScroll";
+export {
   attachOverlay,
   type OverlayAnchor,
   type OverlayDismissReason,
