@@ -72,7 +72,7 @@ function GridRowComponent<Row>({
       // pagination is on.
       aria-rowindex={datasetIndex + 2}
       // This row's position in the full (unsliced) rows array — read by
-      // `GridBody`'s event delegation (`cellFrom`) instead of the DOM's own
+      // `GridBody`'s event delegation (`bodyCellFrom`) instead of the DOM's own
       // `sectionRowIndex`, which under virtualization no longer matches a
       // row's array position once a leading spacer `<tr>` shifts it.
       data-gridkit-row-index={rowIndex}
