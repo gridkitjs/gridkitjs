@@ -38,6 +38,8 @@ export interface GridSelectionApi {
   rowMode: SelectionMode;
   columnMode: SelectionMode;
   cellMode: CellSelectionMode;
+  /** Whether a plain click on a row toggles it — `selectable.toggleOnClick`. */
+  toggleOnClick: boolean;
   /**
    * Lookups for the render pass. The state itself stays an ordered list, which
    * is what makes the most recent selection its last entry.
@@ -78,6 +80,7 @@ export default function useGridSelection<Row>({
     rowMode: selectable?.rows ?? false,
     columnMode: selectable?.columns ?? false,
     cellMode: selectable?.cells ?? false,
+    toggleOnClick: selectable?.toggleOnClick ?? false,
     selectedRowIds,
     selectedColumnIds,
     selectedCell: state.cellSelection,

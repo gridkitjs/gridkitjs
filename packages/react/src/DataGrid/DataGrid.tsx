@@ -473,6 +473,9 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     label,
     labelledBy,
     locale,
+    getRowProps,
+    onRowClick,
+    onRowDoubleClick,
     ref,
   } = props;
   const hoverRows = hoverable?.rows ?? true;
@@ -1139,6 +1142,9 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
               infiniteScroll={infiniteScroll}
               sentinelRef={sentinelRef}
               locale={locale}
+              getRowProps={getRowProps}
+              onRowClick={onRowClick}
+              onRowDoubleClick={onRowDoubleClick}
             />
           </table>
         </div>

@@ -41,6 +41,8 @@ export type {
   GridState,
   SerializedGridState,
   ResolvedRow,
+  RowPointerEvent,
+  RowProps,
   RowSelectEvent,
   RowSelectionChangeEvent,
   RowsSelectEvent,
