@@ -13,6 +13,10 @@ description: "Framework-agnostic grid logic: columns, sizing, ordering, selectio
 
 `GridOptions<Row>` is every setting of a grid that names no renderer's types: `dataSource` and `getRowId`, what the user may do (`sortableColumns`, `selectable`, `paginated`…), the state it starts in (`defaultColumnSort`, `defaultPagination`…), the callbacks that report changes (`onColumnSortChange`…) and `locale`. A renderer's own props are these plus what only it can express — @gridkitjs/react's `DataGridProps` adds `columns`, the pager and infinite-scroll templates, the selection callbacks and `ref` — so a setting means the same thing, under the same name, in every renderer.
 
+## The controller
+
+[createGridController](/docs/core/controller) holds a grid's state, derives its view and carries every action a user can take, with each slice of state controlled or uncontrolled on its own. A renderer creates one per grid, feeds it its options and draws the view, so the renderer decides nothing the user can see.
+
 ## Install
 
 ```ts

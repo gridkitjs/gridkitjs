@@ -143,6 +143,13 @@ export interface GridOptions<Row> {
   /** The sort to start with, in priority order. Uncontrolled. */
   defaultColumnSort?: ColumnSortState | undefined;
   /**
+   * The sort, controlled: the grid shows exactly this, and a header click
+   * only asks for a change through `onColumnSortChange`, which takes effect
+   * once this prop follows it. Leave it `undefined` for the grid to keep the
+   * sort itself, starting from `defaultColumnSort`.
+   */
+  columnSort?: ColumnSortState | undefined;
+  /**
    * Called once when the user changes the sort — a toggle, a stack, or a
    * clear back to "none".
    */
@@ -175,12 +182,24 @@ export interface GridOptions<Row> {
   /** The group-by stack to start with, outer to inner. Uncontrolled. */
   defaultGroupBy?: GroupByState | undefined;
   /**
+   * The group-by stack, controlled — applied as given, changed only through
+   * `onGroupByChange`. Leave it `undefined` for the grid to keep it itself,
+   * starting from `defaultGroupBy`.
+   */
+  groupBy?: GroupByState | undefined;
+  /**
    * Called once when the user changes the group-by stack — adding, removing,
    * or reordering a level.
    */
   onGroupByChange?: ((event: GroupByEvent) => void) | undefined;
   /** Group keys collapsed to start with — every other group starts expanded. Uncontrolled. */
   defaultGroupExpansion?: GroupExpansionState | undefined;
+  /**
+   * The collapsed groups, controlled — applied as given, changed only
+   * through `onGroupExpansionChange`. Leave it `undefined` for the grid to
+   * keep it itself, starting from `defaultGroupExpansion`.
+   */
+  groupExpansion?: GroupExpansionState | undefined;
   /** Called once when the user expands or collapses a group, or every group at once. */
   onGroupExpansionChange?: ((event: GroupExpansionEvent) => void) | undefined;
   /** The filter to start with — every applied entry, ANDed together. Uncontrolled. */
@@ -197,6 +216,17 @@ export interface GridOptions<Row> {
    * omitted.
    */
   defaultPagination?: PaginationState | undefined;
+  /**
+   * The page and page size, controlled — applied as given, changed only
+   * through `onPaginationChange`. Leave it `undefined` for the grid to keep
+   * them itself, starting from `defaultPagination`.
+   *
+   * The grid sends an uncontrolled pagination back to the first page when
+   * the filter, sort or grouping changes; a controlled one is the parent's
+   * to reset alongside that change. Until it does, the grid shows the last
+   * page that exists rather than an empty one.
+   */
+  pagination?: PaginationState | undefined;
   /** Called once when the user changes the page or the page size. */
   onPaginationChange?: ((event: PaginationChangeEvent) => void) | undefined;
   /**

@@ -1,9 +1,8 @@
-// Framework-agnostic grid logic: the grid's options, column inference, sizing,
-// ordering, selection, sorting, the filtering engine, grouping, aggregates,
-// paging, the composed view, value formatting, virtualization math and
-// keyboard navigation. Kept
-// free of React and the DOM so it is testable in Node and reusable from any
-// renderer.
+// Framework-agnostic grid logic: the grid's options and controller, column
+// inference, sizing, ordering, selection, sorting, the filtering engine,
+// grouping, aggregates, paging, the composed view, value formatting,
+// virtualization math and keyboard navigation. Kept free of React and the DOM
+// so it is testable in Node and reusable from any renderer.
 export type {
   AggregateFn,
   AggregateResults,
@@ -83,6 +82,11 @@ export type {
   GroupByBarVisibility,
   HoverableConfig,
 } from "./options";
+export type {
+  GridController,
+  GridControllerOptions,
+} from "./controller/gridController";
+export { createGridController } from "./controller/createGridController";
 export type { KeyShortcutCapabilities } from "./util/grid";
 export {
   accessDotted,
