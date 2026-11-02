@@ -70,6 +70,7 @@ import useGridController, {
 import useGridNavigation, { HEADER_ROW } from "./useGridNavigation";
 import useGridSelection from "./useGridSelection";
 import useInfiniteScroll from "./useInfiniteScroll";
+import useLiveAnnouncer from "./useLiveAnnouncer";
 import useRowVirtualizer from "./useRowVirtualizer";
 
 /**
@@ -481,7 +482,8 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   const sentinelRef = useRef<HTMLTableRowElement>(null);
   const viewportWidth = useElementWidth(viewportRef, resizeMode === "fit");
   const subscribersRef = useRef(new Set<() => void>());
-  const [announcement, setAnnouncement] = useState("");
+  /** Reports a change no visual cue can carry to a screen reader. */
+  const announce = useLiveAnnouncer(viewportRef);
   /** Every string the grid shows or announces, `messages` over the English defaults. */
   const messages = useMemo(
     () => resolveMessages(messageOverrides),
@@ -560,15 +562,6 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     return entry === undefined
       ? columnId
       : resolveColumnHeaderText(entry.column);
-  }
-
-  /**
-   * Reports a change no visual cue can carry to a screen reader. Held as state
-   * rather than written to the DOM directly so React owns the one element the
-   * live region watches.
-   */
-  function announce(message: string): void {
-    setAnnouncement(message);
   }
 
   /**
@@ -1178,13 +1171,6 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
         ) : (
           <GridPager pager={pagerContext} config={pager} messages={messages} />
         ))}
-      {/*
-       * Outside the table, which admits no `div`, and polite so it waits for a
-       * pause rather than cutting across what the user is already hearing.
-       */}
-      <div className="gridkit-sr-only" role="status" aria-live="polite">
-        {announcement}
-      </div>
     </div>
   );
 }

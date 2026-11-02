@@ -120,6 +120,9 @@ importers:
       '@gridkitjs/core':
         specifier: workspace:*
         version: link:../core
+      '@gridkitjs/dom':
+        specifier: workspace:*
+        version: link:../dom
     devDependencies:
       '@types/react':
         specifier: ^19.2.18
