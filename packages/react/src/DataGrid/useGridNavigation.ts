@@ -86,14 +86,16 @@ export function tabIndexFor(
 }
 
 /**
- * The cell at a coordinate, found through the header or body table's own row
- * and cell collections rather than a selector. Each table still has its own
- * real `<thead>`/`<tbody>`, so `.tHead`/`.tBodies` resolve the same way they
- * did against the one shared table before the header/body split — just
- * scoped to a smaller table each.
+ * The cell at a coordinate. The header row comes from the header table's own
+ * `.tHead`; a body row is looked up by its `data-gridkit-row-index` rather
+ * than by position in `.tBodies[0].rows`, because under virtualization the
+ * body holds only a slice of the rows, behind a leading spacer `<tr>` — once
+ * the window scrolls, a DOM position no longer matches the row's index in
+ * the full array and addresses some other mounted row, or none. `GridBody`'s
+ * `cellFrom` reads the same attribute for the same reason.
  *
- * Ids can hold anything a consumer's data holds, and an attribute selector
- * built from one would have to escape it; positions need no quoting.
+ * The attribute holds a plain integer, so a selector built from it needs no
+ * escaping, unlike one built from a consumer-supplied row id.
  *
  * `columnIndex` is clamped to the row's own last cell rather than read
  * directly: a group-header row renders one `<td colSpan>` regardless of
@@ -109,7 +111,9 @@ function cellAt(
   const row =
     focus.rowIndex === HEADER_ROW
       ? (headerTable?.tHead?.rows[0] ?? null)
-      : (bodyTable?.tBodies[0]?.rows[focus.rowIndex] ?? null);
+      : (bodyTable?.tBodies[0]?.querySelector<HTMLTableRowElement>(
+          `:scope > tr[data-gridkit-row-index="${String(focus.rowIndex)}"]`,
+        ) ?? null);
   if (row === null) {
     return null;
   }

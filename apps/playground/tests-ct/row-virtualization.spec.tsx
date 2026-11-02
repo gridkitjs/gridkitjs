@@ -174,6 +174,41 @@ test.describe("row virtualization", () => {
     );
   });
 
+  test("the browser's focus follows the tab stop past the mounted window, not just the tabindex", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildRows(200)}
+        label="Virtualized focus"
+        height={150}
+        virtualized
+      />,
+    );
+
+    // `page.keyboard` rather than `locator.press`, which focuses its target
+    // before every press and so would mask a cell the grid itself failed to
+    // focus. Here each key goes wherever the grid last put the focus.
+    const activeCell = root.locator('[tabindex="0"]');
+    await activeCell.focus();
+    await page.keyboard.press("ArrowDown"); // header -> row 0
+    for (let index = 0; index < 30; index++) {
+      await page.keyboard.press("ArrowDown");
+      await expect(activeCell).toBeFocused();
+    }
+    await expect(
+      root.locator('tbody tr[data-gridkit-row-index="30"] td').first(),
+    ).toBeFocused();
+
+    await page.keyboard.press("Control+End");
+    await expect(
+      root.locator('tbody tr[data-gridkit-row-index="199"] td').last(),
+    ).toBeFocused();
+  });
+
   test("rows of different measured heights lay out without overlap or gap", async ({
     mount,
   }) => {
