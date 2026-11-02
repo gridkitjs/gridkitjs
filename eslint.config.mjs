@@ -16,7 +16,31 @@ export default tseslint.config(
   },
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
-  reactHooks.configs.flat.recommended,
+  {
+    // Hooks only exist in the renderer and the apps that consume it.
+    ...reactHooks.configs.flat.recommended,
+    files: ["packages/react/**", "apps/**"],
+  },
+  {
+    // Core has to stay reusable from any renderer, so it must not reach for
+    // one; the tsconfig's DOM-free `lib` covers the browser half of the rule.
+    files: ["packages/core/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["react", "react-dom", "@gridkitjs/react"].flatMap(
+                (name) => [name, `${name}/*`],
+              ),
+              message: "core is framework-free, see AGENTS.md",
+            },
+          ],
+        },
+      ],
+    },
+  },
   {
     languageOptions: {
       parserOptions: {
