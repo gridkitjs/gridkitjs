@@ -115,22 +115,22 @@ Model values: `opus` (phases that design or change code or architecture) · `son
 phases). An effort word may follow (`opus xhigh`, `sonnet low`); none means `high` for opus and
 `medium` for sonnet.
 
-| #   | Phase                                                | Plan                                                             | Status      | Depends on | Model       | Branch                      | Commits |
-| --- | ---------------------------------------------------- | ---------------------------------------------------------------- | ----------- | ---------- | ----------- | --------------------------- | ------- |
-| 01  | Boundaries and hygiene                               | [phase-01-boundaries-hygiene.md](phase-01-boundaries-hygiene.md) | in-progress | none       | opus medium | refactor/boundaries-hygiene |         |
-| 02  | `resolveGridView` and the width-free pipeline        | [phase-02-grid-view.md](phase-02-grid-view.md)                   | todo        | 01         | opus        |                             |         |
-| 03  | Column model: header, formatting, locale, visibility | [phase-03-column-model.md](phase-03-column-model.md)             | todo        | 02         | opus        |                             |         |
-| 04  | `GridOptions` and `createGridController`             | [phase-04-controller.md](phase-04-controller.md)                 | todo        | 03         | opus xhigh  |                             |         |
-| 05  | Serialisable filters and the filter-editor model     | [phase-05-filters.md](phase-05-filters.md)                       | todo        | 04         | opus        |                             |         |
-| 06  | Row hooks, simple multi-select, messages             | [phase-06-row-hooks-messages.md](phase-06-row-hooks-messages.md) | todo        | 04         | opus        |                             |         |
-| 07  | `@gridkitjs/dom`: behaviours out of React            | [phase-07-dom-package.md](phase-07-dom-package.md)               | todo        | 04         | opus xhigh  |                             |         |
+| #   | Phase                                                | Plan                                                             | Status      | Depends on | Model       | Branch                      | Commits          |
+| --- | ---------------------------------------------------- | ---------------------------------------------------------------- | ----------- | ---------- | ----------- | --------------------------- | ---------------- |
+| 01  | Boundaries and hygiene                               | [phase-01-boundaries-hygiene.md](phase-01-boundaries-hygiene.md) | done        | none       | opus medium | refactor/boundaries-hygiene | 4ccb606..3c788d8 |
+| 02  | `resolveGridView` and the width-free pipeline        | [phase-02-grid-view.md](phase-02-grid-view.md)                   | in-progress | 01         | opus        | feat/grid-view              |                  |
+| 03  | Column model: header, formatting, locale, visibility | [phase-03-column-model.md](phase-03-column-model.md)             | todo        | 02         | opus        |                             |                  |
+| 04  | `GridOptions` and `createGridController`             | [phase-04-controller.md](phase-04-controller.md)                 | todo        | 03         | opus xhigh  |                             |                  |
+| 05  | Serialisable filters and the filter-editor model     | [phase-05-filters.md](phase-05-filters.md)                       | todo        | 04         | opus        |                             |                  |
+| 06  | Row hooks, simple multi-select, messages             | [phase-06-row-hooks-messages.md](phase-06-row-hooks-messages.md) | todo        | 04         | opus        |                             |                  |
+| 07  | `@gridkitjs/dom`: behaviours out of React            | [phase-07-dom-package.md](phase-07-dom-package.md)               | todo        | 04         | opus xhigh  |                             |                  |
 
 Phases 05, 06 and 07 are independent of each other and may run in any order after 04.
 
 ## Now
 
-- **In progress:** 01 (part C)
-- **Next:** 02
+- **In progress:** 02
+- **Next:** 03
 - **Waiting on the user:** nothing
 
 ## Handoffs
@@ -162,6 +162,16 @@ from, and passes the relevant ones to the next sub-agent.)
 - On this 16-core machine `--repeat-each 5` is too light to show flakes; `--repeat-each 40
 --workers 16` on a single test does.
 
+### Phase 01 part C
+
+- The public component is now `DataGrid` (from `@gridkitjs/react`); its types are still
+  `DataGridProps<Row>` and `DataGridApi<Row>`. Dev-warning prefixes read `DataGrid: …`.
+- Playwright CT count: 199.
+- Pending changesets: `use-client-banner`, `pending-focus-move`, `virtualized-focus-row`,
+  `rename-data-grid` (react minor).
+- `examples/*/src/App.tsx` (8 StackBlitz projects, outside the workspace, on published
+  `@gridkitjs/react@^0.8.0`) still use `DataGridComponent` on purpose; leave them.
+
 ## Decisions to review
 
 (Choices sub-agents made that the user should look at, tagged with their phase.)
@@ -171,6 +181,9 @@ from, and passes the relevant ones to the next sub-agent.)
 - [01 B] Race (3) has no deterministic regression test; stress runs (80/80 vs 11/40 failing
   before) are its evidence. Existing `row-virtualization.spec.tsx` mounts were switched to the
   `RowIdentifiedGrid` fixture (assertions unchanged).
+- [01 C] `examples/` (8 StackBlitz projects on published `@gridkitjs/react@^0.8.0`) still use
+  `DataGridComponent`; renaming them before the release would break their installs.
+  Recommended: bump and rename them after the release that ships the rename.
 
 ## Follow-ups
 
@@ -178,8 +191,8 @@ from, and passes the relevant ones to the next sub-agent.)
   `packages/react/README.md` (~line 26) back from `headerTemplate: "Cost"` to `header: "Cost"`.
 - [phase 07] Add `@gridkitjs/dom` to core's ESLint import ban and ban `react` in
   `packages/dom/**` (`eslint.config.mjs`).
-- [phase 01 C] `column-sorting.spec.tsx:388` passes `getRowId` inline (placeholder ids); switch
-  it to `RowIdentifiedGrid` while renaming.
+- [after release] Bump `examples/*/package.json` to the react version carrying the rename and
+  rename `DataGridComponent` in `examples/*/src/App.tsx`.
 - After this plan (next plans in the roadmap): overlay + menu + commands → context menu →
   toolbar → column chooser; filter UIs (`filterableColumns`, `filterMenu: { ui: "simple" |
 "excel" }`, an `excelFilter` preset) over the Phase 05 state; export model + CSV/JSON + print,
@@ -193,3 +206,6 @@ from, and passes the relevant ones to the next sub-agent.)
 - 2026-11-02 · phase 01 · started at d2a354f
 - 2026-11-02 · phase 01 part A · done · core lib/lint boundary, use-client banner, doc drift (4ccb606..ea49a1d)
 - 2026-11-02 · phase 01 part B · done · virtualized focus: two react fixes + spec row ids (76cb977..d126be8)
+- 2026-11-02 · phase 01 part C · done · DataGridComponent → DataGrid (cc28980..3c788d8)
+- 2026-11-02 · phase 01 · done
+- 2026-11-02 · phase 02 · started at 3c788d8 on feat/grid-view
