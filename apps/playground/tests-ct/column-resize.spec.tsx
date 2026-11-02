@@ -6,6 +6,7 @@ import type { MountResult } from "@playwright/experimental-ct-react";
 import type { ColumnDefinition, ColumnResizeEvent } from "@gridkitjs/core";
 import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
+import ControlledStateGrid from "./support/ControlledStateGrid";
 import { mountGrid, updateGrid } from "./support/mountGrid";
 
 interface Row {
@@ -406,4 +407,32 @@ test("the live region announces the new width only once the drag ends, not on ev
 
   await page.mouse.up();
   await expect(status).toContainText("pixels wide");
+});
+
+test("a controlled columnSizing ignores a keyboard nudge until the parent applies the width it asked for", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ControlledStateGrid
+      columns={columns}
+      dataSource={buildRows(1)}
+      label="Controlled sizing"
+      resizableColumns
+      resizeMode="fixed"
+      controlled={{ columnSizing: {} }}
+    />,
+  );
+  const before = await colWidth(root, 0);
+  const header = root.locator("thead th").nth(0);
+
+  await header.focus();
+  await header.press("Alt+ArrowRight");
+  await expect(root.getByTestId("controlled-status")).toContainText(
+    '"requestCount":1',
+  );
+  expect(await colWidth(root, 0)).toBeCloseTo(before, 0);
+
+  await root.getByRole("button", { name: "apply-requests" }).click();
+  await expect.poll(async () => colWidth(root, 0)).toBeCloseTo(before + 10, 0);
 });

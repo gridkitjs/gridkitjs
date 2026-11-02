@@ -327,4 +327,33 @@ test.describe("column visibility", () => {
     await root.getByRole("button", { name: "report" }).click();
     expect((await readStatus(root)).rowIds).toEqual(["row-b", "row-a"]);
   });
+  test("a controlled columnVisibility is shown as given, and hideColumns only asks", async ({
+    mount,
+  }) => {
+    const events: ColumnVisibilityEvent[] = [];
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={wideColumns}
+        dataSource={wideRows}
+        label="Controlled visibility"
+        columnVisibility={{ notes: true, region: false }}
+        visibilityColumnIds={["name"]}
+        onColumnVisibilityChange={(event) => {
+          events.push(event);
+        }}
+      />,
+    );
+
+    expect(await headerIds(root)).toEqual(["id", "name", "notes"]);
+
+    await root.getByRole("button", { name: "hide-columns" }).click();
+    await expect.poll(() => events.length).toBe(1);
+    expect(events[0]?.visibility).toEqual({
+      notes: true,
+      region: false,
+      name: false,
+    });
+    expect(await headerIds(root)).toEqual(["id", "name", "notes"]);
+  });
 });

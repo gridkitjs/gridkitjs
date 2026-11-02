@@ -10,7 +10,11 @@ interface RowWithId {
 export type ControlledSlices<Row> = Partial<
   Pick<
     GridState<Row>,
+    | "columnSizing"
+    | "columnOrder"
+    | "columnVisibility"
     | "columnSort"
+    | "filter"
     | "groupBy"
     | "groupExpansion"
     | "pagination"
@@ -68,8 +72,20 @@ export default function ControlledStateGrid<Row extends RowWithId>({
         {...props}
         {...values}
         getRowId={(row) => row.id}
+        onColumnResize={(event) => {
+          request("columnSizing", event.sizing);
+        }}
+        onColumnOrderChange={(event) => {
+          request("columnOrder", event.order);
+        }}
+        onColumnVisibilityChange={(event) => {
+          request("columnVisibility", event.visibility);
+        }}
         onColumnSortChange={(event) => {
           request("columnSort", event.sort);
+        }}
+        onFilterChange={(event) => {
+          request("filter", event.filter);
         }}
         onGroupByChange={(event) => {
           request("groupBy", event.groupBy);
