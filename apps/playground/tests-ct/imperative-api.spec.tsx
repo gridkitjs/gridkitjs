@@ -4,8 +4,11 @@
 import type { MountResult } from "@playwright/experimental-ct-react";
 import type {
   ColumnDefinition,
+  ColumnResizeEvent,
+  ColumnSortEvent,
   ColumnSortState,
   ColumnVisibilityEvent,
+  PaginationState,
 } from "@gridkitjs/core";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
@@ -44,6 +47,8 @@ interface Status {
   columnSelection: readonly string[];
   cellSelection: { rowId: string; columnId: string } | null;
   focusedCell: { rowIndex: number; columnIndex: number };
+  pagination: PaginationState;
+  columnWidths: [string, number][];
 }
 
 async function readStatus(root: MountResult): Promise<Status> {
@@ -327,4 +332,134 @@ test.describe("column visibility", () => {
     await root.getByRole("button", { name: "report" }).click();
     expect((await readStatus(root)).rowIds).toEqual(["row-b", "row-a"]);
   });
+  test("a controlled columnVisibility is shown as given, and hideColumns only asks", async ({
+    mount,
+  }) => {
+    const events: ColumnVisibilityEvent[] = [];
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={wideColumns}
+        dataSource={wideRows}
+        label="Controlled visibility"
+        columnVisibility={{ notes: true, region: false }}
+        visibilityColumnIds={["name"]}
+        onColumnVisibilityChange={(event) => {
+          events.push(event);
+        }}
+      />,
+    );
+
+    expect(await headerIds(root)).toEqual(["id", "name", "notes"]);
+
+    await root.getByRole("button", { name: "hide-columns" }).click();
+    await expect.poll(() => events.length).toBe(1);
+    expect(events[0]?.visibility).toEqual({
+      notes: true,
+      region: false,
+      name: false,
+    });
+    expect(await headerIds(root)).toEqual(["id", "name", "notes"]);
+  });
+});
+
+test("restoreState puts back a layout saved through serializeGridState and JSON", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ImperativeApiGrid
+      columns={columns}
+      dataSource={buildRows(6)}
+      label="Restore"
+      paginated
+      sortableColumns
+      resizableColumns
+      resizeMode="fixed"
+      selectable={{ rows: "multiple" }}
+      defaultPagination={{ pageIndex: 0, pageSize: 2 }}
+      visibilityColumnIds={["name"]}
+      selectRowIds={["row-5"]}
+      sortToSet={[{ columnId: "id", direction: "desc" }]}
+    />,
+  );
+
+  await root.getByRole("button", { name: "set-column-sort" }).click();
+  await root.getByRole("button", { name: "next-page" }).click();
+  await root.getByRole("button", { name: "select-rows" }).click();
+  await root.getByRole("button", { name: "hide-columns" }).click();
+  await root.getByRole("button", { name: "save-state" }).click();
+
+  await root.getByRole("button", { name: "show-columns" }).click();
+  await root.getByRole("button", { name: "clear-selection" }).click();
+  await root.locator("thead th").first().locator(".header-sort-toggle").click();
+  await expect(root.locator("thead th")).toHaveCount(2);
+
+  await root.getByRole("button", { name: "restore-state" }).click();
+  await expect(root.locator("thead th")).toHaveCount(1);
+  await root.getByRole("button", { name: "report" }).click();
+  const status = await readStatus(root);
+  expect(status.columnSort).toEqual([{ columnId: "id", direction: "desc" }]);
+  expect(status.pagination).toEqual({ pageIndex: 1, pageSize: 2 });
+  expect(status.pageRowIds).toEqual(["row-3", "row-2"]);
+  expect(status.rowSelection).toEqual(["row-5"]);
+  expect(status.columnVisibility).toEqual({ name: false });
+});
+
+test("setColumnSort through the ref sorts the grid and reports once", async ({
+  mount,
+}) => {
+  const events: ColumnSortEvent[] = [];
+  const root = await mountGrid(
+    mount,
+    <ImperativeApiGrid
+      columns={columns}
+      dataSource={buildRows(3)}
+      label="setColumnSort"
+      sortToSet={[{ columnId: "id", direction: "desc" }]}
+      onColumnSortChange={(event) => {
+        events.push(event);
+      }}
+    />,
+  );
+
+  await root.getByRole("button", { name: "set-column-sort" }).click();
+  await root.getByRole("button", { name: "set-column-sort" }).click();
+  await root.getByRole("button", { name: "report" }).click();
+
+  expect((await readStatus(root)).rowIds).toEqual(["row-2", "row-1", "row-0"]);
+  expect(events).toEqual([
+    { columnId: "id", sort: [{ columnId: "id", direction: "desc" }] },
+  ]);
+});
+
+test("autoFitColumn sizes a column to its content and reports it as a resize", async ({
+  mount,
+}) => {
+  const events: ColumnResizeEvent[] = [];
+  const root = await mountGrid(
+    mount,
+    <ImperativeApiGrid
+      columns={[
+        { field: "id", width: 300 },
+        { field: "name", width: 120 },
+      ]}
+      dataSource={buildRows(3)}
+      label="autoFitColumn"
+      resizeMode="fixed"
+      autoFitColumnId="id"
+      onColumnResize={(event) => {
+        events.push(event);
+      }}
+    />,
+  );
+
+  await root.getByRole("button", { name: "auto-fit-column" }).click();
+  await root.getByRole("button", { name: "report" }).click();
+  const width = new Map((await readStatus(root)).columnWidths).get("id");
+
+  expect(width).toBeLessThan(300);
+  expect(width).toBeGreaterThan(0);
+  await expect.poll(() => events.length).toBe(1);
+  expect(events[0]).toMatchObject({ columnId: "id", phase: "end" });
 });

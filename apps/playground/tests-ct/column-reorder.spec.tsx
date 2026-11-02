@@ -6,6 +6,7 @@ import type { MountResult } from "@playwright/experimental-ct-react";
 import type { ColumnDefinition, ColumnOrderEvent } from "@gridkitjs/core";
 import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
+import ControlledStateGrid from "./support/ControlledStateGrid";
 import { mountGrid } from "./support/mountGrid";
 
 interface Row {
@@ -346,4 +347,48 @@ test("Ctrl+Arrow moves past a hidden column in one press, and the hidden column 
   await expect(root.locator('[role="status"]')).toHaveText(
     "status, column 1 of 2",
   );
+});
+
+test("a controlled columnOrder ignores a keyboard move until the parent applies the order it asked for", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ControlledStateGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Controlled order"
+      reorderableColumns
+      controlled={{ columnOrder: [] }}
+    />,
+  );
+  const headerLocators = headers(root);
+
+  await headerLocators.nth(1).focus();
+  await headerLocators.nth(1).press("Control+ArrowRight");
+  await expect(root.getByTestId("controlled-status")).toContainText(
+    '"columnOrder":["id","status","name"]',
+  );
+  expect(await columnIds(root)).toEqual(["id", "name", "status"]);
+
+  await root.getByRole("button", { name: "apply-requests" }).click();
+  await expect(headerLocators.nth(2)).toHaveAttribute(
+    "data-gridkit-column",
+    "name",
+  );
+  expect(await columnIds(root)).toEqual(["id", "status", "name"]);
+});
+
+test("a controlled columnOrder is shown as given", async ({ mount }) => {
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Given order"
+      columnOrder={["status", "id"]}
+    />,
+  );
+
+  expect(await columnIds(root)).toEqual(["status", "id", "name"]);
 });

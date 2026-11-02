@@ -13,7 +13,7 @@ import type {
   ResolvedColumn,
 } from "../DataGrid";
 import type { GridNavigationApi } from "../useGridNavigation";
-import type { RowGroupingApi } from "../useRowGrouping";
+import type { DataGridController } from "../useGridController";
 import type { RowVirtualizerApi } from "../useRowVirtualizer";
 import {
   keyboardSelectIntent,
@@ -32,7 +32,8 @@ interface GridBodyProps<Row> {
   activeColumnId: string | null;
   nav: GridNavigationApi;
   selection: GridSelectionApi;
-  grouping: RowGroupingApi<Row>;
+  /** What a group header's click or key press expands or collapses. */
+  controller: DataGridController<Row>;
   /** Active aggregates. Empty when none are active. */
   aggregates: AggregateState<Row>;
   /** Where a group's aggregates render — inline in its header, or as its own summary row. */
@@ -164,7 +165,7 @@ export default function GridBody<Row>({
   activeColumnId,
   nav,
   selection,
-  grouping,
+  controller,
   aggregates,
   groupAggregateDisplay,
   virtualRange,
@@ -227,7 +228,7 @@ export default function GridBody<Row>({
       onClick={(event) => {
         const group = groupRowFrom(event.target);
         if (group !== null) {
-          grouping.toggleExpansion(group.groupId);
+          controller.toggleGroupExpansion(group.groupId);
           return;
         }
         const found = targetOf(event.target);
@@ -246,7 +247,7 @@ export default function GridBody<Row>({
           }
           if (event.key === " " || event.key === "Enter") {
             event.preventDefault();
-            grouping.toggleExpansion(group.groupId);
+            controller.toggleGroupExpansion(group.groupId);
             return;
           }
           nav.onKeyDown(event);

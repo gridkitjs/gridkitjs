@@ -30,6 +30,7 @@ selectable.cells takes a CellSelectionMode — only false or "single": a cell ad
 | ------------------------------- | ------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `selectable.cells`              | `false \| "single"`                         | `false` | How many cells the user may select at once — no "multiple": a cell addresses one value, so there is no range to take.                                     |
 | `defaultCellSelection`          | `CellSelectionState`                        |         | The cell selected to start with — a `SelectedCellRef` (`{ rowId, columnId }`), or `null` for none. Uncontrolled.                                          |
+| `cellSelection`                 | `CellSelectionState`                        |         | The selected cell, controlled — `null` for none, changed only through the cell callbacks. See [controlled state](/docs/react/state).                      |
 | `onCellSelect / onCellDeselect` | `(event: CellSelectEvent) => void`          |         | Once for the cell selected, once for the cell deselected.                                                                                                 |
 | `onCellSelectionChange`         | `(event: CellSelectionChangeEvent) => void` |         | Once per change with what was selected and what was deselected — one interaction can fill both, since moving between cells deselects and selects at once. |
 

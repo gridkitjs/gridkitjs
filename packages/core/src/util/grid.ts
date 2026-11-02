@@ -53,11 +53,14 @@ function getAlignment(value: unknown): ColumnAlignment {
  *
  * Order follows `Object.entries`, which lists integer-like keys first
  * regardless of the order they were written in.
+ *
+ * `Node` is whatever the caller's renderer draws: an inferred column sets no
+ * template, so it suits any.
  */
-export function defineColumnsFromRows<Row>(
+export function defineColumnsFromRows<Row, Node = string>(
   rows: readonly Row[],
-): readonly ColumnDefinition<Row>[] {
-  const columns: ColumnDefinition<Row>[] = [];
+): readonly ColumnDefinition<Row, Node>[] {
+  const columns: ColumnDefinition<Row, Node>[] = [];
   const seen = new Set<string>();
 
   function add(field: string, value: unknown): void {

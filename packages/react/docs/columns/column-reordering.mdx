@@ -22,12 +22,13 @@ reorderableColumns turns on dragging a header to a new position, unless a column
 
 ## Props
 
-| Prop                  | Type                                | Default | Description                                                                                                      |
-| --------------------- | ----------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
-| `reorderableColumns`  | `boolean`                           | `false` | Whether columns can be dragged into a new position.                                                              |
-| `defaultColumnOrder`  | `readonly string[]`                 |         | Column ids in the order to start in. Uncontrolled, and partial — ids it omits keep their position among columns. |
-| `onColumnOrderChange` | `(event: ColumnOrderEvent) => void` |         | Called once when the user drops a column somewhere new. A drop that leaves the order unchanged does not call it. |
-| `column.reorderable`  | `boolean`                           |         | Per-column override of reorderableColumns. A column that cannot move can still be moved past.                    |
+| Prop                  | Type                                | Default | Description                                                                                                                                       |
+| --------------------- | ----------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `reorderableColumns`  | `boolean`                           | `false` | Whether columns can be dragged into a new position.                                                                                               |
+| `defaultColumnOrder`  | `readonly string[]`                 |         | Column ids in the order to start in. Uncontrolled, and partial — ids it omits keep their position among columns.                                  |
+| `columnOrder`         | `readonly string[]`                 |         | The column order, controlled — a drop asks through `onColumnOrderChange` instead of moving the column. See [controlled state](/docs/react/state). |
+| `onColumnOrderChange` | `(event: ColumnOrderEvent) => void` |         | Called once when the user drops a column somewhere new. A drop that leaves the order unchanged does not call it.                                  |
+| `column.reorderable`  | `boolean`                           |         | Per-column override of reorderableColumns. A column that cannot move can still be moved past.                                                     |
 
 ## Keyboard & pointer interactions
 

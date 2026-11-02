@@ -1,0 +1,121 @@
+---
+title: "Controller"
+description: "createGridController: a grid's state, view and actions, without a renderer."
+---
+
+createGridController is a whole grid minus the drawing. It holds the grid's state, derives the view from it with [resolveGridView](/docs/core/view), and carries every action a user can take — sorting, filtering, grouping, expanding, paging, resizing, reordering, hiding columns, selecting. @gridkitjs/react's DataGrid creates one per grid, hands it its props on every render, draws its view and calls its actions from event handlers; a renderer for another framework does the same, so none of them decides anything the user can see.
+
+```ts
+import { createGridController } from "@gridkitjs/core";
+
+const controller = createGridController<Row>({
+  dataSource: rows,
+  getRowId: (row) => String(row.Id),
+  columns,
+  paginated: true,
+  onColumnSortChange: (event) => console.log(event.sort),
+});
+
+controller.subscribe(() => draw(controller.getView()));
+
+controller.toggleColumnSort("Amount"); // ascending; draw() runs, then the callback above
+controller.nextPage();
+controller.getState().pagination; // { pageIndex: 1, pageSize: 25 }
+```
+
+## Options
+
+createGridController takes a `GridControllerOptions<Row, Node>`: every [`GridOptions`](/docs/core/overview#grid-options) field and selection callback (`onRowSelect`, `onRowSelectionChange` and the rest), plus `columns` (inferred from `dataSource` when omitted or empty, as `defineColumnsFromRows` does) and `viewportWidth`, the width `resizeMode: "fit"` fills — `null` or absent where there is none, such as an export in Node — and `onSelectionDiff`, called after each row or column selection change with the ids it added and removed, including those with no row on screen, for a renderer's own feedback such as a live-region count.
+
+`setOptions(options)` replaces them all, as a renderer does with its current props on each update. Calling it again with equal options changes nothing, so it is safe to call on every render. It does not call subscribers: the renderer calling it is already drawing the result.
+
+## Controlled and uncontrolled state
+
+Each slice of `GridState` is controlled or not on its own, the way a form input is. Leave the slice's option out and the controller keeps the slice itself, starting from its default. Give the option and the controller shows exactly that value; an action then only asks for a change, through the slice's callback, and the change takes effect when the next `setOptions` carries it.
+
+| Slice              | Controlled option  | Default                   | Callback                                                  |
+| ------------------ | ------------------ | ------------------------- | --------------------------------------------------------- |
+| `columnSizing`     | `columnSizing`     | `defaultColumnSizing`     | `onColumnResize`                                          |
+| `columnOrder`      | `columnOrder`      | `defaultColumnOrder`      | `onColumnOrderChange`                                     |
+| `columnVisibility` | `columnVisibility` | `defaultColumnVisibility` | `onColumnVisibilityChange`                                |
+| `filter`           | `filter`           | `defaultFilter`           | `onFilterChange`                                          |
+| `rowSelection`     | `rowSelection`     | `defaultRowSelection`     | `onRowSelectionChange` and the other row callbacks        |
+| `columnSelection`  | `columnSelection`  | `defaultColumnSelection`  | `onColumnSelectionChange` and the other column callbacks  |
+| `cellSelection`    | `cellSelection`    | `defaultCellSelection`    | `onCellSelectionChange`, `onCellSelect`, `onCellDeselect` |
+| `columnSort`       | `columnSort`       | `defaultColumnSort`       | `onColumnSortChange`                                      |
+| `groupBy`          | `groupBy`          | `defaultGroupBy`          | `onGroupByChange`                                         |
+| `groupExpansion`   | `groupExpansion`   | `defaultGroupExpansion`   | `onGroupExpansionChange`                                  |
+| `pagination`       | `pagination`       | `defaultPagination`       | `onPaginationChange`                                      |
+
+Giving both the controlled option and its default reports a `console.error` once; the controlled value wins.
+
+A change to the filter, the sort or the grouping sends an uncontrolled pagination back to the first page, so a user is never left on a page the change emptied. That reset reports nothing of its own — the change that caused it already did. A controlled pagination is the caller's to reset; until it is, the view shows the last page that exists.
+
+## Reading
+
+| Method          | Type                               | Description                                                                                                          |
+| --------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `getState()`    | `GridState<Row>`                   | Every slice as the grid applies it — the controlled value where one is given. The same object until a slice changes. |
+| `getView()`     | `GridView<Row, Node>`              | What the user is looking at. The same object until something in it changes.                                          |
+| `getOptions()`  | `GridControllerOptions<Row, Node>` | The options last given.                                                                                              |
+| `subscribe(fn)` | `() => void`                       | Calls `fn` after every action that changed something, synchronously. Returns the unsubscribe function.               |
+
+Because both snapshots keep their identity until something changes, either can serve as the snapshot of a subscription that compares by reference — React's `useSyncExternalStore`, an Angular signal, a Svelte store.
+
+## Actions
+
+Every action works out the next value, stops if it is the value the slice already holds, keeps it unless the slice is controlled, fires the slice's callback with the same payload a user's interaction fires, then calls the subscribers.
+
+| Action                                                             | Callback                   | Description                                                                                                                                |
+| ------------------------------------------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `resizeColumn(columnId, width, phase)`                             | `onColumnResize`           | Sets one column's width, as a drag does: `"move"` while it lasts, `"end"` once. Never skipped for an unchanged width.                      |
+| `cancelColumnResize(columnId, startSizing, startWidth)`            | `onColumnResize`           | Puts a column back as it was when a resize began, keeping other columns' changes, reported as the `"end"` at `startWidth`.                 |
+| `setColumnSizing(sizing)`                                          | `onColumnResize`           | Replaces the widths, reported as the `"end"` of a resize of the first column that changed.                                                 |
+| `moveColumn(columnId, beforeId)`                                   | `onColumnOrderChange`      | Moves a column in front of another, or to the end for `null`. Hidden columns keep their place.                                             |
+| `setColumnOrder(order)`                                            | `onColumnOrderChange`      | Replaces the order, naming the first column whose position changed.                                                                        |
+| `showColumns(ids)` / `hideColumns(ids)`                            | `onColumnVisibilityChange` | One report per call, naming every column it touched in display order.                                                                      |
+| `setColumnVisibility(visibility)`                                  | `onColumnVisibilityChange` | Replaces the visibility state.                                                                                                             |
+| `setFilter(filter)`                                                | `onFilterChange`           | Replaces the filter.                                                                                                                       |
+| `selectRow(rowId, intent)`                                         | row callbacks              | One click or key press — `"replace"`, `"toggle"` or `"range"` from the last non-range selection, across the data rows on the current page. |
+| `selectRows(rowIds, intent?)`                                      | row callbacks              | Selects rows as a user could, within `selectable.rows`: `"replace"` (only the last id under `"single"`) or `"toggle"`.                     |
+| `selectAllRows()`                                                  | row callbacks              | Every data row on the current page, under `"multiple"`.                                                                                    |
+| `setRowSelection(selection)`                                       | row callbacks              | Replaces the selected ids as given.                                                                                                        |
+| `selectColumn(columnId, intent)` / `setColumnSelection(selection)` | column callbacks           | The same, for the columns as rendered.                                                                                                     |
+| `selectCell(cell, intent)` / `setCellSelection(selection)`         | cell callbacks             | Selects a cell, or lets go of it on `"toggle"`; or replaces it, `null` for none.                                                           |
+| `clearSelection()`                                                 | all three                  | Lets go of every row, column and cell selection, as <Kbd>Escape</Kbd> does.                                                                |
+| `toggleColumnSort(columnId, { stack? })`                           | `onColumnSortChange`       | Cycles a column ascending → descending → off. `stack` adds it to the sort instead of replacing it.                                         |
+| `setColumnSort(sort)`                                              | `onColumnSortChange`       | Replaces the sort, naming the first column whose place or direction changed.                                                               |
+| `toggleGroupBy(columnId)`                                          | `onGroupByChange`          | Adds a column to the end of the group-by stack, or removes it.                                                                             |
+| `moveGroupBy(columnId, beforeColumnId)`                            | `onGroupByChange`          | Puts a column in front of another in the stack, or at the end for `null`.                                                                  |
+| `setGroupBy(groupBy)`                                              | `onGroupByChange`          | Replaces the stack, naming the first level that changed.                                                                                   |
+| `toggleGroupExpansion(groupId)`                                    | `onGroupExpansionChange`   | Collapses an expanded group, or expands a collapsed one.                                                                                   |
+| `expandAllGroups()` / `collapseAllGroups()`                        | `onGroupExpansionChange`   | Every group at once, reported with `groupId: null`.                                                                                        |
+| `setGroupExpansion(expansion)`                                     | `onGroupExpansionChange`   | Replaces the collapsed groups, reported with `groupId: null`.                                                                              |
+| `goToPage(pageIndex)`                                              | `onPaginationChange`       | Moves to a page, clamped into range.                                                                                                       |
+| `nextPage()` / `previousPage()`                                    | `onPaginationChange`       | One page on or back.                                                                                                                       |
+| `setPageSize(pageSize)`                                            | `onPaginationChange`       | Changes the page size and goes back to the first page.                                                                                     |
+| `setPagination(pagination)`                                        | `onPaginationChange`       | Replaces the page and page size as given.                                                                                                  |
+
+Every `set*` action also stops for a value equal to the current one, so setting what is already there reports nothing.
+
+## Saving and restoring state
+
+`restoreState(saved)` puts back state read earlier with `getState()`. Every slice it is given is set as its own `set*` action would set it — each one that changes fires its callback, and a controlled one only asks — while slices left out keep their value. Subscribers are called once, after every slice is in place, and a restored pagination is kept even when the same call changed the sort, filter or grouping.
+
+`getState()` holds plain data except in the filter, where a `Date` value does not survive JSON and a predicate entry is a function. `serializeGridState(state)` returns state that does: a `Date` value becomes its ISO string, which `restoreState` turns back into a `Date`, and a predicate entry is left out with a `console.error` naming its column — along with any group it leaves empty.
+
+```ts
+import { serializeGridState } from "@gridkitjs/core";
+
+localStorage.setItem(
+  "orders-grid",
+  JSON.stringify(serializeGridState(controller.getState())),
+);
+
+const stored = localStorage.getItem("orders-grid");
+if (stored !== null) {
+  controller.restoreState(JSON.parse(stored));
+}
+```
+
+A saved state may be partial — `{ columnSizing, columnOrder, columnVisibility }` restores a column layout and leaves the sort, filter and selection alone.

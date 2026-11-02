@@ -1,8 +1,8 @@
-// Framework-agnostic grid logic: column inference, sizing, ordering, selection,
-// sorting, the filtering engine, grouping, aggregates, paging, the composed
-// view, value formatting, virtualization math and keyboard navigation. Kept
-// free of React and the DOM so it is testable in Node and reusable from any
-// renderer.
+// Framework-agnostic grid logic: the grid's options and controller, column
+// inference, sizing, ordering, selection, sorting, the filtering engine,
+// grouping, aggregates, paging, the composed view, value formatting,
+// virtualization math and keyboard navigation. Kept free of React and the DOM
+// so it is testable in Node and reusable from any renderer.
 export type {
   AggregateFn,
   AggregateResults,
@@ -38,6 +38,7 @@ export type {
   DataColumn,
   DisplayRow,
   DropSide,
+  FilterChangeEvent,
   FilterEntry,
   FilterPredicate,
   FilterState,
@@ -46,6 +47,7 @@ export type {
   GridView,
   GridViewInput,
   GridViewOptions,
+  GridViewState,
   GroupAggregateDisplay,
   GroupByEntry,
   GroupByEvent,
@@ -72,10 +74,28 @@ export type {
   SelectionDiff,
   SelectionMode,
   SelectionState,
+  SerializedFilterEntry,
+  SerializedFilterState,
+  SerializedGridState,
+  SerializedGroupFilterEntry,
+  SerializedValueFilterEntry,
   SortDirection,
   TextFilterEntry,
   ValueFilterEntry,
 } from "./types";
+export type {
+  Borders,
+  GridOptions,
+  GroupByBarVisibility,
+  HoverableConfig,
+  SelectionCallbacks,
+} from "./options";
+export type {
+  GridController,
+  GridControllerOptions,
+  SelectionDiffEvent,
+} from "./controller/gridController";
+export { createGridController } from "./controller/createGridController";
 export type { KeyShortcutCapabilities } from "./util/grid";
 export {
   accessDotted,
@@ -163,6 +183,7 @@ export {
   setColumnVisibility,
 } from "./util/visibility";
 export { createGridViewResolver, resolveGridView } from "./util/view";
+export { serializeGridState } from "./util/serialize";
 export type { FormatLocale } from "./util/format";
 export { formatAggregateValue, formatCellValue } from "./util/format";
 export type { RowHeights, VisibleRange } from "./util/virtualization";

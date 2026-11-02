@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import type {
   AggregateState,
   ColumnDefinition,
-  GridState,
+  GridViewState,
   GridViewInput,
   ResolvedRow,
 } from "../types";
@@ -34,7 +34,7 @@ const columns: readonly ColumnDefinition<SampleRow>[] = [
   { field: "Amount", type: "number" },
 ];
 
-const emptyState: GridState<SampleRow> = {
+const emptyState: GridViewState<SampleRow> = {
   columnSizing: {},
   columnOrder: [],
   columnVisibility: {},
@@ -50,7 +50,7 @@ const amountTotal: AggregateState<SampleRow> = [
 ];
 
 function input(
-  state: Partial<GridState<SampleRow>> = {},
+  state: Partial<GridViewState<SampleRow>> = {},
   options: GridViewInput<SampleRow>["options"] = {},
 ): GridViewInput<SampleRow> {
   return {
@@ -91,7 +91,7 @@ describe("resolveGridView", () => {
   });
 
   test("grouped and paginated, matches composing the stages by hand", () => {
-    const state: Partial<GridState<SampleRow>> = {
+    const state: Partial<GridViewState<SampleRow>> = {
       columnSort: [{ columnId: "Id", direction: "desc" }],
       groupBy: [{ columnId: "Region" }],
       pagination: { pageIndex: 1, pageSize: 2 },
@@ -282,7 +282,7 @@ describe("createGridViewResolver", () => {
   const groupedPaginated = {
     groupBy: [{ columnId: "Region" }],
     pagination: { pageIndex: 0, pageSize: 2 },
-  } satisfies Partial<GridState<SampleRow>>;
+  } satisfies Partial<GridViewState<SampleRow>>;
   const options = { paginated: true, aggregates: amountTotal } as const;
 
   test("a sizing or viewport change leaves every data-stage output reference-equal", () => {

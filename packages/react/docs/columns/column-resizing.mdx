@@ -25,15 +25,16 @@ resizableColumns turns on dragging a header's trailing edge to resize, unless a 
 
 ## Props
 
-| Prop                                 | Type                                 | Default | Description                                                                                                              |
-| ------------------------------------ | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `resizableColumns`                   | `boolean`                            | `false` | Whether columns can be dragged wider, unless a column says otherwise.                                                    |
-| `resizeMode`                         | `"fit" \| "fixed"`                   | `"fit"` | Whether columns fill the grid's width or sit at their own.                                                               |
-| `columnSizeDefaults`                 | `Partial<ColumnSizeDefaults>`        |         | Width, minWidth, maxWidth applied to a column that sets none of its own.                                                 |
-| `defaultColumnSizing`                | `ColumnSizingState`                  |         | Column widths to start from, keyed by column id. Uncontrolled.                                                           |
-| `onColumnResize`                     | `(event: ColumnResizeEvent) => void` |         | Called as the user resizes a column: continuously with phase "move", once with "end".                                    |
-| `column.resizable`                   | `boolean`                            |         | Per-column override of resizableColumns — a column can opt out of an otherwise resizable grid, or in on one that is not. |
-| `column.width / minWidth / maxWidth` | `number`                             |         | This column's own starting width and resize bounds.                                                                      |
+| Prop                                 | Type                                 | Default | Description                                                                                                                                                                  |
+| ------------------------------------ | ------------------------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resizableColumns`                   | `boolean`                            | `false` | Whether columns can be dragged wider, unless a column says otherwise.                                                                                                        |
+| `resizeMode`                         | `"fit" \| "fixed"`                   | `"fit"` | Whether columns fill the grid's width or sit at their own.                                                                                                                   |
+| `columnSizeDefaults`                 | `Partial<ColumnSizeDefaults>`        |         | Width, minWidth, maxWidth applied to a column that sets none of its own.                                                                                                     |
+| `defaultColumnSizing`                | `ColumnSizingState`                  |         | Column widths to start from, keyed by column id. Uncontrolled.                                                                                                               |
+| `columnSizing`                       | `ColumnSizingState`                  |         | Column widths, controlled — a drag or nudge asks through `onColumnResize` (every `"move"` too), whose `sizing` is the next state. See [controlled state](/docs/react/state). |
+| `onColumnResize`                     | `(event: ColumnResizeEvent) => void` |         | Called as the user resizes a column: continuously with phase "move", once with "end".                                                                                        |
+| `column.resizable`                   | `boolean`                            |         | Per-column override of resizableColumns — a column can opt out of an otherwise resizable grid, or in on one that is not.                                                     |
+| `column.width / minWidth / maxWidth` | `number`                             |         | This column's own starting width and resize bounds.                                                                                                                          |
 
 ## Keyboard & pointer interactions
 
