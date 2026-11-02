@@ -5,6 +5,10 @@ description: "Framework-agnostic grid logic: columns, sizing, ordering, selectio
 
 @gridkitjs/core is plain TypeScript — so it's testable without a DOM and reusable from other framework adapters. It holds everything the grid decides: column inference, sizing, ordering, selection, sorting, the filtering engine, grouping, aggregates, paging, virtualization math, and keyboard navigation. A renderer such as @gridkitjs/react draws the result.
 
+## The view pipeline
+
+[resolveGridView](/docs/core/view) composes the stages into the one view a renderer draws: rows are filtered → sorted → grouped → aggregated → paginated, and columns are ordered → sized. A page never splits a top-level group, and aggregates are computed before paging, so a subtotal never depends on which page is showing. createGridViewResolver is its memoised form, which recomputes only the stages a change touches.
+
 ## Install
 
 ```ts

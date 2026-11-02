@@ -1,0 +1,83 @@
+---
+title: "The view pipeline"
+description: "resolveGridView: rows, columns, state and options in; everything the grid shows out."
+---
+
+resolveGridView is the one function that answers "what is the user looking at". It takes the rows, the column definitions, the grid's state and its options, and runs every stage DataGrid renders from: rows are filtered → sorted → grouped → aggregated → paginated, and columns are ordered → sized. Call it from a custom adapter, an export or a toolbar instead of composing the stages yourself, so nothing can disagree with what the grid shows.
+
+```ts
+import { resolveGridView } from "@gridkitjs/core";
+
+const view = resolveGridView({
+  rows,
+  getRowId: (row) => String(row.Id),
+  columns,
+  state: {
+    columnSizing: {},
+    columnOrder: [],
+    columnSort: [{ columnId: "Amount", direction: "desc" }],
+    filter: [],
+    groupBy: [{ columnId: "Region" }],
+    groupExpansion: [],
+    pagination: { pageIndex: 0, pageSize: 25 },
+  },
+  options: { paginated: true, aggregates: [{ columnId: "Amount", fn: "sum" }] },
+});
+
+view.pageRows; // the current page: group headers and data rows, in render order
+view.grandTotal.get("Amount"); // the sum over every filtered row, on every page
+```
+
+## Functions
+
+| Function                   | Type                                 | Description                                                                                                                                                    |
+| -------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resolveGridView(input)`   | `GridView<Row, Node>`                | Derives the whole view in one call, with no memory of earlier calls.                                                                                           |
+| `createGridViewResolver()` | `(input: GridViewInput) => GridView` | A memoised `resolveGridView`. Each stage keeps its last inputs and returns its last output when none changed, so a call recomputes only what a change touches. |
+
+## `GridView`
+
+| Field             | Type                             | Description                                                                                                   |
+| ----------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `dataColumns`     | `readonly DataColumn<Row>[]`     | Every column, ordered, as `{ id, column }` — no width. What filtering, sorting, grouping and aggregates read. |
+| `columns`         | `readonly ResolvedColumn<Row>[]` | The columns as rendered: ordered and sized.                                                                   |
+| `rows`            | `readonly ResolvedRow<Row>[]`    | The rows, filtered then sorted.                                                                               |
+| `displayRows`     | `readonly DisplayRow<Row>[]`     | `rows` grouped, each group header carrying its aggregates — every page.                                       |
+| `pageRows`        | `readonly DisplayRow<Row>[]`     | The current page of `displayRows`. All of it when not paginated. A page never splits a top-level group.       |
+| `displayDataRows` | `readonly ResolvedRow<Row>[]`    | `pageRows` without group headers or summary rows — the data rows on screen, in display order.                 |
+| `pageCount`       | `number`                         | `1` when not paginated.                                                                                       |
+| `pageIndex`       | `number`                         | The page shown, clamped into range. `0` when not paginated.                                                   |
+| `grandTotal`      | `AggregateResults`               | Every aggregate over all of `rows`, ignoring grouping and paging.                                             |
+
+## Input
+
+`state` is a `GridState<Row>`: `columnSizing`, `columnOrder`, `columnSort`, `filter`, `groupBy`, `groupExpansion` and `pagination`, each the same type as the matching `default*` prop on DataGrid. `options` is a `GridViewOptions<Row>`; every field is optional and defaults the way DataGrid's prop of the same name does:
+
+| Option                                                              | Default    | Description                                                                                  |
+| ------------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------- |
+| `paginated`                                                         | `false`    | Whether `pageRows` is one page rather than every row.                                        |
+| `aggregates`                                                        | `[]`       | The aggregates to compute, per group and in `grandTotal`.                                    |
+| `groupAggregateDisplay`                                             | `"inline"` | `"row"` adds a summary row after each group.                                                 |
+| `columnSizeDefaults`                                                | —          | Width and bounds for a column that sets none.                                                |
+| `resizableColumns`, `reorderableColumns`, `groupByDraggableColumns` | `false`    | Grid-level defaults a column's own setting overrides.                                        |
+| `resizeMode`                                                        | `"fit"`    | `"fit"` stretches or squeezes columns to fill `viewportWidth`; `"fixed"` keeps their widths. |
+| `viewportWidth`                                                     | `null`     | The width to fit. Leave it out where there is no viewport, such as an export.                |
+
+`columns` is used as given: DataGrid's inference of columns from the rows, when it is passed none, happens before the view is resolved.
+
+## Memoisation
+
+Hold one `createGridViewResolver()` per grid and call it with the current input whenever the view is needed. Stages compare their inputs by identity, so pass state slices as the same objects until they change. The data stages read `dataColumns`, which carry no width, so a resize or a viewport change re-sizes `columns` and leaves `rows`, `displayRows`, `pageRows`, `displayDataRows` and `grandTotal` exactly as they were — the same references. The returned view object itself is reused when nothing in it changed.
+
+```ts
+const resolve = createGridViewResolver<Row>();
+
+const before = resolve(input);
+const after = resolve({
+  ...input,
+  state: { ...input.state, columnSizing: { Amount: 180 } },
+});
+
+after.rows === before.rows; // true — filtering and sorting did not run again
+after.columns === before.columns; // false — the widths changed
+```

@@ -239,6 +239,16 @@ export interface ColumnResolveOptions {
 }
 
 /**
+ * How a column's width relates to the grid's.
+ *
+ * `"fit"` keeps the columns filling the grid: the space a column gives up is
+ * handed to the others, and the space it takes comes out of them. `"fixed"`
+ * lets every column keep its own width, so a resize moves one column and
+ * nothing else, and the grid scrolls or leaves a gap accordingly.
+ */
+export type ResizeMode = "fit" | "fixed";
+
+/**
  * A column as the data stages read it — filtering, sorting, grouping and
  * aggregating need its id and its definition's `field` and `type`, never its
  * width. Kept apart from `ResolvedColumn` so that a resize or a viewport
@@ -742,4 +752,80 @@ export interface CellSelectionChangeEvent<Row, Node = string> {
   readonly selected: SelectedCell<Row, Node> | null;
   readonly deselected: SelectedCell<Row, Node> | null;
   readonly selection: CellSelectionState;
+}
+
+/**
+ * Everything about a grid the user can change, one slice per feature. Each
+ * slice is the same `*State` type its own `default*` prop and change event
+ * already use, so state read from here can be fed straight back as a default.
+ */
+export interface GridState<Row> {
+  readonly columnSizing: ColumnSizingState;
+  readonly columnOrder: ColumnOrderState;
+  readonly columnSort: ColumnSortState;
+  readonly filter: FilterState<Row>;
+  readonly groupBy: GroupByState;
+  readonly groupExpansion: GroupExpansionState;
+  readonly pagination: PaginationState;
+}
+
+/**
+ * The settings that shape the view but are not user state: what the grid is
+ * configured to do, plus the one measurement — `viewportWidth` — that fitting
+ * columns needs from the page. Every field falls back to the same default
+ * the React grid's matching prop does.
+ */
+export interface GridViewOptions<Row> {
+  /** Whether `pageRows` is one page of `displayRows` rather than all of it. Defaults to `false`. */
+  readonly paginated?: boolean | undefined;
+  readonly aggregates?: AggregateState<Row> | undefined;
+  /** Defaults to `"inline"`. */
+  readonly groupAggregateDisplay?: GroupAggregateDisplay | undefined;
+  readonly columnSizeDefaults?: Partial<ColumnSizeDefaults> | undefined;
+  readonly resizableColumns?: boolean | undefined;
+  readonly reorderableColumns?: boolean | undefined;
+  readonly groupByDraggableColumns?: boolean | undefined;
+  /** Defaults to `"fit"`, which only takes effect once `viewportWidth` is known. */
+  readonly resizeMode?: ResizeMode | undefined;
+  /**
+   * The width, in px, `"fit"` fills. `null` or absent before it has been
+   * measured, or where there is no viewport at all (an export in Node), and
+   * then columns keep their resolved widths.
+   */
+  readonly viewportWidth?: number | null | undefined;
+}
+
+/** What `resolveGridView` derives the view from. */
+export interface GridViewInput<Row, Node = string> {
+  readonly rows: readonly Row[];
+  readonly getRowId?: ((row: Row, index: number) => string) | undefined;
+  readonly columns: readonly ColumnDefinition<Row, Node>[];
+  readonly state: GridState<Row>;
+  readonly options: GridViewOptions<Row>;
+}
+
+/**
+ * What the user is looking at, derived once from `GridViewInput` — every
+ * list a renderer draws, and the ones an export, a toolbar or a status line
+ * reads, so none of them composes the pipeline for itself.
+ */
+export interface GridView<Row, Node = string> {
+  /** Every column, ordered but not sized — what the data stages read. */
+  readonly dataColumns: readonly DataColumn<Row, Node>[];
+  /** The columns as rendered: ordered and sized. */
+  readonly columns: readonly ResolvedColumn<Row, Node>[];
+  /** The rows, filtered then sorted. */
+  readonly rows: readonly ResolvedRow<Row>[];
+  /** `rows` grouped, with each group's aggregates attached — every page of it. */
+  readonly displayRows: readonly DisplayRow<Row>[];
+  /** The current page of `displayRows`; all of it when not paginated. */
+  readonly pageRows: readonly DisplayRow<Row>[];
+  /** `pageRows` narrowed to its data rows, in display order — what a range selection spans. */
+  readonly displayDataRows: readonly ResolvedRow<Row>[];
+  /** `1` when not paginated. */
+  readonly pageCount: number;
+  /** `state.pagination.pageIndex` clamped into range; `0` when not paginated. */
+  readonly pageIndex: number;
+  /** Every aggregate over all of `rows`, ungrouped and unpaginated. */
+  readonly grandTotal: AggregateResults;
 }
