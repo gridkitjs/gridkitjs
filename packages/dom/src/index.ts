@@ -22,6 +22,15 @@ export {
 } from "./dropTargets";
 export { observeElementWidth } from "./elementWidth";
 export {
+  createGridFocus,
+  findBodyRow,
+  measurePageSize,
+  type FocusVirtualRange,
+  type GridFocusController,
+  type GridFocusOptions,
+  type GridFocusRows,
+} from "./gridFocus";
+export {
   attachInfiniteScroll,
   type InfiniteScroll,
   type InfiniteScrollOptions,
