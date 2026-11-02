@@ -38,6 +38,9 @@ importers:
       '@gridkitjs/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@gridkitjs/dom':
+        specifier: workspace:*
+        version: link:../../packages/dom
       '@gridkitjs/react':
         specifier: workspace:*
         version: link:../../packages/react
@@ -103,11 +106,30 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@24.13.3)(vite@8.2.0(@types/node@24.13.3)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0))
 
+  packages/dom:
+    dependencies:
+      '@gridkitjs/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.25)(typescript@6.0.3)(yaml@2.9.0)
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@24.13.3)(vite@8.2.0(@types/node@24.13.3)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0))
+
   packages/react:
     dependencies:
       '@gridkitjs/core':
         specifier: workspace:*
         version: link:../core
+      '@gridkitjs/dom':
+        specifier: workspace:*
+        version: link:../dom
     devDependencies:
       '@types/react':
         specifier: ^19.2.18

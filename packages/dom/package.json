@@ -1,0 +1,60 @@
+{
+  "name": "@gridkitjs/dom",
+  "version": "0.0.0",
+  "description": "Framework-free browser behaviours for GridKit renderers: gestures, focus, observers, virtualization, overlays and announcements.",
+  "license": "MIT",
+  "author": "Blagoja Blazhevski",
+  "homepage": "https://github.com/blagojablazhevski/gridkit#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blagojablazhevski/gridkit.git",
+    "directory": "packages/dom"
+  },
+  "keywords": [
+    "datagrid",
+    "grid",
+    "table",
+    "dom",
+    "headless",
+    "typescript",
+    "framework-agnostic"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "publishConfig": {
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@gridkitjs/core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
+  }
+}

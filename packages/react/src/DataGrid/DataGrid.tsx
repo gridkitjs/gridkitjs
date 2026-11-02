@@ -53,6 +53,7 @@ import {
   type SelectionDiffEvent,
   type SerializedGridState,
 } from "@gridkitjs/core";
+import type { ColumnDropTarget } from "@gridkitjs/dom";
 import GridColgroup from "./components/GridColgroup";
 import GridHeader from "./components/GridHeader";
 import GridBody from "./components/GridBody";
@@ -61,7 +62,7 @@ import GridPager from "./components/GridPager";
 import GroupByBar from "./components/GroupByBar";
 import { ariaAttr } from "./ariaAttr";
 import { classNames } from "./classNames";
-import useColumnDrag, { type DropTarget } from "./useColumnDrag";
+import useColumnDrag from "./useColumnDrag";
 import useColumnResize from "./useColumnResize";
 import useElementWidth from "./useElementWidth";
 import useGridController, {
@@ -70,6 +71,7 @@ import useGridController, {
 import useGridNavigation, { HEADER_ROW } from "./useGridNavigation";
 import useGridSelection from "./useGridSelection";
 import useInfiniteScroll from "./useInfiniteScroll";
+import useLiveAnnouncer from "./useLiveAnnouncer";
 import useRowVirtualizer from "./useRowVirtualizer";
 
 /**
@@ -369,9 +371,9 @@ export interface InfiniteScrollConfig {
   /** Whether a load triggered by `onLoadMore` is still in flight. Suppresses further calls to it until this goes back to `false`. */
   readonly isLoadingMore?: boolean | undefined;
   /**
-   * `IntersectionObserver`'s `rootMargin` — how far from the bottom of the
-   * scrollable body `onLoadMore` fires, ahead of the sentinel actually
-   * scrolling into view. Defaults to `"200px"`.
+   * How far from the bottom of the scrollable body `onLoadMore` fires, ahead
+   * of the sentinel actually scrolling into view, as CSS margins — an
+   * intersection observer's `rootMargin`. Defaults to `"200px"`.
    */
   readonly rootMargin?: string | undefined;
   /** Replaces the built-in "Loading more…" row (`messages.loadingMore`). */
@@ -481,7 +483,8 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   const sentinelRef = useRef<HTMLTableRowElement>(null);
   const viewportWidth = useElementWidth(viewportRef, resizeMode === "fit");
   const subscribersRef = useRef(new Set<() => void>());
-  const [announcement, setAnnouncement] = useState("");
+  /** Reports a change no visual cue can carry to a screen reader. */
+  const announce = useLiveAnnouncer(viewportRef);
   /** Every string the grid shows or announces, `messages` over the English defaults. */
   const messages = useMemo(
     () => resolveMessages(messageOverrides),
@@ -563,15 +566,6 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   }
 
   /**
-   * Reports a change no visual cue can carry to a screen reader. Held as state
-   * rather than written to the DOM directly so React owns the one element the
-   * live region watches.
-   */
-  function announce(message: string): void {
-    setAnnouncement(message);
-  }
-
-  /**
    * Announced only once the drag ends: the controller reports the continuous
    * `"move"` phase as well, and a live region given every frame of a drag
    * says nothing an assistive technology can keep up with.
@@ -589,9 +583,10 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   }
 
   const resize = useColumnResize<Row>({
-    // `measureColumnContent` only ever matches `td[data-gridkit-column]`
-    // (never `th`), so the header table has nothing for it to find — the
-    // body table alone was already the effective scope before this split.
+    // `@gridkitjs/dom`'s `measureColumnContent` only ever matches
+    // `td[data-gridkit-column]` (never `th`), so the header table has nothing
+    // for it to find — the body table alone was already the effective scope
+    // before this split.
     tableRef: bodyTableRef,
     controller,
     columnSizeDefaults,
@@ -770,7 +765,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
    * The one place a drop is applied — the two-armed switch on `target.kind`
    * the group-by bar's own second drop zone was always going to need.
    */
-  function handleDrop(target: DropTarget, movedId: string): void {
+  function handleDrop(target: ColumnDropTarget, movedId: string): void {
     if (target.kind === "group-by") {
       // Already announced: `moveGroupBy` reports through the same
       // `onGroupByChange` pipeline the header toggle and the bar's own chip
@@ -861,7 +856,8 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   /**
    * Tells `subscribe`'s listeners once a render has drawn a change: to the
    * controller's state or view — whether an action or a prop made it — or to
-   * the focused cell, which React still holds itself.
+   * the focused cell, which `@gridkitjs/dom`'s grid focus keeps apart from
+   * the controller.
    *
    * Gated on those values, not run after every render: `useSyncExternalStore`
    * re-renders a subscriber that is notified, and a subscriber that renders
@@ -1178,13 +1174,6 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
         ) : (
           <GridPager pager={pagerContext} config={pager} messages={messages} />
         ))}
-      {/*
-       * Outside the table, which admits no `div`, and polite so it waits for a
-       * pause rather than cutting across what the user is already hearing.
-       */}
-      <div className="gridkit-sr-only" role="status" aria-live="polite">
-        {announcement}
-      </div>
     </div>
   );
 }

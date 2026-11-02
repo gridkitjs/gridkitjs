@@ -1,0 +1,254 @@
+---
+title: "Overview"
+description: "Framework-free browser behaviours for GridKit renderers: gestures, focus, observers, virtualization, overlays and announcements."
+---
+
+@gridkitjs/dom holds every browser behaviour a grid needs that is not drawing: pointer gestures, keyboard focus movement, the observers behind fit-to-width and infinite scroll, the row virtualizer's measuring, overlays, and the live region it reports changes through. @gridkitjs/core decides what the grid does and runs without a DOM; @gridkitjs/dom does what needs one, with no framework; a renderer such as @gridkitjs/react draws the markup and attaches these behaviours to it. A second renderer — for Angular, Vue or Svelte — reuses both unchanged.
+
+You only need this package to write a renderer of your own. @gridkitjs/react depends on it already, so installing that is enough to use the grid.
+
+## Install
+
+```ts
+npm install @gridkitjs/dom
+```
+
+## The contract
+
+Every behaviour is attached to elements the renderer already drew and handed options, owns its own listeners and observers, reports through callbacks, and gives back the way to end it — a function, or an object with `detach` or `destroy`. None names a framework's types, so each maps onto a framework's own lifecycle: a React ref callback or effect, an Angular directive and `ngOnDestroy`, a Vue `onMounted`, a Svelte action.
+
+```ts
+const detach = observeElementWidth(element, (width) => {
+  /* … */
+});
+// later, when the element goes away:
+detach();
+```
+
+Where a behaviour reads the grid's markup, it relies on the attributes @gridkitjs/react renders — `data-gridkit-column` on header and body cells, `data-gridkit-row-index` on body rows, `data-gridkit-group-by-bar` and `data-gridkit-group-chip` on the group-by bar — so a renderer that draws the same markup gets the same behaviour. What a behaviour reports that changes how the grid looks — a drop target, the window of rows, the focused cell — is the renderer's to draw; what changes the grid's state goes through the controller's actions.
+
+## Body event targets
+
+A renderer keeps its rows cheap to re-render by handling the body's clicks, focus and keys with one listener on the `<tbody>` rather than one per cell. These turn such an event's `target` into what it addresses in the grid's markup, `null` when it addresses none:
+
+| Function               | Returns                                                                                                                                       |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bodyCellFrom(target)` | `{ rowIndex, columnIndex, columnId }` — the data cell (`td[data-gridkit-column]`) it is in. Never a group header's cell, which has no column. |
+| `groupRowFrom(target)` | `{ rowIndex, groupId }` — the group-header row (`tr[data-gridkit-group]`) it is in.                                                           |
+| `bodyRowFrom(target)`  | `{ rowIndex, columnId }` — any body row it is in, with the column of its cell in that row, or `null` for none — what a row click reports.     |
+
+`rowIndex` is the row's place among every body row, read off its `data-gridkit-row-index`, so it holds under virtualization, where a row's place in the DOM does not.
+
+```ts
+import { bodyCellFrom } from "@gridkitjs/dom";
+
+tbody.addEventListener("click", (event) => {
+  const cell = bodyCellFrom(event.target);
+  if (cell !== null) select(view.pageRows[cell.rowIndex], cell.columnId);
+});
+```
+
+## Live announcer
+
+`createLiveAnnouncer(container?)` adds one visually hidden live region (`role="status"`, `aria-live="polite"`) as the last child of `container` — `document.body` when omitted — and returns `announce(text)` and `destroy()`. The region carries the `gridkit-sr-only` class, which @gridkitjs/theme-tailwind clips to nothing while keeping it in the accessibility tree.
+
+```ts
+import { createLiveAnnouncer } from "@gridkitjs/dom";
+
+const announcer = createLiveAnnouncer(gridElement);
+announcer.announce("Amount, column 2 of 5");
+announcer.announce("Amount, column 2 of 5"); // read out again
+announcer.destroy();
+```
+
+A live region speaks only when its text changes, so `announce` makes a repeat of the last message a change of its own: the same text twice in a row is read twice.
+
+## Element width
+
+`observeElementWidth(element, onWidth)` reports `element.clientWidth` straight away and again whenever it changes, and returns the function that stops it — the width `resizeMode: "fit"` fills, passed to the controller as `viewportWidth`. The first report is synchronous, so columns laid out before paint never show at the wrong width for a frame.
+
+```ts
+import { observeElementWidth } from "@gridkitjs/dom";
+
+const disconnect = observeElementWidth(viewportElement, (width) => {
+  controller.setOptions({ ...options, viewportWidth: width });
+});
+```
+
+## Gestures
+
+A gesture starts from a `PointerPress` — the `pointerdown` that began it, native or a framework's wrapper around one — and only from the main button of the primary pointer: a right-click or a second finger starts nothing, and the starter returns `false`. While it runs, the pointer is captured, so the gesture keeps reporting wherever the pointer goes, and <Kbd>Escape</Kbd> cancels it.
+
+### Column resize
+
+`startColumnResizeGesture(handle, press, session, { onMove, onEnd, onCancel })` drags a column's edge. `session` comes from @gridkitjs/core's `beginColumnResize`, which also turns each pointer position into a clamped width. `onMove(width)` reports every move; `onEnd(width)` reports the release, with `null` when the width ended where it started — a click on the handle is not a resize; `onCancel()` reports <Kbd>Escape</Kbd> or a cancelled pointer.
+
+```ts
+import { beginColumnResize } from "@gridkitjs/core";
+import { startColumnResizeGesture } from "@gridkitjs/dom";
+
+handle.addEventListener("pointerdown", (event) => {
+  const session = beginColumnResize(column, width, event.clientX);
+  startColumnResizeGesture(handle, event, session, {
+    onMove: (width) => controller.resizeColumn(session.columnId, width, "move"),
+    onEnd: (width) => {
+      if (width !== null)
+        controller.resizeColumn(session.columnId, width, "end");
+    },
+    onCancel: () =>
+      controller.cancelColumnResize(
+        session.columnId,
+        startSizing,
+        session.startWidth,
+      ),
+  });
+});
+```
+
+`measureColumnContent(table, columnId)` is the width the widest rendered cell of a column needs to show its content in full — what double-clicking a resize handle sizes it to, through `sizeColumnToContent` — or `null` when the column has no cells.
+
+### Drag to reorder
+
+`startDragReorder(id, grabElement, press, { resolveTarget, onState, onDrop })` is the gesture behind every reorder in the grid — a header dragged among the others or into the group-by bar, a group-by chip dragged within it. Nothing is reported until the pointer has travelled 4 pixels, so a press that stays put remains a click; from then on every move asks `resolveTarget(clientX, clientY, id)` where a drop would land and reports `onState({ draggedId, dropTarget, ghostTransform })` — what to draw, with `ghostTransform` a CSS `transform` keeping the ghost under the pointer where it was picked up. Release over a target calls `onDrop(target, id)`; every ending reports `onState(NO_DRAG)`.
+
+```ts
+import {
+  NO_DRAG,
+  resolveColumnDropTarget,
+  startDragReorder,
+} from "@gridkitjs/dom";
+
+header.addEventListener("pointerdown", (event) => {
+  startDragReorder(columnId, header, event, {
+    resolveTarget: (x, y, id) =>
+      resolveColumnDropTarget(x, y, id, {
+        order,
+        groupBy,
+        groupByDraggableIds,
+      }),
+    onState: (state) => draw(state),
+    onDrop: (target, id) =>
+      target.kind === "group-by"
+        ? controller.moveGroupBy(id, target.beforeColumnId)
+        : controller.moveColumn(id, target.beforeId),
+  });
+});
+```
+
+The grid's own targets are hit-tested against its markup:
+
+| Function                                           | Returns                                                                                                                                                                                            |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resolveColumnDropTarget(x, y, movedId, context)`  | `{ kind: "column-order", beforeId }` over another `th[data-gridkit-column]`, by which half the pointer is in; else a group-by target for a column that may be grouped and is not yet; else `null`. |
+| `resolveGroupByDropTarget(x, y, movedId, groupBy)` | `{ kind: "group-by", beforeColumnId }` over `[data-gridkit-group-by-bar]`, before or after the `[data-gridkit-group-chip]` under the pointer, or appended; `null` elsewhere.                       |
+
+Either returns `null` for a drop that would change nothing, so a drop indicator only ever promises a move that happens.
+
+## Focus movement
+
+A grid is one tab stop: <Kbd>Tab</Kbd> reaches it and passes it by, and the arrow keys, <Kbd>Home</Kbd>, <Kbd>End</Kbd>, <Kbd>PageUp</Kbd> and <Kbd>PageDown</Kbd> move within it. `createGridFocus({ rowCount, columnCount, isSkippableRow, virtualRange })` keeps that tab stop — starting on the header's first cell — and moves the browser's focus with it.
+
+| Member                                 | Description                                                                                                                                   |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getFocus()`                           | The focused cell, `{ rowIndex, columnIndex }` with `HEADER_ROW` (`-1`) for the header, clamped to the counts. The same object until it moves. |
+| `subscribe(listener)`                  | Calls `listener` when the focused cell moves.                                                                                                 |
+| `setOptions(options)`                  | The current counts, skippable rows and virtualized window, given on every render. Calls no listener.                                          |
+| `attach({ getHeaderRow, getBodyRow })` | Connects it to the rendered rows; returns the function that disconnects them.                                                                 |
+| `focusCell(rowIndex, columnIndex)`     | Moves the tab stop. Moving to the focused cell does nothing.                                                                                  |
+| `handleKey(key, modifiers, pageSize)`  | Moves the tab stop as a navigation key does, and returns `true` — prevent the key's default then — or returns `false` for any other key.      |
+| `focusDrawnCell(drawn)`                | Called after drawing `drawn`, a value `getFocus()` returned: moves the browser's focus to that cell if a move to it is pending.               |
+
+```ts
+import { HEADER_ROW } from "@gridkitjs/core";
+import { createGridFocus, findBodyRow, measurePageSize } from "@gridkitjs/dom";
+
+const focus = createGridFocus({ rowCount, columnCount });
+focus.attach({
+  getHeaderRow: () => headerTable.tHead?.rows[0] ?? null,
+  getBodyRow: (rowIndex) => findBodyRow(bodyTable, rowIndex),
+});
+focus.subscribe(() => draw()); // draw() renders tabindex 0 on focus.getFocus(), then calls focus.focusDrawnCell(focus.getFocus())
+
+grid.addEventListener("keydown", (event) => {
+  if (focus.handleKey(event.key, event, measurePageSize(bodyTable))) {
+    event.preventDefault();
+  }
+});
+```
+
+The browser's focus follows only once the move is drawn, so it lands on the cell in the new markup — after a column moves, the header now at that index. A virtualized row outside the drawn window is scrolled into it with `virtualRange.scrollToIndex` and focused when a later drawing mounts it. `findBodyRow(bodyTable, rowIndex)` finds a body row by its `data-gridkit-row-index`, not its position, which under virtualization is off by the rows not mounted; `measurePageSize(bodyTable)` is how many rows a page key moves — as many as fit the body's scrolling area.
+
+## Row virtualizer
+
+`createRowVirtualizer(scrollElement, { estimatedRowHeight, overscan, onRange })` windows a long list of rows inside a scrolling element down to those near its scroll position. It measures each rendered row's real height — rows need not be uniform — and reports the window to render through `onRange({ startIndex, endIndex, offsetBefore, offsetAfter })`, with `offsetBefore`/`offsetAfter` the heights of the spacers that stand in for the rows outside it. It reports only when the window moves.
+
+| Member                          | Description                                                                                                                |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `setRowCount(count)`            | How many rows there are. Heights measured for rows that remain are kept.                                                   |
+| `resetHeights()`                | Forgets every measured height — after a sort or filter, when the rows at each index are different rows.                    |
+| `measureRow(index)`             | A ref callback for row `index`'s element, measuring it while mounted. The same function for the same index every time.     |
+| `scrollToIndex(index, options)` | Scrolls a mounted row into view; jumps to an unmounted one's estimated offset, then scrolls to it properly once it mounts. |
+| `destroy()`                     | Stops listening and measuring.                                                                                             |
+
+```ts
+import { createRowVirtualizer } from "@gridkitjs/dom";
+
+const virtualizer = createRowVirtualizer(bodyElement, {
+  estimatedRowHeight: 40,
+  overscan: 4,
+  onRange: (range) => drawRows(range), // rows startIndex..endIndex, between two spacers
+});
+virtualizer.setRowCount(rows.length);
+
+// while drawing row `index`:
+virtualizer.measureRow(index)(rowElement);
+```
+
+The arithmetic is @gridkitjs/core's `visibleRange`; this owns the measured heights, the scroll and resize listeners, and one `ResizeObserver` for every mounted row.
+
+## Infinite scroll
+
+`attachInfiniteScroll(root, options)` calls `onLoadMore` as a sentinel element — the last row of the body — comes within `rootMargin` of the scrolling `root`, at most once until `isLoadingMore` has gone from `true` back to `false`. It returns `update(options)`, which a renderer calls after every render with the current options and sentinel (the sentinel comes and goes with `hasMore`), and `detach()`.
+
+```ts
+import { attachInfiniteScroll } from "@gridkitjs/dom";
+
+const scroll = attachInfiniteScroll(bodyElement, {
+  sentinel: lastRow,
+  hasMore: true,
+  onLoadMore: () => fetchNextPage(),
+});
+
+// after each render
+scroll.update({ sentinel: lastRow, hasMore, isLoadingMore, onLoadMore });
+scroll.detach();
+```
+
+When a load finishes but the rows it appended leave the sentinel still in range, the next load starts straight away — nothing would scroll it out and back in to trigger one. With `hasMore` false or no sentinel, nothing is observed.
+
+## Overlay
+
+`attachOverlay(anchor, panel, options)` shows a panel the renderer has already put in the page — a menu, a popover, a filter editor, usually rendered into `document.body` so no scrolling ancestor clips it — beside `anchor`, an element or an `{ x, y }` point, and returns the function that ends it.
+
+```ts
+import { attachOverlay } from "@gridkitjs/dom";
+
+const detach = attachOverlay(headerCell, menuElement, {
+  placement: "bottom-start",
+  gap: 4,
+  onDismiss: (reason) => closeMenu(), // removes menuElement, then calls detach()
+});
+```
+
+| Option          | Type                                                        | Description                                                                                                    |
+| --------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `placement`     | `"bottom-start"`, `"top-end"`, `"right-start"` and the rest | Where the panel would rather open. Defaults to `"bottom-start"`.                                               |
+| `gap`           | `number`                                                    | Pixels between the anchor and the panel. Defaults to `0`.                                                      |
+| `onDismiss`     | `(reason) => void`                                          | Called with `"escape"`, `"outside"`, `"scroll"`, `"resize"` or `"blur"`; the caller closes the panel, or not.  |
+| `returnFocusTo` | `HTMLElement \| null`                                       | Where focus goes on detach. Defaults to the element focused when the overlay attached; `null` leaves it alone. |
+
+The panel is positioned `fixed` and opens on the preferred side unless only the opposite side has room for it, lines up with the preferred edge of the anchor unless only the other edge keeps it on screen, and is pushed back inside the viewport if it still overflows. The placement it ends up with is written to `data-gridkit-placement`. Focus moves to the panel's first focusable element, or to the panel itself.
+
+It asks to close on <Kbd>Escape</Kbd>, a pointer down outside it, a scroll anywhere outside it (it is placed in viewport coordinates, so the anchor would move away from it), a window resize, the window losing focus, or focus moving outside it. Nothing on the anchor counts, so a button that toggles the panel closes it with its own click. Detaching returns focus only while focus is still in the panel or nowhere — after a click on another control, focus stays there.
+
+`placeOverlay(anchorRect, panelSize, viewport, { placement, gap })` is the placement on its own: pure arithmetic over boxes, returning `{ top, left, placement }`, for a renderer that positions its own panels.

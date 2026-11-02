@@ -27,8 +27,8 @@ export interface VisibleRange {
  *
  * `O(n)` in `heights.length`. Deliberately not a Fenwick tree or a
  * binary-searchable prefix-sum structure — that optimization belongs in the
- * mutable React-side cache that already owns mutability
- * (`useRowVirtualizer`), not in this pure function's contract, and is not
+ * mutable height cache that already owns mutability (`createRowVirtualizer`
+ * in `@gridkitjs/dom`), not in this pure function's contract, and is not
  * worth taking on until a profiled scenario actually shows it matters at
  * realistic row counts.
  */

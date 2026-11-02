@@ -16,6 +16,12 @@ import {
   type ResolvedRow,
   type RowPointerEvent,
 } from "@gridkitjs/core";
+import {
+  bodyCellFrom,
+  bodyRowFrom,
+  groupRowFrom,
+  type BodyCellTarget,
+} from "@gridkitjs/dom";
 import type {
   ColumnDefinition,
   InfiniteScrollConfig,
@@ -60,73 +66,6 @@ interface GridBodyProps<Row> {
   onRowClick: GridOptions<Row>["onRowClick"];
   onRowDoubleClick: GridOptions<Row>["onRowDoubleClick"];
   messages: GridMessages;
-}
-
-/** Where a cell sits, read off the table's own indices rather than an attribute. */
-interface CellPosition {
-  rowIndex: number;
-  columnIndex: number;
-  columnId: string;
-}
-
-/** A row's position in the full (unsliced) `rows` array, off the attribute every row `<tr>` carries — see `GridRow`'s own `data-gridkit-row-index` for why this isn't the DOM's `sectionRowIndex`. `null` when the attribute is missing (a spacer row, or no row at all). */
-function rowIndexOf(row: Element): number | null {
-  const attribute = row.getAttribute("data-gridkit-row-index");
-  return attribute === null ? null : Number(attribute);
-}
-
-/**
- * The cell an event happened in. `closest` is what makes the whole cell the
- * target: a click on a template's own markup resolves to the cell holding it.
- *
- * Never matches inside a group-header row: that row's single `<td>` carries
- * no `data-gridkit-column` (it spans every column at once, so no one column
- * id applies), which is what keeps this function — and everything built on
- * it — data-row-only without an explicit `"kind"` check of its own.
- */
-function cellFrom(target: EventTarget): CellPosition | null {
-  if (!(target instanceof Element)) {
-    return null;
-  }
-  const cell = target.closest("td[data-gridkit-column]");
-  const row = cell?.parentElement;
-  const columnId = cell?.getAttribute("data-gridkit-column");
-  const rowIndex = row === null || row === undefined ? null : rowIndexOf(row);
-  if (
-    !(cell instanceof HTMLTableCellElement) ||
-    !(row instanceof HTMLTableRowElement) ||
-    columnId === null ||
-    columnId === undefined ||
-    rowIndex === null
-  ) {
-    return null;
-  }
-  return {
-    rowIndex,
-    columnIndex: cell.cellIndex,
-    columnId,
-  };
-}
-
-/** The group-header row an event happened in, if any. */
-function groupRowFrom(
-  target: EventTarget,
-): { rowIndex: number; groupId: string } | null {
-  if (!(target instanceof Element)) {
-    return null;
-  }
-  const row = target.closest("tr[data-gridkit-group]");
-  const groupId = row?.getAttribute("data-gridkit-group");
-  const rowIndex = row === null ? null : rowIndexOf(row);
-  if (
-    !(row instanceof HTMLTableRowElement) ||
-    groupId === null ||
-    groupId === undefined ||
-    rowIndex === null
-  ) {
-    return null;
-  }
-  return { rowIndex, groupId };
 }
 
 interface GroupAriaMeta {
@@ -218,8 +157,8 @@ export default function GridBody<Row>({
   /** The row and cell an event addresses, resolved once for every handler. */
   function targetOf(
     target: EventTarget,
-  ): { position: CellPosition; rowId: string } | null {
-    const position = cellFrom(target);
+  ): { position: BodyCellTarget; rowId: string } | null {
+    const position = bodyCellFrom(target);
     const entry = position === null ? undefined : rows[position.rowIndex];
     if (position === null || entry === undefined || "kind" in entry) {
       return null;
@@ -250,22 +189,14 @@ export default function GridBody<Row>({
   function rowPointerEventOf(
     event: ReactMouseEvent,
   ): RowPointerEvent<Row> | null {
-    if (!(event.target instanceof Element)) {
+    const target = bodyRowFrom(event.target);
+    const entry = target === null ? undefined : rows[target.rowIndex];
+    if (target === null || entry === undefined || "kind" in entry) {
       return null;
     }
-    const row = event.target.closest("tr[data-gridkit-row-index]");
-    const index = row === null ? null : rowIndexOf(row);
-    const entry = index === null ? undefined : rows[index];
-    if (entry === undefined || "kind" in entry) {
-      return null;
-    }
-    const cell = event.target.closest("td[data-gridkit-column]");
     return {
       row: entry,
-      columnId:
-        cell?.parentElement === row
-          ? cell.getAttribute("data-gridkit-column")
-          : null,
+      columnId: target.columnId,
       native: {
         ctrlKey: event.ctrlKey,
         metaKey: event.metaKey,
@@ -357,7 +288,7 @@ export default function GridBody<Row>({
     >
       {virtualRange !== null && virtualRange.offsetBefore > 0 && (
         // `aria-hidden` and carrying neither `data-gridkit-column` nor
-        // `data-gridkit-group`/`data-gridkit-row-index`, so `cellFrom`/
+        // `data-gridkit-group`/`data-gridkit-row-index`, so `bodyCellFrom`/
         // `groupRowFrom` never mistake it for a real row — it exists purely
         // to give the browser's scrollbar the correct total height and thumb
         // position, the same way `GridFooter`'s `<tfoot>` isn't a "row" to
@@ -476,7 +407,7 @@ export default function GridBody<Row>({
       )}
       {/*
        * Presentational, like the spacer rows above: neither carries
-       * `data-gridkit-row-index`/`data-gridkit-column`, so `cellFrom`/
+       * `data-gridkit-row-index`/`data-gridkit-column`, so `bodyCellFrom`/
        * `groupRowFrom` never match them, and neither is part of `rows` (the
        * array `aria-rowcount` and `useGridNavigation`'s `rowCount` are
        * computed from in `DataGrid.tsx`), so both are already excluded from

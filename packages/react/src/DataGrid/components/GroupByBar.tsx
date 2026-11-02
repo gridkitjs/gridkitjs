@@ -5,9 +5,9 @@ import {
   type GridMessages,
   type GroupByState,
 } from "@gridkitjs/core";
+import type { GroupByDropTarget } from "@gridkitjs/dom";
 import type { ColumnDefinition, ResolvedColumn } from "../DataGrid";
 import { classNames } from "../classNames";
-import type { GroupByDropTarget } from "../groupByDropTarget";
 import useGroupByDrag from "../useGroupByDrag";
 import type { DataGridController } from "../useGridController";
 

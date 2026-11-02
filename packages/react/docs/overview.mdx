@@ -5,6 +5,8 @@ description: "React components for GridKit, built on @gridkitjs/core."
 
 @gridkitjs/react renders semantic class names — gridkit-data-grid, header-cell, grid-row — and carries no styles of its own. Pair it with @gridkitjs/theme-tailwind, or target the same class names with your own stylesheet.
 
+It is the drawing layer only: what the grid does — its state, the rows and columns it shows, every action — comes from [@gridkitjs/core](/docs/core/overview)'s controller, and its browser behaviours — gestures, keyboard focus, virtualization, announcements — from [@gridkitjs/dom](/docs/dom/overview). Both are installed with it.
+
 ## Install
 
 ```ts

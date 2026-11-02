@@ -11,10 +11,11 @@
     "lint": "eslint src tests-ct playwright",
     "test:e2e": "playwright test -c playwright-ct.config.ts",
     "test:e2e:ui": "playwright test -c playwright-ct.config.ts --ui",
-    "test:e2e:coverage": "cross-env VITE_COVERAGE=true playwright test -c playwright-ct.config.ts && nyc report --check-coverage --lines 80 --statements 80 --functions 80 --reporter=text --reporter=html --reporter=json-summary"
+    "test:e2e:coverage": "node -e \"fs.rmSync('playwright/.cache', { recursive: true, force: true })\" && cross-env VITE_COVERAGE=true playwright test -c playwright-ct.config.ts && nyc report --check-coverage --lines 80 --statements 80 --functions 80 --reporter=text --reporter=html --reporter=json-summary"
   },
   "dependencies": {
     "@gridkitjs/core": "workspace:*",
+    "@gridkitjs/dom": "workspace:*",
     "@gridkitjs/react": "workspace:*",
     "@gridkitjs/theme-tailwind": "workspace:*",
     "react": "^19.2.8",

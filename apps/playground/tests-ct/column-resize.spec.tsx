@@ -105,6 +105,45 @@ test('releasing the pointer fires one final onColumnResize with phase "end"', as
   expect(events.at(-1)?.phase).toBe("end");
 });
 
+test("a right-button drag on a resize handle does not resize the column", async ({
+  mount,
+  page,
+}) => {
+  const events: ColumnResizeEvent[] = [];
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Resize right button"
+      resizableColumns
+      reorderableColumns
+      resizeMode="fixed"
+      onColumnResize={(event) => {
+        events.push(event);
+      }}
+    />,
+  );
+  const originalWidth = await colWidth(root, 0);
+  const box = await headerHandle(root, 0).boundingBox();
+  if (box === null) {
+    throw new Error("resize handle is not visible");
+  }
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+
+  await page.mouse.move(x, y);
+  await page.mouse.down({ button: "right" });
+  await page.mouse.move(x + 40, y);
+  await expect(root.locator("thead th").nth(0)).not.toHaveClass(/is-resizing/);
+  await page.mouse.up({ button: "right" });
+
+  expect(await colWidth(root, 0)).toBeCloseTo(originalWidth, 0);
+  expect(events).toEqual([]);
+  // Nor did the press reach the header's own drag.
+  await expect(root.locator("thead th").nth(0)).not.toHaveClass(/is-dragging/);
+});
+
 test("Escape mid-resize restores the width captured at drag-start", async ({
   mount,
   page,

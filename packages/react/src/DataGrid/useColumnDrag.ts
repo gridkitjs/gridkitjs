@@ -1,27 +1,12 @@
 import type { PointerEvent as ReactPointerEvent } from "react";
 import {
-  movesColumn,
-  resolveDropBefore,
   resolveKeyboardDropTarget,
   type ColumnOrderState,
   type GroupByState,
 } from "@gridkitjs/core";
+import { resolveColumnDropTarget, type ColumnDropTarget } from "@gridkitjs/dom";
 import type { ResolvedColumn } from "./DataGrid";
-import {
-  resolveGroupByDropTarget,
-  type GroupByDropTarget,
-} from "./groupByDropTarget";
-import useDragReorder, { elementAt, sideOf } from "./useDragReorder";
-
-/**
- * Where a drop would land. A second drop zone — the group-by bar — is a
- * second member here rather than a reshaping of this state, exactly as
- * originally planned: a header dragged past every other header and onto the
- * bar produces `"group-by"` instead of `"column-order"`, and `handleDrop`
- * switches on `kind`.
- */
-export type DropTarget =
-  { kind: "column-order"; beforeId: string | null } | GroupByDropTarget;
+import useDragReorder from "./useDragReorder";
 
 interface UseColumnDragOptions {
   order: ColumnOrderState;
@@ -29,14 +14,14 @@ interface UseColumnDragOptions {
   groupBy: GroupByState;
   /** Column ids whose header may be dragged into the group-by bar at all. */
   groupByDraggableIds: ReadonlySet<string>;
-  onDrop: (target: DropTarget, movedId: string) => void;
+  onDrop: (target: ColumnDropTarget, movedId: string) => void;
 }
 
 export interface ColumnDragApi<Row> {
   /** The column being dragged, for as long as the drag lasts. */
   draggedColumnId: string | null;
   /** Where it would land if released now. */
-  dropTarget: DropTarget | null;
+  dropTarget: ColumnDropTarget | null;
   /** Where the element trailing the pointer sits, as a CSS `transform`. */
   ghostTransform: string | null;
   startDrag: (
@@ -57,9 +42,10 @@ export interface ColumnDragApi<Row> {
 
 /**
  * Turns a pointer drag over the header into a drop target, leaving `onDrop` to
- * apply it. Built on `useDragReorder`'s shared pointer mechanics — this hook
- * supplies only the hit-testing: another header (reorder among columns) or
- * the group-by bar (add this column to the grouping), tried in that order.
+ * apply it. Built on `useDragReorder`'s shared pointer mechanics, with
+ * `@gridkitjs/dom`'s `resolveColumnDropTarget` as the hit-testing: another
+ * header (reorder among columns) or the group-by bar (add this column to the
+ * grouping), tried in that order.
  */
 export default function useColumnDrag<Row>({
   order,
@@ -67,38 +53,13 @@ export default function useColumnDrag<Row>({
   groupByDraggableIds,
   onDrop,
 }: UseColumnDragOptions): ColumnDragApi<Row> {
-  const drag = useDragReorder<DropTarget>({
-    resolveTarget(clientX, clientY, movedId) {
-      // Hit-tested rather than read from the event's target, which pointer
-      // capture pins to the header the drag opened on.
-      const over = elementAt(clientX, clientY, "th[data-gridkit-column]");
-      const overId = over?.getAttribute("data-gridkit-column");
-
-      // The rect is read fresh each move, so a width changed mid-drag
-      // cannot leave the midpoint stale.
-      const beforeId =
-        over && overId
-          ? resolveDropBefore(order, overId, sideOf(over, clientX))
-          : undefined;
-
-      if (beforeId !== undefined) {
-        // A gap the column already sits in would promise a move that
-        // `moveColumnBefore` then declines to make.
-        return movesColumn(order, movedId, beforeId)
-          ? { kind: "column-order", beforeId }
-          : null;
-      }
-
-      // Already grouped: reordering it is the chip's job, not the header's —
-      // dragging it back into the bar is never a valid target.
-      const alreadyGrouped = groupBy.some(
-        (entry) => entry.columnId === movedId,
-      );
-
-      return groupByDraggableIds.has(movedId) && !alreadyGrouped
-        ? resolveGroupByDropTarget(clientX, clientY, movedId, groupBy)
-        : null;
-    },
+  const drag = useDragReorder<ColumnDropTarget>({
+    resolveTarget: (clientX, clientY, movedId) =>
+      resolveColumnDropTarget(clientX, clientY, movedId, {
+        order,
+        groupBy,
+        groupByDraggableIds,
+      }),
     onDrop,
   });
 

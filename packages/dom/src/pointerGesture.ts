@@ -1,3 +1,26 @@
+/**
+ * The `pointerdown` a gesture starts from. A native `PointerEvent` is one,
+ * and so is a framework's wrapper around it, such as React's synthetic
+ * event, so a renderer passes whichever its handler received.
+ */
+export interface PointerPress {
+  readonly pointerId: number;
+  readonly clientX: number;
+  readonly clientY: number;
+  readonly button: number;
+  readonly isPrimary: boolean;
+  preventDefault(): void;
+}
+
+/**
+ * Whether `press` may start a gesture: the main button of the primary
+ * pointer. A right-click opens a context menu and a second finger is not the
+ * gesture already under way, so neither starts a drag or a resize.
+ */
+export function isPrimaryPress(press: PointerPress): boolean {
+  return press.button === 0 && press.isPrimary;
+}
+
 interface PointerGestureHandlers {
   onMove: (event: PointerEvent) => void;
   onEnd: () => void;
@@ -8,9 +31,6 @@ interface PointerGestureHandlers {
  * Wires up a pointer-driven gesture — capture, move tracking, and an
  * Escape-to-cancel — leaving the caller's `onMove`/`onEnd`/`onCancel` to own
  * the gesture's own domain logic (and any state reset that goes with it).
- *
- * A plain function rather than a hook: the caller already owns every piece of
- * state involved via closures, so there is nothing here for React to manage.
  */
 export function startPointerGesture(
   element: HTMLElement,

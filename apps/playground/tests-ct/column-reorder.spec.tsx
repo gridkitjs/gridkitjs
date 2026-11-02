@@ -77,6 +77,43 @@ test("a pointer move under the 4px threshold stays a click, not a drag", async (
   await expect(header).toHaveAttribute("aria-selected", "true");
 });
 
+test("a right-button drag across another header does not reorder the columns", async ({
+  mount,
+  page,
+}) => {
+  const events: ColumnOrderEvent[] = [];
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Right button"
+      reorderableColumns
+      onColumnOrderChange={(event) => {
+        events.push(event);
+      }}
+    />,
+    { width: 900 },
+  );
+  const box = await headers(root).first().boundingBox();
+  const target = await headers(root).nth(2).boundingBox();
+  if (box === null || target === null) {
+    throw new Error("headers are not visible");
+  }
+
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down({ button: "right" });
+  await page.mouse.move(target.x + target.width * 0.75, target.y + 5, {
+    steps: 5,
+  });
+  await expect(page.locator(".drag-ghost")).toHaveCount(0);
+  await expect(headers(root).first()).not.toHaveClass(/is-dragging/);
+  await page.mouse.up({ button: "right" });
+
+  expect(await columnIds(root)).toEqual(["id", "name", "status"]);
+  expect(events).toEqual([]);
+});
+
 test("crossing the drag threshold shows a ghost portalled to document.body, not inside the table", async ({
   mount,
   page,
