@@ -1,10 +1,10 @@
 import type {
   ColumnDefinition,
+  DataColumn,
   DisplayRow,
   GroupByEntry,
   GroupByState,
   GroupExpansionState,
-  ResolvedColumn,
   ResolvedGroupRow,
   ResolvedRow,
   SortDirection,
@@ -180,7 +180,7 @@ export function groupRows<Row>(
   rows: readonly ResolvedRow<Row>[],
   groupBy: GroupByState,
   expansion: GroupExpansionState,
-  columns: readonly ResolvedColumn<Row, unknown>[],
+  columns: readonly DataColumn<Row, unknown>[],
 ): readonly DisplayRow<Row>[] {
   if (groupBy.length === 0) {
     return rows;

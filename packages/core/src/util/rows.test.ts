@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import type {
   ColumnSortState,
   ColumnType,
+  DataColumn,
   FilterState,
   ResolvedColumn,
   ResolvedRow,
@@ -104,6 +105,19 @@ describe("resolveShownRows", () => {
 
     expect(resolveShownRows(rows, filter, [], columns)).toEqual(
       filterRows(rows, filter, columns),
+    );
+  });
+
+  test("reads bare id/column pairs, with no width resolved", () => {
+    const dataColumns: readonly DataColumn<SampleRow, unknown>[] = [
+      { id: "Name", column: { field: "Name" } },
+      { id: "Score", column: { field: "Score", type: "number" } },
+    ];
+    const filter: FilterState<SampleRow> = [{ columnId: "Name", query: "%a%" }];
+    const sort: ColumnSortState = [{ columnId: "Score", direction: "desc" }];
+
+    expect(resolveShownRows(rows, filter, sort, dataColumns)).toEqual(
+      resolveShownRows(rows, filter, sort, columns),
     );
   });
 });

@@ -1,10 +1,10 @@
 import type {
   ColumnDefinition,
   ColumnType,
+  DataColumn,
   FieldPath,
   FilterEntry,
   FilterState,
-  ResolvedColumn,
   ResolvedRow,
   TextFilterEntry,
 } from "../types";
@@ -136,7 +136,7 @@ function isEntryUsable<Row>(
 function compileFilterEntry<Row>(
   entry: FilterEntry<Row>,
   byId: ReadonlyMap<string, ColumnDefinition<Row, unknown>>,
-  columns: readonly ResolvedColumn<Row, unknown>[],
+  columns: readonly DataColumn<Row, unknown>[],
 ): (row: ResolvedRow<Row>) => boolean {
   if ("combinator" in entry) {
     const tests = entry.entries
@@ -294,7 +294,7 @@ export function clearAllFilters<Row>(
 export function filterRows<Row>(
   rows: readonly ResolvedRow<Row>[],
   filter: FilterState<Row>,
-  columns: readonly ResolvedColumn<Row, unknown>[],
+  columns: readonly DataColumn<Row, unknown>[],
 ): readonly ResolvedRow<Row>[] {
   if (filter.length === 0) {
     return rows;

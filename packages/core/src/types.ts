@@ -239,6 +239,18 @@ export interface ColumnResolveOptions {
 }
 
 /**
+ * A column as the data stages read it — filtering, sorting, grouping and
+ * aggregating need its id and its definition's `field` and `type`, never its
+ * width. Kept apart from `ResolvedColumn` so that a resize or a viewport
+ * change, which re-resolves every width, leaves these stages' input — and so
+ * their output — untouched. `ResolvedColumn` satisfies it structurally.
+ */
+export interface DataColumn<Row, Node = string> {
+  readonly id: string;
+  readonly column: ColumnDefinition<Row, Node>;
+}
+
+/**
  * A column paired with everything it takes to render it. Each field is a
  * decision made once here rather than in each adapter, so a second framework
  * binding renders identically without repeating the logic.

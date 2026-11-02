@@ -32,6 +32,7 @@ export type {
   ColumnsSelectEvent,
   ColumnType,
   ColumnWrapConfig,
+  DataColumn,
   DisplayRow,
   DropSide,
   FilterEntry,
@@ -83,6 +84,7 @@ export {
   applyColumnOrder,
   moveColumnBefore,
   movesColumn,
+  resolveDataColumns,
   resolveDropBefore,
   resolveKeyboardDropTarget,
 } from "./util/ordering";
