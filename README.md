@@ -65,7 +65,12 @@ type Row = (typeof rows)[number];
 
 const columns: readonly ColumnDefinition<Row>[] = [
   ...defineColumnsFromRows(rows),
-  { field: "Cost", id: "Cost.currency", type: "currency", header: "Cost" },
+  {
+    field: "Cost",
+    id: "Cost.currency",
+    type: "currency",
+    headerTemplate: "Cost",
+  },
 ];
 
 <DataGridComponent
