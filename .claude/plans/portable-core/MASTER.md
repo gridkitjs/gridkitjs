@@ -7,7 +7,7 @@
 > commit as they go and reply with the standard phase report; the delegator records each
 > report here. Written with the `master-plan` skill.
 
-- **Status:** in progress (not started · in progress · done)
+- **Status:** done (not started · in progress · done)
 - **Created:** 2026-11-01 · **Last updated:** 2026-11-02
 - **Goal:** Move GridKit's state, derived view and actions into a framework-free controller in
   `@gridkitjs/core`, and its browser behaviours into a new vanilla `@gridkitjs/dom` package, so
@@ -118,22 +118,22 @@ Model values: `opus` (phases that design or change code or architecture) · `son
 phases). An effort word may follow (`opus xhigh`, `sonnet low`); none means `high` for opus and
 `medium` for sonnet.
 
-| #   | Phase                                                | Plan                                                             | Status      | Depends on | Model       | Branch                      | Commits          |
-| --- | ---------------------------------------------------- | ---------------------------------------------------------------- | ----------- | ---------- | ----------- | --------------------------- | ---------------- |
-| 01  | Boundaries and hygiene                               | [phase-01-boundaries-hygiene.md](phase-01-boundaries-hygiene.md) | done        | none       | opus medium | refactor/boundaries-hygiene | 4ccb606..3c788d8 |
-| 02  | `resolveGridView` and the width-free pipeline        | [phase-02-grid-view.md](phase-02-grid-view.md)                   | done        | 01         | opus        | feat/grid-view              | 1ffa0c7..fa8df01 |
-| 03  | Column model: header, formatting, locale, visibility | [phase-03-column-model.md](phase-03-column-model.md)             | done        | 02         | opus        | feat/column-model           | 8bca2fc..6f0cf5b |
-| 04  | `GridOptions` and `createGridController`             | [phase-04-controller.md](phase-04-controller.md)                 | done        | 03         | opus xhigh  | feat/grid-controller        | 37815bc..5d52fb9 |
-| 05  | Serialisable filters and the filter-editor model     | [phase-05-filters.md](phase-05-filters.md)                       | done        | 04         | opus        | feat/serialisable-filters   | ee1ef74..b47eaca |
-| 06  | Row hooks, simple multi-select, messages             | [phase-06-row-hooks-messages.md](phase-06-row-hooks-messages.md) | done        | 04         | opus        | feat/row-hooks-messages     | bcdd2c3..9f0d17a |
-| 07  | `@gridkitjs/dom`: behaviours out of React            | [phase-07-dom-package.md](phase-07-dom-package.md)               | in-progress | 04         | opus xhigh  | feat/dom-package            |                  |
+| #   | Phase                                                | Plan                                                             | Status | Depends on | Model       | Branch                      | Commits          |
+| --- | ---------------------------------------------------- | ---------------------------------------------------------------- | ------ | ---------- | ----------- | --------------------------- | ---------------- |
+| 01  | Boundaries and hygiene                               | [phase-01-boundaries-hygiene.md](phase-01-boundaries-hygiene.md) | done   | none       | opus medium | refactor/boundaries-hygiene | 4ccb606..3c788d8 |
+| 02  | `resolveGridView` and the width-free pipeline        | [phase-02-grid-view.md](phase-02-grid-view.md)                   | done   | 01         | opus        | feat/grid-view              | 1ffa0c7..fa8df01 |
+| 03  | Column model: header, formatting, locale, visibility | [phase-03-column-model.md](phase-03-column-model.md)             | done   | 02         | opus        | feat/column-model           | 8bca2fc..6f0cf5b |
+| 04  | `GridOptions` and `createGridController`             | [phase-04-controller.md](phase-04-controller.md)                 | done   | 03         | opus xhigh  | feat/grid-controller        | 37815bc..5d52fb9 |
+| 05  | Serialisable filters and the filter-editor model     | [phase-05-filters.md](phase-05-filters.md)                       | done   | 04         | opus        | feat/serialisable-filters   | ee1ef74..b47eaca |
+| 06  | Row hooks, simple multi-select, messages             | [phase-06-row-hooks-messages.md](phase-06-row-hooks-messages.md) | done   | 04         | opus        | feat/row-hooks-messages     | bcdd2c3..9f0d17a |
+| 07  | `@gridkitjs/dom`: behaviours out of React            | [phase-07-dom-package.md](phase-07-dom-package.md)               | done   | 04         | opus xhigh  | feat/dom-package            | 0055133..e1e35ae |
 
 Phases 05, 06 and 07 are independent of each other and may run in any order after 04.
 
 ## Now
 
-- **In progress:** 07
-- **Next:** finish: full verification, move plan to finished/, push and open PRs
+- **In progress:** none
+- **Next:** nothing; plan finished
 - **Waiting on the user:** nothing
 
 ## Handoffs
@@ -282,6 +282,21 @@ ReactRenderSlots & SelectionCallbacks & { ref }`.
   5th `messages` argument (boolean text).
 - Counts: 582 core Vitest, 238 Playwright CT; coverage ~97 % lines.
 
+### Phase 07
+
+- `@gridkitjs/dom` (0.0.0 → first release 0.1.0 via 18 changesets) exports
+  `createLiveAnnouncer`, `observeElementWidth`, `attachInfiniteScroll`,
+  `startColumnResizeGesture`, `measureColumnContent`, `startDragReorder`, `NO_DRAG`,
+  `resolveColumnDropTarget`, `resolveGroupByDropTarget`, `createRowVirtualizer`,
+  `createGridFocus`, `findBodyRow`, `measurePageSize`, `attachOverlay`, `placeOverlay`,
+  `bodyCellFrom`, `groupRowFrom`, `bodyRowFrom`, and their types. Members are readonly function
+  properties, like the controller.
+- React hooks over these are thin; no `IntersectionObserver`/`ResizeObserver`/
+  `setPointerCapture`/`elementFromPoint` left in `packages/react/src`. `DataGrid.tsx` is 1179
+  lines. The `justDragged` latch is still React-side.
+- The coverage script clears the CT cache itself and instruments `packages/dom/src`.
+- Counts: core 582 + dom 10 Vitest, 252 Playwright CT; coverage 95.99 % lines.
+
 ## Decisions to review
 
 (Choices sub-agents made that the user should look at, tagged with their phase.)
@@ -319,6 +334,11 @@ ReactRenderSlots & SelectionCallbacks & { ref }`.
 - [06] Message keys are named by area (`previousPage`/`nextPage`), `selectedCount(count, target)`
   takes `"rows" | "columns"`, one `pageStatus` key serves the pager and the announcement;
   symbols (×, …, —) and dev console warnings are not message keys.
+- [07] The live region now re-reads identical consecutive announcements (trailing NBSP toggle),
+  as the phase asked; audible, noted in the react changeset. Agent recommends keeping it.
+- [07] `attachInfiniteScroll` and `createGridFocus` signatures differ from the phase file
+  (sentinel in options; DOM lookups via `attach({ getHeaderRow, getBodyRow })`), and the
+  virtualizer reports only changed windows, so scrolls within the same rows no longer re-render.
 
 ## Follow-ups
 
@@ -329,12 +349,13 @@ ReactRenderSlots & SelectionCallbacks & { ref }`.
   (the draft keys by plain `bucketKey`).
 - [later] `columnValueOptions` (filter editor) labels booleans "true"/"false" without
   `messages`; aggregate cells (`renderAggregate`) don't use the boolean messages either.
-- [phase 07] Row click/double-click handling (`rowPointerEventOf` in `GridBody`) is a candidate
-  to move into `dom`.
-- [phase 07] Add `@gridkitjs/dom` to core's ESLint import ban and ban `react` in
-  `packages/dom/**` (`eslint.config.mjs`).
-- [later] `test:e2e:coverage` reuses a stale uninstrumented CT bundle after `test:e2e` and
-  still exits 0 with 0 % coverage; the script should clear `apps/playground/playwright/.cache`.
+- [next plan] A portalled overlay's Escape still bubbles through React to the grid's Escape
+  handler, which clears the selection.
+- [later] Two pre-existing timing-flaky specs under heavy load (`--repeat-each 10 --workers 16`;
+  also fail on the pre-phase-07 baseline): `infinite-scroll.spec.tsx:136` and column-resize
+  "releasing the pointer fires one final onColumnResize". Make them wait on real signals.
+- [later] `gridkit-website` may need config to render `packages/dom/docs`; add an npm badge for
+  `dom` after its first release.
 - [after release] Bump `examples/*/package.json` to the react version carrying the rename and
   rename `DataGridComponent` in `examples/*/src/App.tsx`.
 - After this plan (next plans in the roadmap): overlay + menu + commands → context menu →
@@ -364,3 +385,6 @@ ReactRenderSlots & SelectionCallbacks & { ref }`.
 - 2026-11-02 · phase 06 · started on feat/row-hooks-messages
 - 2026-11-02 · phase 06 · done · row hooks, toggleOnClick, GridMessages (bcdd2c3..9f0d17a)
 - 2026-11-02 · phase 07 · started on feat/dom-package
+- 2026-11-02 · phase 07 · done · @gridkitjs/dom, behaviours out of React (0055133..e1e35ae)
+- 2026-11-02 · verification · CI sequence green (core 582, dom 10); e2e:coverage 252 passed, 95.99 % lines
+- 2026-11-02 · plan · done
