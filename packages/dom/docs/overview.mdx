@@ -28,6 +28,18 @@ announcer.destroy();
 
 A live region speaks only when its text changes, so `announce` makes a repeat of the last message a change of its own: the same text twice in a row is read twice.
 
+## Element width
+
+`observeElementWidth(element, onWidth)` reports `element.clientWidth` straight away and again whenever it changes, and returns the function that stops it — the width `resizeMode: "fit"` fills, passed to the controller as `viewportWidth`. The first report is synchronous, so columns laid out before paint never show at the wrong width for a frame.
+
+```ts
+import { observeElementWidth } from "@gridkitjs/dom";
+
+const disconnect = observeElementWidth(viewportElement, (width) => {
+  controller.setOptions({ ...options, viewportWidth: width });
+});
+```
+
 ## Infinite scroll
 
 `attachInfiniteScroll(root, options)` calls `onLoadMore` as a sentinel element — the last row of the body — comes within `rootMargin` of the scrolling `root`, at most once until `isLoadingMore` has gone from `true` back to `false`. It returns `update(options)`, which a renderer calls after every render with the current options and sentinel (the sentinel comes and goes with `hasMore`), and `detach()`.

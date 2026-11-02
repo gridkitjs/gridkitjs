@@ -2,6 +2,7 @@
 // owns its listeners and observers and reports through callbacks, so it names
 // no framework's types.
 export { createLiveAnnouncer, type LiveAnnouncer } from "./announcer";
+export { observeElementWidth } from "./elementWidth";
 export {
   attachInfiniteScroll,
   type InfiniteScroll,
