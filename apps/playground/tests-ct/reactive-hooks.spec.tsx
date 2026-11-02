@@ -52,6 +52,7 @@ interface ReactiveStatus {
   aggregates: [string, unknown][];
   columnSizing: Record<string, number>;
   columnOrder: readonly string[];
+  columnVisibility: Record<string, boolean>;
 }
 
 async function readReactiveStatus(root: MountResult): Promise<ReactiveStatus> {
@@ -192,6 +193,22 @@ test("useColumnOrderState reflects the grid's active column order", async ({
 
   const status = await readReactiveStatus(root);
   expect(status.columnOrder).toEqual(["amount", "id", "region"]);
+});
+
+test("useColumnVisibilityState updates when a column is hidden through the ref", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ReactiveHooksGrid columns={columns} dataSource={buildRows()} />,
+  );
+
+  expect((await readReactiveStatus(root)).columnVisibility).toEqual({});
+  await root.getByRole("button", { name: "reactive-hide-last-column" }).click();
+  await expect
+    .poll(async () => (await readReactiveStatus(root)).columnVisibility)
+    .toEqual({ amount: false });
+  await expect(root.locator("thead th")).toHaveCount(2);
 });
 
 test("usePaginationState updates on the silent page reset from a sort change, with no onPaginationChange or onColumnSortChange passed", async ({

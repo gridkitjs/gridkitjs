@@ -7,7 +7,11 @@ import {
   type FormatLocale,
   type GroupAggregateDisplay,
 } from "@gridkitjs/core";
-import type { InfiniteScrollConfig, ResolvedColumn } from "../DataGrid";
+import type {
+  ColumnDefinition,
+  InfiniteScrollConfig,
+  ResolvedColumn,
+} from "../DataGrid";
 import type { GridNavigationApi } from "../useGridNavigation";
 import type { RowGroupingApi } from "../useRowGrouping";
 import type { RowVirtualizerApi } from "../useRowVirtualizer";
@@ -21,6 +25,8 @@ import GridRow from "./GridRow";
 
 interface GridBodyProps<Row> {
   columns: readonly ResolvedColumn<Row>[];
+  /** Every column's definition by id, hidden ones included — a grid may group or aggregate by a column it does not show. */
+  definitions: ReadonlyMap<string, ColumnDefinition<Row>>;
   rows: readonly DisplayRow<Row>[];
   /** The column being resized, so its cells outline with its header. */
   activeColumnId: string | null;
@@ -153,6 +159,7 @@ function groupAriaMeta<Row>(
  */
 export default function GridBody<Row>({
   columns,
+  definitions,
   rows,
   activeColumnId,
   nav,
@@ -334,7 +341,6 @@ export default function GridBody<Row>({
           );
         }
 
-        const grouped = columns.find((column) => column.id === entry.columnId);
         return (
           <GridGroupRow
             key={entry.groupId}
@@ -342,10 +348,11 @@ export default function GridBody<Row>({
             columnCount={columns.length}
             groupId={entry.groupId}
             level={entry.level}
-            columnLabel={grouped?.label ?? entry.columnId}
             // A grouping by a column the grid does not have reads its value
             // by its kind alone.
-            groupColumn={grouped?.column ?? { field: entry.columnId }}
+            groupColumn={
+              definitions.get(entry.columnId) ?? { field: entry.columnId }
+            }
             value={entry.value}
             expanded={entry.expanded}
             count={entry.count}
@@ -358,7 +365,7 @@ export default function GridBody<Row>({
             // showing them twice would be redundant.
             aggregates={groupAggregateDisplay === "inline" ? aggregates : []}
             results={entry.aggregates}
-            columns={columns}
+            definitions={definitions}
             locale={locale}
             // Ignores `nav.focus.columnIndex`: with only one cell in this
             // row, whether it holds the tab stop depends on `rowIndex`

@@ -28,6 +28,7 @@ Every entry in `columns` is a `ColumnDefinition<Row>`, the same shape `defineCol
 | `groupToggleIcon`       | `boolean`                                                                                                     | `groupToggleIconColumns`         | Whether a groupable header shows its group-toggle icon. Purely a rendering choice. See [row grouping](/docs/react/row-grouping).                    |
 | `groupByDraggable`      | `boolean`                                                                                                     | `groupByDraggableColumns`        | Whether this column's header may be dragged into the group-by bar. See [row grouping](/docs/react/row-grouping).                                    |
 | `wrap`                  | `{ header?, cells? }`                                                                                         | `all off`                        | Lets this column's header and/or cell text wrap onto multiple lines instead of eliding to one.                                                      |
+| `hidden`                | `boolean`                                                                                                     | `false`                          | Whether this column starts out hidden. See [column visibility](#column-visibility).                                                                 |
 | `headerClassName`       | `string`                                                                                                      |                                  | Extra class names appended to this column's `th`.                                                                                                   |
 | `cellClassName`         | `string`                                                                                                      |                                  | Extra class names appended to this column's `td`, on every row.                                                                                     |
 
@@ -65,6 +66,31 @@ Number options are laid over the type's defaults, so `{ maximumFractionDigits: 0
 ```
 
 A `count` or `countDistinct` aggregate is a number of rows rather than a value from the column, so it always reads as a plain number. The same text is what `formatCellValue` in `@gridkitjs/core` returns, for building it outside the grid. Reach for a [`cellTemplate`](/docs/react/column-templates) when a cell needs markup — a link, a badge, a conditional style — rather than different text.
+
+## Column visibility
+
+A column with `hidden: true` is not rendered, but it is still a column of the grid: a sort, filter or grouping on it still applies, and it keeps its place in the column order, so showing it again puts it back where it was. `defaultColumnVisibility` overrides `hidden` per column id to start with, and the ref's `showColumns` and `hideColumns` change it afterwards:
+
+```tsx
+const gridRef = useRef<DataGridApi<Row>>(null);
+
+<DataGrid
+  ref={gridRef}
+  columns={[
+    { field: "Name" },
+    { field: "Region" },
+    { field: "Notes", hidden: true },
+  ]}
+  dataSource={rows}
+  defaultColumnVisibility={{ Region: false }}
+  onColumnVisibilityChange={({ columnIds, visibility }) => persist(visibility)}
+/>;
+
+gridRef.current?.showColumns(["Notes"]);
+gridRef.current?.hideColumns(["Name", "Region"]);
+```
+
+The state is a `ColumnVisibilityState` — column id to `true` (shown) or `false` (hidden) — holding only the columns that were changed; one absent from it follows its definition. `onColumnVisibilityChange` fires once per call that changes something, listing every column it touched. `getColumnVisibility()` reads the state, `useColumnVisibilityState(gridRef)` follows it from a component outside the grid, `getColumns()` lists what is shown, and `getDataColumns()` lists every column, hidden ones included. `aria-colcount` counts only the columns shown.
 
 ## See also
 

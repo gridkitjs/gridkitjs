@@ -1,11 +1,12 @@
-import { memo, type ReactNode, type Ref } from "react";
+import { memo, type Ref } from "react";
 import {
   formatCellValue,
+  resolveColumnLabel,
   type AggregateResults,
   type AggregateState,
   type FormatLocale,
 } from "@gridkitjs/core";
-import type { ColumnDefinition, ResolvedColumn } from "../DataGrid";
+import type { ColumnDefinition } from "../DataGrid";
 import { classNames } from "../classNames";
 import { renderAggregate } from "./renderAggregate";
 
@@ -15,9 +16,7 @@ interface GridGroupRowProps<Row> {
   groupId: string;
   /** Nesting depth, 0 for a top-level group — indents the header and feeds `aria-level`. */
   level: number;
-  /** The grouped column's own label, whatever its `headerTemplate` returns. */
-  columnLabel: ReactNode;
-  /** The column grouped by, whose formatting the group's value reads in. */
+  /** The column grouped by, whose label names the group and whose formatting its value reads in. */
   groupColumn: ColumnDefinition<Row>;
   /** This group's own value — the last entry of its `path`. */
   value: unknown;
@@ -38,7 +37,8 @@ interface GridGroupRowProps<Row> {
   aggregates: AggregateState<Row>;
   /** This group's own computed results, keyed the same way `aggregates` resolves each spec's key. */
   results: AggregateResults;
-  columns: readonly ResolvedColumn<Row>[];
+  /** Every column's definition by id, hidden ones included — whose label and formatting each aggregate takes. */
+  definitions: ReadonlyMap<string, ColumnDefinition<Row>>;
   /** The grid's `locale`, which values are formatted for. */
   locale: FormatLocale;
   ref?: Ref<HTMLTableRowElement> | undefined;
@@ -63,7 +63,6 @@ function GridGroupRowComponent<Row>({
   columnCount,
   groupId,
   level,
-  columnLabel,
   groupColumn,
   value,
   expanded,
@@ -75,12 +74,10 @@ function GridGroupRowComponent<Row>({
   focused,
   aggregates,
   results,
-  columns,
+  definitions,
   locale,
   ref,
 }: GridGroupRowProps<Row>) {
-  const byId = new Map(columns.map((entry) => [entry.id, entry]));
-
   return (
     <tr
       ref={ref}
@@ -130,7 +127,8 @@ function GridGroupRowComponent<Row>({
             aria-hidden="true"
           />
           <span className="group-label">
-            {columnLabel}: {formatGroupValue(value, groupColumn, locale)}
+            {resolveColumnLabel(groupColumn)}:{" "}
+            {formatGroupValue(value, groupColumn, locale)}
           </span>
           <span className="group-count">({count})</span>
           {aggregates.length > 0 && (
@@ -138,11 +136,11 @@ function GridGroupRowComponent<Row>({
               {aggregates.map((spec) => {
                 const key = spec.id ?? spec.columnId;
                 const aggregateValue = results.get(key);
-                const column = byId.get(spec.columnId);
+                const column = definitions.get(spec.columnId);
                 const rendered = renderAggregate(
                   aggregateValue,
                   spec,
-                  column?.column,
+                  column,
                   [],
                   locale,
                 );
@@ -151,7 +149,10 @@ function GridGroupRowComponent<Row>({
                 // it's the caller's own label for this result, so it takes
                 // priority over the column's shared label.
                 const aggregateLabel =
-                  spec.id ?? column?.label ?? spec.columnId;
+                  spec.id ??
+                  (column === undefined
+                    ? spec.columnId
+                    : resolveColumnLabel(column));
                 return (
                   <span key={key} className="group-aggregate">
                     {aggregateLabel}: {rendered}

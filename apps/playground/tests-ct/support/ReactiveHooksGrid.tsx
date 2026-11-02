@@ -5,6 +5,7 @@ import {
   useColumnOrderState,
   useColumnSizingState,
   useColumnSortState,
+  useColumnVisibilityState,
   useGroupByState,
   usePaginationState,
   useSelectionState,
@@ -48,6 +49,7 @@ export default function ReactiveHooksGrid<Row extends RowWithId>(
   const aggregates = useAggregateState(gridRef);
   const columnSizing = useColumnSizingState(gridRef);
   const columnOrder = useColumnOrderState(gridRef);
+  const columnVisibility = useColumnVisibilityState(gridRef);
 
   return (
     <div>
@@ -65,6 +67,7 @@ export default function ReactiveHooksGrid<Row extends RowWithId>(
           aggregates: Array.from(aggregates.entries()),
           columnSizing,
           columnOrder,
+          columnVisibility,
         })}
       </pre>
       <button
@@ -97,6 +100,17 @@ export default function ReactiveHooksGrid<Row extends RowWithId>(
       </button>
       <button type="button" onClick={clearSelection}>
         reactive-clear-selection
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          const last = gridRef.current?.getColumns().at(-1);
+          if (last !== undefined) {
+            gridRef.current?.hideColumns([last.id]);
+          }
+        }}
+      >
+        reactive-hide-last-column
       </button>
     </div>
   );
