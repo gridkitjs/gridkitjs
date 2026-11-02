@@ -1,8 +1,14 @@
-import { memo, type ReactNode, type Ref } from "react";
-import type { AggregateResults, AggregateState } from "@gridkitjs/core";
-import type { ResolvedColumn } from "../DataGrid";
+import { memo, type Ref } from "react";
+import {
+  formatCellValue,
+  resolveColumnLabel,
+  type AggregateResults,
+  type AggregateState,
+  type FormatLocale,
+} from "@gridkitjs/core";
+import type { ColumnDefinition } from "../DataGrid";
 import { classNames } from "../classNames";
-import { formatAggregateValue } from "./formatAggregateValue";
+import { renderAggregate } from "./renderAggregate";
 
 interface GridGroupRowProps<Row> {
   /** How many columns this group's header spans, matching the grid's own count. */
@@ -10,8 +16,8 @@ interface GridGroupRowProps<Row> {
   groupId: string;
   /** Nesting depth, 0 for a top-level group — indents the header and feeds `aria-level`. */
   level: number;
-  /** The grouped column's own label, whatever its `headerTemplate` returns. */
-  columnLabel: ReactNode;
+  /** The column grouped by, whose label names the group and whose formatting its value reads in. */
+  groupColumn: ColumnDefinition<Row>;
   /** This group's own value — the last entry of its `path`. */
   value: unknown;
   expanded: boolean;
@@ -31,42 +37,33 @@ interface GridGroupRowProps<Row> {
   aggregates: AggregateState<Row>;
   /** This group's own computed results, keyed the same way `aggregates` resolves each spec's key. */
   results: AggregateResults;
-  columns: readonly ResolvedColumn<Row>[];
+  /** Every column's definition by id, hidden ones included — whose label and formatting each aggregate takes. */
+  definitions: ReadonlyMap<string, ColumnDefinition<Row>>;
+  /** The grid's `locale`, which values are formatted for. */
+  locale: FormatLocale;
   ref?: Ref<HTMLTableRowElement> | undefined;
 }
 
 /**
- * How a group's own value renders in its header — blank rather than the
- * literal word "null"/"undefined", and never `Object`'s own
- * `[object Object]` for a value `String()` can't stringify meaningfully.
+ * How a group's own value renders in its header: as the grouped column's
+ * cells show it, except that a missing value reads "(blank)" — an empty
+ * label would leave the group looking unnamed rather than named "nothing".
  */
-function formatGroupValue(value: unknown): string {
-  if (value === null || value === undefined) {
-    return "(blank)";
-  }
-  if (value instanceof Date) {
-    return value.toLocaleString();
-  }
-  switch (typeof value) {
-    case "string":
-    case "number":
-    case "boolean":
-    case "bigint":
-    case "symbol":
-      return String(value);
-    case "function":
-      return "(function)";
-    default:
-      // Arrays, and anything else a grouped column's value could still be.
-      return JSON.stringify(value);
-  }
+function formatGroupValue<Row>(
+  value: unknown,
+  column: ColumnDefinition<Row>,
+  locale: FormatLocale,
+): string {
+  return value === null || value === undefined
+    ? "(blank)"
+    : formatCellValue(value, column, locale);
 }
 
 function GridGroupRowComponent<Row>({
   columnCount,
   groupId,
   level,
-  columnLabel,
+  groupColumn,
   value,
   expanded,
   count,
@@ -77,11 +74,10 @@ function GridGroupRowComponent<Row>({
   focused,
   aggregates,
   results,
-  columns,
+  definitions,
+  locale,
   ref,
 }: GridGroupRowProps<Row>) {
-  const byId = new Map(columns.map((entry) => [entry.id, entry]));
-
   return (
     <tr
       ref={ref}
@@ -131,7 +127,8 @@ function GridGroupRowComponent<Row>({
             aria-hidden="true"
           />
           <span className="group-label">
-            {columnLabel}: {formatGroupValue(value)}
+            {resolveColumnLabel(groupColumn)}:{" "}
+            {formatGroupValue(value, groupColumn, locale)}
           </span>
           <span className="group-count">({count})</span>
           {aggregates.length > 0 && (
@@ -139,19 +136,23 @@ function GridGroupRowComponent<Row>({
               {aggregates.map((spec) => {
                 const key = spec.id ?? spec.columnId;
                 const aggregateValue = results.get(key);
-                const column = byId.get(spec.columnId);
-                const rendered = column?.column.footerTemplate
-                  ? column.column.footerTemplate({
-                      value: aggregateValue,
-                      rows: [],
-                    })
-                  : formatAggregateValue(aggregateValue);
+                const column = definitions.get(spec.columnId);
+                const rendered = renderAggregate(
+                  aggregateValue,
+                  spec,
+                  column,
+                  [],
+                  locale,
+                );
                 // An explicit `id` disambiguates two specs on the same
                 // column (e.g. both `sum` and `avg` of Amount) — when given,
                 // it's the caller's own label for this result, so it takes
                 // priority over the column's shared label.
                 const aggregateLabel =
-                  spec.id ?? column?.label ?? spec.columnId;
+                  spec.id ??
+                  (column === undefined
+                    ? spec.columnId
+                    : resolveColumnLabel(column));
                 return (
                   <span key={key} className="group-aggregate">
                     {aggregateLabel}: {rendered}

@@ -12,8 +12,10 @@ import {
   createGridViewResolver,
   defineColumnsFromRows,
   moveColumnBefore,
+  resolveColumnHeaderText,
   totalColumnWidth,
   type ColumnDefinition as CoreColumnDefinition,
+  type DataColumn as CoreDataColumn,
   type ResolvedColumn as CoreResolvedColumn,
   type AggregateResults,
   type AggregateState,
@@ -24,8 +26,11 @@ import {
   type ColumnSizingState,
   type ColumnSortEvent,
   type ColumnSortState,
+  type ColumnVisibilityEvent,
+  type ColumnVisibilityState,
   type DisplayRow,
   type FilterState,
+  type FormatLocale,
   type GroupAggregateDisplay,
   type GroupByEvent,
   type GroupByState,
@@ -57,6 +62,7 @@ import { classNames } from "./classNames";
 import useColumnDrag, { type DropTarget } from "./useColumnDrag";
 import useColumnResize from "./useColumnResize";
 import useColumnSort from "./useColumnSort";
+import useColumnVisibility from "./useColumnVisibility";
 import useElementWidth from "./useElementWidth";
 import useGridNavigation, { HEADER_ROW } from "./useGridNavigation";
 import useGridSelection, { type SelectionCallbacks } from "./useGridSelection";
@@ -74,6 +80,9 @@ export type ColumnDefinition<Row> = CoreColumnDefinition<Row, ReactNode>;
 
 /** A column paired with the width it renders at. */
 export type ResolvedColumn<Row> = CoreResolvedColumn<Row, ReactNode>;
+
+/** A column paired with its id, hidden or not — what `getDataColumns()` lists. */
+export type DataColumn<Row> = CoreDataColumn<Row, ReactNode>;
 
 /**
  * The selection payloads, bound to React's node type for the same reason
@@ -106,8 +115,10 @@ export type CellSelectionChangeEvent<Row> = CoreCellSelectionChangeEvent<
  * way to drive that same state. `subscribe` doesn't change that: it's a
  * read/notify channel for reacting to state that already lives here, not a
  * write path — nothing becomes newly *driven* through the ref by its
- * existence. See `packages/react/src/DataGrid/hooks/` for the public hooks
- * built on it.
+ * existence. Column visibility is the one exception: the grid has no
+ * built-in control for showing or hiding a column, so `showColumns` and
+ * `hideColumns` are how it changes. See `packages/react/src/DataGrid/hooks/`
+ * for the public hooks built on it.
  */
 export interface DataGridApi<Row> {
   /** The grid's scrollable viewport element. */
@@ -133,11 +144,15 @@ export interface DataGridApi<Row> {
    * renders. All of `getDisplayRows()` when `paginated` is off.
    */
   getPageRows(): readonly DisplayRow<Row>[];
-  /** Columns as currently sized and ordered — what's rendered. */
+  /** Columns as currently sized and ordered — what's rendered, so hidden columns are left out. */
   getColumns(): readonly ResolvedColumn<Row>[];
+  /** Every column in its current order, hidden ones included — what sorting, filtering and grouping read. */
+  getDataColumns(): readonly DataColumn<Row>[];
 
   getColumnSizing(): ColumnSizingState;
   getColumnOrder(): ColumnOrderState;
+  /** Columns shown or hidden since the grid mounted. A column absent from it follows its definition's `hidden`. */
+  getColumnVisibility(): ColumnVisibilityState;
   getColumnSort(): ColumnSortState;
   getGroupBy(): GroupByState;
   getGroupExpansion(): GroupExpansionState;
@@ -173,6 +188,17 @@ export interface DataGridApi<Row> {
   previousPage(): void;
   /** Changes the page size, resetting to the first page. */
   setPageSize(pageSize: number): void;
+  /**
+   * Shows the columns with the given ids, each in the place it held when
+   * hidden. Reports one `onColumnVisibilityChange` for the whole call, and
+   * none if every column was already showing.
+   */
+  showColumns(columnIds: readonly string[]): void;
+  /**
+   * Hides the columns with the given ids. A hidden column still sorts,
+   * filters and groups, and keeps its place in the column order.
+   */
+  hideColumns(columnIds: readonly string[]): void;
   /** Scrolls the row with the given id into view, if it is currently shown. */
   scrollToRow(rowId: string, options?: ScrollIntoViewOptions): void;
   /** Scrolls the column with the given id into view. */
@@ -343,6 +369,17 @@ export interface DataGridProps<Row> extends SelectionCallbacks<Row> {
    */
   defaultColumnOrder?: ColumnOrderState | undefined;
   /**
+   * Columns shown (`true`) or hidden (`false`) to start with, keyed by
+   * column id, over each definition's own `hidden`. Uncontrolled.
+   */
+  defaultColumnVisibility?: ColumnVisibilityState | undefined;
+  /**
+   * Called once when columns are shown or hidden, with every column that one
+   * change touched. A call that changes nothing does not call it.
+   */
+  onColumnVisibilityChange?:
+    ((event: ColumnVisibilityEvent) => void) | undefined;
+  /**
    * Sizes applied to columns that do not set their own — the width they start
    * at and the bounds they may be resized between. Distinct from
    * `defaultColumnSizing`, which sets specific columns' starting widths.
@@ -492,6 +529,14 @@ export interface DataGridProps<Row> extends SelectionCallbacks<Row> {
    * Takes precedence over `label`, as `aria-labelledby` does.
    */
   labelledBy?: string | undefined;
+  /**
+   * The locale values are formatted for — a BCP 47 tag such as `"de-DE"`, or
+   * a list to fall back through. Setting it turns on `Intl` formatting of
+   * dates and numbers in every cell and aggregate shown without a template;
+   * without it, only a column with its own `format` is formatted, in the
+   * browser's locale, and the rest print as they always have.
+   */
+  locale?: FormatLocale;
   /** Imperative handle for reading live grid state and triggering actions. */
   ref?: Ref<DataGridApi<Row>> | undefined;
 }
@@ -511,6 +556,8 @@ export function DataGrid<Row>({
   resizeMode = "fit",
   defaultColumnSizing,
   defaultColumnOrder,
+  defaultColumnVisibility,
+  onColumnVisibilityChange,
   columnSizeDefaults,
   onColumnResize,
   onColumnOrderChange,
@@ -539,6 +586,7 @@ export function DataGrid<Row>({
   estimatedRowHeight = 40,
   label,
   labelledBy,
+  locale,
   ref,
   ...callbacks
 }: DataGridProps<Row>) {
@@ -558,6 +606,9 @@ export function DataGrid<Row>({
   );
   const [order, setOrder] = useState<ColumnOrderState>(
     defaultColumnOrder ?? [],
+  );
+  const [visibility, setVisibility] = useState<ColumnVisibilityState>(
+    defaultColumnVisibility ?? {},
   );
   const [sort, setSort] = useState<ColumnSortState>(defaultColumnSort ?? []);
   const [groupBy, setGroupBy] = useState<GroupByState>(defaultGroupBy ?? []);
@@ -605,6 +656,7 @@ export function DataGrid<Row>({
     state: {
       columnSizing: sizing,
       columnOrder: order,
+      columnVisibility: visibility,
       columnSort: sort,
       filter,
       groupBy,
@@ -675,17 +727,14 @@ export function DataGrid<Row>({
     [view.pageIndex, pagination.pageSize],
   );
 
-  /**
-   * What a column is called in an announcement. `label` carries whatever a
-   * `headerTemplate` returned, which need not be text at all, so the field
-   * path stands in whenever it is not.
-   */
+  /** What a column is called in an announcement — see `resolveColumnHeaderText`. */
   function columnName(columnId: string): string {
-    const entry = view.columns.find((candidate) => candidate.id === columnId);
-    if (entry === undefined) {
-      return columnId;
-    }
-    return typeof entry.label === "string" ? entry.label : entry.column.field;
+    const entry = view.dataColumns.find(
+      (candidate) => candidate.id === columnId,
+    );
+    return entry === undefined
+      ? columnId
+      : resolveColumnHeaderText(entry.column);
   }
 
   /**
@@ -802,12 +851,29 @@ export function DataGrid<Row>({
   });
 
   /**
-   * The ids as displayed, which a drop is expressed against — the order state
-   * starts empty and may name only some columns, so moving against it directly
-   * would have nothing to rearrange.
+   * Every id in display order, hidden ones included, which a drop is applied
+   * to — the order state starts empty and may name only some columns, so
+   * moving against it directly would have nothing to rearrange, and a hidden
+   * column has to keep its slot through a move made around it.
+   */
+  const orderedIds = useMemo(
+    () => view.dataColumns.map((entry) => entry.id),
+    [view.dataColumns],
+  );
+
+  /**
+   * The ids of the columns on screen, which a drag or a keyboard move is
+   * resolved against: a move one place left has to pass the next visible
+   * column, not stop in front of a hidden one and appear to do nothing.
    */
   const displayedIds = useMemo(
-    () => view.dataColumns.map((entry) => entry.id),
+    () => view.columns.map((entry) => entry.id),
+    [view.columns],
+  );
+
+  /** Every column's definition by id, hidden ones included, for a group header naming a hidden column. */
+  const definitions = useMemo(
+    () => new Map(view.dataColumns.map((entry) => [entry.id, entry.column])),
     [view.dataColumns],
   );
 
@@ -838,17 +904,20 @@ export function DataGrid<Row>({
       return;
     }
 
-    const next = moveColumnBefore(displayedIds, movedId, target.beforeId);
+    const next = moveColumnBefore(orderedIds, movedId, target.beforeId);
     // `moveColumnBefore` hands back the same reference for a move that changes
     // nothing, so a drop in place neither renders nor reports.
-    if (next === displayedIds) {
+    if (next === orderedIds) {
       return;
     }
-    const position = next.indexOf(movedId);
+    // Counted among the columns on screen, which is what the user can see
+    // and what the tab stop indexes.
+    const shown = next.filter((id) => displayedIds.includes(id));
+    const position = shown.indexOf(movedId);
     setOrder(next);
     onColumnOrderChange?.({ columnId: movedId, order: next });
     announce(
-      `${columnName(movedId)}, column ${String(position + 1)} of ${String(next.length)}`,
+      `${columnName(movedId)}, column ${String(position + 1)} of ${String(shown.length)}`,
     );
     /**
      * The tab stop travels with the column. React reorders the headers by key,
@@ -927,6 +996,13 @@ export function DataGrid<Row>({
       `Page ${String(event.pagination.pageIndex + 1)} of ${String(event.pageCount)}`,
     );
   }
+
+  const columnVisibility = useColumnVisibility<Row>({
+    dataColumns: view.dataColumns,
+    visibility,
+    setVisibility,
+    onColumnVisibilityChange,
+  });
 
   const paginationApi = usePagination<Row>({
     pagination,
@@ -1009,8 +1085,10 @@ export function DataGrid<Row>({
     view.rows,
     view.displayRows,
     view.columns,
+    view.dataColumns,
     sizing,
     order,
+    visibility,
     sort,
     groupBy,
     expansion,
@@ -1043,8 +1121,10 @@ export function DataGrid<Row>({
     getDisplayRows: () => view.displayRows,
     getPageRows: () => view.pageRows,
     getColumns: () => view.columns,
+    getDataColumns: () => view.dataColumns,
     getColumnSizing: () => sizing,
     getColumnOrder: () => order,
+    getColumnVisibility: () => visibility,
     getColumnSort: () => sort,
     getGroupBy: () => groupBy,
     getGroupExpansion: () => expansion,
@@ -1066,6 +1146,8 @@ export function DataGrid<Row>({
     nextPage: paginationApi.nextPage,
     previousPage: paginationApi.previousPage,
     setPageSize: paginationApi.setPageSize,
+    showColumns: columnVisibility.showColumns,
+    hideColumns: columnVisibility.hideColumns,
     scrollToRow: (rowId, options) => {
       // `view.pageRows`, not `view.displayRows`: a data row's DOM position is
       // its place in the currently rendered page — with grouping active,
@@ -1135,6 +1217,7 @@ export function DataGrid<Row>({
       {showGroupByBar && (
         <GroupByBar<Row>
           columns={view.columns}
+          definitions={definitions}
           grouping={grouping}
           columnName={columnName}
           headerDragEligible={dragEligibleForGroupBy}
@@ -1248,6 +1331,7 @@ export function DataGrid<Row>({
             <GridColgroup columns={view.columns} />
             <GridBody<Row>
               columns={view.columns}
+              definitions={definitions}
               rows={view.pageRows}
               activeColumnId={resize.activeColumnId}
               nav={nav}
@@ -1258,6 +1342,7 @@ export function DataGrid<Row>({
               virtualRange={virtualized ? virtualizer : null}
               infiniteScroll={infiniteScroll}
               sentinelRef={sentinelRef}
+              locale={locale}
             />
           </table>
         </div>
@@ -1276,6 +1361,7 @@ export function DataGrid<Row>({
               aggregates={activeAggregates}
               results={view.grandTotal}
               rows={view.rows.map((entry) => entry.row)}
+              locale={locale}
             />
           </table>
         )}

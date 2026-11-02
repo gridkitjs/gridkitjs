@@ -1,6 +1,6 @@
 import { createPortal } from "react-dom";
-import { resolveKeyboardDropTarget } from "@gridkitjs/core";
-import type { ResolvedColumn } from "../DataGrid";
+import { resolveColumnLabel, resolveKeyboardDropTarget } from "@gridkitjs/core";
+import type { ColumnDefinition, ResolvedColumn } from "../DataGrid";
 import { classNames } from "../classNames";
 import type { GroupByDropTarget } from "../groupByDropTarget";
 import useGroupByDrag from "../useGroupByDrag";
@@ -8,6 +8,8 @@ import type { RowGroupingApi } from "../useRowGrouping";
 
 interface GroupByBarProps<Row> {
   columns: readonly ResolvedColumn<Row>[];
+  /** Every column's definition by id, hidden ones included, so a chip for a hidden column still carries its label. */
+  definitions: ReadonlyMap<string, ColumnDefinition<Row>>;
   grouping: RowGroupingApi<Row>;
   /** A column's accessible name — see `DataGrid.tsx`'s own `columnName`. */
   columnName: (columnId: string) => string;
@@ -48,6 +50,7 @@ interface GroupByBarProps<Row> {
  */
 export default function GroupByBar<Row>({
   columns,
+  definitions,
   grouping,
   columnName,
   headerDragEligible,
@@ -73,7 +76,8 @@ export default function GroupByBar<Row>({
     groupBy.length === 0 && columns.some((entry) => entry.groupByDraggable);
 
   function labelFor(columnId: string) {
-    return columns.find((entry) => entry.id === columnId)?.label ?? columnId;
+    const definition = definitions.get(columnId);
+    return definition === undefined ? columnId : resolveColumnLabel(definition);
   }
 
   function moveByKeyboard(columnId: string, direction: -1 | 1): void {

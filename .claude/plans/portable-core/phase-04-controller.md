@@ -28,6 +28,10 @@ plan: after it, a renderer owns no grid logic.
 
 ## Starting point
 
+- (From Phase 03) `locale` and column visibility now exist in React (`visibility` useState via
+  `useColumnVisibility.ts`, `defaultColumnVisibility` / `onColumnVisibilityChange`); move both
+  into `GridOptions` and the controller and add a controlled `columnVisibility` prop. Value
+  formatting is opt-in (plain unless `format` or `locale` is set), confirmed by the user.
 - (From Phase 02) Still in React and to move into the controller: column inference
   (`defineColumnsFromRows` when no `columns`), the page reset on filter/sort/group change (the
   `previous` state in `DataGrid.tsx`), and `activeAggregates`.

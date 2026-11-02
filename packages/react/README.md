@@ -27,7 +27,7 @@ const columns: readonly ColumnDefinition<Row>[] = [
     field: "Cost",
     id: "Cost.currency",
     type: "currency",
-    headerTemplate: "Cost",
+    header: "Cost",
   },
 ];
 

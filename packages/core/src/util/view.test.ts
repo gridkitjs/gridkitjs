@@ -37,6 +37,7 @@ const columns: readonly ColumnDefinition<SampleRow>[] = [
 const emptyState: GridState<SampleRow> = {
   columnSizing: {},
   columnOrder: [],
+  columnVisibility: {},
   columnSort: [],
   filter: [],
   groupBy: [],
@@ -214,6 +215,59 @@ describe("resolveGridView", () => {
     expect(fixed.columns.map((entry) => entry.width)).toEqual([100, 100, 100]);
   });
 
+  test("drops a hidden column from columns but keeps it in dataColumns", () => {
+    const view = resolveGridView(
+      input({ columnVisibility: { Region: false } }),
+    );
+
+    expect(view.dataColumns.map((entry) => entry.id)).toEqual([
+      "Id",
+      "Region",
+      "Amount",
+    ]);
+    expect(view.columns.map((entry) => entry.id)).toEqual(["Id", "Amount"]);
+  });
+
+  test("still sorts and filters by a hidden column", () => {
+    const view = resolveGridView(
+      input({
+        columnVisibility: { Region: false },
+        filter: [{ columnId: "Region", query: "%st" }],
+        columnSort: [{ columnId: "Region", direction: "asc" }],
+      }),
+    );
+
+    expect(idsOf(view.rows)).toEqual([2, 5, 1, 3]);
+  });
+
+  test("keeps a hidden column's slot in the order, so it returns there when shown", () => {
+    const state = { columnOrder: ["Amount", "Region", "Id"] };
+    const hidden = resolveGridView(
+      input({ ...state, columnVisibility: { Region: false } }),
+    );
+    const shown = resolveGridView(
+      input({ ...state, columnVisibility: { Region: true } }),
+    );
+
+    expect(hidden.columns.map((entry) => entry.id)).toEqual(["Amount", "Id"]);
+    expect(shown.columns.map((entry) => entry.id)).toEqual([
+      "Amount",
+      "Region",
+      "Id",
+    ]);
+  });
+
+  test("gives a hidden column no share of a fitted width", () => {
+    const view = resolveGridView(
+      input(
+        { columnVisibility: { Region: false } },
+        { columnSizeDefaults: { width: 100 }, viewportWidth: 600 },
+      ),
+    );
+
+    expect(view.columns.map((entry) => entry.width)).toEqual([300, 300]);
+  });
+
   test("applies the grid-level column defaults", () => {
     const view = resolveGridView(
       input({}, { resizableColumns: true, reorderableColumns: true }),
@@ -281,6 +335,22 @@ describe("createGridViewResolver", () => {
     expect(after.grandTotal).toBe(before.grandTotal);
     expect(after.pageRows).not.toBe(before.pageRows);
     expect(after.pageIndex).toBe(1);
+  });
+
+  test("a visibility change re-sizes the columns and leaves every data stage alone", () => {
+    const resolve = createGridViewResolver<SampleRow>();
+    const base = input(groupedPaginated, options);
+    const before = resolve(base);
+    const after = resolve({
+      ...base,
+      state: { ...base.state, columnVisibility: { Amount: false } },
+    });
+
+    expect(after.dataColumns).toBe(before.dataColumns);
+    expect(after.rows).toBe(before.rows);
+    expect(after.displayRows).toBe(before.displayRows);
+    expect(after.grandTotal).toBe(before.grandTotal);
+    expect(after.columns.map((entry) => entry.id)).toEqual(["Id", "Region"]);
   });
 
   test("returns the same view for an unchanged input", () => {

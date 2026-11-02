@@ -6,6 +6,7 @@ import {
   alignmentForType,
   buildKeyShortcuts,
   defineColumnsFromRows,
+  resolveColumnHeaderText,
   resolveColumnLabel,
   resolveRowId,
 } from "./grid";
@@ -285,6 +286,25 @@ describe("resolveColumnLabel", () => {
     ).toBe("Application Id");
   });
 
+  test("shows header when no headerTemplate is set", () => {
+    expect(
+      resolveColumnLabel<SampleRow, string>({
+        field: "Id",
+        header: "Identifier",
+      }),
+    ).toBe("Identifier");
+  });
+
+  test("lets a headerTemplate win over header", () => {
+    expect(
+      resolveColumnLabel<SampleRow, string>({
+        field: "Id",
+        header: "Identifier",
+        headerTemplate: "#",
+      }),
+    ).toBe("#");
+  });
+
   test("keeps an empty headerTemplate rather than falling back to the field", () => {
     expect(
       resolveColumnLabel<SampleRow, string>({
@@ -292,6 +312,36 @@ describe("resolveColumnLabel", () => {
         headerTemplate: "",
       }),
     ).toBe("");
+  });
+});
+
+describe("resolveColumnHeaderText", () => {
+  test("prefers header, even beside a headerTemplate", () => {
+    expect(
+      resolveColumnHeaderText<SampleRow>({
+        field: "Id",
+        header: "Identifier",
+        headerTemplate: () => ({ markup: true }),
+      }),
+    ).toBe("Identifier");
+  });
+
+  test("takes a headerTemplate label when it is text", () => {
+    expect(
+      resolveColumnHeaderText<SampleRow>({ field: "Id", headerTemplate: "#" }),
+    ).toBe("#");
+  });
+
+  test("falls back to the field path when the label is not text", () => {
+    expect(
+      resolveColumnHeaderText<SampleRow>({
+        field: "Application.Id",
+        headerTemplate: { markup: true },
+      }),
+    ).toBe("Application Id");
+    expect(
+      resolveColumnHeaderText<SampleRow>({ field: "Application.Id" }),
+    ).toBe("Application Id");
   });
 });
 

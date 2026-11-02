@@ -1,5 +1,9 @@
-import { accessDotted } from "@gridkitjs/core";
-import { memo, type ReactNode, type Ref } from "react";
+import {
+  accessDotted,
+  formatCellValue,
+  type FormatLocale,
+} from "@gridkitjs/core";
+import { memo, type Ref } from "react";
 import type { ResolvedColumn } from "../DataGrid";
 import { ariaAttr } from "../ariaAttr";
 import { classNames } from "../classNames";
@@ -22,6 +26,8 @@ interface GridRowProps<Row> {
   focusedColumnIndex: number | null;
   rowsSelectable: boolean;
   cellsSelectable: boolean;
+  /** The grid's `locale`, which a cell without a template is formatted for. */
+  locale: FormatLocale;
   ref?: Ref<HTMLTableRowElement> | undefined;
 }
 
@@ -38,6 +44,7 @@ function GridRowComponent<Row>({
   focusedColumnIndex,
   rowsSelectable,
   cellsSelectable,
+  locale,
   ref,
 }: GridRowProps<Row>) {
   return (
@@ -61,8 +68,8 @@ function GridRowComponent<Row>({
       className={classNames("grid-row", selected ? "is-selected" : "")}
     >
       {columns.map(({ id, column, alignment }, columnIndex) => {
-        // Resolved either way, so a template that only formats the value never
-        // has to walk the field path a second time.
+        // Resolved either way, so a template never has to walk the field path
+        // a second time.
         const value = accessDotted(row, column.field);
         const cellSelected = id === selectedColumnId;
 
@@ -93,7 +100,7 @@ function GridRowComponent<Row>({
                   rowId,
                   selected,
                 })
-              : (value as ReactNode)}
+              : formatCellValue(value, column, locale, row)}
           </td>
         );
       })}

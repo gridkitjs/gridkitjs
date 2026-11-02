@@ -18,6 +18,8 @@ export interface ImperativeApiGridProps<Row extends RowWithId> extends Omit<
   scrollColumnId?: string;
   focusRowIndex?: number;
   focusColumnIndex?: number;
+  /** Column ids `hide-columns` hides and `show-columns` shows. */
+  visibilityColumnIds?: readonly string[];
 }
 
 /**
@@ -51,6 +53,7 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
   scrollColumnId,
   focusRowIndex,
   focusColumnIndex,
+  visibilityColumnIds,
   ...props
 }: ImperativeApiGridProps<Row>) {
   const gridRef = useRef<DataGridApi<Row>>(null);
@@ -66,6 +69,8 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         rowCount: api.getRows().length,
         rowIds: api.getRows().map((row) => row.rowId),
         columnIds: api.getColumns().map((column) => column.id),
+        dataColumnIds: api.getDataColumns().map((column) => column.id),
+        columnVisibility: api.getColumnVisibility(),
         columnSizing: api.getColumnSizing(),
         columnOrder: api.getColumnOrder(),
         columnSort: api.getColumnSort(),
@@ -168,6 +173,22 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         }}
       >
         scroll-to-column
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          gridRef.current?.hideColumns(visibilityColumnIds ?? []);
+        }}
+      >
+        hide-columns
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          gridRef.current?.showColumns(visibilityColumnIds ?? []);
+        }}
+      >
+        show-columns
       </button>
       <button type="button" onClick={report}>
         report

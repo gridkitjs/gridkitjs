@@ -1,6 +1,10 @@
-import type { AggregateResults, AggregateState } from "@gridkitjs/core";
+import type {
+  AggregateResults,
+  AggregateState,
+  FormatLocale,
+} from "@gridkitjs/core";
 import type { ResolvedColumn } from "../DataGrid";
-import { formatAggregateValue } from "./formatAggregateValue";
+import { renderAggregate } from "./renderAggregate";
 
 interface GridFooterProps<Row> {
   columns: readonly ResolvedColumn<Row>[];
@@ -8,12 +12,14 @@ interface GridFooterProps<Row> {
   results: AggregateResults;
   /** Every row the grand total was computed over — what a `footerTemplate` receives as `rows`. */
   rows: readonly Row[];
+  /** The grid's `locale`, which values are formatted for. */
+  locale: FormatLocale;
 }
 
 /**
  * The grand-total footer — one `<tfoot>` row, one cell per column, using
  * that column's own `footerTemplate` when it defines one, its own computed
- * value formatted plainly when it doesn't, and a blank cell for a column
+ * value formatted like the column's values when it doesn't, and a blank cell for a column
  * with no aggregate at all. Structurally mirrors `GridHeader`, minus
  * everything interactive: a footer cell is not resizable, sortable, or
  * selectable.
@@ -37,6 +43,7 @@ export default function GridFooter<Row>({
   aggregates,
   results,
   rows,
+  locale,
 }: GridFooterProps<Row>) {
   return (
     <tfoot>
@@ -45,7 +52,6 @@ export default function GridFooter<Row>({
           const specs = aggregates.filter(
             (candidate) => candidate.columnId === entry.id,
           );
-          const { column } = entry;
 
           return (
             <td
@@ -56,12 +62,15 @@ export default function GridFooter<Row>({
               style={{ textAlign: specs[0]?.alignment ?? entry.alignment }}
             >
               {specs
-                .map((spec) => {
-                  const value = results.get(spec.id ?? spec.columnId);
-                  return column.footerTemplate
-                    ? column.footerTemplate({ value, rows })
-                    : formatAggregateValue(value);
-                })
+                .map((spec) =>
+                  renderAggregate(
+                    results.get(spec.id ?? spec.columnId),
+                    spec,
+                    entry.column,
+                    rows,
+                    locale,
+                  ),
+                )
                 // Two values in one cell need a visible separator; a single
                 // one (the common case) renders exactly as before.
                 .flatMap((rendered, index) =>

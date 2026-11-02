@@ -316,3 +316,34 @@ test("a column with reorderable: false does nothing on Ctrl+Arrow, not even move
   expect(events).toHaveLength(0);
   await expect(header).toHaveAttribute("tabindex", "0");
 });
+
+test("Ctrl+Arrow moves past a hidden column in one press, and the hidden column keeps its slot", async ({
+  mount,
+}) => {
+  const events: ColumnOrderEvent[] = [];
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Reorder around hidden"
+      reorderableColumns
+      defaultColumnVisibility={{ name: false }}
+      onColumnOrderChange={(event) => {
+        events.push(event);
+      }}
+    />,
+  );
+
+  expect(await columnIds(root)).toEqual(["id", "status"]);
+  const status = headers(root).nth(1);
+  await status.focus();
+  await status.press("Control+ArrowLeft");
+
+  expect(await columnIds(root)).toEqual(["status", "id"]);
+  expect(events.at(-1)?.order).toEqual(["status", "id", "name"]);
+  await expect(headers(root).nth(0)).toHaveAttribute("tabindex", "0");
+  await expect(root.locator('[role="status"]')).toHaveText(
+    "status, column 1 of 2",
+  );
+});
