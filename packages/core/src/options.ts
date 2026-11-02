@@ -1,6 +1,11 @@
 import type {
   AggregateState,
+  CellSelectEvent,
+  CellSelectionChangeEvent,
   CellSelectionState,
+  ColumnSelectEvent,
+  ColumnSelectionChangeEvent,
+  ColumnsSelectEvent,
   ColumnOrderEvent,
   ColumnOrderState,
   ColumnResizeEvent,
@@ -20,6 +25,9 @@ import type {
   PaginationChangeEvent,
   PaginationState,
   ResizeMode,
+  RowSelectEvent,
+  RowSelectionChangeEvent,
+  RowsSelectEvent,
   SelectableConfig,
   SelectionState,
 } from "./types";
@@ -83,10 +91,28 @@ export interface GridOptions<Row> {
   selectable?: SelectableConfig | undefined;
   /** Row ids selected to start with, keyed as `getRowId` resolves them. Uncontrolled. */
   defaultRowSelection?: SelectionState | undefined;
+  /**
+   * The selected row ids, controlled — applied as given, changed only through
+   * the row selection callbacks (`onRowSelectionChange` carries the whole
+   * next state). Leave it `undefined` for the grid to keep it itself,
+   * starting from `defaultRowSelection`.
+   */
+  rowSelection?: SelectionState | undefined;
   /** Column ids selected to start with. Uncontrolled. */
   defaultColumnSelection?: SelectionState | undefined;
+  /**
+   * The selected column ids, controlled — changed only through the column
+   * selection callbacks. Leave it `undefined` for the grid to keep it.
+   */
+  columnSelection?: SelectionState | undefined;
   /** The cell selected to start with. Uncontrolled. */
   defaultCellSelection?: CellSelectionState | undefined;
+  /**
+   * The selected cell, controlled — `null` for none, changed only through
+   * the cell selection callbacks. Leave it `undefined` for the grid to keep
+   * it.
+   */
+  cellSelection?: CellSelectionState | undefined;
   /** Whether columns can be dragged wider, unless a column says otherwise. */
   resizableColumns?: boolean | undefined;
   /**
@@ -326,4 +352,41 @@ export interface GridOptions<Row> {
    * runtime's locale, and the rest print as they always have.
    */
   locale?: FormatLocale;
+}
+
+/**
+ * Reported as the user selects. Every one of these is fanned out from a single
+ * diff of the transition it describes, so no two can disagree about what one
+ * interaction did.
+ *
+ * Kept apart from `GridOptions` because the column payloads carry resolved
+ * columns, whose labels are whatever a renderer's `headerTemplate` returns —
+ * `Node` is that renderer's node type.
+ */
+export interface SelectionCallbacks<Row, Node = string> {
+  /** Called once per row newly selected. The last call names the last row. */
+  onRowSelect?: ((event: RowSelectEvent<Row>) => void) | undefined;
+  /** Called once with every row one interaction selected. */
+  onRowsSelect?: ((event: RowsSelectEvent<Row>) => void) | undefined;
+  onRowDeselect?: ((event: RowSelectEvent<Row>) => void) | undefined;
+  onRowsDeselect?: ((event: RowsSelectEvent<Row>) => void) | undefined;
+  /**
+   * Called once per change with what it added, what it removed and everything
+   * selected after it — the one to persist from.
+   */
+  onRowSelectionChange?:
+    ((event: RowSelectionChangeEvent<Row>) => void) | undefined;
+  onColumnSelect?: ((event: ColumnSelectEvent<Row, Node>) => void) | undefined;
+  onColumnsSelect?:
+    ((event: ColumnsSelectEvent<Row, Node>) => void) | undefined;
+  onColumnDeselect?:
+    ((event: ColumnSelectEvent<Row, Node>) => void) | undefined;
+  onColumnsDeselect?:
+    ((event: ColumnsSelectEvent<Row, Node>) => void) | undefined;
+  onColumnSelectionChange?:
+    ((event: ColumnSelectionChangeEvent<Row, Node>) => void) | undefined;
+  onCellSelect?: ((event: CellSelectEvent<Row, Node>) => void) | undefined;
+  onCellDeselect?: ((event: CellSelectEvent<Row, Node>) => void) | undefined;
+  onCellSelectionChange?:
+    ((event: CellSelectionChangeEvent<Row, Node>) => void) | undefined;
 }

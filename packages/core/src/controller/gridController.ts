@@ -1,5 +1,6 @@
-import type { GridOptions } from "../options";
+import type { GridOptions, SelectionCallbacks } from "../options";
 import type {
+  CellSelectionState,
   ColumnDefinition,
   ColumnOrderState,
   ColumnSizingState,
@@ -11,18 +12,31 @@ import type {
   GroupByState,
   GroupExpansionState,
   PaginationState,
+  SelectedCellRef,
+  SelectIntent,
+  SelectionDiff,
+  SelectionState,
 } from "../types";
 
 /**
- * What `createGridController` is given: the grid's options, plus the two
- * things a renderer supplies that are not settings — the column definitions,
- * whose templates name the renderer's own node type, and the width the
- * viewport measured.
+ * A row or column selection change by id — see
+ * `GridControllerOptions.onSelectionDiff`.
  */
-export interface GridControllerOptions<
-  Row,
-  Node = string,
-> extends GridOptions<Row> {
+export interface SelectionDiffEvent extends SelectionDiff {
+  /** Which selection changed. */
+  readonly target: "rows" | "columns";
+  /** The whole selection after the change. */
+  readonly selection: SelectionState;
+}
+
+/**
+ * What `createGridController` is given: the grid's options and selection
+ * callbacks, plus what a renderer supplies that is not a setting — the column
+ * definitions, whose templates name the renderer's own node type, the width
+ * the viewport measured, and a hook for its own selection feedback.
+ */
+export interface GridControllerOptions<Row, Node = string>
+  extends GridOptions<Row>, SelectionCallbacks<Row, Node> {
   /**
    * The columns to show. Omitted or empty, one column is inferred per field
    * of `dataSource` — see `defineColumnsFromRows`.
@@ -34,6 +48,15 @@ export interface GridControllerOptions<
    * Node), and then columns keep their resolved widths.
    */
   viewportWidth?: number | null | undefined;
+  /**
+   * Called once per row or column selection change, after the selection
+   * callbacks, with the change by id — every id it added or removed,
+   * including those with no row on screen (on another page, in a collapsed
+   * group, filtered out), which the callbacks' resolved rows leave out. For a
+   * renderer's own feedback, such as a live region announcing how many rows
+   * are selected; an application reads the selection callbacks instead.
+   */
+  onSelectionDiff?: ((event: SelectionDiffEvent) => void) | undefined;
 }
 
 /**
@@ -139,6 +162,46 @@ export interface GridController<Row, Node = string> {
    * entries in the same order report nothing.
    */
   readonly setFilter: (filter: FilterState<Row>) => void;
+
+  /**
+   * Replaces the selected row ids as given, whatever `selectable` allows —
+   * the way a controlled or default value is applied. The same ids in the
+   * same order report nothing.
+   */
+  readonly setRowSelection: (selection: SelectionState) => void;
+  /**
+   * Selects rows as a user could, within what `selectable.rows` allows:
+   * `"replace"` (the default) selects exactly these — only the last of them
+   * under `"single"` — and `"toggle"` flips each one. An id need not name a
+   * row on screen. A call that leaves the selection as it was reports
+   * nothing.
+   */
+  readonly selectRows: (
+    rowIds: readonly string[],
+    intent?: "replace" | "toggle",
+  ) => void;
+  /**
+   * Applies one click or key press to a row: `"replace"`, `"toggle"` or
+   * `"range"` from the last row selected by anything but a range, across
+   * the data rows on the current page.
+   */
+  readonly selectRow: (rowId: string, intent: SelectIntent) => void;
+  /** Selects every data row on the current page, when `selectable.rows` is `"multiple"`. */
+  readonly selectAllRows: () => void;
+  /** Lets go of every row, column and cell selection at once, as Escape does. */
+  readonly clearSelection: () => void;
+  /** Replaces the selected column ids as given — see `setRowSelection`. */
+  readonly setColumnSelection: (selection: SelectionState) => void;
+  /** `selectRow`, for a column among the columns as rendered. */
+  readonly selectColumn: (columnId: string, intent: SelectIntent) => void;
+  /** Replaces the selected cell as given, `null` for none. */
+  readonly setCellSelection: (selection: CellSelectionState) => void;
+  /**
+   * Applies one click or key press to a cell: `"toggle"` lets go of it when
+   * it is the one selected; anything else selects it. A cell holds one value,
+   * so a range over cells reads as a plain click.
+   */
+  readonly selectCell: (cell: SelectedCellRef, intent: SelectIntent) => void;
 
   /**
    * Replaces the sort. Reported through `onColumnSortChange` naming the

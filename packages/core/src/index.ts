@@ -47,6 +47,7 @@ export type {
   GridView,
   GridViewInput,
   GridViewOptions,
+  GridViewState,
   GroupAggregateDisplay,
   GroupByEntry,
   GroupByEvent,
@@ -82,10 +83,12 @@ export type {
   GridOptions,
   GroupByBarVisibility,
   HoverableConfig,
+  SelectionCallbacks,
 } from "./options";
 export type {
   GridController,
   GridControllerOptions,
+  SelectionDiffEvent,
 } from "./controller/gridController";
 export { createGridController } from "./controller/createGridController";
 export type { KeyShortcutCapabilities } from "./util/grid";

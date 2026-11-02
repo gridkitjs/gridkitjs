@@ -52,7 +52,7 @@ view.grandTotal.get("Amount"); // the sum over every filtered row, on every page
 
 ## Input
 
-`state` is a `GridState<Row>`: `columnSizing`, `columnOrder`, `columnVisibility`, `columnSort`, `filter`, `groupBy`, `groupExpansion` and `pagination`, each the same type as the matching `default*` prop on DataGrid. `options` is a `GridViewOptions<Row>`; every field is optional and defaults the way DataGrid's prop of the same name does:
+`state` is a `GridViewState<Row>`: `columnSizing`, `columnOrder`, `columnVisibility`, `columnSort`, `filter`, `groupBy`, `groupExpansion` and `pagination`, each the same type as the matching `default*` prop on DataGrid — every slice of `GridState` but the three selections, which change what is highlighted and never what is shown, so a whole `GridState` serves too. `options` is a `GridViewOptions<Row>`; every field is optional and defaults the way DataGrid's prop of the same name does:
 
 | Option                                                              | Default    | Description                                                                                  |
 | ------------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------- |

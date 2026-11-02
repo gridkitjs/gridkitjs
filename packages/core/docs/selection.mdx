@@ -3,7 +3,7 @@ title: "Selection"
 description: "The selection primitives underneath selectable."
 ---
 
-These transforms are what a click, a Ctrl-click, and a Shift-click each reduce to — every one takes the selection it received and returns the selection after, never touching a DOM node or a row of data. @gridkitjs/react calls them from useGridSelection; a second framework binding can call them the same way.
+These transforms are what a click, a Ctrl-click, and a Shift-click each reduce to — every one takes the selection it received and returns the selection after, never touching a DOM node or a row of data. The [controller](/docs/core/controller)'s selection actions are built on them, so every renderer selects the same way.
 
 ## Functions
 

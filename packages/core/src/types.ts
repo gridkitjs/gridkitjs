@@ -823,7 +823,20 @@ export interface GridState<Row> {
   readonly groupBy: GroupByState;
   readonly groupExpansion: GroupExpansionState;
   readonly pagination: PaginationState;
+  readonly rowSelection: SelectionState;
+  readonly columnSelection: SelectionState;
+  readonly cellSelection: CellSelectionState;
 }
+
+/**
+ * The slices the view is derived from: every one but the selections, which
+ * change what is highlighted and never what is shown. A whole `GridState`
+ * is one.
+ */
+export type GridViewState<Row> = Omit<
+  GridState<Row>,
+  "rowSelection" | "columnSelection" | "cellSelection"
+>;
 
 /**
  * The settings that shape the view but are not user state: what the grid is
@@ -856,7 +869,7 @@ export interface GridViewInput<Row, Node = string> {
   readonly rows: readonly Row[];
   readonly getRowId?: ((row: Row, index: number) => string) | undefined;
   readonly columns: readonly ColumnDefinition<Row, Node>[];
-  readonly state: GridState<Row>;
+  readonly state: GridViewState<Row>;
   readonly options: GridViewOptions<Row>;
 }
 

@@ -32,6 +32,7 @@ import {
   samePagination,
 } from "./changes";
 import type { GridController, GridControllerOptions } from "./gridController";
+import { createSelectionActions } from "./selectionActions";
 
 /** `pagination.pageSize` an uncontrolled grid starts at when `defaultPagination` omits one — a reasonable default for an ERP-grade dataset. */
 const DEFAULT_PAGE_SIZE = 25;
@@ -54,6 +55,9 @@ const SLICE_KEYS = [
   "groupBy",
   "groupExpansion",
   "pagination",
+  "rowSelection",
+  "columnSelection",
+  "cellSelection",
 ] as const satisfies readonly SliceKey[];
 
 /** The option that seeds each slice while it is uncontrolled. */
@@ -67,6 +71,9 @@ const DEFAULT_OPTION: { readonly [K in SliceKey]: `default${Capitalize<K>}` } =
     groupBy: "defaultGroupBy",
     groupExpansion: "defaultGroupExpansion",
     pagination: "defaultPagination",
+    rowSelection: "defaultRowSelection",
+    columnSelection: "defaultColumnSelection",
+    cellSelection: "defaultCellSelection",
   };
 
 /** The slices the controller keeps itself — those not controlled. */
@@ -96,6 +103,9 @@ function startingState<Row>(options: GridOptions<Row>): OwnState<Row> {
       pageIndex: 0,
       pageSize: DEFAULT_PAGE_SIZE,
     },
+    rowSelection: options.defaultRowSelection ?? [],
+    columnSelection: options.defaultColumnSelection ?? [],
+    cellSelection: options.defaultCellSelection ?? null,
   };
 }
 
@@ -170,6 +180,9 @@ export function createGridController<Row, Node = string>(
       groupBy: resolveSlice("groupBy"),
       groupExpansion: resolveSlice("groupExpansion"),
       pagination: resolveSlice("pagination"),
+      rowSelection: resolveSlice("rowSelection"),
+      columnSelection: resolveSlice("columnSelection"),
+      cellSelection: resolveSlice("cellSelection"),
     };
   }
 
@@ -381,7 +394,15 @@ export function createGridController<Row, Node = string>(
     return paginateRows(getView().displayRows, state.pagination).pageIndex;
   }
 
+  const selection = createSelectionActions<Row, Node>({
+    getState: () => state,
+    getOptions: () => options,
+    getView,
+    commit,
+  });
+
   return {
+    ...selection,
     getOptions: () => options,
     setOptions(next) {
       options = next;
