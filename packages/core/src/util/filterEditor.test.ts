@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 
+import { createGridController } from "../controller/createGridController";
 import type {
   ColumnDefinition,
   DataColumn,
@@ -7,6 +8,7 @@ import type {
   OperatorFilterEntry,
 } from "../types";
 import type { FilterEditorDraft } from "./filterEditor";
+import { serializeGridState } from "./serialize";
 import {
   columnValueOptions,
   describeColumnFilter,
@@ -223,6 +225,7 @@ describe("columnValueOptions", () => {
       total: 3,
       truncated: false,
       blanks: 0,
+      columnType: "number",
     });
     expect(columnValueOptions(rows, dataColumns, [], "Region")).toMatchObject({
       options: [
@@ -405,6 +408,83 @@ describe("initialFilterEditorDraft", () => {
     const draft = openRegion([{ columnId: "Region", query: "West" }]);
 
     expect(checkedValues(draft)).toEqual(["East", "north", "West"]);
+  });
+});
+
+describe("a checklist on a date column holding ISO strings", () => {
+  interface DueRow {
+    Id: number;
+    Due: string;
+  }
+  const dueRows: readonly DueRow[] = [
+    { Id: 1, Due: "2024-01-01T00:00:00.000Z" },
+    { Id: 2, Due: "2024-02-01T00:00:00.000Z" },
+    { Id: 3, Due: "2024-03-01T00:00:00.000Z" },
+    { Id: 4, Due: "2024-02-01" },
+  ];
+
+  function dueGrid() {
+    return createGridController<DueRow>({
+      dataSource: dueRows,
+      getRowId: (row) => String(row.Id),
+      columns: [{ field: "Due", type: "date" }],
+    });
+  }
+
+  function openDue(controller: ReturnType<typeof dueGrid>) {
+    const { filter } = controller.getState();
+    return initialFilterEditorDraft(
+      describeColumnFilter(filter, "Due"),
+      columnValueOptions(
+        dueRows,
+        controller.getView().dataColumns,
+        filter,
+        "Due",
+      ),
+    );
+  }
+
+  test("offers each date once, however its strings spell it", () => {
+    const draft = openDue(dueGrid());
+
+    expect(draft.options.map((option) => option.count)).toEqual([1, 2, 1]);
+  });
+
+  test("a saved in filter, restored as Dates, opens with its values checked", () => {
+    const saving = dueGrid();
+    const january = openDue(saving).options[0]?.value ?? null;
+    const picked = filterEditorReducer(openDue(saving), {
+      type: "toggleValue",
+      value: january,
+    });
+    saving.setFilter(draftToFilter(picked, "Due", saving.getState().filter));
+    const saved: unknown = JSON.parse(
+      JSON.stringify(serializeGridState(saving.getState())),
+    );
+
+    const restoring = dueGrid();
+    restoring.restoreState(
+      saved as Parameters<typeof restoring.restoreState>[0],
+    );
+    const reopened = openDue(restoring);
+
+    expect(restoring.getState().filter).toEqual([
+      {
+        columnId: "Due",
+        operator: "in",
+        value: [
+          new Date("2024-02-01T00:00:00.000Z"),
+          new Date("2024-03-01T00:00:00.000Z"),
+        ],
+      },
+    ]);
+    expect(selectAllState(reopened)).toBe("mixed");
+    const all = filterEditorReducer(reopened, {
+      type: "toggleValue",
+      value: january,
+    });
+    expect(selectAllState(all)).toBe("checked");
+    expect(draftToFilter(all, "Due", restoring.getState().filter)).toEqual([]);
   });
 });
 
