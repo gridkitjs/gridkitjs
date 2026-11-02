@@ -104,9 +104,9 @@ export type CellSelectionChangeEvent<Row> = CoreCellSelectionChangeEvent<
  * Imperative handle for a mounted `DataGrid`, reached via its `ref`
  * prop. Read-plus-standard-actions: getters mirror the grid's live state,
  * and the actions are the ones every grid ref carries (focus, clear/select
- * all, scroll-to). Sizing, order, sort, and selection stay uncontrolled via
- * their existing `default*` props — this is not a second, imperative-only
- * way to drive that same state. `subscribe` doesn't change that: it's a
+ * all, scroll-to). State is otherwise set through props — a `default*` to
+ * start from, or a controlled value such as `columnSort` to hold it
+ * yourself. `subscribe` doesn't change that: it's a
  * read/notify channel for reacting to state that already lives here, not a
  * write path — nothing becomes newly *driven* through the ref by its
  * existence. Column visibility is the one exception: the grid has no

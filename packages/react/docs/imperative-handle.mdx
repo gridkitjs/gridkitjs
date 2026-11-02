@@ -17,7 +17,7 @@ gridRef.current?.scrollToRow("42");
 gridRef.current?.getColumnSizing();
 ```
 
-Sizing, order, sort, and selection stay uncontrolled exactly as they are without a ref — set their starting values with `defaultColumnSizing` and friends. `DataGridApi` is for reading current state and triggering the actions below, not a second way to drive that same state. `subscribe` doesn't change that either: it's a read/notify channel for reacting to state that already lives here, not a write path. Column visibility is the one exception: the grid has no built-in control for showing or hiding a column, so `showColumns` and `hideColumns` are how it changes.
+State is set through props — a starting value with `defaultColumnSort` and friends, or the value itself with a [controlled prop](/docs/react/state) such as `columnSort`. `DataGridApi` is for reading current state and triggering the actions below, not a second way to drive that same state. `subscribe` doesn't change that either: it's a read/notify channel for reacting to state that already lives here, not a write path. Column visibility is the one exception: the grid has no built-in control for showing or hiding a column, so `showColumns` and `hideColumns` are how it changes.
 
 ## Elements
 

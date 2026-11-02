@@ -5,6 +5,7 @@ import type { MountResult } from "@playwright/experimental-ct-react";
 import type { ColumnDefinition, PaginationState } from "@gridkitjs/core";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
+import ControlledStateGrid from "./support/ControlledStateGrid";
 import CustomPagerGrid from "./support/CustomPagerGrid";
 import ImperativeApiGrid from "./support/ImperativeApiGrid";
 import RowIdentifiedGrid from "./support/RowIdentifiedGrid";
@@ -507,4 +508,58 @@ test("aria-rowindex reports each row's absolute dataset position, not its page-r
 
   // aria-rowcount stays the full dataset count regardless of the page shown.
   await expect(root.getByRole("grid")).toHaveAttribute("aria-rowcount", "8");
+});
+
+test("a controlled pagination ignores Next until the parent applies the page it asked for", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ControlledStateGrid
+      columns={columns}
+      dataSource={buildRows()}
+      label="Controlled pagination"
+      paginated
+      controlled={{ pagination: { pageIndex: 0, pageSize: 3 } }}
+    />,
+  );
+
+  await root.getByRole("button", { name: "Next" }).click();
+  await expect(root.getByTestId("controlled-status")).toContainText(
+    '"pageIndex":1',
+  );
+  await expect(pagerStatus(root)).toHaveText("Page 1 of 3");
+  expect(await rowIds(root)).toEqual(["r1", "r2", "r3"]);
+
+  await root.getByRole("button", { name: "apply-requests" }).click();
+  await expect(pagerStatus(root)).toHaveText("Page 2 of 3");
+  expect(await rowIds(root)).toEqual(["r4", "r5", "r6"]);
+});
+
+test("a controlled pagination is left where it is by a sort change, which only an uncontrolled one resets", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ControlledStateGrid
+      columns={columns}
+      dataSource={buildRows()}
+      label="Controlled pagination, sorted"
+      paginated
+      sortableColumns
+      controlled={{ pagination: { pageIndex: 1, pageSize: 3 } }}
+    />,
+  );
+
+  await root
+    .locator("thead th")
+    .filter({ hasText: "amount" })
+    .locator(".header-sort-toggle")
+    .click();
+
+  await expect(root.locator("thead th").nth(2)).toHaveAttribute(
+    "aria-sort",
+    "ascending",
+  );
+  await expect(pagerStatus(root)).toHaveText("Page 2 of 3");
 });

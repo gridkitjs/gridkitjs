@@ -1,0 +1,76 @@
+---
+title: "Controlled and uncontrolled state"
+description: "Letting DataGrid keep its own sort, grouping and paging, or holding them in your component and passing them back in."
+---
+
+Every piece of state a user can change — the sort, the grouping, which groups are collapsed, the page — is either kept by the grid or held by you, one slice at a time, the way a React `<input>` takes either `defaultValue` or `value`.
+
+## Uncontrolled: the grid keeps it
+
+Give a starting value with the `default*` prop, or nothing at all, and the grid keeps the slice itself. Its `on*Change` callback still reports every change, for persisting or reacting to it.
+
+```tsx
+<DataGrid
+  columns={columns}
+  dataSource={rows}
+  sortableColumns
+  defaultColumnSort={[{ columnId: "Amount", direction: "desc" }]}
+  onColumnSortChange={({ sort }) => save(sort)}
+/>
+```
+
+## Controlled: you keep it
+
+Pass the slice itself and the grid shows exactly that. A header click no longer changes the sort — it asks for a change through `onColumnSortChange`, and the grid follows once you pass the new value back:
+
+```tsx
+const [sort, setSort] = useState<ColumnSortState>([]);
+
+<DataGrid
+  columns={columns}
+  dataSource={rows}
+  sortableColumns
+  columnSort={sort}
+  onColumnSortChange={(event) => {
+    setSort(event.sort);
+  }}
+/>;
+```
+
+That makes it yours to adjust, limit or ignore — keep at most two sort keys, refuse to sort a column while a request is in flight, or drive the sort from the URL. It also lets two grids, or a grid and a toolbar, share one value.
+
+| State            | Controlled prop  | Uncontrolled default    | Change callback          |
+| ---------------- | ---------------- | ----------------------- | ------------------------ |
+| Sort             | `columnSort`     | `defaultColumnSort`     | `onColumnSortChange`     |
+| Group-by stack   | `groupBy`        | `defaultGroupBy`        | `onGroupByChange`        |
+| Collapsed groups | `groupExpansion` | `defaultGroupExpansion` | `onGroupExpansionChange` |
+| Page and size    | `pagination`     | `defaultPagination`     | `onPaginationChange`     |
+
+Each slice is independent: control the sort and leave paging to the grid, or the other way round. Passing `undefined` is the same as leaving the prop out, so a slice can start uncontrolled and be taken over later. Passing both a controlled prop and its default logs a `console.error` once; the controlled value wins.
+
+Keep a controlled value stable — the same array or object until it changes, as React state is. A new array on every render reads as a new sort each time, and sends an uncontrolled page back to the first page each time too.
+
+## The page goes back to the first page
+
+When the filter, the sort or the grouping changes, the grid sends its own page back to the first one, so nobody is left on page 7 of a result that now has two. That reset is a consequence of the change, not a page change of its own, so it does not call `onPaginationChange`.
+
+A controlled `pagination` is never changed behind your back. Reset it alongside the change if you want the same behaviour; until you do, the grid shows the last page that exists rather than an empty one.
+
+```tsx
+<DataGrid
+  pagination={pagination}
+  onPaginationChange={(event) => {
+    setPagination(event.pagination);
+  }}
+  onColumnSortChange={(event) => {
+    setSort(event.sort);
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
+  }}
+/>
+```
+
+## See also
+
+- [Events](/docs/react/events) for every callback and its payload.
+- [Imperative handle](/docs/react/imperative-handle) for reading the current state through a `ref`.
+- [core: Controller](/docs/core/controller) for the framework-free controller DataGrid is built on.
