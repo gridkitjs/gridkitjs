@@ -320,6 +320,40 @@ describe("intentOf", () => {
       "range",
     );
   });
+
+  describe("with toggleOnClick", () => {
+    const options = { toggleOnClick: true };
+
+    test("is toggle with no modifiers", () => {
+      expect(
+        intentOf({ ctrlKey: false, metaKey: false, shiftKey: false }, options),
+      ).toBe("toggle");
+    });
+
+    test("still toggles for Ctrl or Cmd", () => {
+      expect(
+        intentOf({ ctrlKey: true, metaKey: false, shiftKey: false }, options),
+      ).toBe("toggle");
+      expect(
+        intentOf({ ctrlKey: false, metaKey: true, shiftKey: false }, options),
+      ).toBe("toggle");
+    });
+
+    test("is still range for Shift", () => {
+      expect(
+        intentOf({ ctrlKey: false, metaKey: false, shiftKey: true }, options),
+      ).toBe("range");
+    });
+
+    test("is replace again when false", () => {
+      expect(
+        intentOf(
+          { ctrlKey: false, metaKey: false, shiftKey: false },
+          { toggleOnClick: false },
+        ),
+      ).toBe("replace");
+    });
+  });
 });
 
 describe("applySelectionIntent", () => {

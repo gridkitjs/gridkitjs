@@ -66,6 +66,7 @@ export type {
   ResolvedGroupRow,
   ResolvedGroupSummaryRow,
   ResolvedRow,
+  RowPointerEvent,
   RowSelectEvent,
   RowSelectionChangeEvent,
   RowsSelectEvent,
@@ -93,6 +94,7 @@ export type {
   GridOptions,
   GroupByBarVisibility,
   HoverableConfig,
+  RowProps,
   SelectionCallbacks,
 } from "./options";
 export type {

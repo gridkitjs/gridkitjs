@@ -25,6 +25,8 @@ import type {
   PaginationChangeEvent,
   PaginationState,
   ResizeMode,
+  ResolvedRow,
+  RowPointerEvent,
   RowSelectEvent,
   RowSelectionChangeEvent,
   RowsSelectEvent,
@@ -56,6 +58,21 @@ export interface HoverableConfig {
 export type GroupByBarVisibility = "always" | "auto" | "never";
 
 /**
+ * What `getRowProps` adds to a data row: a class for the theme or the
+ * app's own stylesheet to target, and `data-*` attributes for a test or a
+ * script to find the row by. No inline style — styling belongs to the
+ * stylesheet, which a class already reaches.
+ */
+export interface RowProps {
+  className?: string | undefined;
+  /**
+   * Set on the row alongside the grid's own `data-gridkit-*` attributes,
+   * which win over one of the same name — the grid finds its rows by them.
+   */
+  attributes?: Readonly<Record<`data-${string}`, string>> | undefined;
+}
+
+/**
  * Every setting of a grid that names no renderer's types: the data, what the
  * user may do with it, the state it starts in and the callbacks that report
  * changes. A renderer's own props are this plus what only it can express —
@@ -76,6 +93,28 @@ export interface GridOptions<Row> {
    * not.
    */
   getRowId?: ((row: Row, index: number) => string) | undefined;
+  /**
+   * A class and `data-*` attributes for each data row, worked out from the
+   * row — an `is-overdue` class, a `data-status` to style or find it by.
+   * Group headers and summary rows are not passed to it.
+   *
+   * Called for each data row as it renders, so it should be cheap. A row
+   * whose result reads the same as last time is not redrawn for it, so an
+   * inline arrow returning a fresh object each time is fine.
+   */
+  getRowProps?: ((row: ResolvedRow<Row>) => RowProps) | undefined;
+  /**
+   * Called when a data row is clicked, after the click has changed the
+   * selection — so a handler reading the selection sees the new one. Not
+   * called for a group header, whose click expands or collapses it.
+   */
+  onRowClick?: ((event: RowPointerEvent<Row>) => void) | undefined;
+  /**
+   * Called once when a data row is double-clicked — the usual "open this
+   * record" gesture. The two clicks before it still report through
+   * `onRowClick` and select as clicks do.
+   */
+  onRowDoubleClick?: ((event: RowPointerEvent<Row>) => void) | undefined;
   borders?: Borders | undefined;
   hoverable?: HoverableConfig | undefined;
   /**

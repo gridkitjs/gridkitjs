@@ -772,6 +772,13 @@ export interface SelectableConfig {
   rows?: SelectionMode | undefined;
   columns?: SelectionMode | undefined;
   cells?: CellSelectionMode | undefined;
+  /**
+   * Whether a plain click on a row toggles it rather than selecting it
+   * alone — a checklist, where picking rows one after another should not
+   * need Ctrl held down. Shift still selects a range and Ctrl/Cmd still
+   * toggles. Rows only: a column or cell click is unchanged.
+   */
+  toggleOnClick?: boolean | undefined;
 }
 
 /**
@@ -837,6 +844,25 @@ export interface SelectedCell<Row, Node = string> {
   readonly columnIndex: number;
   /** Read off the column's field path — the value a `cellTemplate` receives. */
   readonly value: unknown;
+}
+
+/**
+ * Reports a click or double-click on a data row. Carries the modifiers and
+ * button rather than the browser's own event, so a handler reads the same
+ * payload whichever renderer drew the row.
+ */
+export interface RowPointerEvent<Row> {
+  readonly row: ResolvedRow<Row>;
+  /** The column of the cell the pointer was on, or `null` when it was on no cell. */
+  readonly columnId: string | null;
+  readonly native: {
+    readonly ctrlKey: boolean;
+    readonly metaKey: boolean;
+    readonly shiftKey: boolean;
+    readonly altKey: boolean;
+    /** Which button was pressed, numbered as `MouseEvent.button` numbers them — `0` for the main one. */
+    readonly button: number;
+  };
 }
 
 /** Reports one row selected or deselected. */
