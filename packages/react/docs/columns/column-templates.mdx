@@ -7,7 +7,7 @@ Start from defineColumnsFromRows for the columns you don't need to customize, th
 
 ## When you need a template
 
-A column without a template already shows its value as formatted text — dates, numbers, currencies and percentages through `Intl`, with the grid's `locale` — and a header without one shows the column's `header` text. So reach for `format` or `valueFormatter` when only the text should change, and `header` when the header is just a name; see [formatting values](/docs/react/column-definition#formatting-values).
+A column without a template already shows its value as text — formatted through `Intl` (dates, numbers, currencies, percentages) once it has a `format` or the grid a `locale` — and a header without one shows the column's `header` text. So reach for `format` or `valueFormatter` when only the text should change, and `header` when the header is just a name; see [formatting values](/docs/react/column-definition#formatting-values).
 
 A template is for markup: a link or a button in a cell, a badge, a style that depends on the row, an icon in a header. A `cellTemplate` receives the raw `value`, not the formatted text. A `headerTemplate` can sit beside a `header`: the template is what the header shows, and `header` is what screen-reader announcements call the column, since markup need not be text.
 

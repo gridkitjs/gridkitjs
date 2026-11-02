@@ -34,13 +34,14 @@ Every entry in `columns` is a `ColumnDefinition<Row>`, the same shape `defineCol
 
 ## Formatting values
 
-A column with no `cellTemplate` shows its value as text, and its aggregates in the footer and group headers read the same way. The value's kind picks how, and the column's `type` refines it:
+A column with no `cellTemplate` shows its value as text, and its aggregates in the footer and group headers read the same way. Booleans read `true` / `false`, and `null` and `undefined` leave the cell empty.
+
+Dates and numbers are formatted through `Intl` only once you ask for it, by giving the column a `format` or the grid a [`locale`](/docs/react/data-grid#props). Until then they print as they always have: a number as-is (`1234.5`), a total in the footer or a group header with digit grouping (`1,234.5`), a date through `toLocaleString()`. Once asked, the column's `type` picks how:
 
 - **Dates** go through `Intl.DateTimeFormat`: the date alone for `type: "date"`, the time alone for `"time"`, both otherwise.
-- **Numbers** in a `number`, `decimal`, `currency` or `percent` column go through `Intl.NumberFormat`. A `currency` column shows a symbol once `format.currency` names one, and two fraction digits until then; a `percent` column reads `0.25` as 25%. A number in any other column is shown as it is, so a numeric id stays `1001`.
-- **Booleans** read `true` / `false`; `null` and `undefined` leave the cell empty.
+- **Numbers** in a `number`, `decimal`, `currency` or `percent` column go through `Intl.NumberFormat`. A `currency` column shows a symbol once `format.currency` names one, and two fraction digits until then; a `percent` column reads `0.25` as 25%. A number in any other column is always shown as it is, so a numeric id stays `1001`.
 
-`format` takes the options of whichever `Intl` formatter applies, and the grid's [`locale`](/docs/react/data-grid#props) picks the language:
+`format` takes the options of whichever `Intl` formatter applies, and `locale` picks the language for every column at once:
 
 ```tsx
 const columns: readonly ColumnDefinition<Row>[] = [

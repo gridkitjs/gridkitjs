@@ -531,9 +531,10 @@ export interface DataGridProps<Row> extends SelectionCallbacks<Row> {
   labelledBy?: string | undefined;
   /**
    * The locale values are formatted for — a BCP 47 tag such as `"de-DE"`, or
-   * a list to fall back through. Applies to every cell and aggregate shown
-   * without a template; see `format` on a column. Defaults to the
-   * browser's own.
+   * a list to fall back through. Setting it turns on `Intl` formatting of
+   * dates and numbers in every cell and aggregate shown without a template;
+   * without it, only a column with its own `format` is formatted, in the
+   * browser's locale, and the rest print as they always have.
    */
   locale?: FormatLocale;
   /** Imperative handle for reading live grid state and triggering actions. */
