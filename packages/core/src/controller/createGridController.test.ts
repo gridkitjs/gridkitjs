@@ -2,7 +2,11 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import type {
   ColumnDefinition,
+  ColumnOrderEvent,
+  ColumnResizeEvent,
   ColumnSortEvent,
+  ColumnVisibilityEvent,
+  FilterChangeEvent,
   GroupByEvent,
   GroupExpansionEvent,
   PaginationChangeEvent,
@@ -403,6 +407,209 @@ describe("createGridController: pagination", () => {
       pageSize: 2,
     });
     expect(controller.getState().pagination.pageIndex).toBe(0);
+  });
+});
+
+describe("createGridController: filter", () => {
+  test("setFilter applies the filter and reports it once", () => {
+    const onFilterChange =
+      vi.fn<(event: FilterChangeEvent<SampleRow>) => void>();
+    const controller = create({ onFilterChange });
+    const filter = [{ columnId: "Region", query: "West" }];
+
+    controller.setFilter(filter);
+    controller.setFilter([...filter]);
+
+    expect(controller.getView().rows.map((entry) => entry.rowId)).toEqual([
+      "1",
+      "3",
+    ]);
+    expect(onFilterChange.mock.calls).toEqual([[{ filter }]]);
+  });
+
+  test("a filter change sends the page back to 0 without reporting it", () => {
+    const onPaginationChange = vi.fn();
+    const controller = create({
+      paginated: true,
+      defaultPagination: { pageIndex: 2, pageSize: 1 },
+      onPaginationChange,
+    });
+
+    controller.setFilter([{ columnId: "Region", query: "East" }]);
+
+    expect(controller.getState().pagination.pageIndex).toBe(0);
+    expect(onPaginationChange).not.toHaveBeenCalled();
+  });
+
+  test("a controlled filter only asks", () => {
+    const onFilterChange = vi.fn();
+    const controller = create({ filter: [], onFilterChange });
+
+    controller.setFilter([{ columnId: "Region", query: "West" }]);
+
+    expect(onFilterChange).toHaveBeenCalledTimes(1);
+    expect(controller.getView().rows).toHaveLength(5);
+  });
+});
+
+describe("createGridController: sizing", () => {
+  test("resizeColumn reports every move, even at an unchanged width", () => {
+    const onColumnResize = vi.fn<(event: ColumnResizeEvent) => void>();
+    const controller = create({ onColumnResize });
+
+    controller.resizeColumn("Amount", 180, "move");
+    controller.resizeColumn("Amount", 180, "move");
+    controller.resizeColumn("Amount", 200, "end");
+
+    expect(onColumnResize.mock.calls.map(([event]) => event)).toEqual([
+      {
+        columnId: "Amount",
+        width: 180,
+        sizing: { Amount: 180 },
+        phase: "move",
+      },
+      {
+        columnId: "Amount",
+        width: 180,
+        sizing: { Amount: 180 },
+        phase: "move",
+      },
+      { columnId: "Amount", width: 200, sizing: { Amount: 200 }, phase: "end" },
+    ]);
+  });
+
+  test("cancelColumnResize puts back the column's starting entry and keeps the others", () => {
+    const onColumnResize = vi.fn<(event: ColumnResizeEvent) => void>();
+    const controller = create({ onColumnResize });
+    const startSizing = controller.getState().columnSizing;
+
+    controller.resizeColumn("Amount", 180, "move");
+    controller.resizeColumn("Region", 90, "end");
+    controller.cancelColumnResize("Amount", startSizing, 150);
+
+    expect(controller.getState().columnSizing).toEqual({ Region: 90 });
+    expect(onColumnResize.mock.calls.at(-1)?.[0]).toEqual({
+      columnId: "Amount",
+      width: 150,
+      sizing: { Region: 90 },
+      phase: "end",
+    });
+  });
+
+  test("setColumnSizing names the first changed column, at its definition's width once removed", () => {
+    const onColumnResize = vi.fn<(event: ColumnResizeEvent) => void>();
+    const controller = create({
+      columns: [{ field: "Id", width: 70 }, { field: "Region" }],
+      defaultColumnSizing: { Id: 120 },
+      onColumnResize,
+    });
+
+    controller.setColumnSizing({ Id: 120, Region: 90 });
+    controller.setColumnSizing({ Region: 90 });
+    controller.setColumnSizing({ Region: 90 });
+
+    expect(onColumnResize.mock.calls.map(([event]) => event)).toEqual([
+      {
+        columnId: "Region",
+        width: 90,
+        sizing: { Id: 120, Region: 90 },
+        phase: "end",
+      },
+      { columnId: "Id", width: 70, sizing: { Region: 90 }, phase: "end" },
+    ]);
+  });
+
+  test("a sizing change leaves the row lists untouched", () => {
+    const controller = create();
+    const before = controller.getView();
+
+    controller.resizeColumn("Amount", 180, "end");
+
+    expect(controller.getView().rows).toBe(before.rows);
+    expect(controller.getView().columns).not.toBe(before.columns);
+  });
+});
+
+describe("createGridController: order", () => {
+  test("moveColumn moves among every column and reports the whole order", () => {
+    const onColumnOrderChange = vi.fn<(event: ColumnOrderEvent) => void>();
+    const controller = create({ onColumnOrderChange });
+
+    controller.moveColumn("Amount", "Id");
+    controller.moveColumn("Amount", "Id");
+
+    expect(onColumnOrderChange.mock.calls).toEqual([
+      [{ columnId: "Amount", order: ["Amount", "Id", "Region"] }],
+    ]);
+    expect(controller.getView().columns.map((entry) => entry.id)).toEqual([
+      "Amount",
+      "Id",
+      "Region",
+    ]);
+  });
+
+  test("setColumnOrder names the first column whose position changed", () => {
+    const onColumnOrderChange = vi.fn<(event: ColumnOrderEvent) => void>();
+    const controller = create({ onColumnOrderChange });
+
+    controller.setColumnOrder(["Region"]);
+    controller.setColumnOrder(["Region"]);
+
+    expect(onColumnOrderChange.mock.calls).toEqual([
+      [{ columnId: "Region", order: ["Region"] }],
+    ]);
+  });
+
+  test("a controlled order only asks", () => {
+    const onColumnOrderChange = vi.fn();
+    const controller = create({ columnOrder: [], onColumnOrderChange });
+
+    controller.moveColumn("Amount", "Id");
+
+    expect(onColumnOrderChange).toHaveBeenCalledTimes(1);
+    expect(controller.getState().columnOrder).toEqual([]);
+  });
+});
+
+describe("createGridController: visibility", () => {
+  test("hideColumns and showColumns report once per call, in display order", () => {
+    const onColumnVisibilityChange =
+      vi.fn<(event: ColumnVisibilityEvent) => void>();
+    const controller = create({ onColumnVisibilityChange });
+
+    controller.hideColumns(["Amount", "Id"]);
+    controller.hideColumns(["Amount"]);
+    controller.showColumns(["Id"]);
+
+    expect(onColumnVisibilityChange.mock.calls.map(([event]) => event)).toEqual(
+      [
+        {
+          columnIds: ["Id", "Amount"],
+          visibility: { Amount: false, Id: false },
+        },
+        { columnIds: ["Id"], visibility: { Amount: false, Id: true } },
+      ],
+    );
+    expect(controller.getView().columns.map((entry) => entry.id)).toEqual([
+      "Id",
+      "Region",
+    ]);
+  });
+
+  test("setColumnVisibility reports every entry that changed", () => {
+    const onColumnVisibilityChange =
+      vi.fn<(event: ColumnVisibilityEvent) => void>();
+    const controller = create({
+      defaultColumnVisibility: { Region: false },
+      onColumnVisibilityChange,
+    });
+
+    controller.setColumnVisibility({ Amount: false });
+    controller.setColumnVisibility({ Amount: false });
+
+    expect(onColumnVisibilityChange.mock.calls).toEqual([
+      [{ columnIds: ["Region", "Amount"], visibility: { Amount: false } }],
+    ]);
   });
 });
 

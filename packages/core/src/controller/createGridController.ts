@@ -1,6 +1,8 @@
 import type { GridOptions } from "../options";
 import type {
   ColumnDefinition,
+  ColumnSizingState,
+  ColumnVisibilityState,
   GridState,
   GridView,
   GroupByState,
@@ -15,11 +17,20 @@ import {
   toggleGroupExpansion as toggledGroupExpansion,
 } from "../util/grouping";
 import { memoizeLast } from "../util/memoize";
+import { moveColumnBefore } from "../util/ordering";
 import { paginateRows } from "../util/paging";
 import { reportError } from "../util/report";
+import { resolveColumnWidths, revertColumnSize } from "../util/sizing";
 import { toggleColumnSort as toggledColumnSort } from "../util/sorting";
 import { createGridViewResolver } from "../util/view";
-import { changedEntryColumnId, sameIds, samePagination } from "./changes";
+import { setColumnVisibility as withColumnVisibility } from "../util/visibility";
+import {
+  changedEntryColumnId,
+  changedId,
+  changedKeys,
+  sameItems,
+  samePagination,
+} from "./changes";
 import type { GridController, GridControllerOptions } from "./gridController";
 
 /** `pagination.pageSize` an uncontrolled grid starts at when `defaultPagination` omits one — a reasonable default for an ERP-grade dataset. */
@@ -258,6 +269,71 @@ export function createGridController<Row, Node = string>(
     });
   }
 
+  function commitColumnSizing(
+    next: ColumnSizingState,
+    columnId: string,
+    width: number,
+    phase: "move" | "end",
+  ): void {
+    commit("columnSizing", next, () => {
+      options.onColumnResize?.({ columnId, width, sizing: next, phase });
+    });
+  }
+
+  /**
+   * The width a column's definition gives it, before any user resize or fit
+   * — what a column reverts to when its sizing entry goes.
+   */
+  function definedWidth(columnId: string): number {
+    const entry = getView().dataColumns.find(
+      (candidate) => candidate.id === columnId,
+    );
+    const [resolved] =
+      entry === undefined
+        ? []
+        : resolveColumnWidths(
+            [entry.column],
+            {},
+            {
+              sizes: options.columnSizeDefaults,
+            },
+          );
+    return resolved?.width ?? 0;
+  }
+
+  /**
+   * Reported once per change, naming every column it touched in the order
+   * they are shown, whatever order the caller named them in — and ids naming
+   * no column last.
+   */
+  function commitColumnVisibility(next: ColumnVisibilityState): void {
+    const previous = state.columnVisibility;
+    commit("columnVisibility", next, () => {
+      const changed = new Set(changedKeys(previous, next));
+      const shown = getView()
+        .dataColumns.map((entry) => entry.id)
+        .filter((id) => changed.delete(id));
+      options.onColumnVisibilityChange?.({
+        columnIds: [...shown, ...changed],
+        visibility: next,
+      });
+    });
+  }
+
+  function changeColumnVisibility(
+    columnIds: readonly string[],
+    visible: boolean,
+  ): void {
+    commitColumnVisibility(
+      withColumnVisibility(
+        getView().dataColumns,
+        state.columnVisibility,
+        columnIds,
+        visible,
+      ),
+    );
+  }
+
   function commitGroupBy(next: GroupByState, columnId: string): void {
     commit("groupBy", next, () => {
       options.onGroupByChange?.({ columnId, groupBy: next });
@@ -321,6 +397,80 @@ export function createGridController<Row, Node = string>(
       };
     },
 
+    setColumnSizing(sizing) {
+      const [columnId] = changedKeys(state.columnSizing, sizing);
+      if (columnId !== undefined) {
+        commitColumnSizing(
+          sizing,
+          columnId,
+          sizing[columnId] ?? definedWidth(columnId),
+          "end",
+        );
+      }
+    },
+    resizeColumn(columnId, width, phase) {
+      commitColumnSizing(
+        { ...state.columnSizing, [columnId]: width },
+        columnId,
+        width,
+        phase,
+      );
+    },
+    cancelColumnResize(columnId, startSizing, startWidth) {
+      commitColumnSizing(
+        revertColumnSize(state.columnSizing, startSizing, columnId),
+        columnId,
+        startWidth,
+        "end",
+      );
+    },
+
+    setColumnOrder(order) {
+      const columnId = changedId(state.columnOrder, order);
+      if (columnId === undefined) {
+        return;
+      }
+      commit("columnOrder", order, () => {
+        options.onColumnOrderChange?.({ columnId, order });
+      });
+    },
+    /**
+     * Applied to every id in display order rather than to the stored order,
+     * which starts empty and may name only some columns, so would have
+     * nothing to rearrange.
+     */
+    moveColumn(columnId, beforeId) {
+      const orderedIds = getView().dataColumns.map((entry) => entry.id);
+      const next = moveColumnBefore(orderedIds, columnId, beforeId);
+      if (next === orderedIds) {
+        return;
+      }
+      commit("columnOrder", next, () => {
+        options.onColumnOrderChange?.({ columnId, order: next });
+      });
+    },
+
+    setColumnVisibility(visibility) {
+      if (changedKeys(state.columnVisibility, visibility).length > 0) {
+        commitColumnVisibility(visibility);
+      }
+    },
+    showColumns(columnIds) {
+      changeColumnVisibility(columnIds, true);
+    },
+    hideColumns(columnIds) {
+      changeColumnVisibility(columnIds, false);
+    },
+
+    setFilter(filter) {
+      if (sameItems(state.filter, filter)) {
+        return;
+      }
+      commit("filter", filter, () => {
+        options.onFilterChange?.({ filter });
+      });
+    },
+
     setColumnSort(sort) {
       const columnId = changedEntryColumnId(state.columnSort, sort);
       if (columnId === undefined) {
@@ -362,7 +512,7 @@ export function createGridController<Row, Node = string>(
     },
 
     setGroupExpansion(expansion) {
-      if (!sameIds(state.groupExpansion, expansion)) {
+      if (!sameItems(state.groupExpansion, expansion)) {
         commitGroupExpansion(expansion, null);
       }
     },

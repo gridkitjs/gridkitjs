@@ -38,6 +38,7 @@ export type {
   DataColumn,
   DisplayRow,
   DropSide,
+  FilterChangeEvent,
   FilterEntry,
   FilterPredicate,
   FilterState,

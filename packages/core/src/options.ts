@@ -10,6 +10,7 @@ import type {
   ColumnSortState,
   ColumnVisibilityEvent,
   ColumnVisibilityState,
+  FilterChangeEvent,
   FilterState,
   GroupAggregateDisplay,
   GroupByEvent,
@@ -102,15 +103,34 @@ export interface GridOptions<Row> {
   /** Column widths to start from, keyed by column id. Uncontrolled. */
   defaultColumnSizing?: ColumnSizingState | undefined;
   /**
+   * Column widths, controlled — applied as given, changed only through
+   * `onColumnResize`, whose `sizing` is the next state. Leave it
+   * `undefined` for the grid to keep the widths itself, starting from
+   * `defaultColumnSizing`.
+   */
+  columnSizing?: ColumnSizingState | undefined;
+  /**
    * Column ids in the order to start in. Uncontrolled, and partial: ids it
    * omits keep their position among `columns` and follow those it lists.
    */
   defaultColumnOrder?: ColumnOrderState | undefined;
   /**
+   * The column order, controlled — applied as given, changed only through
+   * `onColumnOrderChange`. Leave it `undefined` for the grid to keep the
+   * order itself, starting from `defaultColumnOrder`.
+   */
+  columnOrder?: ColumnOrderState | undefined;
+  /**
    * Columns shown (`true`) or hidden (`false`) to start with, keyed by
    * column id, over each definition's own `hidden`. Uncontrolled.
    */
   defaultColumnVisibility?: ColumnVisibilityState | undefined;
+  /**
+   * Which columns are shown, controlled — applied as given, changed only
+   * through `onColumnVisibilityChange`. Leave it `undefined` for the grid to
+   * keep it itself, starting from `defaultColumnVisibility`.
+   */
+  columnVisibility?: ColumnVisibilityState | undefined;
   /**
    * Called once when columns are shown or hidden, with every column that one
    * change touched. A call that changes nothing does not call it.
@@ -204,6 +224,17 @@ export interface GridOptions<Row> {
   onGroupExpansionChange?: ((event: GroupExpansionEvent) => void) | undefined;
   /** The filter to start with — every applied entry, ANDed together. Uncontrolled. */
   defaultFilter?: FilterState<Row> | undefined;
+  /**
+   * The filter, controlled — applied as given, changed only through
+   * `onFilterChange`. Leave it `undefined` for the grid to keep it itself,
+   * starting from `defaultFilter`.
+   */
+  filter?: FilterState<Row> | undefined;
+  /**
+   * Called once when the filter changes — through `setFilter` for now, as
+   * the grid has no filter UI of its own yet.
+   */
+  onFilterChange?: ((event: FilterChangeEvent<Row>) => void) | undefined;
   /**
    * Whether the grid's rows are split into pages. A page's unit is a
    * top-level group or a bare data row, never a leaf row — a group is never

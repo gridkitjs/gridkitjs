@@ -3,7 +3,7 @@ title: "Controller"
 description: "createGridController: a grid's state, view and actions, without a renderer."
 ---
 
-createGridController is a whole grid minus the drawing. It holds the grid's state, derives the view from it with [resolveGridView](/docs/core/view), and carries every action a user can take — sorting, grouping, expanding, paging. @gridkitjs/react's DataGrid creates one per grid, hands it its props on every render, draws its view and calls its actions from event handlers; a renderer for another framework does the same, so none of them decides anything the user can see.
+createGridController is a whole grid minus the drawing. It holds the grid's state, derives the view from it with [resolveGridView](/docs/core/view), and carries every action a user can take — sorting, filtering, grouping, expanding, paging, resizing, reordering, hiding columns. @gridkitjs/react's DataGrid creates one per grid, hands it its props on every render, draws its view and calls its actions from event handlers; a renderer for another framework does the same, so none of them decides anything the user can see.
 
 ```ts
 import { createGridController } from "@gridkitjs/core";
@@ -33,12 +33,16 @@ createGridController takes a `GridControllerOptions<Row, Node>`: every [`GridOpt
 
 Each slice of `GridState` is controlled or not on its own, the way a form input is. Leave the slice's option out and the controller keeps the slice itself, starting from its default. Give the option and the controller shows exactly that value; an action then only asks for a change, through the slice's callback, and the change takes effect when the next `setOptions` carries it.
 
-| Slice            | Controlled option | Default                 | Callback                 |
-| ---------------- | ----------------- | ----------------------- | ------------------------ |
-| `columnSort`     | `columnSort`      | `defaultColumnSort`     | `onColumnSortChange`     |
-| `groupBy`        | `groupBy`         | `defaultGroupBy`        | `onGroupByChange`        |
-| `groupExpansion` | `groupExpansion`  | `defaultGroupExpansion` | `onGroupExpansionChange` |
-| `pagination`     | `pagination`      | `defaultPagination`     | `onPaginationChange`     |
+| Slice              | Controlled option  | Default                   | Callback                   |
+| ------------------ | ------------------ | ------------------------- | -------------------------- |
+| `columnSizing`     | `columnSizing`     | `defaultColumnSizing`     | `onColumnResize`           |
+| `columnOrder`      | `columnOrder`      | `defaultColumnOrder`      | `onColumnOrderChange`      |
+| `columnVisibility` | `columnVisibility` | `defaultColumnVisibility` | `onColumnVisibilityChange` |
+| `filter`           | `filter`           | `defaultFilter`           | `onFilterChange`           |
+| `columnSort`       | `columnSort`       | `defaultColumnSort`       | `onColumnSortChange`       |
+| `groupBy`          | `groupBy`          | `defaultGroupBy`          | `onGroupByChange`          |
+| `groupExpansion`   | `groupExpansion`   | `defaultGroupExpansion`   | `onGroupExpansionChange`   |
+| `pagination`       | `pagination`       | `defaultPagination`       | `onPaginationChange`       |
 
 Giving both the controlled option and its default reports a `console.error` once; the controlled value wins.
 
@@ -59,19 +63,27 @@ Because both snapshots keep their identity until something changes, either can s
 
 Every action works out the next value, stops if it is the value the slice already holds, keeps it unless the slice is controlled, fires the slice's callback with the same payload a user's interaction fires, then calls the subscribers.
 
-| Action                                      | Callback                 | Description                                                                                        |
-| ------------------------------------------- | ------------------------ | -------------------------------------------------------------------------------------------------- |
-| `toggleColumnSort(columnId, { stack? })`    | `onColumnSortChange`     | Cycles a column ascending → descending → off. `stack` adds it to the sort instead of replacing it. |
-| `setColumnSort(sort)`                       | `onColumnSortChange`     | Replaces the sort, naming the first column whose place or direction changed.                       |
-| `toggleGroupBy(columnId)`                   | `onGroupByChange`        | Adds a column to the end of the group-by stack, or removes it.                                     |
-| `moveGroupBy(columnId, beforeColumnId)`     | `onGroupByChange`        | Puts a column in front of another in the stack, or at the end for `null`.                          |
-| `setGroupBy(groupBy)`                       | `onGroupByChange`        | Replaces the stack, naming the first level that changed.                                           |
-| `toggleGroupExpansion(groupId)`             | `onGroupExpansionChange` | Collapses an expanded group, or expands a collapsed one.                                           |
-| `expandAllGroups()` / `collapseAllGroups()` | `onGroupExpansionChange` | Every group at once, reported with `groupId: null`.                                                |
-| `setGroupExpansion(expansion)`              | `onGroupExpansionChange` | Replaces the collapsed groups, reported with `groupId: null`.                                      |
-| `goToPage(pageIndex)`                       | `onPaginationChange`     | Moves to a page, clamped into range.                                                               |
-| `nextPage()` / `previousPage()`             | `onPaginationChange`     | One page on or back.                                                                               |
-| `setPageSize(pageSize)`                     | `onPaginationChange`     | Changes the page size and goes back to the first page.                                             |
-| `setPagination(pagination)`                 | `onPaginationChange`     | Replaces the page and page size as given.                                                          |
+| Action                                                  | Callback                   | Description                                                                                                                |
+| ------------------------------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `resizeColumn(columnId, width, phase)`                  | `onColumnResize`           | Sets one column's width, as a drag does: `"move"` while it lasts, `"end"` once. Never skipped for an unchanged width.      |
+| `cancelColumnResize(columnId, startSizing, startWidth)` | `onColumnResize`           | Puts a column back as it was when a resize began, keeping other columns' changes, reported as the `"end"` at `startWidth`. |
+| `setColumnSizing(sizing)`                               | `onColumnResize`           | Replaces the widths, reported as the `"end"` of a resize of the first column that changed.                                 |
+| `moveColumn(columnId, beforeId)`                        | `onColumnOrderChange`      | Moves a column in front of another, or to the end for `null`. Hidden columns keep their place.                             |
+| `setColumnOrder(order)`                                 | `onColumnOrderChange`      | Replaces the order, naming the first column whose position changed.                                                        |
+| `showColumns(ids)` / `hideColumns(ids)`                 | `onColumnVisibilityChange` | One report per call, naming every column it touched in display order.                                                      |
+| `setColumnVisibility(visibility)`                       | `onColumnVisibilityChange` | Replaces the visibility state.                                                                                             |
+| `setFilter(filter)`                                     | `onFilterChange`           | Replaces the filter.                                                                                                       |
+| `toggleColumnSort(columnId, { stack? })`                | `onColumnSortChange`       | Cycles a column ascending → descending → off. `stack` adds it to the sort instead of replacing it.                         |
+| `setColumnSort(sort)`                                   | `onColumnSortChange`       | Replaces the sort, naming the first column whose place or direction changed.                                               |
+| `toggleGroupBy(columnId)`                               | `onGroupByChange`          | Adds a column to the end of the group-by stack, or removes it.                                                             |
+| `moveGroupBy(columnId, beforeColumnId)`                 | `onGroupByChange`          | Puts a column in front of another in the stack, or at the end for `null`.                                                  |
+| `setGroupBy(groupBy)`                                   | `onGroupByChange`          | Replaces the stack, naming the first level that changed.                                                                   |
+| `toggleGroupExpansion(groupId)`                         | `onGroupExpansionChange`   | Collapses an expanded group, or expands a collapsed one.                                                                   |
+| `expandAllGroups()` / `collapseAllGroups()`             | `onGroupExpansionChange`   | Every group at once, reported with `groupId: null`.                                                                        |
+| `setGroupExpansion(expansion)`                          | `onGroupExpansionChange`   | Replaces the collapsed groups, reported with `groupId: null`.                                                              |
+| `goToPage(pageIndex)`                                   | `onPaginationChange`       | Moves to a page, clamped into range.                                                                                       |
+| `nextPage()` / `previousPage()`                         | `onPaginationChange`       | One page on or back.                                                                                                       |
+| `setPageSize(pageSize)`                                 | `onPaginationChange`       | Changes the page size and goes back to the first page.                                                                     |
+| `setPagination(pagination)`                             | `onPaginationChange`       | Replaces the page and page size as given.                                                                                  |
 
-The setters — `setColumnSort`, `setGroupBy`, `setGroupExpansion`, `setPagination` — also stop for a value equal to the current one, so setting what is already there reports nothing.
+Every `set*` action also stops for a value equal to the current one, so setting what is already there reports nothing.

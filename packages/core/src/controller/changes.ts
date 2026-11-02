@@ -33,14 +33,43 @@ export function changedEntryColumnId(
   return undefined;
 }
 
-/** Whether two id lists hold the same ids in the same order. */
-export function sameIds(
+/**
+ * The first id whose position differs between two orders — the column a
+ * whole-order change names, for the reason `changedEntryColumnId` gives.
+ */
+export function changedId(
   previous: readonly string[],
   next: readonly string[],
+): string | undefined {
+  const length = Math.max(previous.length, next.length);
+  for (let index = 0; index < length; index++) {
+    if (previous[index] !== next[index]) {
+      return next[index] ?? previous[index];
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Every key whose value differs between two keyed states — those `next`
+ * sets first, in its order, then those only `previous` had.
+ */
+export function changedKeys(
+  previous: Readonly<Record<string, unknown>>,
+  next: Readonly<Record<string, unknown>>,
+): readonly string[] {
+  const keys = new Set([...Object.keys(next), ...Object.keys(previous)]);
+  return [...keys].filter((key) => previous[key] !== next[key]);
+}
+
+/** Whether two lists hold the same items in the same order. */
+export function sameItems<Item>(
+  previous: readonly Item[],
+  next: readonly Item[],
 ): boolean {
   return (
     previous.length === next.length &&
-    previous.every((id, index) => id === next[index])
+    previous.every((item, index) => item === next[index])
   );
 }
 

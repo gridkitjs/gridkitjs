@@ -637,6 +637,11 @@ export type FilterEntry<Row> =
  */
 export type FilterState<Row> = readonly FilterEntry<Row>[];
 
+/** Reports a filter change whole — the filter to persist from. */
+export interface FilterChangeEvent<Row> {
+  readonly filter: FilterState<Row>;
+}
+
 /**
  * Ids selected, in the order they were selected — so the most recent is last,
  * and a consumer wanting only that reads `at(-1)` rather than tracking it

@@ -1,7 +1,11 @@
 import type { GridOptions } from "../options";
 import type {
   ColumnDefinition,
+  ColumnOrderState,
+  ColumnSizingState,
   ColumnSortState,
+  ColumnVisibilityState,
+  FilterState,
   GridState,
   GridView,
   GroupByState,
@@ -73,6 +77,61 @@ export interface GridController<Row, Node = string> {
    * change. Returns the function that unsubscribes it.
    */
   subscribe(listener: () => void): () => void;
+
+  /**
+   * Replaces the column widths. Reported through `onColumnResize` as the
+   * `"end"` of a resize of the first column whose width changed, at its new
+   * width — or, when its entry was removed, the width its definition gives
+   * it. Equal widths report nothing.
+   */
+  setColumnSizing(sizing: ColumnSizingState): void;
+  /**
+   * Sets one column's width, as a resize gesture does: `"move"` while the
+   * gesture lasts, `"end"` once it is over. Never skipped for an unchanged
+   * width, so a drag held against a column's minimum still reports every
+   * move.
+   */
+  resizeColumn(columnId: string, width: number, phase: "move" | "end"): void;
+  /**
+   * Ends a resize gesture by putting its column back as it was when the
+   * gesture began — `startSizing` is the sizing state then, `startWidth` the
+   * width the column was drawn at — keeping any other column's change made in
+   * the meantime. Reported as the gesture's `"end"`, at `startWidth`.
+   */
+  cancelColumnResize(
+    columnId: string,
+    startSizing: ColumnSizingState,
+    startWidth: number,
+  ): void;
+
+  /**
+   * Replaces the column order. Reported through `onColumnOrderChange` naming
+   * the first column whose position changed; an equal order reports nothing.
+   */
+  setColumnOrder(order: ColumnOrderState): void;
+  /**
+   * Moves a column in front of `beforeId`, or to the end when that is
+   * `null`, among every column — hidden ones keep their place. A move that
+   * changes nothing reports nothing.
+   */
+  moveColumn(columnId: string, beforeId: string | null): void;
+
+  /**
+   * Replaces the column visibility state. Reported through
+   * `onColumnVisibilityChange` with every column whose entry changed; an
+   * equal state reports nothing.
+   */
+  setColumnVisibility(visibility: ColumnVisibilityState): void;
+  /** Shows the given columns, each in the place it held when hidden. One report for the whole call. */
+  showColumns(columnIds: readonly string[]): void;
+  /** Hides the given columns. A hidden column still sorts, filters and groups. */
+  hideColumns(columnIds: readonly string[]): void;
+
+  /**
+   * Replaces the filter. Reported through `onFilterChange`; the same
+   * entries in the same order report nothing.
+   */
+  setFilter(filter: FilterState<Row>): void;
 
   /**
    * Replaces the sort. Reported through `onColumnSortChange` naming the
