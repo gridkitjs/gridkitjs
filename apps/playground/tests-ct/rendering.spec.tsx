@@ -302,6 +302,37 @@ test.describe("value formatting", () => {
     await expect(cell(root, 1, "active")).toHaveText("false");
   });
 
+  test("without a format or locale, numbers and dates print as they always have", async ({
+    mount,
+    page,
+  }) => {
+    const plainColumns: readonly ColumnDefinition<TypedRow>[] = [
+      { field: "id", width: 60 },
+      { field: "price", type: "currency", width: 120 },
+      { field: "due", type: "date", width: 200 },
+    ];
+    const root = await mountGrid(
+      mount,
+      <DataGrid
+        columns={plainColumns}
+        dataSource={typedRows}
+        label="Plain"
+        aggregates={[{ columnId: "price", fn: "sum" }]}
+      />,
+    );
+    const [due, total] = await page.evaluate(() => [
+      new Date(2024, 2, 15, 13, 5, 9).toLocaleString(),
+      (1237.5).toLocaleString(),
+    ]);
+
+    await expect(cell(root, 0, "price")).toHaveText("1234.5");
+    await expect(cell(root, 1, "price")).toHaveText("3");
+    await expect(cell(root, 0, "due")).toHaveText(due);
+    await expect(
+      root.locator('.grid-footer td[data-gridkit-column="price"]'),
+    ).toHaveText(total);
+  });
+
   test("a column's format and the grid's locale shape the text", async ({
     mount,
   }) => {
