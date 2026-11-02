@@ -106,6 +106,9 @@ Run settings, and moves confirmed decisions into the repo's docs where they belo
     every later phase uses the new name.
   - Flaky test: if timing-only, fix the test's waiting on a real signal; never
     `test.skip`/`test.fail`.
+  - (Asked during Phase 03) Value formatting is opt-in: dates and numbers go through `Intl`
+    only when the column has `format` or the grid has `locale`; otherwise they print exactly as
+    before the plan.
 
 ## Phases
 
@@ -119,8 +122,8 @@ phases). An effort word may follow (`opus xhigh`, `sonnet low`); none means `hig
 | --- | ---------------------------------------------------- | ---------------------------------------------------------------- | ----------- | ---------- | ----------- | --------------------------- | ---------------- |
 | 01  | Boundaries and hygiene                               | [phase-01-boundaries-hygiene.md](phase-01-boundaries-hygiene.md) | done        | none       | opus medium | refactor/boundaries-hygiene | 4ccb606..3c788d8 |
 | 02  | `resolveGridView` and the width-free pipeline        | [phase-02-grid-view.md](phase-02-grid-view.md)                   | done        | 01         | opus        | feat/grid-view              | 1ffa0c7..fa8df01 |
-| 03  | Column model: header, formatting, locale, visibility | [phase-03-column-model.md](phase-03-column-model.md)             | in-progress | 02         | opus        | feat/column-model           |                  |
-| 04  | `GridOptions` and `createGridController`             | [phase-04-controller.md](phase-04-controller.md)                 | todo        | 03         | opus xhigh  |                             |                  |
+| 03  | Column model: header, formatting, locale, visibility | [phase-03-column-model.md](phase-03-column-model.md)             | done        | 02         | opus        | feat/column-model           | 8bca2fc..6f0cf5b |
+| 04  | `GridOptions` and `createGridController`             | [phase-04-controller.md](phase-04-controller.md)                 | in-progress | 03         | opus xhigh  | feat/grid-controller        |                  |
 | 05  | Serialisable filters and the filter-editor model     | [phase-05-filters.md](phase-05-filters.md)                       | todo        | 04         | opus        |                             |                  |
 | 06  | Row hooks, simple multi-select, messages             | [phase-06-row-hooks-messages.md](phase-06-row-hooks-messages.md) | todo        | 04         | opus        |                             |                  |
 | 07  | `@gridkitjs/dom`: behaviours out of React            | [phase-07-dom-package.md](phase-07-dom-package.md)               | todo        | 04         | opus xhigh  |                             |                  |
@@ -129,8 +132,8 @@ Phases 05, 06 and 07 are independent of each other and may run in any order afte
 
 ## Now
 
-- **In progress:** 03
-- **Next:** 04
+- **In progress:** 04
+- **Next:** 05, 06, 07 (any order)
 - **Waiting on the user:** nothing
 
 ## Handoffs
@@ -196,6 +199,28 @@ from, and passes the relevant ones to the next sub-agent.)
 - Coverage gotcha: Playwright CT caches its bundle in `apps/playground/playwright/.cache` without
   keying on `VITE_COVERAGE`; delete that folder before `test:e2e:coverage` or it reports 0 %.
 
+### Phase 03
+
+- `ColumnDefinition` gained `header`, `format`, `valueFormatter` (`(value, row: Row | undefined)
+=> string`) and `hidden`; `DataGridProps` gained `locale` (`FormatLocale`).
+- `formatCellValue` (optional 4th `row` arg) is in plain mode unless `column.format !==
+undefined || locale !== undefined`; `formatAggregateValue` uses `toLocaleString()` for numbers
+  in plain mode. Both in `packages/core/src/util/format.ts`.
+- `GridState` has 8 slices; `columnVisibility` (required; `true` = shown, entries only for
+  changed columns) added. React holds it as `visibility` useState, changed through
+  `useColumnVisibility.ts`. `ColumnVisibilityEvent` is `{ columnIds, visibility }`.
+- New core exports: `formatCellValue`, `formatAggregateValue`, `FormatLocale`,
+  `resolveColumnHeaderText`, `isColumnVisible`, `applyColumnVisibility`, `setColumnVisibility`,
+  types `ColumnVisibilityState`, `ColumnVisibilityEvent`.
+- New react API: `defaultColumnVisibility`, `onColumnVisibilityChange`, `getColumnVisibility`,
+  `getDataColumns`, `showColumns`, `hideColumns`, `useColumnVisibilityState`, bound
+  `DataColumn<Row>`.
+- `view.columns` = visible columns, `view.dataColumns` = all. In `DataGrid.tsx`, drops apply to
+  `orderedIds` (every id) and resolve against `displayedIds` (visible ids).
+- Counts: 411 core Vitest, 209 Playwright CT.
+- Gotcha: the Bash tool strips backslashes (`\|` in markdown tables); edit those with
+  Edit/Write.
+
 ## Decisions to review
 
 (Choices sub-agents made that the user should look at, tagged with their phase.)
@@ -210,11 +235,20 @@ from, and passes the relevant ones to the next sub-agent.)
   Recommended: bump and rename them after the release that ships the rename.
 - [02] Column inference from rows stays in React for now (moving it into core needs a cast lint
   rejects); `view.mdx` says so. `resolveGridView` takes raw `rows` + `getRowId`.
+- [03] Boolean cells now read "true"/"false" (React used to render them empty, a defect); not
+  gated by the opt-in formatting rule. Agent recommends keeping it; Phase 06 `messages` could
+  make the text customisable.
+- [03] Without `format`/`locale`, a `type: "date"` cell prints date and time
+  (`toLocaleString()`), as before. Objects/arrays print as JSON (DESIGN said `String`), keeping
+  the old group-header output. A non-text `headerTemplate` on a dotted field is announced
+  "Application Id" (was "Application.Id"). `ColumnVisibilityEvent` carries `columnIds` (plural).
 
 ## Follow-ups
 
-- [phase 03] Once `ColumnDefinition.header` exists, switch `README.md` (~line 68) and
-  `packages/react/README.md` (~line 26) back from `headerTemplate: "Cost"` to `header: "Cost"`.
+- [phase 04] Move `locale` and visibility into `GridOptions` and the controller; add controlled
+  `columnVisibility` / `onColumnVisibilityChange` alongside `defaultColumnVisibility`.
+- [phase 06] Boolean text ("true"/"false") and the group header's "(blank)" are candidates for
+  `messages`.
 - [phase 07] Add `@gridkitjs/dom` to core's ESLint import ban and ban `react` in
   `packages/dom/**` (`eslint.config.mjs`).
 - [later] `test:e2e:coverage` reuses a stale uninstrumented CT bundle after `test:e2e` and
@@ -239,3 +273,6 @@ from, and passes the relevant ones to the next sub-agent.)
 - 2026-11-02 · phase 02 · started at 3c788d8 on feat/grid-view
 - 2026-11-02 · phase 02 · done · resolveGridView + memoised resolver, DataGrid reads view (1ffa0c7..fa8df01)
 - 2026-11-02 · phase 03 · started at fa8df01 on feat/column-model
+- 2026-11-02 · phase 03 · user chose opt-in formatting (plain unless format/locale)
+- 2026-11-02 · phase 03 · done · header, formatting, locale, visibility (8bca2fc..6f0cf5b)
+- 2026-11-02 · phase 04 · started on feat/grid-controller

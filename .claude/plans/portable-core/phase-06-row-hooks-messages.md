@@ -26,6 +26,8 @@ so a future renderer gets them by contract.
 
 ## Starting point
 
+- (From Phase 03) Boolean cell text ("true"/"false") and the group header's "(blank)" are
+  candidates for `messages`.
 - Rows render `data-gridkit-row-index` only; there is no row-id attribute and no
   `onRowDoubleClick`/`onRowClick`.
 - Selection intent: plain click `replace`, Ctrl/Cmd `toggle`, Shift `range` (`intentOf`);
