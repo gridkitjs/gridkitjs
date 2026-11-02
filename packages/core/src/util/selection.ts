@@ -179,17 +179,29 @@ export function toggleCellSelection(
   return isSameCell(selection, cell) ? null : cell;
 }
 
-/** The intent a click or key press carries, by the modifiers held with it. */
-export function intentOf(event: {
-  ctrlKey: boolean;
-  metaKey: boolean;
-  shiftKey: boolean;
-}): SelectIntent {
+/**
+ * The intent a click or key press carries, by the modifiers held with it.
+ *
+ * `toggleOnClick` makes the unmodified press a toggle — the
+ * `selectable.toggleOnClick` checklist behaviour — leaving Shift and Ctrl
+ * to mean what they always do.
+ */
+export function intentOf(
+  event: {
+    ctrlKey: boolean;
+    metaKey: boolean;
+    shiftKey: boolean;
+  },
+  options?: { toggleOnClick?: boolean | undefined },
+): SelectIntent {
   if (event.shiftKey) {
     return "range";
   }
   // Cmd on a Mac is Ctrl everywhere else, and both mean the same thing here.
-  return event.ctrlKey || event.metaKey ? "toggle" : "replace";
+  if (event.ctrlKey || event.metaKey) {
+    return "toggle";
+  }
+  return options?.toggleOnClick === true ? "toggle" : "replace";
 }
 
 /**

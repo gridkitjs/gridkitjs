@@ -49,7 +49,7 @@ Under the hood, an `IntersectionObserver` watches a sentinel row rendered at the
 
 ## The loading row
 
-While `isLoadingMore` is `true`, a "Loading more…" row renders above the sentinel. `loadingTemplate` replaces it, the same built-in-with-override-slot pattern `pager.template` follows for pagination's own UI:
+While `isLoadingMore` is `true`, a "Loading more…" row (`messages.loadingMore`) renders above the sentinel. `loadingTemplate` replaces it, the same built-in-with-override-slot pattern `pager.template` follows for pagination's own UI:
 
 ```tsx
 <DataGrid

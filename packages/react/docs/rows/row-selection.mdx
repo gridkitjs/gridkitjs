@@ -29,12 +29,28 @@ selectable.rows takes a SelectionMode — false, "single", or "multiple" — off
 | Prop                             | Type                                       | Default        | Description                                                                                                                                             |
 | -------------------------------- | ------------------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `selectable.rows`                | `false \| "single" \| "multiple"`          | `false`        | How many rows the user may select at once.                                                                                                              |
+| `selectable.toggleOnClick`       | `boolean`                                  | `false`        | Whether a plain click toggles a row instead of selecting it alone. See [toggling on click](#toggling-on-click).                                         |
 | `getRowId`                       | `(row: Row, index: number) => string`      | `row position` | A row's stable identity. Give one for data that sorts, filters, or pages, or a selection follows the position rather than the row.                      |
 | `defaultRowSelection`            | `SelectionState`                           |                | Row ids selected to start with, keyed as getRowId resolves them. Uncontrolled.                                                                          |
 | `rowSelection`                   | `SelectionState`                           |                | The selected row ids, controlled — a click asks for a change through the row callbacks instead of making it. See [controlled state](/docs/react/state). |
 | `onRowSelect / onRowsSelect`     | `(event) => void`                          |                | Once per row newly selected, and once per interaction with every row it selected.                                                                       |
 | `onRowDeselect / onRowsDeselect` | `(event) => void`                          |                | The deselecting counterpart of each, above.                                                                                                             |
 | `onRowSelectionChange`           | `(event: RowSelectionChangeEvent) => void` |                | Once per change with what it added, what it removed, and everything selected after — the one to persist from.                                           |
+
+## Toggling on click
+
+By default a plain click selects a row alone and <Kbd>Ctrl</Kbd>+click adds to the selection. `toggleOnClick` makes the plain click a toggle instead — a checklist, where the user picks rows one after another without holding a key:
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={rows}
+  getRowId={(row) => String(row.Id)}
+  selectable={{ rows: "multiple", toggleOnClick: true }}
+/>
+```
+
+Clicking a selected row deselects it. <Kbd>Shift</Kbd>+click still selects a range from the last row clicked, and <Kbd>Enter</Kbd> on a focused cell, which stands in for the plain click, toggles too. It applies to rows only: a column or cell click is unchanged.
 
 ## Payload shape
 

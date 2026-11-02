@@ -2,11 +2,13 @@ import {
   accessDotted,
   formatCellValue,
   type FormatLocale,
+  type GridMessages,
 } from "@gridkitjs/core";
 import { memo, type Ref } from "react";
 import type { ResolvedColumn } from "../DataGrid";
 import { ariaAttr } from "../ariaAttr";
 import { classNames } from "../classNames";
+import type { RowAttributes } from "../rowProps";
 import { tabIndexFor } from "../useGridNavigation";
 
 interface GridRowProps<Row> {
@@ -28,6 +30,12 @@ interface GridRowProps<Row> {
   cellsSelectable: boolean;
   /** The grid's `locale`, which a cell without a template is formatted for. */
   locale: FormatLocale;
+  /** A boolean cell's words, from `messages` — memoised on the two strings by `GridBody`. */
+  cellMessages: Pick<GridMessages, "booleanTrue" | "booleanFalse">;
+  /** The class `getRowProps` gave this row, `""` for none. */
+  rowClassName: string;
+  /** The `data-*` attributes `getRowProps` gave this row — the same object while they read the same, so they do not defeat `memo`. */
+  rowAttributes: RowAttributes;
   ref?: Ref<HTMLTableRowElement> | undefined;
 }
 
@@ -45,10 +53,16 @@ function GridRowComponent<Row>({
   rowsSelectable,
   cellsSelectable,
   locale,
+  cellMessages,
+  rowClassName,
+  rowAttributes,
   ref,
 }: GridRowProps<Row>) {
   return (
     <tr
+      // First, so the grid's own attributes below win over one of the same
+      // name: `GridBody` finds rows by them.
+      {...rowAttributes}
       ref={ref}
       role="row"
       // Two past the index: rows are counted from one, and the header is the
@@ -62,10 +76,17 @@ function GridRowComponent<Row>({
       // `sectionRowIndex`, which under virtualization no longer matches a
       // row's array position once a leading spacer `<tr>` shifts it.
       data-gridkit-row-index={rowIndex}
+      // The row's identity, for a test or a script to find it by however it
+      // has moved — the index above changes with every sort.
+      data-gridkit-row-id={rowId}
       // Omitted rather than `false` when rows cannot be selected, which would
       // otherwise have every row announce that it is not.
       {...ariaAttr(rowsSelectable, "aria-selected", selected)}
-      className={classNames("grid-row", selected ? "is-selected" : "")}
+      className={classNames(
+        "grid-row",
+        selected ? "is-selected" : "",
+        rowClassName,
+      )}
     >
       {columns.map(({ id, column, alignment }, columnIndex) => {
         // Resolved either way, so a template never has to walk the field path
@@ -100,7 +121,7 @@ function GridRowComponent<Row>({
                   rowId,
                   selected,
                 })
-              : formatCellValue(value, column, locale, row)}
+              : formatCellValue(value, column, locale, row, cellMessages)}
           </td>
         );
       })}

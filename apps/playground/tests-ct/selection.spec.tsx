@@ -214,6 +214,47 @@ test.describe("click intent", () => {
       await expect(rows.nth(i)).toHaveAttribute("aria-selected", "false");
     }
   });
+
+  test("with toggleOnClick, plain clicks build a selection up and take it down", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <DataGrid
+        columns={columns}
+        dataSource={buildRows(5)}
+        label="Toggle on click"
+        selectable={{ rows: "multiple", cells: "single", toggleOnClick: true }}
+      />,
+    );
+    const rows = root.locator("tbody tr");
+    for (const i of [0, 2, 3]) {
+      await rows.nth(i).locator("td").first().click();
+    }
+    for (const i of [0, 2, 3]) {
+      await expect(rows.nth(i)).toHaveAttribute("aria-selected", "true");
+    }
+    await expect(root.locator('tbody tr[aria-selected="true"]')).toHaveCount(3);
+
+    await rows.nth(2).locator("td").first().click();
+    await expect(rows.nth(2)).toHaveAttribute("aria-selected", "false");
+    // Cells keep their own click: a second click leaves the cell selected.
+    await expect(rows.nth(2).locator("td").first()).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    // Shift still takes a range, from the last click.
+    await rows
+      .nth(4)
+      .locator("td")
+      .first()
+      .click({ modifiers: ["Shift"] });
+    for (const i of [2, 3, 4]) {
+      await expect(rows.nth(i)).toHaveAttribute("aria-selected", "true");
+    }
+    await expect(rows.nth(0)).toHaveAttribute("aria-selected", "false");
+  });
 });
 
 test("a Shift-click range is re-measured from the last non-range anchor, not the previous range's end", async ({

@@ -3,6 +3,7 @@
     "overview",
     "data-grid",
     "accessibility",
+    "localization",
     "state",
     "events",
     "imperative-handle",

@@ -32,12 +32,12 @@ defineColumnsFromRows inspects your row data and infers a type and alignment per
 
 A column with no `cellTemplate` shows the text `formatCellValue` makes of its value, and its aggregates read the same way. Some values always read the same:
 
-| Value                 | Text                  |
-| --------------------- | --------------------- |
-| `null` / `undefined`  | Empty.                |
-| boolean               | `"true"` / `"false"`. |
-| string                | As-is.                |
-| plain object or array | JSON.                 |
+| Value                 | Text                                           |
+| --------------------- | ---------------------------------------------- |
+| `null` / `undefined`  | Empty.                                         |
+| boolean               | `"true"` / `"false"`, or the `messages` given. |
+| string                | As-is.                                         |
+| plain object or array | JSON.                                          |
 
 Dates and numbers are formatted through `Intl` only once something asks for it: the column has a `format`, or a locale is passed (the grid's `locale` prop). Without either they print as they always have, so a grid upgraded without touching its columns shows exactly what it did:
 
@@ -64,10 +64,10 @@ formatCellValue(1234.5, { field: "Price", type: "number" });
 // "1234.5" — no format, no locale
 ```
 
-| Function                                             | Type     | Description                                                                                                         |
-| ---------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
-| `formatCellValue(value, column, locale?, row?)`      | `string` | The text a value reads as in `column` — the default cell rendering, and what an export writes.                      |
-| `formatAggregateValue(value, spec, column, locale?)` | `string` | The text an aggregate result reads as. Counts read as plain numbers; everything else as one of the column's values. |
+| Function                                                   | Type     | Description                                                                                                                                                       |
+| ---------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `formatCellValue(value, column, locale?, row?, messages?)` | `string` | The text a value reads as in `column` — the default cell rendering, and what an export writes. `messages` gives a boolean's words (`booleanTrue`/`booleanFalse`). |
+| `formatAggregateValue(value, spec, column, locale?)`       | `string` | The text an aggregate result reads as. Counts read as plain numbers; everything else as one of the column's values.                                               |
 
 Formatters are built once per type, locale and `format` object and reused, so keep a column's `format` defined once rather than recreating it per render.
 

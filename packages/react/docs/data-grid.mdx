@@ -54,9 +54,12 @@ const [resizeMode, setResizeMode] = useState<ResizeMode>("fit");
 | `columns`                                      | `readonly ColumnDefinition<Row>[]`                          |                                  | Columns to render. Falls back to defineColumnsFromRows(dataSource) when omitted. See [column definition](/docs/react/column-definition) for every field.                                                                                                                                                  |
 | `dataSource`                                   | `readonly Row[]`                                            |                                  | The rows to render.                                                                                                                                                                                                                                                                                       |
 | `getRowId`                                     | `(row: Row, index: number) => string`                       | `row position`                   | A row's stable identity, for state keyed by it. Give one for data that sorts, filters, or pages.                                                                                                                                                                                                          |
+| `getRowProps`                                  | `(row: ResolvedRow<Row>) => RowProps`                       |                                  | A class and `data-*` attributes for each data row — `{ className?, attributes? }`. See [row props](#row-props).                                                                                                                                                                                           |
+| `onRowClick / onRowDoubleClick`                | `(event: RowPointerEvent<Row>) => void`                     |                                  | Called when a data row is clicked or double-clicked. See [events](/docs/react/events#row-clicks).                                                                                                                                                                                                         |
 | `label`                                        | `string`                                                    |                                  | The grid's accessible name, announced when it takes focus — without one a screen reader announces only "grid".                                                                                                                                                                                            |
 | `labelledBy`                                   | `string`                                                    |                                  | The id of an element naming the grid, for a heading already on the page. Takes precedence over label.                                                                                                                                                                                                     |
 | `locale`                                       | `string \| readonly string[]`                               | the browser's                    | The locale cells and aggregates without a template are formatted for, e.g. `"de-DE"`. Setting it turns on `Intl` formatting of dates and numbers in every column; without it, only a column with its own `format` is formatted. See [formatting values](/docs/react/column-definition#formatting-values). |
+| `messages`                                     | `Partial<GridMessages>`                                     | English                          | The grid's own strings — pager, group-by bar, loading row, boolean and blank values, live announcements — replaced key by key. See [localization](/docs/react/localization).                                                                                                                              |
 | `height`                                       | `number \| string`                                          |                                  | Bounds the row area's height, independently scrollable — the grid's own chrome stays outside it and always visible. A number is pixels; a string is a CSS length (e.g. `"60vh"`). Omitted, the row area's height stays content-driven.                                                                    |
 | `virtualized`                                  | `boolean`                                                   | `false`                          | Renders only the rows near the current scroll position rather than every row at once. Requires `height`. See [row virtualization](/docs/react/row-virtualization).                                                                                                                                        |
 | `overscan`                                     | `number`                                                    | `4`                              | Rows rendered outside the visible range on each side. Only meaningful with `virtualized` on.                                                                                                                                                                                                              |
@@ -107,6 +110,26 @@ const [resizeMode, setResizeMode] = useState<ResizeMode>("fit");
 | `cellSelection`                                | `CellSelectionState`                                        |                                  | The selected cell, controlled — `null` for none.                                                                                                                                                                                                                                                          |
 | `ref`                                          | `Ref<DataGridApi<Row>>`                                     |                                  | Imperative handle for reading live grid state and triggering focus/scroll/selection actions. See [Imperative handle](/docs/react/imperative-handle).                                                                                                                                                      |
 
+## Row props
+
+`getRowProps` gives each data row a class and `data-*` attributes worked out from the row — a class for your stylesheet to target, an attribute for a test or a script to find the row by. It takes the `ResolvedRow<Row>` and returns `{ className?, attributes? }`; group headers and summary rows are not passed to it. There is no inline `style`: styling belongs to the stylesheet, which the class already reaches.
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={rows}
+  getRowId={(row) => String(row.Id)}
+  getRowProps={({ row }) => ({
+    className: row.dueDate < today ? "is-overdue" : undefined,
+    attributes: { "data-status": row.status },
+  })}
+/>
+```
+
+It runs for each data row as the row renders, so keep it cheap. A row whose class and attributes read the same as last time is not redrawn for them, so an inline arrow returning a fresh object every time is fine.
+
+Every data row also carries `data-gridkit-row-id`, its id as `getRowId` resolves it, whether or not `getRowProps` is given — `tr[data-gridkit-row-id="42"]` finds a row however it has been sorted or paged. The grid's own `data-gridkit-*` attributes win over one of the same name from `getRowProps`.
+
 ## Scrollable layout
 
 Set `height` to bound the row area to a fixed size, independently scrollable, while the group-by bar, header, footer, and pager stay outside it and always visible:
@@ -129,7 +152,7 @@ Under the hood, the header, the rows, and (when `aggregates` is active) the gran
 - With the trailing edge focused, <Kbd>Alt</Kbd>+<Kbd>ArrowLeft</Kbd> / <Kbd>Alt</Kbd>+<Kbd>ArrowRight</Kbd> nudge the width; <Kbd>Escape</Kbd> cancels an in-progress resize.
 - Drag a header to reorder columns.
 - With a header focused, <Kbd>Ctrl</Kbd>+<Kbd>ArrowLeft</Kbd> / <Kbd>Ctrl</Kbd>+<Kbd>ArrowRight</Kbd> reorders it via keyboard; <Kbd>Escape</Kbd> cancels an in-progress drag.
-- Click a row, column, or cell to select it; <Kbd>Ctrl</Kbd>+click toggles, <Kbd>Shift</Kbd>+click takes a range.
+- Click a row, column, or cell to select it; <Kbd>Ctrl</Kbd>+click toggles, <Kbd>Shift</Kbd>+click takes a range. Under `selectable.toggleOnClick` a plain click toggles a row too.
 - <Kbd>Ctrl</Kbd>+<Kbd>A</Kbd> selects every row; <Kbd>Escape</Kbd> clears every
   selection.
 - Click a groupable header's group icon, or focus the header and press <Kbd>Alt</Kbd>+<Kbd>ArrowDown</Kbd>, to add or remove it from the group-by stack — or drag the header into the group-by bar, for a column that sets `groupByDraggable`.
