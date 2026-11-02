@@ -85,6 +85,19 @@ row-virtualization --repeat-each 5` and the same with `--workers 1`. Record pass
    Acceptance: 5/5 passes under `--repeat-each 5` with default workers on this machine.
 4. Report which it was, in one paragraph, in the phase report.
 
+### Part C: rename `DataGridComponent` → `DataGrid`
+
+Confirmed in pre-flight (pre-1.0 is the cheap moment). Breaking for consumers.
+
+1. Rename the exported component `DataGridComponent` to `DataGrid` in `packages/react` (source,
+   `src/index.ts`), along with any type named after it, and every use in `apps/playground`
+   (`src/`, `tests-ct/`, fixtures, `support/mountGrid.tsx`), READMEs, `AGENTS.md` and
+   `packages/*/docs/**/*.mdx`. Grep the repo for `DataGridComponent` (excluding `node_modules`,
+   `.history`, `dist`, `CHANGELOG.md`, `.claude/plans`) until nothing is left. No deprecated
+   alias: pre-1.0, a clean break with a changelog entry.
+2. Changeset: `react` minor, stating the break with a before/after import.
+3. Acceptance: full CI sequence and the Playwright suite green; `CHANGELOG.md` history untouched.
+
 ## Done when
 
 - [ ] Core compiles with `lib: ["ES2025"]`; `react` import in core is a lint error.
@@ -95,6 +108,7 @@ row-virtualization --repeat-each 5` and the same with `--workers 1`. Record pass
 - [ ] Stale "not implemented yet" wording removed from core comment and docs.
 - [ ] The virtualization spec passes repeatedly in a parallel run; cause reported.
 - [ ] Full CI sequence green; Playwright suite green.
+- [ ] `DataGridComponent` renamed to `DataGrid` everywhere, with a `react` minor changeset.
 - [ ] Code follows the master's quality bar (`AGENTS.md`).
 
 ## Verify
@@ -116,7 +130,7 @@ row-virtualization --repeat-each 5` and the same with `--workers 1`. Record pass
 
 ## Out of scope
 
-- Any API addition (`header` on columns is Phase 03). Any extraction (Phases 02+).
+- Any API addition other than the Part C rename (`header` on columns is Phase 03). Any extraction (Phases 02+).
 - Branch cleanup on `origin` (stale branches) — not code.
 
 ## Suggested commits
@@ -128,6 +142,8 @@ row-virtualization --repeat-each 5` and the same with `--workers 1`. Record pass
 - `docs: bring AGENTS.md in line with CI and tests`: AGENTS.md.
 - `docs(core): describe what core covers today`: index comment + overview.mdx.
 - `fix(react): …` or `test(playground): …`: Part B, depending on the finding.
+
+- `feat(react)!: rename DataGridComponent to DataGrid`: Part C, with changeset.
 
 ## Docs to update
 

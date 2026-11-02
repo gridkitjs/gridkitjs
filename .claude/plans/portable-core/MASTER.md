@@ -7,8 +7,8 @@
 > commit as they go and reply with the standard phase report; the delegator records each
 > report here. Written with the `master-plan` skill.
 
-- **Status:** not started (not started · in progress · done)
-- **Created:** 2026-11-01 · **Last updated:** 2026-11-01
+- **Status:** in progress (not started · in progress · done)
+- **Created:** 2026-11-01 · **Last updated:** 2026-11-02
 - **Goal:** Move GridKit's state, derived view and actions into a framework-free controller in
   `@gridkitjs/core`, and its browser behaviours into a new vanilla `@gridkitjs/dom` package, so
   `@gridkitjs/react` keeps only markup, templates and lifecycle glue and a future Angular/Vue
@@ -94,10 +94,18 @@ Run settings, and moves confirmed decisions into the repo's docs where they belo
 
 (Filled in by the delegator after pre-flight.)
 
-- **Branching:** <unset>
-- **Push / PRs at the end:** <unset>
-- **Phases to run:** <unset>
-- **Confirmed:** <decisions confirmed in pre-flight, or none yet>
+- **Branching:** one branch per phase, each stacked on the previous phase's branch (Phase 01
+  branches from `main`).
+- **Push / PRs at the end:** yes, via section 3 of the `ship` skill after the last phase.
+- **Phases to run:** all (01-07).
+- **Confirmed:**
+  - Controlled state is per slice (`columnSort` + `onColumnSortChange` alongside
+    `defaultColumnSort`), as DESIGN.md §5 records.
+  - `@gridkitjs/dom` is a public, published package versioned by changesets.
+  - Rename `DataGridComponent` → `DataGrid` **in this plan**: added to Phase 01 as Part C, so
+    every later phase uses the new name.
+  - Flaky test: if timing-only, fix the test's waiting on a real signal; never
+    `test.skip`/`test.fail`.
 
 ## Phases
 
@@ -123,7 +131,7 @@ Phases 05, 06 and 07 are independent of each other and may run in any order afte
 
 - **In progress:** none
 - **Next:** 01
-- **Waiting on the user:** pre-flight
+- **Waiting on the user:** nothing
 
 ## Handoffs
 
@@ -140,9 +148,9 @@ from, and passes the relevant ones to the next sub-agent.)
   toolbar → column chooser; filter UIs (`filterableColumns`, `filterMenu: { ui: "simple" |
 "excel" }`, an `excelFilter` preset) over the Phase 05 state; export model + CSV/JSON + print,
   then xlsx/PDF writers; the Mabis adapter lives in the Mabis repo, never here.
-- Rename `DataGridComponent` → `DataGrid` (pre-flight 5) if wanted.
 - `core` sort performance (precomputed sort keys, shared `Intl.Collator`) — not needed yet.
 
 ## Log
 
 - 2026-11-01 · plan · created
+- 2026-11-02 · pre-flight · answered; rename added to phase 01 as Part C
