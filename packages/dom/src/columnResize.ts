@@ -7,16 +7,16 @@ import {
 
 export interface ColumnResizeGestureHandlers {
   /** Every pointer move, with the width the column takes there. */
-  onMove(width: number): void;
+  readonly onMove: (width: number) => void;
   /**
    * The pointer was released. `width` is the width to commit, or `null` when
    * it ended where it started: a click on the handle — as each half of a
    * double-click is — is not a resize, and reporting one would fire a
    * spurious resize on every click.
    */
-  onEnd(width: number | null): void;
+  readonly onEnd: (width: number | null) => void;
   /** Escape, or a cancelled pointer: the column goes back to `session.startWidth`. */
-  onCancel(): void;
+  readonly onCancel: () => void;
 }
 
 /**

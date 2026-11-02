@@ -24,9 +24,9 @@ export interface InfiniteScroll {
    * call it after every render; a new sentinel or `rootMargin` restarts the
    * observer, and `isLoadingMore` going back to `false` re-checks at once.
    */
-  update(options: InfiniteScrollOptions): void;
+  readonly update: (options: InfiniteScrollOptions) => void;
   /** Stops watching for good. */
-  detach(): void;
+  readonly detach: () => void;
 }
 
 /**

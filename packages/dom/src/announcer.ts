@@ -4,9 +4,9 @@ export interface LiveAnnouncer {
    * Has assistive technology read `text` out, politely — after whatever it is
    * already saying. The same text twice in a row is read twice.
    */
-  announce(text: string): void;
+  readonly announce: (text: string) => void;
   /** Removes the live region. */
-  destroy(): void;
+  readonly destroy: () => void;
 }
 
 /** Whitespace to a screen reader, but a change to the text it is watching. */
