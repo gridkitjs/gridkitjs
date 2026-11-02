@@ -374,6 +374,7 @@ export default function GridBody<Row>({
       )}
       {visibleRows.map((entry) => {
         if (!("kind" in entry)) {
+          const rowProps = rowPropsOf(entry.rowId);
           return (
             <GridRow<Row>
               key={entry.rowId}
@@ -405,8 +406,8 @@ export default function GridBody<Row>({
               cellsSelectable={cellMode !== false}
               locale={locale}
               cellMessages={cellMessages}
-              rowClassName={rowPropsOf(entry.rowId).className}
-              rowAttributes={rowPropsOf(entry.rowId).attributes}
+              rowClassName={rowProps.className}
+              rowAttributes={rowProps.attributes}
             />
           );
         }
