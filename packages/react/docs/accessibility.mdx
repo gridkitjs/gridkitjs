@@ -79,6 +79,8 @@ A `role="status" aria-live="polite"` region, outside the table itself, reports c
 - **Group-by change** — adding, removing, or repositioning a level (via the header toggle, a header dropped on the bar, a dragged chip, or a chip's own `Ctrl+Arrow`) announces the column and, once two or more levels are stacked, its position ("key _n_ of _total_"); removing the last level announces that grouping was removed. Every path funnels through the same announcement, so a drag and a click read identically.
 - **Group expand/collapse** — a single group toggle announces "Group expanded"/"Group collapsed"; `expandAllGroups()`/`collapseAllGroups()` announce the whole-tree result instead ("All groups expanded"/"All groups collapsed").
 
+Each announcement's wording is a `messages` key, so it can be translated — see [localization](/docs/react/localization).
+
 ## See also
 
 - [DataGrid](/docs/react/data-grid) for the props these behaviors are built on.

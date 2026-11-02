@@ -5,6 +5,7 @@ import {
   type AggregateResults,
   type AggregateState,
   type FormatLocale,
+  type GridMessages,
 } from "@gridkitjs/core";
 import type { ColumnDefinition } from "../DataGrid";
 import { classNames } from "../classNames";
@@ -41,22 +42,29 @@ interface GridGroupRowProps<Row> {
   definitions: ReadonlyMap<string, ColumnDefinition<Row>>;
   /** The grid's `locale`, which values are formatted for. */
   locale: FormatLocale;
+  /** The words for a boolean or missing group value, from `messages` — memoised by `GridBody`. */
+  cellMessages: Pick<
+    GridMessages,
+    "booleanTrue" | "booleanFalse" | "blankGroupValue"
+  >;
   ref?: Ref<HTMLTableRowElement> | undefined;
 }
 
 /**
  * How a group's own value renders in its header: as the grouped column's
- * cells show it, except that a missing value reads "(blank)" — an empty
- * label would leave the group looking unnamed rather than named "nothing".
+ * cells show it, except that a missing value reads `blankGroupValue`
+ * ("(blank)") — an empty label would leave the group looking unnamed rather
+ * than named "nothing".
  */
 function formatGroupValue<Row>(
   value: unknown,
   column: ColumnDefinition<Row>,
   locale: FormatLocale,
+  messages: GridGroupRowProps<Row>["cellMessages"],
 ): string {
   return value === null || value === undefined
-    ? "(blank)"
-    : formatCellValue(value, column, locale);
+    ? messages.blankGroupValue
+    : formatCellValue(value, column, locale, undefined, messages);
 }
 
 function GridGroupRowComponent<Row>({
@@ -76,6 +84,7 @@ function GridGroupRowComponent<Row>({
   results,
   definitions,
   locale,
+  cellMessages,
   ref,
 }: GridGroupRowProps<Row>) {
   return (
@@ -128,7 +137,7 @@ function GridGroupRowComponent<Row>({
           />
           <span className="group-label">
             {resolveColumnLabel(groupColumn)}:{" "}
-            {formatGroupValue(value, groupColumn, locale)}
+            {formatGroupValue(value, groupColumn, locale, cellMessages)}
           </span>
           <span className="group-count">({count})</span>
           {aggregates.length > 0 && (

@@ -23,6 +23,30 @@ Every interaction reports through a callback prop rather than a ref or an event 
 | `onGroupExpansionChange`   | `(event: GroupExpansionEvent) => void`    | Fires once when the user expands or collapses a group, or every group at once.                                                                                                                                                            |
 | `onFilterChange`           | `(event: FilterChangeEvent<Row>) => void` | Fires once per filter change — today a `setFilter` call on the ref — with the whole `filter` to persist. See [column filtering](/docs/react/column-filtering).                                                                            |
 
+## Row clicks
+
+| Prop               | Type                                    | Description                                                                                                                                   |
+| ------------------ | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `onRowClick`       | `(event: RowPointerEvent<Row>) => void` | Fires on every click on a data row, after the click has changed the selection, so a handler reading it sees the new one.                      |
+| `onRowDoubleClick` | `(event: RowPointerEvent<Row>) => void` | Fires once per double-click on a data row — the usual "open this record" gesture. Its two clicks still fire `onRowClick` and select as usual. |
+
+Neither fires for a group header or a group's summary row; a click there expands or collapses the group. `RowPointerEvent<Row>` carries no DOM event, so a handler reads the same payload whichever renderer drew the row:
+
+| Field      | Type                                             | Description                                                                            |
+| ---------- | ------------------------------------------------ | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `row`      | `ResolvedRow<Row>`                               | The row clicked — its `rowId`, the `row` itself, and its position.                     |
+| `columnId` | `string                                          | null`                                                                                  | The column of the cell clicked, or `null` when the pointer was on no cell. |
+| `native`   | `{ ctrlKey, metaKey, shiftKey, altKey, button }` | The modifiers held and the button pressed, numbered as `MouseEvent.button` numbers it. |
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={rows}
+  getRowId={(row) => String(row.Id)}
+  onRowDoubleClick={({ row }) => openRecord(row.row)}
+/>
+```
+
 ## Selection
 
 | Prop                                                                                                | Type                                        | Description                                                                                                                               |

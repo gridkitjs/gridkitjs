@@ -2,6 +2,7 @@ import { createPortal } from "react-dom";
 import {
   resolveColumnLabel,
   resolveKeyboardDropTarget,
+  type GridMessages,
   type GroupByState,
 } from "@gridkitjs/core";
 import type { ColumnDefinition, ResolvedColumn } from "../DataGrid";
@@ -29,6 +30,7 @@ interface GroupByBarProps<Row> {
   headerDragBlocked: boolean;
   /** That header drag's own target within this bar, or `null`. */
   headerDropTarget: GroupByDropTarget | null;
+  messages: GridMessages;
 }
 
 /**
@@ -63,6 +65,7 @@ export default function GroupByBar<Row>({
   headerDragEligible,
   headerDragBlocked,
   headerDropTarget,
+  messages,
 }: GroupByBarProps<Row>) {
   const groupByIds = groupBy.map((entry) => entry.columnId);
 
@@ -107,11 +110,11 @@ export default function GroupByBar<Row>({
       )}
       data-gridkit-group-by-bar=""
       role="group"
-      aria-label="Grouped by"
+      aria-label={messages.groupByBarLabel}
     >
       {showPlaceholder && (
         <span className="group-by-bar-placeholder">
-          Drag a column here to group by it
+          {messages.groupByBarPlaceholder}
         </span>
       )}
       {groupBy.map((entry, index) => {
@@ -132,11 +135,11 @@ export default function GroupByBar<Row>({
             )}
             data-gridkit-group-chip={entry.columnId}
             tabIndex={0}
-            aria-label={
-              groupBy.length > 1
-                ? `${columnName(entry.columnId)}, level ${String(index + 1)} of ${String(groupBy.length)}`
-                : columnName(entry.columnId)
-            }
+            aria-label={messages.groupByChipLabel(
+              columnName(entry.columnId),
+              index + 1,
+              groupBy.length,
+            )}
             aria-keyshortcuts="Control+ArrowLeft Control+ArrowRight"
             onPointerDown={(event) => {
               chipDrag.startDrag(entry.columnId, event);
@@ -159,7 +162,7 @@ export default function GroupByBar<Row>({
             <button
               type="button"
               className="group-by-chip-remove"
-              aria-label={`Stop grouping by ${columnName(entry.columnId)}`}
+              aria-label={messages.removeGroupBy(columnName(entry.columnId))}
               onPointerDown={(event) => {
                 // Otherwise the chip's own `onPointerDown` sees this bubble
                 // up and starts a drag — the same reason the header's own

@@ -1,11 +1,20 @@
-import { useMemo, type RefObject } from "react";
+import {
+  useMemo,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type RefObject,
+} from "react";
 import {
   groupRowId,
   intentOf,
   type AggregateState,
   type DisplayRow,
   type FormatLocale,
+  type GridMessages,
+  type GridOptions,
   type GroupAggregateDisplay,
+  type ResolvedRow,
+  type RowPointerEvent,
 } from "@gridkitjs/core";
 import type {
   ColumnDefinition,
@@ -15,6 +24,7 @@ import type {
 import type { GridNavigationApi } from "../useGridNavigation";
 import type { DataGridController } from "../useGridController";
 import type { RowVirtualizerApi } from "../useRowVirtualizer";
+import { createRowPropsResolver } from "../rowProps";
 import {
   keyboardSelectIntent,
   type GridSelectionApi,
@@ -46,6 +56,10 @@ interface GridBodyProps<Row> {
   sentinelRef: RefObject<HTMLTableRowElement | null>;
   /** The grid's `locale`, which every cell and aggregate without a template is formatted for. */
   locale: FormatLocale;
+  getRowProps: GridOptions<Row>["getRowProps"];
+  onRowClick: GridOptions<Row>["onRowClick"];
+  onRowDoubleClick: GridOptions<Row>["onRowDoubleClick"];
+  messages: GridMessages;
 }
 
 /** Where a cell sits, read off the table's own indices rather than an attribute. */
@@ -172,8 +186,12 @@ export default function GridBody<Row>({
   infiniteScroll,
   sentinelRef,
   locale,
+  getRowProps,
+  onRowClick,
+  onRowDoubleClick,
+  messages,
 }: GridBodyProps<Row>) {
-  const { selectedCell, rowMode, cellMode } = selection;
+  const { selectedCell, rowMode, cellMode, toggleOnClick } = selection;
   const ariaMeta = useMemo(() => groupAriaMeta(rows), [rows]);
   // The full `rows` array otherwise — `virtualRange` is `null` whenever
   // `virtualized` is off, so this slice, and the spacer rows below, are a
@@ -182,6 +200,20 @@ export default function GridBody<Row>({
     virtualRange === null
       ? rows
       : rows.slice(virtualRange.startIndex, virtualRange.endIndex + 1);
+  const { booleanTrue, booleanFalse, blankGroupValue } = messages;
+  // Keyed on the strings rather than `messages`, so the memoised rows hold
+  // still under a `messages` object rebuilt on every render.
+  const cellMessages = useMemo(
+    () => ({ booleanTrue, booleanFalse, blankGroupValue }),
+    [booleanTrue, booleanFalse, blankGroupValue],
+  );
+  const [resolveRowProps] = useState(() => createRowPropsResolver<Row>());
+  const rowPropsOf = resolveRowProps(
+    visibleRows.filter(
+      (entry): entry is ResolvedRow<Row> => !("kind" in entry),
+    ),
+    getRowProps,
+  );
 
   /** The row and cell an event addresses, resolved once for every handler. */
   function targetOf(
@@ -200,14 +232,58 @@ export default function GridBody<Row>({
     columnId: string,
     modifiers: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean },
   ): void {
-    const intent = intentOf(modifiers);
     // Independent of each other: selecting a cell says nothing about its row,
-    // so a grid with both on reports both.
+    // so a grid with both on reports both. `toggleOnClick` is the rows' own.
     if (rowMode !== false) {
-      selection.selectRow(rowId, intent);
+      selection.selectRow(rowId, intentOf(modifiers, { toggleOnClick }));
     }
     if (cellMode !== false) {
-      selection.selectCell({ rowId, columnId }, intent);
+      selection.selectCell({ rowId, columnId }, intentOf(modifiers));
+    }
+  }
+
+  /**
+   * What `onRowClick`/`onRowDoubleClick` are told of a pointer event on a
+   * data row — `null` off one, a group header included. Unlike `targetOf`
+   * it needs no cell: the row alone is enough to report.
+   */
+  function rowPointerEventOf(
+    event: ReactMouseEvent,
+  ): RowPointerEvent<Row> | null {
+    if (!(event.target instanceof Element)) {
+      return null;
+    }
+    const row = event.target.closest("tr[data-gridkit-row-index]");
+    const index = row === null ? null : rowIndexOf(row);
+    const entry = index === null ? undefined : rows[index];
+    if (entry === undefined || "kind" in entry) {
+      return null;
+    }
+    const cell = event.target.closest("td[data-gridkit-column]");
+    return {
+      row: entry,
+      columnId:
+        cell?.parentElement === row
+          ? cell.getAttribute("data-gridkit-column")
+          : null,
+      native: {
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+        shiftKey: event.shiftKey,
+        altKey: event.altKey,
+        button: event.button,
+      },
+    };
+  }
+
+  function reportRowPointer(
+    event: ReactMouseEvent,
+    callback: ((event: RowPointerEvent<Row>) => void) | undefined,
+  ): void {
+    if (callback === undefined) return;
+    const pointer = rowPointerEventOf(event);
+    if (pointer !== null) {
+      callback(pointer);
     }
   }
 
@@ -232,8 +308,15 @@ export default function GridBody<Row>({
           return;
         }
         const found = targetOf(event.target);
-        if (found === null) return;
-        select(found.rowId, found.position.columnId, event);
+        if (found !== null) {
+          select(found.rowId, found.position.columnId, event);
+        }
+        // After selecting, so a handler reading the selection sees this
+        // click's.
+        reportRowPointer(event, onRowClick);
+      }}
+      onDoubleClick={(event) => {
+        reportRowPointer(event, onRowDoubleClick);
       }}
       onKeyDown={(event) => {
         const group = groupRowFrom(event.target);
@@ -291,6 +374,7 @@ export default function GridBody<Row>({
       )}
       {visibleRows.map((entry) => {
         if (!("kind" in entry)) {
+          const rowProps = rowPropsOf(entry.rowId);
           return (
             <GridRow<Row>
               key={entry.rowId}
@@ -321,6 +405,9 @@ export default function GridBody<Row>({
               rowsSelectable={rowMode !== false}
               cellsSelectable={cellMode !== false}
               locale={locale}
+              cellMessages={cellMessages}
+              rowClassName={rowProps.className}
+              rowAttributes={rowProps.attributes}
             />
           );
         }
@@ -368,6 +455,7 @@ export default function GridBody<Row>({
             results={entry.aggregates}
             definitions={definitions}
             locale={locale}
+            cellMessages={cellMessages}
             // Ignores `nav.focus.columnIndex`: with only one cell in this
             // row, whether it holds the tab stop depends on `rowIndex`
             // alone.
@@ -401,7 +489,7 @@ export default function GridBody<Row>({
               <td colSpan={columns.length} className="grid-loading-cell">
                 {infiniteScroll.loadingTemplate
                   ? infiniteScroll.loadingTemplate()
-                  : "Loading more…"}
+                  : messages.loadingMore}
               </td>
             </tr>
           )}

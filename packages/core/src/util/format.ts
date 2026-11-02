@@ -1,3 +1,4 @@
+import type { GridMessages } from "../messages";
 import type { AggregateSpec, ColumnDefinition, ColumnType } from "../types";
 
 /** The locale(s) values are formatted for — `undefined` is the runtime's own. */
@@ -189,8 +190,9 @@ function formatOther(value: unknown): string {
  * cannot disagree.
  *
  * A `valueFormatter` decides outright. `null`/`undefined` read `""`, a
- * boolean `"true"`/`"false"`, a string as it is, a plain object or array as
- * JSON.
+ * boolean `"true"`/`"false"` — or `messages.booleanTrue`/`booleanFalse`
+ * when given, for a grid speaking another language — a string as it is, a
+ * plain object or array as JSON.
  *
  * Dates and numbers are formatted through `Intl` only once asked to — the
  * column has a `format`, or a `locale` is given. Until then they print as a
@@ -213,12 +215,16 @@ export function formatCellValue<Row>(
   column: ColumnDefinition<Row, unknown>,
   locale?: FormatLocale,
   row?: Row,
+  messages?: Pick<GridMessages, "booleanTrue" | "booleanFalse">,
 ): string {
   if (column.valueFormatter !== undefined) {
     return column.valueFormatter(value, row);
   }
   if (value === null || value === undefined) {
     return "";
+  }
+  if (typeof value === "boolean" && messages !== undefined) {
+    return value ? messages.booleanTrue : messages.booleanFalse;
   }
   const { type, format } = column;
   const formatted = format !== undefined || locale !== undefined;
