@@ -2,7 +2,11 @@
 // ./support/coverage rather than directly from the CT package — see that
 // file for why.
 import type { MountResult } from "@playwright/experimental-ct-react";
-import type { ColumnDefinition, ColumnSortState } from "@gridkitjs/core";
+import type {
+  ColumnDefinition,
+  ColumnSortState,
+  ColumnVisibilityEvent,
+} from "@gridkitjs/core";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
 import ImperativeApiGrid from "./support/ImperativeApiGrid";
@@ -31,6 +35,8 @@ interface Status {
   rowIds: string[];
   pageRowIds: string[];
   columnIds: string[];
+  dataColumnIds: string[];
+  columnVisibility: Record<string, boolean>;
   columnSizing: Record<string, number>;
   columnOrder: readonly string[];
   columnSort: ColumnSortState;
@@ -202,4 +208,123 @@ test("scrollToColumn scrolls the column into view horizontally", async ({
   await expect
     .poll(async () => viewport.evaluate((el) => el.scrollLeft))
     .toBeGreaterThan(0);
+});
+
+test.describe("column visibility", () => {
+  interface WideRow {
+    id: string;
+    name: string;
+    region: string;
+    notes: string;
+  }
+
+  const wideColumns: readonly ColumnDefinition<WideRow>[] = [
+    { field: "id", width: 80 },
+    { field: "name", width: 120 },
+    { field: "region", width: 100 },
+    { field: "notes", width: 120, hidden: true },
+  ];
+
+  const wideRows: WideRow[] = [
+    { id: "row-a", name: "Alpha", region: "West", notes: "first" },
+    { id: "row-b", name: "Bravo", region: "East", notes: "second" },
+  ];
+
+  function headerIds(root: MountResult) {
+    return root
+      .locator("thead th")
+      .evaluateAll((cells) =>
+        cells.map((cell) => cell.getAttribute("data-gridkit-column")),
+      );
+  }
+
+  test("hideColumns drops a column and showColumns returns it to its place, one event each", async ({
+    mount,
+  }) => {
+    const events: ColumnVisibilityEvent[] = [];
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={wideColumns}
+        dataSource={wideRows}
+        label="Visibility"
+        visibilityColumnIds={["name"]}
+        onColumnVisibilityChange={(event) => {
+          events.push(event);
+        }}
+      />,
+    );
+    const grid = root.getByRole("grid");
+
+    expect(await headerIds(root)).toEqual(["id", "name", "region"]);
+    await expect(grid).toHaveAttribute("aria-colcount", "3");
+
+    await root.getByRole("button", { name: "hide-columns" }).click();
+    await expect(root.locator("thead th")).toHaveCount(2);
+    await expect(grid).toHaveAttribute("aria-colcount", "2");
+    await expect(root.locator("colgroup").first().locator("col")).toHaveCount(
+      2,
+    );
+    await expect.poll(() => events.length).toBe(1);
+    expect(events[0]).toEqual({
+      columnIds: ["name"],
+      visibility: { name: false },
+    });
+
+    await root.getByRole("button", { name: "show-columns" }).click();
+    await expect(root.locator("thead th")).toHaveCount(3);
+    expect(await headerIds(root)).toEqual(["id", "name", "region"]);
+    await expect.poll(() => events.length).toBe(2);
+    expect(events[1]?.visibility).toEqual({ name: true });
+
+    // Showing what is already shown changes nothing and reports nothing.
+    await root.getByRole("button", { name: "show-columns" }).click();
+    await root.getByRole("button", { name: "report" }).click();
+    expect(events).toHaveLength(2);
+  });
+
+  test("a column hidden by its definition stays a data column and can be shown", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={wideColumns}
+        dataSource={wideRows}
+        label="Hidden by definition"
+        visibilityColumnIds={["notes"]}
+      />,
+    );
+
+    await root.getByRole("button", { name: "report" }).click();
+    let status = await readStatus(root);
+    expect(status.columnIds).toEqual(["id", "name", "region"]);
+    expect(status.dataColumnIds).toEqual(["id", "name", "region", "notes"]);
+    expect(status.columnVisibility).toEqual({});
+
+    await root.getByRole("button", { name: "show-columns" }).click();
+    await root.getByRole("button", { name: "report" }).click();
+    status = await readStatus(root);
+    expect(status.columnIds).toEqual(["id", "name", "region", "notes"]);
+    expect(status.columnVisibility).toEqual({ notes: true });
+  });
+
+  test("defaultColumnVisibility starts a column hidden, and a sort on it still applies", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={wideColumns}
+        dataSource={wideRows}
+        label="Default visibility"
+        defaultColumnVisibility={{ region: false }}
+        defaultColumnSort={[{ columnId: "region", direction: "asc" }]}
+      />,
+    );
+
+    expect(await headerIds(root)).toEqual(["id", "name"]);
+    await root.getByRole("button", { name: "report" }).click();
+    expect((await readStatus(root)).rowIds).toEqual(["row-b", "row-a"]);
+  });
 });

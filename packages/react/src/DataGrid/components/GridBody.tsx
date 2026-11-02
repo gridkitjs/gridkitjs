@@ -4,9 +4,14 @@ import {
   intentOf,
   type AggregateState,
   type DisplayRow,
+  type FormatLocale,
   type GroupAggregateDisplay,
 } from "@gridkitjs/core";
-import type { InfiniteScrollConfig, ResolvedColumn } from "../DataGrid";
+import type {
+  ColumnDefinition,
+  InfiniteScrollConfig,
+  ResolvedColumn,
+} from "../DataGrid";
 import type { GridNavigationApi } from "../useGridNavigation";
 import type { RowGroupingApi } from "../useRowGrouping";
 import type { RowVirtualizerApi } from "../useRowVirtualizer";
@@ -20,6 +25,8 @@ import GridRow from "./GridRow";
 
 interface GridBodyProps<Row> {
   columns: readonly ResolvedColumn<Row>[];
+  /** Every column's definition by id, hidden ones included — a grid may group or aggregate by a column it does not show. */
+  definitions: ReadonlyMap<string, ColumnDefinition<Row>>;
   rows: readonly DisplayRow<Row>[];
   /** The column being resized, so its cells outline with its header. */
   activeColumnId: string | null;
@@ -36,6 +43,8 @@ interface GridBodyProps<Row> {
   infiniteScroll: InfiniteScrollConfig | undefined;
   /** Ref the sentinel row attaches to — owned and observed by `DataGrid.tsx`'s `useInfiniteScroll`, not by this component. */
   sentinelRef: RefObject<HTMLTableRowElement | null>;
+  /** The grid's `locale`, which every cell and aggregate without a template is formatted for. */
+  locale: FormatLocale;
 }
 
 /** Where a cell sits, read off the table's own indices rather than an attribute. */
@@ -150,6 +159,7 @@ function groupAriaMeta<Row>(
  */
 export default function GridBody<Row>({
   columns,
+  definitions,
   rows,
   activeColumnId,
   nav,
@@ -160,6 +170,7 @@ export default function GridBody<Row>({
   virtualRange,
   infiniteScroll,
   sentinelRef,
+  locale,
 }: GridBodyProps<Row>) {
   const { selectedCell, rowMode, cellMode } = selection;
   const ariaMeta = useMemo(() => groupAriaMeta(rows), [rows]);
@@ -308,6 +319,7 @@ export default function GridBody<Row>({
               }
               rowsSelectable={rowMode !== false}
               cellsSelectable={cellMode !== false}
+              locale={locale}
             />
           );
         }
@@ -324,6 +336,7 @@ export default function GridBody<Row>({
               results={entry.aggregates}
               aggregates={aggregates}
               columns={columns}
+              locale={locale}
             />
           );
         }
@@ -335,9 +348,10 @@ export default function GridBody<Row>({
             columnCount={columns.length}
             groupId={entry.groupId}
             level={entry.level}
-            columnLabel={
-              columns.find((column) => column.id === entry.columnId)?.label ??
-              entry.columnId
+            // A grouping by a column the grid does not have reads its value
+            // by its kind alone.
+            groupColumn={
+              definitions.get(entry.columnId) ?? { field: entry.columnId }
             }
             value={entry.value}
             expanded={entry.expanded}
@@ -351,7 +365,8 @@ export default function GridBody<Row>({
             // showing them twice would be redundant.
             aggregates={groupAggregateDisplay === "inline" ? aggregates : []}
             results={entry.aggregates}
-            columns={columns}
+            definitions={definitions}
+            locale={locale}
             // Ignores `nav.focus.columnIndex`: with only one cell in this
             // row, whether it holds the tab stop depends on `rowIndex`
             // alone.

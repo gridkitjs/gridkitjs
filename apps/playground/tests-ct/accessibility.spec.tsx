@@ -5,6 +5,7 @@ import type { ColumnDefinition } from "@gridkitjs/core";
 import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
+import HeaderTextGrid from "./support/HeaderTextGrid";
 
 interface Row {
   id: string;
@@ -260,4 +261,27 @@ test("a plain single-row selection leaves the live region unchanged; a multi-row
     .first()
     .click({ modifiers: ["Shift"] });
   await expect(status).toHaveText("3 rows selected");
+});
+
+test("an announcement names a column by its header text, not its headerTemplate markup", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <HeaderTextGrid
+      dataSource={[
+        { id: "a", cost: 2 },
+        { id: "b", cost: 1 },
+      ]}
+      label="Header text"
+      sortableColumns
+    />,
+  );
+
+  const costHeader = root.locator('th[data-gridkit-column="cost"]');
+  await expect(costHeader).toContainText("Cost (EUR)");
+  await costHeader.locator(".header-sort-toggle").click();
+  await expect(root.locator('[role="status"]')).toHaveText(
+    "Cost sorted ascending",
+  );
 });

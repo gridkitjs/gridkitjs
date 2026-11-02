@@ -1,8 +1,12 @@
 import { memo, type Ref } from "react";
-import type { AggregateResults, AggregateState } from "@gridkitjs/core";
+import type {
+  AggregateResults,
+  AggregateState,
+  FormatLocale,
+} from "@gridkitjs/core";
 import type { ResolvedColumn } from "../DataGrid";
 import { classNames } from "../classNames";
-import { formatAggregateValue } from "./formatAggregateValue";
+import { renderAggregate } from "./renderAggregate";
 
 interface GridGroupSummaryRowProps<Row> {
   groupId: string;
@@ -16,6 +20,8 @@ interface GridGroupSummaryRowProps<Row> {
   results: AggregateResults;
   aggregates: AggregateState<Row>;
   columns: readonly ResolvedColumn<Row>[];
+  /** The grid's `locale`, which values are formatted for. */
+  locale: FormatLocale;
   ref?: Ref<HTMLTableRowElement> | undefined;
 }
 
@@ -45,6 +51,7 @@ function GridGroupSummaryRowComponent<Row>({
   results,
   aggregates,
   columns,
+  locale,
   ref,
 }: GridGroupSummaryRowProps<Row>) {
   return (
@@ -65,7 +72,6 @@ function GridGroupSummaryRowComponent<Row>({
         const specs = aggregates.filter(
           (candidate) => candidate.columnId === entry.id,
         );
-        const { column } = entry;
 
         return (
           <td
@@ -83,12 +89,15 @@ function GridGroupSummaryRowComponent<Row>({
               />
             )}
             {specs
-              .map((spec) => {
-                const value = results.get(spec.id ?? spec.columnId);
-                return column.footerTemplate
-                  ? column.footerTemplate({ value, rows: [] })
-                  : formatAggregateValue(value);
-              })
+              .map((spec) =>
+                renderAggregate(
+                  results.get(spec.id ?? spec.columnId),
+                  spec,
+                  entry.column,
+                  [],
+                  locale,
+                ),
+              )
               .flatMap((rendered, index) =>
                 index === 0 ? [rendered] : [", ", rendered],
               )}

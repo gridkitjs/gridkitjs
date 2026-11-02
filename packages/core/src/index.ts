@@ -1,7 +1,8 @@
 // Framework-agnostic grid logic: column inference, sizing, ordering, selection,
 // sorting, the filtering engine, grouping, aggregates, paging, the composed
-// view, virtualization math and keyboard navigation. Kept free of React and
-// the DOM so it is testable in Node and reusable from any renderer.
+// view, value formatting, virtualization math and keyboard navigation. Kept
+// free of React and the DOM so it is testable in Node and reusable from any
+// renderer.
 export type {
   AggregateFn,
   AggregateResults,
@@ -31,6 +32,8 @@ export type {
   ColumnSortState,
   ColumnsSelectEvent,
   ColumnType,
+  ColumnVisibilityEvent,
+  ColumnVisibilityState,
   ColumnWrapConfig,
   DataColumn,
   DisplayRow,
@@ -80,6 +83,7 @@ export {
   buildKeyShortcuts,
   defineColumnsFromRows,
   getColumnId,
+  resolveColumnHeaderText,
   resolveColumnLabel,
   resolveRowId,
 } from "./util/grid";
@@ -153,6 +157,13 @@ export { paginateRows } from "./util/paging";
 export type { PaginationWindowEntry } from "./util/paginationWindow";
 export { paginationWindow } from "./util/paginationWindow";
 export { computeAggregates, withGroupAggregates } from "./util/aggregation";
+export {
+  applyColumnVisibility,
+  isColumnVisible,
+  setColumnVisibility,
+} from "./util/visibility";
 export { createGridViewResolver, resolveGridView } from "./util/view";
+export type { FormatLocale } from "./util/format";
+export { formatAggregateValue, formatCellValue } from "./util/format";
 export type { RowHeights, VisibleRange } from "./util/virtualization";
 export { visibleRange } from "./util/virtualization";

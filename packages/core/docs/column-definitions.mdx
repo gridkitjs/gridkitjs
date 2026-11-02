@@ -1,28 +1,75 @@
 ---
 title: "Column definitions"
-description: "Inferring columns from row data with defineColumnsFromRows."
+description: "The column definition shape, formatting values as text, and inferring columns from row data."
 ---
 
 defineColumnsFromRows inspects your row data and infers a type and alignment per field, one level into nested objects. Use it as a starting point, then override or extend individual columns.
 
 ## Column definition shape
 
-| Prop              | Type                                          | Description                                                                                |
-| ----------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `field`           | `FieldPath<Row> \| string`                    | Path to this column's value, e.g. "Application.Id".                                        |
-| `id`              | `string`                                      | Stable identity for sizing/order state. Defaults to field.                                 |
-| `headerTemplate`  | `Node \| (() => Node)`                        | Header content, or a function returning it at render time.                                 |
-| `cellTemplate`    | `(context: CellTemplateContext<Row>) => Node` | Renders this column's cells in place of the raw value.                                     |
-| `type`            | `ColumnType`                                  | The value type of this column's cells, e.g. "currency".                                    |
-| `alignment`       | `"left" \| "center" \| "right"`               | Alignment of this column's cells. Falls back to type.                                      |
-| `width`           | `number`                                      | Width in px this column starts at.                                                         |
-| `minWidth`        | `number`                                      | Lower bound a resize may not drag below.                                                   |
-| `maxWidth`        | `number`                                      | Upper bound a resize may not drag above.                                                   |
-| `resizable`       | `boolean`                                     | Whether this column can be resized, overriding the grid-level default.                     |
-| `reorderable`     | `boolean`                                     | Whether this column can be dragged to a new position, overriding the grid-level default.   |
-| `wrap`            | `{ header?, cells? }`                         | Lets this column's header and/or cell text wrap onto multiple lines instead of truncating. |
-| `headerClassName` | `string`                                      | Extra class names appended to this column's th.                                            |
-| `cellClassName`   | `string`                                      | Extra class names appended to this column's td, on every row.                              |
+| Prop              | Type                                                     | Description                                                                                                                                                |
+| ----------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `field`           | `FieldPath<Row> \| string`                               | Path to this column's value, e.g. "Application.Id".                                                                                                        |
+| `id`              | `string`                                                 | Stable identity for sizing/order state. Defaults to field.                                                                                                 |
+| `header`          | `string`                                                 | The column name as plain text. Shown when there is no headerTemplate, and used for announcements either way.                                               |
+| `headerTemplate`  | `Node \| (() => Node)`                                   | Header content, or a function returning it at render time.                                                                                                 |
+| `cellTemplate`    | `(context: CellTemplateContext<Row>) => Node`            | Renders this column's cells in place of the formatted value.                                                                                               |
+| `type`            | `ColumnType`                                             | The value type of this column's cells, e.g. "currency".                                                                                                    |
+| `format`          | `Intl.NumberFormatOptions \| Intl.DateTimeFormatOptions` | Intl options for how values read as text — see Formatting values below.                                                                                    |
+| `valueFormatter`  | `(value: unknown, row: Row \| undefined) => string`      | Turns a value into its text, in place of format and type. `row` is `undefined` for an aggregate or a group value.                                          |
+| `alignment`       | `"left" \| "center" \| "right"`                          | Alignment of this column's cells. Falls back to type.                                                                                                      |
+| `width`           | `number`                                                 | Width in px this column starts at.                                                                                                                         |
+| `minWidth`        | `number`                                                 | Lower bound a resize may not drag below.                                                                                                                   |
+| `maxWidth`        | `number`                                                 | Upper bound a resize may not drag above.                                                                                                                   |
+| `resizable`       | `boolean`                                                | Whether this column can be resized, overriding the grid-level default.                                                                                     |
+| `reorderable`     | `boolean`                                                | Whether this column can be dragged to a new position, overriding the grid-level default.                                                                   |
+| `wrap`            | `{ header?, cells? }`                                    | Lets this column's header and/or cell text wrap onto multiple lines instead of truncating.                                                                 |
+| `headerClassName` | `string`                                                 | Extra class names appended to this column's th.                                                                                                            |
+| `cellClassName`   | `string`                                                 | Extra class names appended to this column's td, on every row.                                                                                              |
+| `hidden`          | `boolean`                                                | Whether the column starts out hidden. It still sorts, filters and groups; `columnVisibility` state overrides it. See [the view pipeline](/docs/core/view). |
+
+## Formatting values
+
+A column with no `cellTemplate` shows the text `formatCellValue` makes of its value, and its aggregates read the same way. Some values always read the same:
+
+| Value                 | Text                  |
+| --------------------- | --------------------- |
+| `null` / `undefined`  | Empty.                |
+| boolean               | `"true"` / `"false"`. |
+| string                | As-is.                |
+| plain object or array | JSON.                 |
+
+Dates and numbers are formatted through `Intl` only once something asks for it: the column has a `format`, or a locale is passed (the grid's `locale` prop). Without either they print as they always have, so a grid upgraded without touching its columns shows exactly what it did:
+
+| Value                    | Without `format` or locale                                                  | With `format` or locale                                                                                                                       |
+| ------------------------ | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Date`                   | `toLocaleString()` — date and time.                                         | `Intl.DateTimeFormat`: the date alone under `"date"`, the time alone under `"time"`, both otherwise.                                          |
+| number, numeric `type`   | As-is — `1234.5`. An aggregate reads through `toLocaleString()`: `1,234.5`. | `Intl.NumberFormat`. `"currency"` shows a symbol once `format.currency` names one, else two fraction digits; `"percent"` reads `0.25` as 25%. |
+| number, any other `type` | As-is — `1001`, not `1,001`.                                                | As-is.                                                                                                                                        |
+
+`format` is passed to the `Intl` constructor with the locale. Number options are laid over the type's defaults, so `{ maximumFractionDigits: 0 }` on a currency column keeps the symbol; date options replace the defaults outright, since `dateStyle` cannot be combined with individual fields. A `valueFormatter` decides outright. A `count` or `countDistinct` aggregate is a number of rows, so it always reads as a plain number.
+
+```ts
+import { formatCellValue } from "@gridkitjs/core";
+
+formatCellValue(
+  1234.5,
+  { field: "Price", type: "currency", format: { currency: "EUR" } },
+  "de-DE",
+);
+// "1.234,50 €"
+formatCellValue(new Date(2024, 2, 15), { field: "Due", type: "date" }, "en-GB");
+// "15/03/2024"
+formatCellValue(1234.5, { field: "Price", type: "number" });
+// "1234.5" — no format, no locale
+```
+
+| Function                                             | Type     | Description                                                                                                         |
+| ---------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
+| `formatCellValue(value, column, locale?, row?)`      | `string` | The text a value reads as in `column` — the default cell rendering, and what an export writes.                      |
+| `formatAggregateValue(value, spec, column, locale?)` | `string` | The text an aggregate result reads as. Counts read as plain numbers; everything else as one of the column's values. |
+
+Formatters are built once per type, locale and `format` object and reused, so keep a column's `format` defined once rather than recreating it per render.
 
 ## Inferred columns
 
@@ -39,10 +86,11 @@ const columns = defineColumnsFromRows(rows);
 <DataGrid columns={columns} dataSource={rows} borders="horizontal" />;
 ```
 
-| Function                          | Type                               | Description                                                                                     |
-| --------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `defineColumnsFromRows(rows)`     | `readonly ColumnDefinition<Row>[]` | Infers a type and alignment per field, one level into nested objects.                           |
-| `accessDotted(obj, path)`         | `unknown`                          | Reads a value at a dotted path, e.g. "Application.Id".                                          |
-| `alignmentForType(type)`          | `ColumnAlignment`                  | Alignment a column type defaults to — "right" for numbers.                                      |
-| `resolveColumnLabel(column)`      | `string`                           | The label a column's header falls back to when it sets no headerTemplate.                       |
-| `buildKeyShortcuts(capabilities)` | `string`                           | The aria-keyshortcuts string for a column header, naming only the keys that column responds to. |
+| Function                          | Type                               | Description                                                                                             |
+| --------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `defineColumnsFromRows(rows)`     | `readonly ColumnDefinition<Row>[]` | Infers a type and alignment per field, one level into nested objects.                                   |
+| `accessDotted(obj, path)`         | `unknown`                          | Reads a value at a dotted path, e.g. "Application.Id".                                                  |
+| `alignmentForType(type)`          | `ColumnAlignment`                  | Alignment a column type defaults to — "right" for numbers.                                              |
+| `resolveColumnLabel(column)`      | `Node \| string`                   | What a column's header shows: its headerTemplate, else header, else a label read off the field path.    |
+| `resolveColumnHeaderText(column)` | `string`                           | The column name as text: header, else a text label, else the field path — for announcements and export. |
+| `buildKeyShortcuts(capabilities)` | `string`                           | The aria-keyshortcuts string for a column header, naming only the keys that column responds to.         |
