@@ -72,6 +72,43 @@ handle.addEventListener("pointerdown", (event) => {
 
 `measureColumnContent(table, columnId)` is the width the widest rendered cell of a column needs to show its content in full — what double-clicking a resize handle sizes it to, through `sizeColumnToContent` — or `null` when the column has no cells.
 
+### Drag to reorder
+
+`startDragReorder(id, grabElement, press, { resolveTarget, onState, onDrop })` is the gesture behind every reorder in the grid — a header dragged among the others or into the group-by bar, a group-by chip dragged within it. Nothing is reported until the pointer has travelled 4 pixels, so a press that stays put remains a click; from then on every move asks `resolveTarget(clientX, clientY, id)` where a drop would land and reports `onState({ draggedId, dropTarget, ghostTransform })` — what to draw, with `ghostTransform` a CSS `transform` keeping the ghost under the pointer where it was picked up. Release over a target calls `onDrop(target, id)`; every ending reports `onState(NO_DRAG)`.
+
+```ts
+import {
+  NO_DRAG,
+  resolveColumnDropTarget,
+  startDragReorder,
+} from "@gridkitjs/dom";
+
+header.addEventListener("pointerdown", (event) => {
+  startDragReorder(columnId, header, event, {
+    resolveTarget: (x, y, id) =>
+      resolveColumnDropTarget(x, y, id, {
+        order,
+        groupBy,
+        groupByDraggableIds,
+      }),
+    onState: (state) => draw(state),
+    onDrop: (target, id) =>
+      target.kind === "group-by"
+        ? controller.moveGroupBy(id, target.beforeColumnId)
+        : controller.moveColumn(id, target.beforeId),
+  });
+});
+```
+
+The grid's own targets are hit-tested against its markup:
+
+| Function                                           | Returns                                                                                                                                                                                            |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resolveColumnDropTarget(x, y, movedId, context)`  | `{ kind: "column-order", beforeId }` over another `th[data-gridkit-column]`, by which half the pointer is in; else a group-by target for a column that may be grouped and is not yet; else `null`. |
+| `resolveGroupByDropTarget(x, y, movedId, groupBy)` | `{ kind: "group-by", beforeColumnId }` over `[data-gridkit-group-by-bar]`, before or after the `[data-gridkit-group-chip]` under the pointer, or appended; `null` elsewhere.                       |
+
+Either returns `null` for a drop that would change nothing, so a drop indicator only ever promises a move that happens.
+
 ## Infinite scroll
 
 `attachInfiniteScroll(root, options)` calls `onLoadMore` as a sentinel element — the last row of the body — comes within `rootMargin` of the scrolling `root`, at most once until `isLoadingMore` has gone from `true` back to `false`. It returns `update(options)`, which a renderer calls after every render with the current options and sentinel (the sentinel comes and goes with `hasMore`), and `detach()`.

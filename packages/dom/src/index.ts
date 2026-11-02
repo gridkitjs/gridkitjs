@@ -7,6 +7,19 @@ export {
   startColumnResizeGesture,
   type ColumnResizeGestureHandlers,
 } from "./columnResize";
+export {
+  NO_DRAG,
+  startDragReorder,
+  type DragReorderHandlers,
+  type DragReorderState,
+} from "./dragReorder";
+export {
+  resolveColumnDropTarget,
+  resolveGroupByDropTarget,
+  type ColumnDropContext,
+  type ColumnDropTarget,
+  type GroupByDropTarget,
+} from "./dropTargets";
 export { observeElementWidth } from "./elementWidth";
 export {
   attachInfiniteScroll,
