@@ -1,5 +1,5 @@
 import { defineColumnsFromRows } from "@gridkitjs/core";
-import { DataGridComponent, type ColumnDefinition } from "@gridkitjs/react";
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
 import { deploymentRows, type DeploymentRow } from "./fixtures";
 import { EventLog, useEventLog } from "./EventLog";
 
@@ -13,7 +13,7 @@ export default function App() {
   return (
     <main className="p-8">
       <h1 className="text-xl font-semibold">sortableColumns</h1>
-      <DataGridComponent
+      <DataGrid
         columns={columns}
         dataSource={deploymentRows}
         borders="all"
