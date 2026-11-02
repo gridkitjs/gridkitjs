@@ -1,5 +1,174 @@
 # @gridkitjs/core
 
+## 0.11.0
+
+### Minor Changes
+
+- 6af35c6: Columns gain a plain-text `header`, and values gain an opt-in formatting
+  layer.
+
+  - `ColumnDefinition.header` names a column as text. The header shows it when
+    there is no `headerTemplate`; `resolveColumnHeaderText(column)` returns it
+    (or a text label, or the field path) for announcements and exports.
+  - `ColumnDefinition.format` takes `Intl.NumberFormatOptions` or
+    `Intl.DateTimeFormatOptions`, and `ColumnDefinition.valueFormatter`
+    (`(value, row) => string`) overrides it outright.
+  - `formatCellValue(value, column, locale?, row?)` turns a value into the text
+    a cell shows: booleans as `"true"`/`"false"`, `null` as empty text. Dates
+    and numbers go through `Intl` only once the column has a `format` or a
+    `locale` is passed — dates by `type` (`date`, `time`, otherwise date and
+    time), numeric types through `Intl.NumberFormat` (`currency` with
+    `format.currency`, `percent` reading `0.25` as 25%). Without either, a
+    number prints as-is and a date through `toLocaleString()`.
+    `formatAggregateValue` does the same for aggregate results, reading a
+    `count` as a plain number and, without a `format` or `locale`, a numeric
+    result through `toLocaleString()`.
+
+- 6af35c6: Columns can be hidden. `ColumnDefinition.hidden` sets where a column starts,
+  and a `columnVisibility` slice on `GridState` (`ColumnVisibilityState`, column
+  id → `true` shown / `false` hidden) records what the user changed.
+  `resolveGridView` drops hidden columns from `columns` after ordering and
+  before sizing; they stay in `dataColumns`, so a sort, filter or grouping on a
+  hidden column still applies and the column keeps its slot in the order.
+
+  New helpers: `isColumnVisible(column, visibility)`,
+  `applyColumnVisibility(dataColumns, visibility)` and
+  `setColumnVisibility(dataColumns, visibility, columnIds, visible)`, plus the
+  `ColumnVisibilityEvent` type (`{ columnIds, visibility }`).
+
+- bad8ea3: The grid controller now also owns the filter, column widths, column order and
+  column visibility. New actions: `setFilter`, `resizeColumn(columnId, width,
+phase)`, `cancelColumnResize`, `setColumnSizing`, `moveColumn(columnId,
+beforeId)`, `setColumnOrder`, `showColumns`, `hideColumns` and
+  `setColumnVisibility`, each reporting through the slice's existing callback.
+
+  `GridOptions` gains controlled `filter`, `columnSizing`, `columnOrder` and
+  `columnVisibility` options, and `onFilterChange` with the new
+  `FilterChangeEvent` type (`{ filter }`). A filter change sends an uncontrolled
+  pagination back to the first page, as a sort or grouping change does.
+
+- bad8ea3: The grid controller now owns row, column and cell selection. `GridState`
+  gains `rowSelection`, `columnSelection` and `cellSelection`; `GridOptions`
+  gains controlled props for each beside their `default*` ones; and the
+  selection callbacks move into core as `SelectionCallbacks<Row, Node>`, fired
+  from one diff per change exactly as `@gridkitjs/react` fired them. New actions:
+  `selectRow`, `selectRows(ids, intent?)`, `selectAllRows`, `clearSelection`,
+  `setRowSelection`, `selectColumn`, `setColumnSelection`, `selectCell` and
+  `setCellSelection`. `GridControllerOptions.onSelectionDiff` reports each row
+  or column change by id, for a renderer's own feedback.
+
+  `resolveGridView`'s `state` is now typed `GridViewState<Row>` — `GridState`
+  without the selections, which the view never reads; a whole `GridState` still
+  fits.
+
+- 78e10e5: Add `DataColumn` — `{ id, column }`, a column without its width — and
+  `resolveDataColumns(columns, order)`, which orders column definitions and pairs
+  each with its id. `filterRows`, `sortRows`, `resolveShownRows`, `groupRows`,
+  `computeAggregates` and `withGroupAggregates` now accept `DataColumn[]` in place
+  of `ResolvedColumn[]`; a `ResolvedColumn[]` still fits, so no call site changes.
+- 44759b4: The headless model a column's filter editor is drawn over, so a checklist
+  or condition editor needs no logic of its own:
+
+  - `describeColumnFilter(filter, columnId)` reads which form the column's
+    filter is in — `none`, a `values` checklist, one or two `conditions`, or
+    `custom`.
+  - `columnValueOptions(rows, dataColumns, filter, columnId, { search, limit, locale })`
+    lists the column's distinct values with labels and counts, cascaded over
+    the rows every other column's filter keeps.
+  - `initialFilterEditorDraft`, `filterEditorReducer`, `visibleFilterOptions`
+    and `selectAllState` hold an editor's draft — checked values, search,
+    blanks, a tri-state select-all, conditions — and `draftToFilter` applies
+    it: everything checked removes the column's filter, a partial pick is one
+    `in` entry.
+
+  New types: `ColumnFilterShape`, `ColumnValueOption`, `ColumnValueOptions`,
+  `ColumnValueQuery`, `FilterEditorAction`, `FilterEditorDraft`,
+  `SelectAllState`.
+
+- bad8ea3: Add `createGridController(options)`, a grid without a renderer: it holds the
+  grid's state, derives the view with `resolveGridView`, and carries the sort,
+  grouping, expansion and paging actions (`toggleColumnSort`, `setColumnSort`,
+  `toggleGroupBy`, `moveGroupBy`, `setGroupBy`, `toggleGroupExpansion`,
+  `expandAllGroups`, `collapseAllGroups`, `setGroupExpansion`, `goToPage`,
+  `nextPage`, `previousPage`, `setPageSize`, `setPagination`). Each action fires
+  the same callback, with the same payload, a user's interaction does.
+  `getState()` and `getView()` keep their identity until something changes, and
+  `subscribe(listener)` is called after each change, so either can back a
+  `useSyncExternalStore`-style subscription. Columns are inferred from
+  `dataSource` when none are given.
+
+  `GridOptions` gains controlled `columnSort`, `groupBy`, `groupExpansion` and
+  `pagination` options beside their `default*` counterparts: given, the grid
+  shows that value and an action only asks for a change through the matching
+  `on*Change` callback.
+
+  `defineColumnsFromRows` takes an optional `Node` type parameter, so its result
+  can be typed for any renderer's columns.
+
+- 8d411eb: `GridOptions` gains `messages`, a partial `GridMessages` replacing the grid's
+  own English strings key by key — the pager, the group-by bar, the loading
+  row, boolean and blank values, and every live-region announcement.
+  `defaultMessages` holds the English defaults and `resolveMessages(messages)`
+  lays a partial set over them. `formatCellValue` takes an optional fifth
+  `messages` argument for a boolean's words.
+- bad8ea3: `@gridkitjs/core` exports `GridOptions<Row>`: every grid setting that names no
+  renderer type — data, row identity, what the user may do, starting state and
+  change callbacks — in one interface, with the `Borders`, `HoverableConfig` and
+  `GroupByBarVisibility` types it uses. `DataGridProps<Row>` is now composed
+  from it plus `ReactRenderSlots<Row>` (`columns`, `pager`, `infiniteScroll`),
+  the selection callbacks and `ref`; every prop keeps its name and type.
+  `@gridkitjs/react` still exports `Borders`, `HoverableConfig` and
+  `GroupByBarVisibility`, and now also `GridOptions` and `ReactRenderSlots`.
+- 78e10e5: Add `resolveGridView(input)`, which derives everything a grid shows in one
+  call: rows filtered, sorted, grouped, aggregated and paginated, and columns
+  ordered and sized, returned as a `GridView` (`dataColumns`, `columns`, `rows`,
+  `displayRows`, `pageRows`, `displayDataRows`, `pageCount`, `pageIndex`,
+  `grandTotal`). `createGridViewResolver()` returns a memoised version that
+  recomputes only the stages a change touches — a column resize or a viewport
+  change leaves every row list and the grand total untouched. New types:
+  `GridState`, `GridViewInput`, `GridViewOptions`, `GridView`, and `ResizeMode`
+  (moved from `@gridkitjs/react`, which still exports it).
+- 44759b4: A fifth filter entry kind, `OperatorFilterEntry` — `{ columnId, operator, value }`
+  with `eq`, `ne`, `contains`, `notContains`, `startsWith`, `endsWith`, `gt`,
+  `gte`, `lt`, `lte`, `between`, `in`, `isEmpty` and `isNotEmpty` — expresses a
+  range, a value list or a blank check as plain data, so a filter that needed a
+  predicate can now be saved:
+
+  ```ts
+  { columnId: "amount", operator: "between", value: [10, 100] }
+  ```
+
+  Blank cells (`null`, `undefined`, `""`) match only `isEmpty`, `ne` and
+  `notContains`. `serializeGridState` writes an operator entry's `Date`s as ISO
+  strings, and `restoreState` turns them back into `Date`s on date, date-time
+  and time columns. New types: `FilterOperator`, `FilterScalar`,
+  `OperatorFilterEntry`, `SerializedFilterScalar`,
+  `SerializedOperatorFilterEntry`.
+
+- bad8ea3: Grid state can be saved and put back. `serializeGridState(state)` returns a
+  `SerializedGridState` that survives `JSON.stringify` and back — a `Date`
+  filter value becomes its ISO string, and a predicate filter entry, which
+  cannot be written down, is left out with a `console.error` naming its column.
+  The controller's `restoreState(saved)` applies a full or partial state, from
+  `getState()` or from JSON: each slice that changes fires its callback,
+  subscribers are called once, and a restored page survives a restored sort.
+
+  The controller's `setFilter` now compares filters by content rather than by
+  entry identity, so setting a filter equal to the current one reports nothing.
+
+- 8d411eb: `GridOptions` gains `onRowClick` and `onRowDoubleClick`, called with a
+  `RowPointerEvent` (the row, the column clicked and the modifiers, no DOM
+  event), and `getRowProps`, which returns a class name and `data-*` attributes
+  for each data row. `SelectableConfig` gains `toggleOnClick`, under which a
+  plain click toggles a row instead of selecting it alone, and `intentOf` takes
+  it as an optional second argument: `intentOf(event, { toggleOnClick: true })`.
+
+### Patch Changes
+
+- 78e10e5: `collapseAllGroups` no longer lists a group twice when given display rows that
+  carry summary rows (`groupAggregateDisplay: "row"`), such as
+  `DataGridApi.getDisplayRows()`.
+
 ## 0.10.0
 
 ### Minor Changes

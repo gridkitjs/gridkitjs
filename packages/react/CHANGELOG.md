@@ -1,5 +1,215 @@
 # @gridkitjs/react
 
+## 0.10.0
+
+### Minor Changes
+
+- 6af35c6: Columns can be shown and hidden. A column with `hidden: true` starts out
+  hidden; `defaultColumnVisibility` (column id → `true`/`false`) overrides that
+  per column, and the ref's `showColumns(ids)` / `hideColumns(ids)` change it
+  afterwards. A hidden column still sorts, filters and groups, and keeps its
+  place in the column order for when it is shown again.
+
+  - `onColumnVisibilityChange` fires once per change with `{ columnIds,
+visibility }`.
+  - `DataGridApi` gains `getColumnVisibility()` and `getDataColumns()` (every
+    column, hidden ones included); `getColumns()` lists only what is shown.
+  - `useColumnVisibilityState(gridRef)` follows the visibility state from
+    outside the grid.
+  - `aria-colcount`, the column widths and keyboard column moves count only the
+    columns shown; a group header or group-by chip for a hidden column keeps
+    its label.
+
+- bad8ea3: `DataGrid` takes controlled `columnSizing`, `columnOrder` and
+  `columnVisibility` props beside `defaultColumnSizing`, `defaultColumnOrder`
+  and `defaultColumnVisibility`. Given one, the grid applies it as given, and a
+  resize, a drop or `showColumns`/`hideColumns` asks for a change through
+  `onColumnResize` (whose `sizing` is the next state), `onColumnOrderChange` or
+  `onColumnVisibilityChange` instead of making it.
+- bad8ea3: `DataGrid` takes controlled `columnSort`, `groupBy`, `groupExpansion` and
+  `pagination` props beside the existing `default*` ones. Given one, the grid
+  shows exactly that value, and a header click, group toggle or pager button
+  only asks for a change through the matching `on*Change` callback, taking
+  effect once the prop follows:
+
+  ```tsx
+  const [sort, setSort] = useState<ColumnSortState>([]);
+
+  <DataGrid
+    sortableColumns
+    columnSort={sort}
+    onColumnSortChange={(event) => setSort(event.sort)}
+  />;
+  ```
+
+  Each slice is controlled or not on its own; passing both a controlled prop and
+  its default logs a `console.error` once and the controlled value wins. A
+  controlled `pagination` is not sent back to the first page when the filter,
+  sort or grouping changes — reset it alongside the change if you want that.
+
+- 6af35c6: Cells and aggregates without a template now render through `formatCellValue`
+  from `@gridkitjs/core`, and `DataGrid` takes a `locale` prop (`"de-DE"`, or a
+  list to fall back through).
+
+  - A `Date` cell renders as text instead of throwing, and a boolean cell reads
+    `true`/`false` instead of rendering nothing.
+  - Formatting is opt-in: setting `locale`, or a column's `format`, formats
+    that column's dates and numbers through `Intl` by its `type` — `currency`
+    with `format.currency`, `percent` reading `0.25` as 25%, `date` and
+    `time` showing only that part. Without either, numbers, totals and group
+    values read exactly as before.
+  - Footer, group-summary and inline group aggregates then format like their
+    column's values (a `count` reads as a plain number); a group header's value
+    formats like its column's cells.
+  - Announcements name a column by its new `header` text when it has one, so a
+    column with a markup `headerTemplate` is announced by name.
+
+- 78e10e5: Add `getPageRows()` to `DataGridApi`: the current page of `getDisplayRows()`,
+  exactly the rows the body renders — all of them when `paginated` is off.
+- bad8ea3: `DataGridApi` can now drive every slice of state, not only read it:
+  `setColumnSort`, `setGroupBy`, `setGroupExpansion`, `setPagination`,
+  `setColumnSizing`, `setColumnOrder`, `setColumnVisibility`,
+  `setRowSelection`, `setColumnSelection` and `setCellSelection` each replace
+  their slice and fire its `on*Change` callback as a user's change would
+  (nothing for an equal value; only a request for a controlled slice).
+  `getState()` reads every slice at once and `restoreState(saved)` puts a whole
+  or partial state back with one re-render; `serializeGridState`, now
+  re-exported from `@gridkitjs/react`, makes it safe to save as JSON.
+  `autoFitColumn(columnId)` sizes a column to its content as double-clicking
+  its resize handle does.
+
+  `setFilter` now treats a filter equal in content to the current one as no
+  change, rather than only the same entries.
+
+- 8d411eb: `DataGrid` takes `messages`, a partial `GridMessages` that replaces its own
+  English strings key by key: the pager's buttons and status, the group-by bar,
+  the "Loading more…" row, boolean cell text and a blank group's "(blank)", and
+  every live-region announcement. Left out, every string reads exactly as
+  before. `GridMessages` is re-exported.
+- bad8ea3: `@gridkitjs/core` exports `GridOptions<Row>`: every grid setting that names no
+  renderer type — data, row identity, what the user may do, starting state and
+  change callbacks — in one interface, with the `Borders`, `HoverableConfig` and
+  `GroupByBarVisibility` types it uses. `DataGridProps<Row>` is now composed
+  from it plus `ReactRenderSlots<Row>` (`columns`, `pager`, `infiniteScroll`),
+  the selection callbacks and `ref`; every prop keeps its name and type.
+  `@gridkitjs/react` still exports `Borders`, `HoverableConfig` and
+  `GroupByBarVisibility`, and now also `GridOptions` and `ReactRenderSlots`.
+- da4fbda: `@gridkitjs/react` now depends on `@gridkitjs/dom`, which holds the browser
+  behaviours `DataGrid` attaches. Nothing changes at a call site.
+
+  The live region is now created by `@gridkitjs/dom`'s `createLiveAnnouncer`,
+  still as the last child of the grid's viewport element. One difference a
+  screen-reader user can hear: an announcement identical to the one before it —
+  the same column resized to the same width twice — is now read out again
+  rather than silently dropped.
+
+- 487d8fa: **Breaking:** the grid component is renamed from `DataGridComponent` to
+  `DataGrid`, matching its `DataGridProps` and `DataGridApi` types. There is no
+  deprecated alias — update the import and every JSX use:
+
+  ```tsx
+  // before
+  import { DataGridComponent } from "@gridkitjs/react";
+  <DataGridComponent columns={columns} dataSource={rows} />;
+
+  // after
+  import { DataGrid } from "@gridkitjs/react";
+  <DataGrid columns={columns} dataSource={rows} />;
+  ```
+
+  Development warnings logged by the grid are now prefixed `DataGrid:` instead
+  of `DataGridComponent:`.
+
+- 8d411eb: `DataGrid` takes `onRowClick` and `onRowDoubleClick`, called with the row,
+  the column clicked and the modifiers held, and `getRowProps`, which adds a
+  class and `data-*` attributes to each data row. Every data row now carries
+  `data-gridkit-row-id`, its id as `getRowId` resolves it.
+  `selectable.toggleOnClick` makes a plain click toggle a row rather than
+  select it alone. `RowPointerEvent` and `RowProps` are re-exported.
+- bad8ea3: `DataGridApi` gains `selectRows(rowIds, intent?)`, which selects rows by id
+  within `selectable.rows` (`"replace"` by default, or `"toggle"`) and fires the
+  row selection callbacks once, and `getSelectedRows()`, which returns the
+  selected rows themselves in selection order. Selection can also be held in
+  your own state with the controlled `rowSelection`, `columnSelection` and
+  `cellSelection` props beside their `default*` ones; a click then asks for a
+  change through the selection callbacks instead of making it.
+- bad8ea3: The filter can now change after mount. `DataGridApi` gains `getFilter()` and
+  `setFilter(filter)`, which replaces the filter, sends the grid back to its
+  first page and fires the new `onFilterChange` prop once (`{ filter }`). A
+  `useFilterState(gridRef)` hook returns `{ filter, setFilter }` for a filter UI
+  outside the grid, and a controlled `filter` prop holds the filter in your own
+  state alongside `defaultFilter`.
+
+### Patch Changes
+
+- 487d8fa: In a `virtualized` grid, a key that moves focus to a row outside the mounted
+  window (such as Ctrl+End) no longer gets stuck without scrolling when it is
+  pressed while the grid is still updating from a scroll.
+- da4fbda: The body's delegated clicks, focus and keys find their cell or row through
+  `@gridkitjs/dom`'s `bodyCellFrom`, `groupRowFrom` and `bodyRowFrom`. Nothing
+  changes for a caller.
+- da4fbda: A right-button (or any non-primary) press on a column's resize handle no
+  longer starts a resize. Resizing otherwise works as before, now through
+  `@gridkitjs/dom`'s `startColumnResizeGesture`.
+- da4fbda: A right-button (or any non-primary) press no longer starts a column-header or
+  group-by chip drag. Dragging otherwise works as before, now through
+  `@gridkitjs/dom`'s `startDragReorder`.
+- da4fbda: `resizeMode: "fit"` measures the grid through `@gridkitjs/dom`'s
+  `observeElementWidth`. Columns fit exactly as before.
+- da4fbda: Keyboard navigation runs on `@gridkitjs/dom`'s `createGridFocus`. The keys,
+  the tab stop, `focusCell` and `getFocusedCell` behave as before.
+- da4fbda: `infiniteScroll` runs on `@gridkitjs/dom`'s `attachInfiniteScroll`. It loads
+  exactly as before.
+- da4fbda: `virtualized` runs on `@gridkitjs/dom`'s `createRowVirtualizer`. Rows window,
+  measure and scroll as before; scrolling that keeps the same rows mounted no
+  longer re-renders the grid.
+- bad8ea3: `DataGrid` now keeps its sort, filter, grouping, expansion, paging, column
+  widths, order and visibility in `@gridkitjs/core`'s grid controller rather
+  than in React state, and draws the controller's view. Nothing changes for a
+  grid using the existing props. `DataGridApi` getters now read the grid's
+  current state at call time, so a read straight after an action such as
+  `goToPage` already sees its result instead of the previous render's.
+- bad8ea3: `DataGrid` keeps row, column and cell selection in its grid controller too,
+  which fires the selection callbacks from one diff per change exactly as
+  before. Nothing changes for a grid using the existing props.
+- 78e10e5: Resizing a column, or the grid's width changing, no longer re-runs filtering,
+  sorting, grouping and aggregation: `DataGrid` now derives what it shows through
+  `createGridViewResolver` from `@gridkitjs/core`, whose row stages ignore column
+  widths. Large datasets resize without stutter; nothing else changes.
+- 487d8fa: The build now starts with a `"use client"` directive, so `@gridkitjs/react`
+  works when imported from a Next.js App Router server component tree without a
+  wrapper module of your own.
+- 487d8fa: Keyboard navigation in a `virtualized` grid now moves the browser's focus to
+  the cell it lands on once the grid has scrolled. Before, the focus could stay
+  on the previous cell, or jump to a different row, while the highlighted cell
+  moved on.
+- Updated dependencies [78e10e5]
+- Updated dependencies [6af35c6]
+- Updated dependencies [6af35c6]
+- Updated dependencies [bad8ea3]
+- Updated dependencies [bad8ea3]
+- Updated dependencies [78e10e5]
+- Updated dependencies [da4fbda]
+- Updated dependencies [da4fbda]
+- Updated dependencies [da4fbda]
+- Updated dependencies [da4fbda]
+- Updated dependencies [da4fbda]
+- Updated dependencies [da4fbda]
+- Updated dependencies [da4fbda]
+- Updated dependencies [da4fbda]
+- Updated dependencies [da4fbda]
+- Updated dependencies [da4fbda]
+- Updated dependencies [44759b4]
+- Updated dependencies [bad8ea3]
+- Updated dependencies [8d411eb]
+- Updated dependencies [bad8ea3]
+- Updated dependencies [78e10e5]
+- Updated dependencies [44759b4]
+- Updated dependencies [bad8ea3]
+- Updated dependencies [8d411eb]
+  - @gridkitjs/core@0.11.0
+  - @gridkitjs/dom@0.1.0
+
 ## 0.9.0
 
 ### Minor Changes
