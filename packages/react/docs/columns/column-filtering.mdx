@@ -1,20 +1,23 @@
 ---
 title: "Column filtering"
-description: "FilterState, the four entry kinds, defaultFilter and setFilter — the state and logic layer, ahead of any built-in filter UI."
+description: "FilterState, the five entry kinds, defaultFilter and setFilter — the state and logic layer, ahead of any built-in filter UI."
 ---
 
 This page describes the filtering **engine** — the state shape and the functions that apply it. There is no header or toolbar filter UI yet; that's coming in a future release, built on exactly what's described here. Today, a grid's filter is seeded with `defaultFilter`, changed with `setFilter` from your own filter UI, or held entirely by you with the controlled `filter` prop.
 
-## The four ways to match
+Building that filter UI yourself? `@gridkitjs/core` has the headless model behind one — a column's filter shape, the cascaded list of its values with counts, and a draft reducer for a checklist or condition editor. See [filter state and the editor model](/docs/core/filtering).
 
-A `FilterState<Row>` is an array of `FilterEntry<Row>`, ANDed together — a row has to satisfy every entry to stay. Each entry is one of four kinds:
+## The five ways to match
+
+A `FilterState<Row>` is an array of `FilterEntry<Row>`, ANDed together — a row has to satisfy every entry to stay. Each entry is one of five kinds:
 
 - **`TextFilterEntry`** — `{ columnId?, query }`. SQL LIKE-style with `%`: a bare query is an exact match, `%text%` is contains, `text%` is starts-with, `%text` is ends-with. Always case-insensitive. Every value is stringified before matching.
 - **`ValueFilterEntry`** — `{ columnId?, value }`. Strict equality against a column's actual `number`, `boolean`, or `Date` value — only when the column's own `type` agrees. A `number` value never matches a `string` column, even one that happens to display the same digits.
-- **`PredicateFilterEntry`** — `{ columnId?, predicate }`. Custom matching logic for anything the other two can't express, such as a numeric range. Called once per row with the resolved column value (or `undefined`, for a global entry) and the whole row. Negation lives here too — `predicate: (value) => value !== "Archived"` — there's no separate "not" entry kind.
+- **`OperatorFilterEntry`** — `{ columnId, operator, value? }`. A named comparison — `eq`, `between`, `in`, `isEmpty` and ten more — against one column, compared as the column's own `type` says. Plain data, so unlike a predicate it can be saved and restored. See [the fifth kind](#the-fifth-kind-operators).
+- **`PredicateFilterEntry`** — `{ columnId?, predicate }`. Custom matching logic for anything the others can't express, such as a check across two fields. Called once per row with the resolved column value (or `undefined`, for a global entry) and the whole row. A predicate is a function, so a filter holding one can't be saved.
 - **`GroupFilterEntry`** — `{ combinator: "and" | "or", entries }`. Composes other entries — including further groups, to any depth — with an explicit combinator instead of the implicit AND every top-level `FilterState` uses. This is how OR enters the picture: the top level stays AND-only, and a group is where you opt into OR, exactly where you need it.
 
-Any entry except a group may omit `columnId` to match against **every** column instead of one — a free-text search, for example.
+A text, value or predicate entry may omit `columnId` to match against **every** column instead of one — a free-text search, for example. An operator entry always names its column.
 
 ## Seed a grid already filtered
 
@@ -26,22 +29,23 @@ Any entry except a group may omit `columnId` to match against **every** column i
 />;
 ```
 
-Stacking entries ANDs them; nesting a group is how to OR — the canonical case being "match one of several values for the same field":
+Stacking entries ANDs them; nesting a group is how to OR:
 
 ```ts
-const statusIsActiveOrPending: FilterEntry<Row> = {
+const pendingOrOverdue: FilterEntry<Row> = {
   combinator: "or",
   entries: [
-    { columnId: "status", value: "active" },
-    { columnId: "status", value: "pending" },
+    { columnId: "status", query: "pending" },
+    { columnId: "dueDate", operator: "lt", value: new Date() },
   ],
 };
 ```
 
-All four kinds combine freely in one `FilterState` — plain entries ANDed at
+"One of several values for the same field" needs no group — that's an `in` operator: `{ columnId: "status", operator: "in", value: ["active", "pending"] }`.
+
+All five kinds combine freely in one `FilterState` — plain entries ANDed at
 the top level, a group opting into OR (or a nested AND) for just the part
-that needs it, and a `predicate` wherever `query`/`value` can't express the
-check:
+that needs it, and a `predicate` wherever nothing else can express the check:
 
 ```ts
 const filter: FilterState<Row> = [
@@ -49,23 +53,87 @@ const filter: FilterState<Row> = [
   {
     combinator: "or",
     entries: [
-      { columnId: "status", value: "active" },
-      { columnId: "status", value: "pending" },
+      { columnId: "status", operator: "in", value: ["active", "pending"] },
+      { columnId: "vip", value: true },
     ],
   },
-  {
-    columnId: "age",
-    predicate: (value) => typeof value === "number" && value >= 18 && value <= 65,
-  },
+  { columnId: "age", operator: "between", value: [18, 65] },
+  { predicate: (_value, row) => row.shippedAt > row.promisedAt },
 ];
 
 <DataGrid columns={columns} dataSource={rows} defaultFilter={filter} />;
 ```
 
 Keeps rows whose name contains "smith" **and** whose status is active or
-pending **and** whose age is between 18 and 65 — the OR stays scoped to the
-status check, while the name and age entries AND against it and each other
-at the top level.
+pending, or who are a VIP, **and** whose age is between 18 and 65 **and**
+that shipped late — the OR stays scoped to the status and VIP checks, while
+the other entries AND against it and each other at the top level.
+
+## The fifth kind: operators
+
+An `OperatorFilterEntry` names one column, an `operator` and, for most operators, a `value` — a `FilterScalar` (`string`, `number`, `boolean`, `Date` or `null`), a list of them for `in`, or a `[low, high]` pair for `between`. Being plain data, it covers what used to need a predicate and still survives [saving the grid's state](/docs/react/state#saving-and-restoring-a-layout).
+
+| Operator      | `value`         | Matches a cell that…                                                      | Blank cell |
+| ------------- | --------------- | ------------------------------------------------------------------------- | ---------- |
+| `eq`          | scalar          | equals `value`                                                            | no         |
+| `ne`          | scalar          | doesn't equal `value` — exactly the cells `eq` leaves out                 | **yes**    |
+| `gt`, `gte`   | scalar          | is greater than (or equal to) `value`                                     | no         |
+| `lt`, `lte`   | scalar          | is less than (or equal to) `value`                                        | no         |
+| `between`     | `[low, high]`   | lies between the two, both ends included                                  | no         |
+| `in`          | list of scalars | equals any of them                                                        | no         |
+| `contains`    | scalar          | contains `value` as text                                                  | no         |
+| `notContains` | scalar          | doesn't contain `value` as text — exactly the cells `contains` leaves out | **yes**    |
+| `startsWith`  | scalar          | starts with `value` as text                                               | no         |
+| `endsWith`    | scalar          | ends with `value` as text                                                 | no         |
+| `isEmpty`     | none            | is blank                                                                  | **yes**    |
+| `isNotEmpty`  | none            | isn't blank                                                               | no         |
+
+A **blank** cell is `null`, `undefined` or `""`. Only `isEmpty`, `ne` and `notContains` match one — a "not" filter keeps the blanks rather than quietly dropping them.
+
+How a value compares follows the column's `type`, the same way sorting orders it:
+
+- **Numeric types** compare numerically, **date types** chronologically, **`boolean`** with `false` before `true`, and everything else — an untyped column included — as text, ignoring case.
+- A date column reads a string `value` as `new Date(value)`, so `"2024-06-30"` works as well as a `Date`, and cells holding ISO strings compare as the dates they name.
+- The four text operators stringify the cell and `value` and ignore case, whatever the column's type.
+- `in` treats two values as equal exactly when [grouping](/docs/react/row-grouping) would put them in one group — so on a text column it does respect case.
+- A cell of another kind — a string in a number column — never equals, exceeds or falls below anything. A `value` of the wrong kind for the column — a string on a number column, a missing pair for `between` — matches no rows at all, the way a mistyped `ValueFilterEntry` doesn't.
+
+There's no "not" wrapper: negation comes with the operator (`ne`, `notContains`, `isNotEmpty`), and a predicate covers the rest.
+
+### Saving a filtered layout
+
+Built from operator, text and value entries, a filter round-trips through JSON with the rest of the grid's state. `serializeGridState` writes each `Date` as its ISO string, and `restoreState` turns an operator entry's strings back into `Date`s on date, date-time and time columns:
+
+```tsx
+const gridRef = useRef<DataGridApi<Order>>(null);
+
+<DataGrid
+  ref={gridRef}
+  columns={columns}
+  dataSource={orders}
+  defaultFilter={[
+    { columnId: "amount", operator: "between", value: [10, 100] },
+    { columnId: "placedAt", operator: "gte", value: new Date("2024-01-01") },
+    { columnId: "region", operator: "in", value: ["West", "North"] },
+    { columnId: "notes", operator: "isNotEmpty" },
+  ]}
+/>;
+
+// Save…
+const state = gridRef.current?.getState();
+if (state !== undefined) {
+  localStorage.setItem(
+    "orders-grid",
+    JSON.stringify(serializeGridState(state)),
+  );
+}
+
+// …and on a later visit:
+const saved = localStorage.getItem("orders-grid");
+if (saved !== null) {
+  gridRef.current?.restoreState(JSON.parse(saved));
+}
+```
 
 ## Change the filter from your own UI
 

@@ -3,6 +3,7 @@
     "overview",
     "view",
     "controller",
+    "filtering",
     "column-definitions",
     "resizing",
     "ordering",

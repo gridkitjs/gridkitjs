@@ -17,6 +17,10 @@ description: "Framework-agnostic grid logic: columns, sizing, ordering, selectio
 
 [createGridController](/docs/core/controller) holds a grid's state, derives its view and carries every action a user can take, with each slice of state controlled or uncontrolled on its own. A renderer creates one per grid, feeds it its options and draws the view, so the renderer decides nothing the user can see.
 
+## Filters and filter editors
+
+A filter is plain data — operator entries such as `{ columnId: "amount", operator: "between", value: [10, 100] }` save and restore with the rest of the state. The [filter-editor model](/docs/core/filtering) is what a column's filter UI is drawn over: the shape of the column's filter, its values with counts cascaded over the other filters, and a draft reducer for a checklist or condition editor.
+
 ## Install
 
 ```ts

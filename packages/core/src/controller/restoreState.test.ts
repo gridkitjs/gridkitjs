@@ -120,6 +120,61 @@ describe("serializeGridState", () => {
   });
 });
 
+describe("operator entries", () => {
+  const filter: FilterState<SampleRow> = [
+    { columnId: "Amount", operator: "between", value: [15, 45] },
+    { columnId: "Opened", operator: "gte", value: new Date("2024-02-01") },
+    {
+      combinator: "or",
+      entries: [
+        {
+          columnId: "Opened",
+          operator: "in",
+          value: [new Date("2024-01-01"), new Date("2024-02-01")],
+        },
+        { columnId: "Opened", operator: "isEmpty" },
+      ],
+    },
+    { columnId: "Region", operator: "in", value: ["2024-02-01", "East"] },
+  ];
+
+  test("serialise their Dates as ISO strings and keep everything else", () => {
+    expect(serializeGridState({ ...saved, filter }).filter).toEqual([
+      { columnId: "Amount", operator: "between", value: [15, 45] },
+      {
+        columnId: "Opened",
+        operator: "gte",
+        value: "2024-02-01T00:00:00.000Z",
+      },
+      {
+        combinator: "or",
+        entries: [
+          {
+            columnId: "Opened",
+            operator: "in",
+            value: ["2024-01-01T00:00:00.000Z", "2024-02-01T00:00:00.000Z"],
+          },
+          { columnId: "Opened", operator: "isEmpty" },
+        ],
+      },
+      { columnId: "Region", operator: "in", value: ["2024-02-01", "East"] },
+    ]);
+  });
+
+  test("round-trip through JSON, strings revived as Dates on date columns only", () => {
+    const source = create({ defaultFilter: filter });
+    const onFilterChange = vi.fn();
+    const target = create({ defaultFilter: filter, onFilterChange });
+
+    const restored = throughJson(source.getState());
+    target.restoreState(restored);
+
+    expect(target.getState().filter).toEqual(filter);
+    expect(onFilterChange).not.toHaveBeenCalled();
+    expect(target.getView().rows.map((entry) => entry.rowId)).toEqual(["2"]);
+  });
+});
+
 describe("createGridController: restoreState", () => {
   test("a layout round-tripped through JSON restores every slice", () => {
     const source = create();

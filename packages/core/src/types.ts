@@ -624,10 +624,65 @@ export interface GroupFilterEntry<Row> {
   readonly entries: FilterState<Row>;
 }
 
+/**
+ * What an `OperatorFilterEntry` asks of a cell. `contains`, `notContains`,
+ * `startsWith` and `endsWith` read the value as text; the rest compare it as
+ * the column's `type` says.
+ */
+export type FilterOperator =
+  | "eq"
+  | "ne"
+  | "contains"
+  | "notContains"
+  | "startsWith"
+  | "endsWith"
+  | "gt"
+  | "gte"
+  | "lt"
+  | "lte"
+  | "between"
+  | "in"
+  | "isEmpty"
+  | "isNotEmpty";
+
+/** A value an `OperatorFilterEntry` compares a cell against. */
+export type FilterScalar = string | number | boolean | Date | null;
+
+/**
+ * Matches one column's value by a named operator — plain data, unlike a
+ * predicate, so a filter built from these can be saved and restored.
+ *
+ * `value` is one `FilterScalar` for most operators, a list of them for
+ * `in`, a `[low, high]` pair for `between` (both ends inclusive), and
+ * absent for `isEmpty`/`isNotEmpty`.
+ *
+ * - An empty cell is `null`, `undefined` or `""`. `isEmpty` matches it,
+ *   `isNotEmpty` does not, and so does no other operator — except `ne` and
+ *   `notContains`, which match it: a "not" filter must not quietly drop the
+ *   blanks. Each of those two is the exact opposite of `eq`/`contains`.
+ * - The text operators compare the stringified value, case-insensitively.
+ * - `eq`, `ne`, `gt`, `gte`, `lt`, `lte` and `between` compare as
+ *   `compareValues` does under the column's `type`: numerically,
+ *   chronologically, or as text (case-insensitively, like a query). A cell
+ *   of another kind — a string in a number column — is never equal, greater
+ *   or less.
+ * - `in` matches the values grouping would put in the same group.
+ * - A date column reads a string `value` as `new Date(value)`.
+ * - A `value` of the wrong kind for the column — a string against a number
+ *   column, a missing pair for `between` — matches no row at all, as a
+ *   `ValueFilterEntry` of the wrong type doesn't.
+ */
+export interface OperatorFilterEntry<Row> {
+  readonly columnId: FieldPath<Row> | (string & {});
+  readonly operator: FilterOperator;
+  readonly value?: FilterScalar | readonly FilterScalar[];
+}
+
 export type FilterEntry<Row> =
   | TextFilterEntry<Row>
   | ValueFilterEntry<Row>
   | PredicateFilterEntry<Row>
+  | OperatorFilterEntry<Row>
   | GroupFilterEntry<Row>;
 
 /**
@@ -645,6 +700,20 @@ export interface SerializedValueFilterEntry<Row> extends FilterEntryBase<Row> {
   readonly value: number | boolean | string;
 }
 
+/** A `FilterScalar` as JSON holds it: a `Date` becomes its ISO string. */
+export type SerializedFilterScalar = string | number | boolean | null;
+
+/**
+ * An `OperatorFilterEntry` as JSON holds it: each `Date` becomes its ISO
+ * string, which restoring turns back into a `Date` when the column is a
+ * date, date-time or time column.
+ */
+export interface SerializedOperatorFilterEntry<Row> {
+  readonly columnId: FieldPath<Row> | (string & {});
+  readonly operator: FilterOperator;
+  readonly value?: SerializedFilterScalar | readonly SerializedFilterScalar[];
+}
+
 /** A `GroupFilterEntry` whose entries are serialised too. */
 export interface SerializedGroupFilterEntry<Row> {
   readonly combinator: "and" | "or";
@@ -658,6 +727,7 @@ export interface SerializedGroupFilterEntry<Row> {
 export type SerializedFilterEntry<Row> =
   | TextFilterEntry<Row>
   | SerializedValueFilterEntry<Row>
+  | SerializedOperatorFilterEntry<Row>
   | SerializedGroupFilterEntry<Row>;
 
 export type SerializedFilterState<Row> = readonly SerializedFilterEntry<Row>[];

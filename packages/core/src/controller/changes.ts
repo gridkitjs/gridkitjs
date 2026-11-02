@@ -1,9 +1,11 @@
 import type {
   FilterEntry,
   FilterState,
+  OperatorFilterEntry,
   PaginationState,
   SortDirection,
 } from "../types";
+import { isScalarList } from "../util/filterOperators";
 
 /** A sort or group-by level: a column, and which way it orders. */
 interface ColumnEntry {
@@ -93,6 +95,22 @@ function sameValue(previous: unknown, next: unknown): boolean {
     : previous === next;
 }
 
+/** Whether two operator operands hold the same scalars, a list item by item. */
+function sameOperand(
+  previous: OperatorFilterEntry<unknown>["value"],
+  next: OperatorFilterEntry<unknown>["value"],
+): boolean {
+  if (isScalarList(previous) || isScalarList(next)) {
+    return (
+      isScalarList(previous) &&
+      isScalarList(next) &&
+      previous.length === next.length &&
+      previous.every((scalar, index) => sameValue(scalar, next[index]))
+    );
+  }
+  return sameValue(previous, next);
+}
+
 function sameEntry<Row>(
   previous: FilterEntry<Row>,
   next: FilterEntry<Row>,
@@ -113,6 +131,15 @@ function sameEntry<Row>(
       "predicate" in previous &&
       "predicate" in next &&
       previous.predicate === next.predicate
+    );
+  }
+  // Before the `value` check: an operator entry usually has a `value` too.
+  if ("operator" in previous || "operator" in next) {
+    return (
+      "operator" in previous &&
+      "operator" in next &&
+      previous.operator === next.operator &&
+      sameOperand(previous.value, next.value)
     );
   }
   if ("value" in previous || "value" in next) {
