@@ -3,7 +3,7 @@ title: "The view pipeline"
 description: "resolveGridView: rows, columns, state and options in; everything the grid shows out."
 ---
 
-resolveGridView is the one function that answers "what is the user looking at". It takes the rows, the column definitions, the grid's state and its options, and runs every stage DataGrid renders from: rows are filtered → sorted → grouped → aggregated → paginated, and columns are ordered → sized. Call it from a custom adapter, an export or a toolbar instead of composing the stages yourself, so nothing can disagree with what the grid shows.
+resolveGridView is the one function that answers "what is the user looking at". It takes the rows, the column definitions, the grid's state and its options, and runs every stage DataGrid renders from: rows are filtered → sorted → grouped → aggregated → paginated, and columns are ordered → hidden → sized. Call it from a custom adapter, an export or a toolbar instead of composing the stages yourself, so nothing can disagree with what the grid shows.
 
 ```ts
 import { resolveGridView } from "@gridkitjs/core";
@@ -15,6 +15,7 @@ const view = resolveGridView({
   state: {
     columnSizing: {},
     columnOrder: [],
+    columnVisibility: {},
     columnSort: [{ columnId: "Amount", direction: "desc" }],
     filter: [],
     groupBy: [{ columnId: "Region" }],
@@ -37,21 +38,21 @@ view.grandTotal.get("Amount"); // the sum over every filtered row, on every page
 
 ## `GridView`
 
-| Field             | Type                             | Description                                                                                                   |
-| ----------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `dataColumns`     | `readonly DataColumn<Row>[]`     | Every column, ordered, as `{ id, column }` — no width. What filtering, sorting, grouping and aggregates read. |
-| `columns`         | `readonly ResolvedColumn<Row>[]` | The columns as rendered: ordered and sized.                                                                   |
-| `rows`            | `readonly ResolvedRow<Row>[]`    | The rows, filtered then sorted.                                                                               |
-| `displayRows`     | `readonly DisplayRow<Row>[]`     | `rows` grouped, each group header carrying its aggregates — every page.                                       |
-| `pageRows`        | `readonly DisplayRow<Row>[]`     | The current page of `displayRows`. All of it when not paginated. A page never splits a top-level group.       |
-| `displayDataRows` | `readonly ResolvedRow<Row>[]`    | `pageRows` without group headers or summary rows — the data rows on screen, in display order.                 |
-| `pageCount`       | `number`                         | `1` when not paginated.                                                                                       |
-| `pageIndex`       | `number`                         | The page shown, clamped into range. `0` when not paginated.                                                   |
-| `grandTotal`      | `AggregateResults`               | Every aggregate over all of `rows`, ignoring grouping and paging.                                             |
+| Field             | Type                             | Description                                                                                                                         |
+| ----------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `dataColumns`     | `readonly DataColumn<Row>[]`     | Every column, hidden ones included, ordered, as `{ id, column }` — no width. What filtering, sorting, grouping and aggregates read. |
+| `columns`         | `readonly ResolvedColumn<Row>[]` | The columns as rendered: visible, ordered and sized.                                                                                |
+| `rows`            | `readonly ResolvedRow<Row>[]`    | The rows, filtered then sorted.                                                                                                     |
+| `displayRows`     | `readonly DisplayRow<Row>[]`     | `rows` grouped, each group header carrying its aggregates — every page.                                                             |
+| `pageRows`        | `readonly DisplayRow<Row>[]`     | The current page of `displayRows`. All of it when not paginated. A page never splits a top-level group.                             |
+| `displayDataRows` | `readonly ResolvedRow<Row>[]`    | `pageRows` without group headers or summary rows — the data rows on screen, in display order.                                       |
+| `pageCount`       | `number`                         | `1` when not paginated.                                                                                                             |
+| `pageIndex`       | `number`                         | The page shown, clamped into range. `0` when not paginated.                                                                         |
+| `grandTotal`      | `AggregateResults`               | Every aggregate over all of `rows`, ignoring grouping and paging.                                                                   |
 
 ## Input
 
-`state` is a `GridState<Row>`: `columnSizing`, `columnOrder`, `columnSort`, `filter`, `groupBy`, `groupExpansion` and `pagination`, each the same type as the matching `default*` prop on DataGrid. `options` is a `GridViewOptions<Row>`; every field is optional and defaults the way DataGrid's prop of the same name does:
+`state` is a `GridState<Row>`: `columnSizing`, `columnOrder`, `columnVisibility`, `columnSort`, `filter`, `groupBy`, `groupExpansion` and `pagination`, each the same type as the matching `default*` prop on DataGrid. `options` is a `GridViewOptions<Row>`; every field is optional and defaults the way DataGrid's prop of the same name does:
 
 | Option                                                              | Default    | Description                                                                                  |
 | ------------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------- |
@@ -62,6 +63,8 @@ view.grandTotal.get("Amount"); // the sum over every filtered row, on every page
 | `resizableColumns`, `reorderableColumns`, `groupByDraggableColumns` | `false`    | Grid-level defaults a column's own setting overrides.                                        |
 | `resizeMode`                                                        | `"fit"`    | `"fit"` stretches or squeezes columns to fill `viewportWidth`; `"fixed"` keeps their widths. |
 | `viewportWidth`                                                     | `null`     | The width to fit. Leave it out where there is no viewport, such as an export.                |
+
+A column hidden by its definition's `hidden` or by `columnVisibility` leaves `columns` but stays in `dataColumns`, so a sort, filter or grouping on it still applies, and it keeps its slot in the column order for when it is shown again. `isColumnVisible(column, visibility)` answers for one column, `applyColumnVisibility(dataColumns, visibility)` drops the hidden ones, and `setColumnVisibility(dataColumns, visibility, columnIds, visible)` returns the next state, or the same one when nothing changes.
 
 `columns` is used as given: DataGrid's inference of columns from the rows, when it is passed none, happens before the view is resolved.
 

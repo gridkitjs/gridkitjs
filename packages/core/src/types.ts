@@ -206,6 +206,14 @@ export interface ColumnDefinition<Row, Node = string> {
    * stays a plain string rather than taking the row.
    */
   cellClassName?: string;
+  /**
+   * Whether this column starts out hidden. A hidden column is not rendered
+   * but is still a column of the grid: a sort, filter or grouping on it
+   * still applies, and it keeps its place in the column order. The user
+   * showing or hiding it lives in `ColumnVisibilityState`, which wins over
+   * this for as long as it holds an entry for the column.
+   */
+  hidden?: boolean | undefined;
 }
 
 /** Which parts of a column opt out of the grid's default single-line text. */
@@ -333,6 +341,24 @@ export interface ColumnResizeEvent {
   readonly width: number;
   readonly sizing: ColumnSizingState;
   readonly phase: "move" | "end";
+}
+
+/**
+ * Columns shown (`true`) or hidden (`false`) since the grid started, keyed by
+ * column id. Holding only what changed, the way `ColumnSizingState` does: a
+ * column absent from it follows its definition's `hidden`, so a definition
+ * edited later still takes effect for every column the user never touched.
+ */
+export type ColumnVisibilityState = Readonly<Record<string, boolean>>;
+
+/**
+ * Reports columns shown or hidden. `columnIds` lists every column the one
+ * change touched — showing three columns at once is one event, not three —
+ * and `visibility` is the whole state to persist from.
+ */
+export interface ColumnVisibilityEvent {
+  readonly columnIds: readonly string[];
+  readonly visibility: ColumnVisibilityState;
 }
 
 /**
@@ -784,6 +810,7 @@ export interface CellSelectionChangeEvent<Row, Node = string> {
 export interface GridState<Row> {
   readonly columnSizing: ColumnSizingState;
   readonly columnOrder: ColumnOrderState;
+  readonly columnVisibility: ColumnVisibilityState;
   readonly columnSort: ColumnSortState;
   readonly filter: FilterState<Row>;
   readonly groupBy: GroupByState;
@@ -832,9 +859,9 @@ export interface GridViewInput<Row, Node = string> {
  * reads, so none of them composes the pipeline for itself.
  */
 export interface GridView<Row, Node = string> {
-  /** Every column, ordered but not sized — what the data stages read. */
+  /** Every column, hidden ones included, ordered but not sized — what the data stages read. */
   readonly dataColumns: readonly DataColumn<Row, Node>[];
-  /** The columns as rendered: ordered and sized. */
+  /** The columns as rendered: visible, ordered and sized. */
   readonly columns: readonly ResolvedColumn<Row, Node>[];
   /** The rows, filtered then sorted. */
   readonly rows: readonly ResolvedRow<Row>[];

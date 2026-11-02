@@ -25,6 +25,7 @@ import {
   type ColumnSizingState,
   type ColumnSortEvent,
   type ColumnSortState,
+  type ColumnVisibilityState,
   type DisplayRow,
   type FilterState,
   type FormatLocale,
@@ -210,6 +211,9 @@ const NO_AGGREGATES: AggregateState<never> = [];
 
 /** A stable empty fallback for an omitted `dataSource`, for the same reason. */
 const NO_ROWS: readonly never[] = [];
+
+/** Every column follows its definition's `hidden` until the grid holds visibility state of its own. */
+const NO_VISIBILITY: ColumnVisibilityState = {};
 
 /**
  * How the group-by bar's visibility follows the active grouping. `"always"`
@@ -615,6 +619,7 @@ export function DataGrid<Row>({
     state: {
       columnSizing: sizing,
       columnOrder: order,
+      columnVisibility: NO_VISIBILITY,
       columnSort: sort,
       filter,
       groupBy,

@@ -32,6 +32,8 @@ export type {
   ColumnSortState,
   ColumnsSelectEvent,
   ColumnType,
+  ColumnVisibilityEvent,
+  ColumnVisibilityState,
   ColumnWrapConfig,
   DataColumn,
   DisplayRow,
@@ -155,6 +157,11 @@ export { paginateRows } from "./util/paging";
 export type { PaginationWindowEntry } from "./util/paginationWindow";
 export { paginationWindow } from "./util/paginationWindow";
 export { computeAggregates, withGroupAggregates } from "./util/aggregation";
+export {
+  applyColumnVisibility,
+  isColumnVisible,
+  setColumnVisibility,
+} from "./util/visibility";
 export { createGridViewResolver, resolveGridView } from "./util/view";
 export type { FormatLocale } from "./util/format";
 export { formatAggregateValue, formatCellValue } from "./util/format";

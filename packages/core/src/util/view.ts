@@ -19,6 +19,7 @@ import { resolveDataColumns } from "./ordering";
 import { paginateRows, type PaginatedRows } from "./paging";
 import { resolveShownRows } from "./rows";
 import { fitColumnsToWidth, resolveColumnWidths } from "./sizing";
+import { applyColumnVisibility } from "./visibility";
 
 /**
  * A stable empty fallback for omitted `aggregates` — a fresh `[]` per call
@@ -81,10 +82,11 @@ function identifyRows<Row>(
  *
  * The only stage that reads `sizing` or `viewportWidth`, and nothing reads
  * its output but the renderer: a resize re-runs this and leaves every data
- * stage alone.
+ * stage alone. Handed the visible columns only, so the hidden ones take no
+ * share of a fitted width.
  */
 function sizeColumns<Row, Node>(
-  dataColumns: readonly DataColumn<Row, Node>[],
+  visibleColumns: readonly DataColumn<Row, Node>[],
   sizing: ColumnSizingState,
   sizes: Partial<ColumnSizeDefaults> | undefined,
   resizable: boolean | undefined,
@@ -94,7 +96,7 @@ function sizeColumns<Row, Node>(
   viewportWidth: number | null,
 ): readonly ResolvedColumn<Row, Node>[] {
   const widths = resolveColumnWidths(
-    dataColumns.map((entry) => entry.column),
+    visibleColumns.map((entry) => entry.column),
     sizing,
     { sizes, resizable, reorderable, groupByDraggable },
   );
@@ -178,6 +180,7 @@ export function createGridViewResolver<Row, Node = string>(): (
 ) => GridView<Row, Node> {
   const identify = memoizeLast(identifyRows<Row>);
   const orderColumns = memoizeLast(resolveDataColumns<Row, Node>);
+  const showColumns = memoizeLast(applyColumnVisibility<Row, Node>);
   const size = memoizeLast(sizeColumns<Row, Node>);
   const filterAndSort = memoizeLast(resolveShownRows<Row>);
   const group = memoizeLast(groupRows<Row>);
@@ -215,8 +218,11 @@ export function createGridViewResolver<Row, Node = string>(): (
       options.aggregates ?? (NO_AGGREGATES as AggregateState<Row>);
 
     const dataColumns = orderColumns(definitions, state.columnOrder);
+    // Hidden after ordering, so a hidden column keeps its slot in the order
+    // and comes back to it when shown; the data stages below still read
+    // every column, so a sort or filter on a hidden one still applies.
     const columns = size(
-      dataColumns,
+      showColumns(dataColumns, state.columnVisibility),
       state.columnSizing,
       options.columnSizeDefaults,
       options.resizableColumns,
@@ -266,9 +272,10 @@ export function createGridViewResolver<Row, Node = string>(): (
 /**
  * What the user is looking at, derived from the rows, the columns, the
  * grid's state and its options in one call: rows filtered → sorted →
- * grouped → aggregated → paginated, and columns ordered → sized. The one
- * function a renderer, an export or a toolbar calls instead of composing the
- * stages itself, so none of them can disagree about what is shown.
+ * grouped → aggregated → paginated, and columns ordered → hidden → sized.
+ * The one function a renderer, an export or a toolbar calls instead of
+ * composing the stages itself, so none of them can disagree about what is
+ * shown.
  *
  * Unmemoised — a one-off resolver. A renderer that derives the view on every
  * change holds a `createGridViewResolver()` instead.
