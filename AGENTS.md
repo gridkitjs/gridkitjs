@@ -92,10 +92,10 @@ real layout and are tested through Playwright below, and Vitest there covers
 only pure helpers such as overlay placement. Prefer testing logic in `core`,
 where no DOM is required.
 
-**Playwright component tests** cover `react`'s `DataGrid` — pointer drags,
-keyboard navigation, real layout and `ResizeObserver`, all of which need an
-actual browser rather than jsdom. They live in `apps/playground/tests-ct/`,
-mounting `DataGrid` in isolation through
+**Playwright component tests** cover `react`'s `DataGrid` and the `dom`
+behaviours it attaches — pointer drags, keyboard navigation, real layout and
+`ResizeObserver`, all of which need an actual browser rather than jsdom. They
+live in `apps/playground/tests-ct/`, mounting `DataGrid` in isolation through
 `@playwright/experimental-ct-react` rather than through the playground's own
 demo (`App.tsx`), against the real `theme-tailwind` stylesheet so measured
 widths and paddings are real ones. Chromium only — this is an internal
@@ -104,13 +104,13 @@ suite, not a cross-browser guarantee for a published package.
 ```bash
 pnpm --filter playground test:e2e             # run the suite
 pnpm --filter playground test:e2e:ui           # same, with Playwright's UI
-pnpm --filter playground test:e2e:coverage     # instrumented; enforces 80% line/statement/function coverage over DataGrid/
+pnpm --filter playground test:e2e:coverage     # instrumented; enforces 80% line/statement/function coverage over DataGrid/ and dom
 ```
 
 `test:e2e` is not part of `pnpm test` and does not run under `pnpm -r test`,
 by design — it's a separate, slower check, invoked explicitly rather than on
 every `pnpm test` (CI runs it as its own job, see Standards). A new
-`DataGrid` behavior needs a Playwright test the same way new `core` logic
+`DataGrid` or `dom` behavior needs a Playwright test the same way new `core` logic
 needs a Vitest one; `apps/playground/tests-ct/` holds one spec file per area
 — `rendering`, `column-resize`, `keyboard-navigation`, `selection`,
 `row-virtualization` and so on — so add to whichever one already covers the
@@ -127,7 +127,8 @@ pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 The `e2e` job runs the Playwright suite instrumented,
 `pnpm --filter playground test:e2e:coverage`, and fails if line, statement or
-function coverage over `packages/react/src/DataGrid/` drops below 80%.
+function coverage over `packages/react/src/DataGrid/` and `packages/dom/src/`
+drops below 80%.
 
 - **TypeScript** — every tsconfig extends `tsconfig.base.json`: `strict`, plus
   `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`. Do not loosen
