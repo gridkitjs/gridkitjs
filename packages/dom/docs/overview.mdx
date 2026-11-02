@@ -3,7 +3,7 @@ title: "Overview"
 description: "Framework-free browser behaviours for GridKit renderers: gestures, focus, observers, virtualization, overlays and announcements."
 ---
 
-@gridkitjs/dom holds every browser behaviour a grid needs that is not drawing: the live region it reports changes through, and more as they move out of the React package. @gridkitjs/core decides what the grid does and runs without a DOM; @gridkitjs/dom does what needs one, with no framework; a renderer such as @gridkitjs/react draws the markup and attaches these behaviours to it.
+@gridkitjs/dom holds every browser behaviour a grid needs that is not drawing: pointer gestures, keyboard focus movement, the observers behind fit-to-width and infinite scroll, the row virtualizer's measuring, overlays, and the live region it reports changes through. @gridkitjs/core decides what the grid does and runs without a DOM; @gridkitjs/dom does what needs one, with no framework; a renderer such as @gridkitjs/react draws the markup and attaches these behaviours to it. A second renderer — for Angular, Vue or Svelte — reuses both unchanged.
 
 You only need this package to write a renderer of your own. @gridkitjs/react depends on it already, so installing that is enough to use the grid.
 
@@ -12,6 +12,20 @@ You only need this package to write a renderer of your own. @gridkitjs/react dep
 ```ts
 npm install @gridkitjs/dom
 ```
+
+## The contract
+
+Every behaviour is attached to elements the renderer already drew and handed options, owns its own listeners and observers, reports through callbacks, and gives back the way to end it — a function, or an object with `detach` or `destroy`. None names a framework's types, so each maps onto a framework's own lifecycle: a React ref callback or effect, an Angular directive and `ngOnDestroy`, a Vue `onMounted`, a Svelte action.
+
+```ts
+const detach = observeElementWidth(element, (width) => {
+  /* … */
+});
+// later, when the element goes away:
+detach();
+```
+
+Where a behaviour reads the grid's markup, it relies on the attributes @gridkitjs/react renders — `data-gridkit-column` on header and body cells, `data-gridkit-row-index` on body rows, `data-gridkit-group-by-bar` and `data-gridkit-group-chip` on the group-by bar — so a renderer that draws the same markup gets the same behaviour. What a behaviour reports that changes how the grid looks — a drop target, the window of rows, the focused cell — is the renderer's to draw; what changes the grid's state goes through the controller's actions.
 
 ## Live announcer
 

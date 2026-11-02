@@ -24,6 +24,7 @@ behaviours a renderer attaches live in `@gridkitjs/dom`, free of any framework.
 Guides and full API reference live at **[gridkitjs.com](https://gridkitjs.com)**:
 
 - [Core](https://gridkitjs.com/en/docs/core/overview) — column inference, resizing, ordering, selection
+- [DOM](https://gridkitjs.com/en/docs/dom/overview) — browser behaviours, for writing a renderer
 - [React](https://gridkitjs.com/en/docs/react/overview) — components, props, events
 - [Theme (Tailwind)](https://gridkitjs.com/en/docs/theme-tailwind/overview) — palette tokens, dark mode
 
@@ -143,8 +144,9 @@ hot-reloads the playground immediately; never build to see a change.
 ## Tests
 
 Vitest for logic in `core` and `react`; Playwright component tests
-(Chromium only) for `react`'s `DataGrid`, mounting it in isolation against
-the real Tailwind theme rather than jsdom.
+(Chromium only) for `react`'s `DataGrid` and the `dom` behaviours it
+attaches, mounting it in isolation against the real Tailwind theme rather
+than jsdom.
 
 ```bash
 pnpm test                              # Vitest, all packages
