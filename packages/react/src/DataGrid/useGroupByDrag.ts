@@ -3,7 +3,7 @@ import type { GroupByState } from "@gridkitjs/core";
 import {
   resolveGroupByDropTarget,
   type GroupByDropTarget,
-} from "./groupByDropTarget";
+} from "@gridkitjs/dom";
 import useDragReorder from "./useDragReorder";
 
 interface UseGroupByDragOptions {

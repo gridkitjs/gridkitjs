@@ -53,6 +53,7 @@ import {
   type SelectionDiffEvent,
   type SerializedGridState,
 } from "@gridkitjs/core";
+import type { ColumnDropTarget } from "@gridkitjs/dom";
 import GridColgroup from "./components/GridColgroup";
 import GridHeader from "./components/GridHeader";
 import GridBody from "./components/GridBody";
@@ -61,7 +62,7 @@ import GridPager from "./components/GridPager";
 import GroupByBar from "./components/GroupByBar";
 import { ariaAttr } from "./ariaAttr";
 import { classNames } from "./classNames";
-import useColumnDrag, { type DropTarget } from "./useColumnDrag";
+import useColumnDrag from "./useColumnDrag";
 import useColumnResize from "./useColumnResize";
 import useElementWidth from "./useElementWidth";
 import useGridController, {
@@ -763,7 +764,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
    * The one place a drop is applied — the two-armed switch on `target.kind`
    * the group-by bar's own second drop zone was always going to need.
    */
-  function handleDrop(target: DropTarget, movedId: string): void {
+  function handleDrop(target: ColumnDropTarget, movedId: string): void {
     if (target.kind === "group-by") {
       // Already announced: `moveGroupBy` reports through the same
       // `onGroupByChange` pipeline the header toggle and the bar's own chip
