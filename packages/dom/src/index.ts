@@ -2,6 +2,11 @@
 // owns its listeners and observers and reports through callbacks, so it names
 // no framework's types.
 export { createLiveAnnouncer, type LiveAnnouncer } from "./announcer";
+export {
+  measureColumnContent,
+  startColumnResizeGesture,
+  type ColumnResizeGestureHandlers,
+} from "./columnResize";
 export { observeElementWidth } from "./elementWidth";
 export {
   attachInfiniteScroll,
@@ -24,3 +29,4 @@ export {
   type OverlaySide,
   type OverlaySize,
 } from "./overlay/placeOverlay";
+export type { PointerPress } from "./pointerGesture";

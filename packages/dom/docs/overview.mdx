@@ -40,6 +40,38 @@ const disconnect = observeElementWidth(viewportElement, (width) => {
 });
 ```
 
+## Gestures
+
+A gesture starts from a `PointerPress` — the `pointerdown` that began it, native or a framework's wrapper around one — and only from the main button of the primary pointer: a right-click or a second finger starts nothing, and the starter returns `false`. While it runs, the pointer is captured, so the gesture keeps reporting wherever the pointer goes, and <Kbd>Escape</Kbd> cancels it.
+
+### Column resize
+
+`startColumnResizeGesture(handle, press, session, { onMove, onEnd, onCancel })` drags a column's edge. `session` comes from @gridkitjs/core's `beginColumnResize`, which also turns each pointer position into a clamped width. `onMove(width)` reports every move; `onEnd(width)` reports the release, with `null` when the width ended where it started — a click on the handle is not a resize; `onCancel()` reports <Kbd>Escape</Kbd> or a cancelled pointer.
+
+```ts
+import { beginColumnResize } from "@gridkitjs/core";
+import { startColumnResizeGesture } from "@gridkitjs/dom";
+
+handle.addEventListener("pointerdown", (event) => {
+  const session = beginColumnResize(column, width, event.clientX);
+  startColumnResizeGesture(handle, event, session, {
+    onMove: (width) => controller.resizeColumn(session.columnId, width, "move"),
+    onEnd: (width) => {
+      if (width !== null)
+        controller.resizeColumn(session.columnId, width, "end");
+    },
+    onCancel: () =>
+      controller.cancelColumnResize(
+        session.columnId,
+        startSizing,
+        session.startWidth,
+      ),
+  });
+});
+```
+
+`measureColumnContent(table, columnId)` is the width the widest rendered cell of a column needs to show its content in full — what double-clicking a resize handle sizes it to, through `sizeColumnToContent` — or `null` when the column has no cells.
+
 ## Infinite scroll
 
 `attachInfiniteScroll(root, options)` calls `onLoadMore` as a sentinel element — the last row of the body — comes within `rootMargin` of the scrolling `root`, at most once until `isLoadingMore` has gone from `true` back to `false`. It returns `update(options)`, which a renderer calls after every render with the current options and sentinel (the sentinel comes and goes with `hasMore`), and `detach()`.
