@@ -142,7 +142,9 @@ test.describe("infinite scroll", () => {
         columns={columns}
         allRows={buildRows(10)}
         chunkSize={5}
-        delay={300}
+        // The load this test triggers never finishes, so the loading row is
+        // still mounted for every assertion below, however slow the run.
+        holdLoads
         rootMargin="0px"
         label="Infinite scroll nav"
         height={150}
