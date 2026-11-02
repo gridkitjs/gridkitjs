@@ -1,7 +1,7 @@
 import type {
   ColumnSortState,
   ColumnType,
-  ResolvedColumn,
+  DataColumn,
   ResolvedRow,
   SortDirection,
 } from "../types";
@@ -134,7 +134,7 @@ export function toggleColumnSort(
 export function sortRows<Row>(
   rows: readonly ResolvedRow<Row>[],
   sort: ColumnSortState,
-  columns: readonly ResolvedColumn<Row, unknown>[],
+  columns: readonly DataColumn<Row, unknown>[],
 ): readonly ResolvedRow<Row>[] {
   if (sort.length === 0) {
     return rows;

@@ -1,6 +1,7 @@
 {
   "order": [
     "overview",
+    "view",
     "column-definitions",
     "resizing",
     "ordering",

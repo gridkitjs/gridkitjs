@@ -26,6 +26,10 @@ the identical text. Today a `Date` cell is rendered as a raw `ReactNode` and thr
 
 ## Starting point
 
+- (From Phase 02) Visibility belongs in `sizeColumns` in `packages/core/src/util/view.ts`:
+  hidden columns leave `view.columns` but stay in `view.dataColumns`. Text/value filters
+  without a `columnId` scan every `dataColumns` entry, hidden ones included; decide and record
+  whether that should change.
 - `ColumnDefinition.headerTemplate?: Node | (() => Node)`; `resolveColumnLabel` falls back to the
   field path with dots replaced by spaces. `DataGrid.tsx#columnName` uses the label when it is a
   string, else the field — announcements and (later) export have no guaranteed text.

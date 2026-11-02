@@ -118,8 +118,8 @@ phases). An effort word may follow (`opus xhigh`, `sonnet low`); none means `hig
 | #   | Phase                                                | Plan                                                             | Status      | Depends on | Model       | Branch                      | Commits          |
 | --- | ---------------------------------------------------- | ---------------------------------------------------------------- | ----------- | ---------- | ----------- | --------------------------- | ---------------- |
 | 01  | Boundaries and hygiene                               | [phase-01-boundaries-hygiene.md](phase-01-boundaries-hygiene.md) | done        | none       | opus medium | refactor/boundaries-hygiene | 4ccb606..3c788d8 |
-| 02  | `resolveGridView` and the width-free pipeline        | [phase-02-grid-view.md](phase-02-grid-view.md)                   | in-progress | 01         | opus        | feat/grid-view              |                  |
-| 03  | Column model: header, formatting, locale, visibility | [phase-03-column-model.md](phase-03-column-model.md)             | todo        | 02         | opus        |                             |                  |
+| 02  | `resolveGridView` and the width-free pipeline        | [phase-02-grid-view.md](phase-02-grid-view.md)                   | done        | 01         | opus        | feat/grid-view              | 1ffa0c7..fa8df01 |
+| 03  | Column model: header, formatting, locale, visibility | [phase-03-column-model.md](phase-03-column-model.md)             | in-progress | 02         | opus        | feat/column-model           |                  |
 | 04  | `GridOptions` and `createGridController`             | [phase-04-controller.md](phase-04-controller.md)                 | todo        | 03         | opus xhigh  |                             |                  |
 | 05  | Serialisable filters and the filter-editor model     | [phase-05-filters.md](phase-05-filters.md)                       | todo        | 04         | opus        |                             |                  |
 | 06  | Row hooks, simple multi-select, messages             | [phase-06-row-hooks-messages.md](phase-06-row-hooks-messages.md) | todo        | 04         | opus        |                             |                  |
@@ -129,8 +129,8 @@ Phases 05, 06 and 07 are independent of each other and may run in any order afte
 
 ## Now
 
-- **In progress:** 02
-- **Next:** 03
+- **In progress:** 03
+- **Next:** 04
 - **Waiting on the user:** nothing
 
 ## Handoffs
@@ -172,6 +172,30 @@ from, and passes the relevant ones to the next sub-agent.)
 - `examples/*/src/App.tsx` (8 StackBlitz projects, outside the workspace, on published
   `@gridkitjs/react@^0.8.0`) still use `DataGridComponent` on purpose; leave them.
 
+### Phase 02
+
+- New core exports: `resolveGridView`, `createGridViewResolver`, `resolveDataColumns`, types
+  `DataColumn`, `GridState`, `GridView`, `GridViewInput`, `GridViewOptions`, `ResizeMode`
+  (moved from react; react re-exports it). All in `packages/core/src/util/view.ts` and
+  `types.ts`.
+- The resolver returns the same `GridView` object when nothing changed, so it can serve
+  directly as a `useSyncExternalStore` snapshot. `GridViewOptions` names copy the props
+  (`resizableColumns`, `columnSizeDefaults`, `resizeMode`…) so `GridOptions` can pass
+  them through.
+- `DataGrid.tsx` holds one resolver (`useState(() => createGridViewResolver<Row, ReactNode>())`)
+  and reads `view.*`: `view.columns`, `view.rows`, `view.displayRows`, `view.pageRows` /
+  `pageCount` / `pageIndex`, ids from `view.dataColumns`.
+- `GridState` has 7 slices: `columnSizing`, `columnOrder`, `columnSort`, `filter`, `groupBy`,
+  `groupExpansion`, `pagination`. Visibility and selection slices are not yet there.
+- Still in React (Phase 04): column inference (`defineColumnsFromRows` when no `columns`), the
+  page reset on filter/sort/group change (the `previous` state in `DataGrid.tsx`),
+  `activeAggregates`.
+- `collapseAllGroups` now keeps `kind === "group"` only (summary rows were counted as groups).
+- New react API: `DataGridApi.getPageRows()`.
+- Counts: 348 core Vitest, 200 Playwright CT.
+- Coverage gotcha: Playwright CT caches its bundle in `apps/playground/playwright/.cache` without
+  keying on `VITE_COVERAGE`; delete that folder before `test:e2e:coverage` or it reports 0 %.
+
 ## Decisions to review
 
 (Choices sub-agents made that the user should look at, tagged with their phase.)
@@ -184,6 +208,8 @@ from, and passes the relevant ones to the next sub-agent.)
 - [01 C] `examples/` (8 StackBlitz projects on published `@gridkitjs/react@^0.8.0`) still use
   `DataGridComponent`; renaming them before the release would break their installs.
   Recommended: bump and rename them after the release that ships the rename.
+- [02] Column inference from rows stays in React for now (moving it into core needs a cast lint
+  rejects); `view.mdx` says so. `resolveGridView` takes raw `rows` + `getRowId`.
 
 ## Follow-ups
 
@@ -191,6 +217,8 @@ from, and passes the relevant ones to the next sub-agent.)
   `packages/react/README.md` (~line 26) back from `headerTemplate: "Cost"` to `header: "Cost"`.
 - [phase 07] Add `@gridkitjs/dom` to core's ESLint import ban and ban `react` in
   `packages/dom/**` (`eslint.config.mjs`).
+- [later] `test:e2e:coverage` reuses a stale uninstrumented CT bundle after `test:e2e` and
+  still exits 0 with 0 % coverage; the script should clear `apps/playground/playwright/.cache`.
 - [after release] Bump `examples/*/package.json` to the react version carrying the rename and
   rename `DataGridComponent` in `examples/*/src/App.tsx`.
 - After this plan (next plans in the roadmap): overlay + menu + commands → context menu →
@@ -209,3 +237,5 @@ from, and passes the relevant ones to the next sub-agent.)
 - 2026-11-02 · phase 01 part C · done · DataGridComponent → DataGrid (cc28980..3c788d8)
 - 2026-11-02 · phase 01 · done
 - 2026-11-02 · phase 02 · started at 3c788d8 on feat/grid-view
+- 2026-11-02 · phase 02 · done · resolveGridView + memoised resolver, DataGrid reads view (1ffa0c7..fa8df01)
+- 2026-11-02 · phase 03 · started at fa8df01 on feat/column-model

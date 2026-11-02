@@ -5,6 +5,7 @@ import {
   applyColumnOrder,
   moveColumnBefore,
   movesColumn,
+  resolveDataColumns,
   resolveDropBefore,
   resolveKeyboardDropTarget,
 } from "./ordering";
@@ -60,6 +61,38 @@ describe("applyColumnOrder", () => {
       "Name",
       "Id",
     ]);
+  });
+});
+
+describe("resolveDataColumns", () => {
+  test("pairs each column with its id, in the order given", () => {
+    const resolved = resolveDataColumns(columns, ["Status", "Id", "Name"]);
+
+    expect(resolved.map((entry) => entry.id)).toEqual(["Status", "Id", "Name"]);
+    expect(resolved[0]?.column).toBe(columns[2]);
+  });
+
+  test("keeps definition order for an empty order", () => {
+    const resolved = resolveDataColumns(columns, []);
+
+    expect(resolved.map((entry) => entry.id)).toEqual(["Id", "Name", "Status"]);
+  });
+
+  test("follows a partial order with the columns it omits", () => {
+    const resolved = resolveDataColumns(columns, ["Status"]);
+
+    expect(resolved.map((entry) => entry.id)).toEqual(["Status", "Id", "Name"]);
+  });
+
+  test("uses a column's own id over its field", () => {
+    const withId: readonly ColumnDefinition<SampleRow>[] = [
+      { field: "Id" },
+      { field: "Name", id: "Name.custom" },
+    ];
+
+    expect(
+      resolveDataColumns(withId, ["Name.custom"]).map((entry) => entry.id),
+    ).toEqual(["Name.custom", "Id"]);
   });
 });
 

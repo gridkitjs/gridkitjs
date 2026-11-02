@@ -29,6 +29,7 @@ interface Status {
   hasTable: boolean;
   rowCount: number;
   rowIds: string[];
+  pageRowIds: string[];
   columnIds: string[];
   columnSizing: Record<string, number>;
   columnOrder: readonly string[];
@@ -81,6 +82,24 @@ test("getRows/getColumns reflect the grid as currently sorted", async ({
   expect(status.rowCount).toBe(3);
   expect(status.rowIds).toEqual(["row-a", "row-b", "row-c"]);
   expect(status.columnIds).toEqual(["id", "name"]);
+});
+
+test("getPageRows returns only the current page's rows", async ({ mount }) => {
+  const root = await mountGrid(
+    mount,
+    <ImperativeApiGrid
+      columns={columns}
+      dataSource={buildRows(7)}
+      label="Api"
+      paginated
+      defaultPagination={{ pageIndex: 0, pageSize: 3 }}
+    />,
+  );
+  await root.getByRole("button", { name: "next-page" }).click();
+  await root.getByRole("button", { name: "report" }).click();
+  const status = await readStatus(root);
+  expect(status.pageRowIds).toEqual(["row-3", "row-4", "row-5"]);
+  expect(status.rowCount).toBe(7);
 });
 
 test("focusCell moves the grid's DOM tab stop", async ({ mount }) => {
