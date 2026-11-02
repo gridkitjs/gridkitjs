@@ -4,19 +4,24 @@ Headless data-grid toolkit. pnpm monorepo, ESM-only, TypeScript 6.
 
 ## Structure
 
-| Package                                                 | What belongs in it                                                                                  |
-| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `packages/core` (`@gridkitjs/core`)                     | Framework-agnostic grid logic — sorting, filtering, paging. Plain TypeScript. **No React, no CSS.** |
-| `packages/react` (`@gridkitjs/react`)                   | React components. Renders semantic class names; carries no styles of its own. Consumes `core`.      |
-| `packages/theme-tailwind` (`@gridkitjs/theme-tailwind`) | The grid's stylesheet — palette tokens, dark mode, grid styles. Published.                          |
-| `packages/theme-default`                                | Plain CSS for consumers not using Tailwind. Currently an empty stub. Private, unpublished.          |
-| `apps/playground`                                       | Vite app used to develop against. Private, never published.                                         |
+| Package                                                 | What belongs in it                                                                                    |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `packages/core` (`@gridkitjs/core`)                     | Framework-agnostic grid logic — sorting, filtering, paging. Plain TypeScript. **No React, no CSS.**   |
+| `packages/dom` (`@gridkitjs/dom`)                       | Browser behaviours — gestures, focus, observers, overlays. Plain TypeScript with the DOM. No React.   |
+| `packages/react` (`@gridkitjs/react`)                   | React components. Renders semantic class names; carries no styles of its own. Consumes `core`, `dom`. |
+| `packages/theme-tailwind` (`@gridkitjs/theme-tailwind`) | The grid's stylesheet — palette tokens, dark mode, grid styles. Published.                            |
+| `packages/theme-default`                                | Plain CSS for consumers not using Tailwind. Currently an empty stub. Private, unpublished.            |
+| `apps/playground`                                       | Vite app used to develop against. Private, never published.                                           |
 
 The split is the point: logic lives in `core` so it is testable without a DOM
-and reusable from a future Vue/Svelte adapter. If a feature can be written
-without React, it belongs in `core`. The boundary is enforced, not just
-agreed: `core` compiles without the DOM `lib` and ESLint rejects any `react`,
-`react-dom` or `@gridkitjs/react` import from it.
+and reusable from a future Vue/Svelte adapter, and the browser behaviours a
+renderer attaches — pointer gestures, focus movement, observers, the
+virtualizer's measuring — live in `dom` so that adapter reuses them too. If a
+feature can be written without the DOM, it belongs in `core`; if it needs the
+DOM but not React, in `dom`; `react` only draws. The boundary is enforced, not
+just agreed: `core` compiles without the DOM `lib` and ESLint rejects any
+`react`, `react-dom`, `@gridkitjs/react` or `@gridkitjs/dom` import from it,
+and any `react`, `react-dom` or `@gridkitjs/react` import from `dom`.
 
 ## Development
 
@@ -82,8 +87,10 @@ pnpm --filter @gridkitjs/core test     # one package
 ```
 
 `react` still passes `--passWithNoTests`; drop that flag once it has real
-Vitest tests of its own. Prefer testing logic in `core`, where no DOM is
-required.
+Vitest tests of its own. `dom` passes it too, for good: its behaviours need
+real layout and are tested through Playwright below, and Vitest there covers
+only pure helpers such as overlay placement. Prefer testing logic in `core`,
+where no DOM is required.
 
 **Playwright component tests** cover `react`'s `DataGrid` — pointer drags,
 keyboard navigation, real layout and `ResizeObserver`, all of which need an
@@ -136,7 +143,7 @@ function coverage over `packages/react/src/DataGrid/` drops below 80%.
 
 ### Versioning
 
-Every change that reaches a **published** package — `core`, `react`,
+Every change that reaches a **published** package — `core`, `dom`, `react`,
 `theme-tailwind` — needs a changeset, in the same commit as the change:
 
 ```bash
@@ -289,8 +296,9 @@ chore(deps): bump vite to 8.2
 Types: `feat`, `fix`, `docs`, `refactor`, `test`, `perf`, `build`, `ci`,
 `chore`, `revert`.
 
-Scope is the package without its namespace — `core`, `react`, `theme-tailwind`,
-`theme-default`, `playground` — and is omitted for repo-wide changes.
+Scope is the package without its namespace — `core`, `dom`, `react`,
+`theme-tailwind`, `theme-default`, `playground` — and is omitted for repo-wide
+changes.
 
 Breaking changes take a `!` before the colon (`feat(core)!: ...`) plus a
 `BREAKING CHANGE:` footer.

@@ -15,8 +15,9 @@
 Headless data-grid toolkit. pnpm monorepo, ESM-only, TypeScript 6.
 
 Grid logic lives in `@gridkitjs/core` as plain TypeScript, so it is testable
-without a DOM and reusable from a future Vue/Svelte adapter. `@gridkitjs/react`
-binds that logic to React components.
+without a DOM and reusable from a future Vue/Svelte adapter, and the browser
+behaviours a renderer attaches live in `@gridkitjs/dom`, free of any framework.
+`@gridkitjs/react` binds both to React components.
 
 ## Documentation
 
@@ -35,7 +36,8 @@ this repo has no docs build — they're only rendered by the separate
 | Package                     | What it is                                                                                    | Docs                                                          |
 | --------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | `@gridkitjs/core`           | Framework-agnostic grid logic — column resolution, alignment, sizing.                         | [docs](https://gridkitjs.com/en/docs/core/overview)           |
-| `@gridkitjs/react`          | React components consuming `core`, styled with Tailwind utilities.                            | [docs](https://gridkitjs.com/en/docs/react/overview)          |
+| `@gridkitjs/dom`            | Framework-free browser behaviours — gestures, focus, observers, overlays. For renderers.      | [docs](https://gridkitjs.com/en/docs/dom/overview)            |
+| `@gridkitjs/react`          | React components consuming `core` and `dom`, rendering semantic class names.                  | [docs](https://gridkitjs.com/en/docs/react/overview)          |
 | `@gridkitjs/theme-tailwind` | Tailwind theme layer — palette tokens, dark mode, grid styles.                                | [docs](https://gridkitjs.com/en/docs/theme-tailwind/overview) |
 | `@gridkitjs/theme-default`  | Plain CSS for consumers not using Tailwind. Currently an empty stub, private and unpublished. | —                                                             |
 

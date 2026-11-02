@@ -23,8 +23,32 @@ export default tseslint.config(
   },
   {
     // Core has to stay reusable from any renderer, so it must not reach for
-    // one; the tsconfig's DOM-free `lib` covers the browser half of the rule.
+    // one, nor for the browser behaviours; the tsconfig's DOM-free `lib`
+    // covers the browser half of the rule.
     files: ["packages/core/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "react",
+                "react-dom",
+                "@gridkitjs/react",
+                "@gridkitjs/dom",
+              ].flatMap((name) => [name, `${name}/*`]),
+              message: "core is framework- and DOM-free, see AGENTS.md",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // The behaviours are shared by every renderer, so they may use the DOM
+    // but no framework.
+    files: ["packages/dom/**"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -34,7 +58,7 @@ export default tseslint.config(
               group: ["react", "react-dom", "@gridkitjs/react"].flatMap(
                 (name) => [name, `${name}/*`],
               ),
-              message: "core is framework-free, see AGENTS.md",
+              message: "dom is framework-free, see AGENTS.md",
             },
           ],
         },
