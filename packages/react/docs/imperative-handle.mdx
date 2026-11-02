@@ -1,9 +1,9 @@
 ---
 title: "Imperative handle"
-description: "The DataGridApi reached through DataGrid's ref — reading live grid state and triggering focus, scroll, and selection actions."
+description: "The DataGridApi reached through DataGrid's ref — reading and setting live grid state, saving and restoring it, and triggering focus, scroll, and selection actions."
 ---
 
-`DataGrid` accepts a `ref` typed `Ref<DataGridApi<Row>>`, for the state and actions that aren't otherwise reachable from outside: the grid's DOM nodes, its live column sizing/order/sort and selection, and the handful of actions every grid ref carries.
+`DataGrid` accepts a `ref` typed `Ref<DataGridApi<Row>>`, for driving the grid from outside: the grid's DOM nodes, getters and a setter for every slice of its state, saving and restoring that state as a whole, and the handful of actions every grid ref carries.
 
 ```ts
 import { useRef } from "react";
@@ -17,7 +17,7 @@ gridRef.current?.scrollToRow("42");
 gridRef.current?.getColumnSizing();
 ```
 
-Sizing, order, sort, and selection stay uncontrolled exactly as they are without a ref — set their starting values with `defaultColumnSizing` and friends. `DataGridApi` is for reading current state and triggering the actions below, not a second way to drive that same state. `subscribe` doesn't change that either: it's a read/notify channel for reacting to state that already lives here, not a write path. Column visibility is the one exception: the grid has no built-in control for showing or hiding a column, so `showColumns` and `hideColumns` are how it changes.
+Every getter reads the grid's state at the moment it is called, so a read straight after an action sees the action's result. Every setter changes the grid as the user's own interaction would: it fires the slice's `on*Change` callback once, fires nothing when the new value equals the current one, and — for a slice you hold with a [controlled prop](/docs/react/state) such as `columnSort` — only asks, through that callback, as a click would.
 
 ## Elements
 
@@ -39,15 +39,18 @@ Sizing, order, sort, and selection stay uncontrolled exactly as they are without
 | `getColumnOrder()`      | `ColumnOrderState`                          | Column ids in their current render order.                                                                                                                                                                                                                                                                                                                                                                 |
 | `getColumnVisibility()` | `ColumnVisibilityState`                     | Columns shown (`true`) or hidden (`false`) since the grid mounted, keyed by id. A column absent from it follows its definition's `hidden`.                                                                                                                                                                                                                                                                |
 | `getColumnSort()`       | `ColumnSortState`                           | The active sort, in priority order.                                                                                                                                                                                                                                                                                                                                                                       |
+| `getFilter()`           | `FilterState<Row>`                          | The active filter. See [column filtering](/docs/react/column-filtering).                                                                                                                                                                                                                                                                                                                                  |
 | `getGroupBy()`          | `GroupByState`                              | The active group-by stack, outer to inner. See [row grouping](/docs/react/row-grouping).                                                                                                                                                                                                                                                                                                                  |
 | `getGroupExpansion()`   | `GroupExpansionState`                       | Group ids currently collapsed.                                                                                                                                                                                                                                                                                                                                                                            |
 | `getPagination()`       | `PaginationState`                           | The active page and page size. See [pagination](/docs/react/pagination).                                                                                                                                                                                                                                                                                                                                  |
 | `getPageCount()`        | `number`                                    | How many pages the current page size splits the rows into — `1` whenever `paginated` is off.                                                                                                                                                                                                                                                                                                              |
 | `getAggregates()`       | `AggregateResults`                          | The grand-total aggregate results. See [aggregate functions](/docs/react/aggregate-functions).                                                                                                                                                                                                                                                                                                            |
 | `getRowSelection()`     | `SelectionState`                            | Selected row ids.                                                                                                                                                                                                                                                                                                                                                                                         |
+| `getSelectedRows()`     | `readonly ResolvedRow<Row>[]`               | The selected rows, in selection order, among every row the filter lets through. See [row selection](/docs/react/row-selection#selecting-from-code).                                                                                                                                                                                                                                                       |
 | `getColumnSelection()`  | `SelectionState`                            | Selected column ids.                                                                                                                                                                                                                                                                                                                                                                                      |
 | `getCellSelection()`    | `CellSelectionState`                        | The selected cell, if any.                                                                                                                                                                                                                                                                                                                                                                                |
 | `getFocusedCell()`      | `{ rowIndex: number; columnIndex: number }` | The cell currently holding the grid's single tab stop.                                                                                                                                                                                                                                                                                                                                                    |
+| `getState()`            | `GridState<Row>`                            | Every slice of state in one object — what `restoreState` takes back. See [saving and restoring a layout](/docs/react/state#saving-and-restoring-a-layout).                                                                                                                                                                                                                                                |
 
 ## Resolved row and column
 
@@ -78,25 +81,46 @@ Sizing, order, sort, and selection stay uncontrolled exactly as they are without
 
 ## Actions
 
-| Member                               | Description                                                                                                                                  |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `focusCell(rowIndex, columnIndex)`   | Moves the grid's tab stop, and the browser's focus, to a cell.                                                                               |
-| `clearSelection()`                   | Clears row, column, and cell selection together — the same as pressing <Kbd>Escape</Kbd>.                                                    |
-| `selectAllRows()`                    | Selects every row — the same as <Kbd>Ctrl</Kbd>+<Kbd>A</Kbd>.                                                                                |
-| `expandAllGroups()`                  | Expands every group at once — there's no dedicated UI control for it.                                                                        |
-| `collapseAllGroups()`                | Collapses every group currently shown at once.                                                                                               |
-| `goToPage(pageIndex)`                | Moves to the given page, clamped into range.                                                                                                 |
-| `nextPage()`                         | Moves to the next page. A no-op on the last page.                                                                                            |
-| `previousPage()`                     | Moves to the previous page. A no-op on the first page.                                                                                       |
-| `setPageSize(pageSize)`              | Changes the page size, resetting to the first page.                                                                                          |
-| `showColumns(columnIds)`             | Shows the given columns, each in the place it held. Fires `onColumnVisibilityChange` once, or not at all when every one was already showing. |
-| `hideColumns(columnIds)`             | Hides the given columns. A hidden column still sorts, filters and groups, and keeps its place in the order.                                  |
-| `scrollToRow(rowId, options?)`       | Scrolls the row with the given id into view, if it is currently shown.                                                                       |
-| `scrollToColumn(columnId, options?)` | Scrolls the column with the given id into view.                                                                                              |
+| Member                               | Description                                                                                                                                                       |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `focusCell(rowIndex, columnIndex)`   | Moves the grid's tab stop, and the browser's focus, to a cell.                                                                                                    |
+| `clearSelection()`                   | Clears row, column, and cell selection together — the same as pressing <Kbd>Escape</Kbd>.                                                                         |
+| `selectAllRows()`                    | Selects every row — the same as <Kbd>Ctrl</Kbd>+<Kbd>A</Kbd>.                                                                                                     |
+| `selectRows(rowIds, intent?)`        | Selects rows by id within `selectable.rows`: `"replace"` (the default) or `"toggle"`. Fires the row callbacks once, or not at all when nothing changed.           |
+| `expandAllGroups()`                  | Expands every group at once — there's no dedicated UI control for it.                                                                                             |
+| `collapseAllGroups()`                | Collapses every group currently shown at once.                                                                                                                    |
+| `goToPage(pageIndex)`                | Moves to the given page, clamped into range.                                                                                                                      |
+| `nextPage()`                         | Moves to the next page. A no-op on the last page.                                                                                                                 |
+| `previousPage()`                     | Moves to the previous page. A no-op on the first page.                                                                                                            |
+| `setPageSize(pageSize)`              | Changes the page size, resetting to the first page.                                                                                                               |
+| `showColumns(columnIds)`             | Shows the given columns, each in the place it held. Fires `onColumnVisibilityChange` once, or not at all when every one was already showing.                      |
+| `hideColumns(columnIds)`             | Hides the given columns. A hidden column still sorts, filters and groups, and keeps its place in the order.                                                       |
+| `scrollToRow(rowId, options?)`       | Scrolls the row with the given id into view, if it is currently shown.                                                                                            |
+| `scrollToColumn(columnId, options?)` | Scrolls the column with the given id into view.                                                                                                                   |
+| `autoFitColumn(columnId)`            | Sizes a shown column to fit its content, as double-clicking its resize handle does, firing `onColumnResize`. A hidden column, or one with no rows, is left alone. |
 
 `options` on `scrollToRow`/`scrollToColumn` is a standard
 [`ScrollIntoViewOptions`](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView),
 passed straight through.
+
+## Setting and restoring state
+
+| Member                            | Fires                         | Description                                                                                                                                   |
+| --------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setColumnSort(sort)`             | `onColumnSortChange`          | Replaces the sort, naming the first column whose place or direction changed.                                                                  |
+| `setFilter(filter)`               | `onFilterChange`              | Replaces the filter and goes back to the first page. See [column filtering](/docs/react/column-filtering#change-the-filter-from-your-own-ui). |
+| `setGroupBy(groupBy)`             | `onGroupByChange`             | Replaces the group-by stack, naming the first level that changed.                                                                             |
+| `setGroupExpansion(expansion)`    | `onGroupExpansionChange`      | Replaces the collapsed groups, reported with `groupId: null`.                                                                                 |
+| `setPagination(pagination)`       | `onPaginationChange`          | Replaces the page and page size as given; a page past the last shows the last.                                                                |
+| `setColumnSizing(sizing)`         | `onColumnResize`              | Replaces the widths, reported as the `"end"` of a resize of the first column that changed.                                                    |
+| `setColumnOrder(order)`           | `onColumnOrderChange`         | Replaces the order, naming the first column whose position changed.                                                                           |
+| `setColumnVisibility(visibility)` | `onColumnVisibilityChange`    | Replaces the visibility state, naming every column whose entry changed.                                                                       |
+| `setRowSelection(selection)`      | row selection callbacks       | Replaces the selected row ids as given, whatever `selectable` allows.                                                                         |
+| `setColumnSelection(selection)`   | column selection callbacks    | Replaces the selected column ids as given.                                                                                                    |
+| `setCellSelection(selection)`     | cell selection callbacks      | Replaces the selected cell as given, `null` for none.                                                                                         |
+| `restoreState(saved)`             | each changed slice's callback | Puts back state saved earlier, whole or in part; the grid re-renders once.                                                                    |
+
+`getState()` holds the filter as given, so a `Date` value or a predicate entry won't survive `JSON.stringify`; pass it through `serializeGridState` (exported by both `@gridkitjs/react` and `@gridkitjs/core`) before saving it. See [saving and restoring a layout](/docs/react/state#saving-and-restoring-a-layout).
 
 ## Subscribing to state changes
 
@@ -118,6 +142,7 @@ Most consumers should reach for one of the `use*State` hooks built on it instead
 | `useColumnSizingState`     | `getColumnSizing`.                                                                                                                                         |
 | `useColumnOrderState`      | `getColumnOrder`.                                                                                                                                          |
 | `useColumnVisibilityState` | `getColumnVisibility` — see [column visibility](/docs/react/column-definition#column-visibility).                                                          |
+| `useFilterState`           | `getFilter`, plus `setFilter` — see [column filtering](/docs/react/column-filtering#change-the-filter-from-your-own-ui).                                   |
 
 Each hook falls back to an empty/zero value before the grid mounts, the same way its matching getter would if called too early.
 

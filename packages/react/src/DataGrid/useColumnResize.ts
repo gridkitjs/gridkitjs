@@ -1,31 +1,25 @@
 import {
   useState,
-  type Dispatch,
   type PointerEvent as ReactPointerEvent,
   type RefObject,
-  type SetStateAction,
 } from "react";
 import {
   applyColumnResize,
   beginColumnResize,
   clampColumnWidth,
   resolveColumnConstraints,
-  revertColumnSize,
   sizeColumnToContent,
-  type ColumnResizeEvent,
   type ColumnSizeDefaults,
-  type ColumnSizingState,
 } from "@gridkitjs/core";
 import type { ResolvedColumn } from "./DataGrid";
 import measureColumnContent from "./measureColumnContent";
 import { startPointerGesture } from "./pointerGesture";
+import type { DataGridController } from "./useGridController";
 
-interface UseColumnResizeOptions {
+interface UseColumnResizeOptions<Row> {
   tableRef: RefObject<HTMLTableElement | null>;
-  sizing: ColumnSizingState;
-  setSizing: Dispatch<SetStateAction<ColumnSizingState>>;
+  controller: DataGridController<Row>;
   columnSizeDefaults?: Partial<ColumnSizeDefaults> | undefined;
-  onColumnResize?: ((event: ColumnResizeEvent) => void) | undefined;
 }
 
 export interface ColumnResizeApi<Row> {
@@ -41,34 +35,15 @@ export interface ColumnResizeApi<Row> {
 
 /**
  * Turns pointer and keyboard input into column widths. Every width it produces
- * comes from `@gridkitjs/core`; this hook only supplies the coordinates.
+ * comes from `@gridkitjs/core` and is applied by the grid's controller; this
+ * hook only supplies the coordinates, and holds which column is being dragged.
  */
 export default function useColumnResize<Row>({
   tableRef,
-  sizing,
-  setSizing,
+  controller,
   columnSizeDefaults,
-  onColumnResize,
-}: UseColumnResizeOptions): ColumnResizeApi<Row> {
+}: UseColumnResizeOptions<Row>): ColumnResizeApi<Row> {
   const [activeColumnId, setActiveColumnId] = useState<string | null>(null);
-
-  /**
-   * Deliberately not built on `commitIfChanged`: its "move" phase is called
-   * on every pointer move, including ones pinned against a min/max clamp
-   * where the resulting width doesn't change, and it intentionally fires
-   * `onColumnResize` anyway rather than adopting the bail-if-unchanged guard
-   * every other commit-style call site has.
-   */
-  function commit(
-    base: ColumnSizingState,
-    columnId: string,
-    width: number,
-    phase: "move" | "end",
-  ): void {
-    const next = { ...base, [columnId]: width };
-    setSizing(next);
-    onColumnResize?.({ columnId, width, sizing: next, phase });
-  }
 
   function startResize(
     entry: ResolvedColumn<Row>,
@@ -82,12 +57,8 @@ export default function useColumnResize<Row>({
       event.clientX,
       columnSizeDefaults,
     );
-    /**
-     * Only the dragged column can change while the drag lasts, so the state as
-     * it was when the drag opened stays a correct base to merge into — no ref
-     * mirror is needed to dodge a stale closure.
-     */
-    const base = sizing;
+    /** The sizing as the drag found it, which Escape puts the column back to. */
+    const base = controller.getState().columnSizing;
     let width = session.startWidth;
 
     // Otherwise the drag selects the header text it started on.
@@ -98,7 +69,7 @@ export default function useColumnResize<Row>({
     startPointerGesture(handle, pointerId, {
       onMove(moveEvent) {
         width = applyColumnResize(session, moveEvent.clientX);
-        commit(base, session.columnId, width, "move");
+        controller.resizeColumn(session.columnId, width, "move");
       },
       onEnd() {
         setActiveColumnId(null);
@@ -106,7 +77,7 @@ export default function useColumnResize<Row>({
         // constituent clicks are — leaves `width` at `startWidth`. Committing
         // that anyway would fire a spurious onColumnResize on every click.
         if (width !== session.startWidth) {
-          commit(base, session.columnId, width, "end");
+          controller.resizeColumn(session.columnId, width, "end");
         }
       },
       /**
@@ -118,16 +89,11 @@ export default function useColumnResize<Row>({
        */
       onCancel() {
         setActiveColumnId(null);
-        setSizing((current) => {
-          const next = revertColumnSize(current, base, session.columnId);
-          onColumnResize?.({
-            columnId: session.columnId,
-            width: session.startWidth,
-            sizing: next,
-            phase: "end",
-          });
-          return next;
-        });
+        controller.cancelColumnResize(
+          session.columnId,
+          base,
+          session.startWidth,
+        );
       },
     });
   }
@@ -143,8 +109,7 @@ export default function useColumnResize<Row>({
       return;
     }
 
-    commit(
-      sizing,
+    controller.resizeColumn(
       entry.id,
       sizeColumnToContent(
         measured,
@@ -155,8 +120,7 @@ export default function useColumnResize<Row>({
   }
 
   function nudge(entry: ResolvedColumn<Row>, delta: number): void {
-    commit(
-      sizing,
+    controller.resizeColumn(
       entry.id,
       clampColumnWidth(
         entry.width + delta,
@@ -166,8 +130,6 @@ export default function useColumnResize<Row>({
     );
   }
 
-  // Deliberately a new object each render: the handlers close over `sizing` to
-  // merge into, and a stable identity would need either `sizing` in a
-  // `useCallback` dep list (no gain) or the ref mirror avoided above.
+  // A new object each render, as the other hooks here return.
   return { activeColumnId, startResize, sizeToContent, nudge };
 }

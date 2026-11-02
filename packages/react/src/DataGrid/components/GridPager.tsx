@@ -1,9 +1,9 @@
 import { paginationWindow } from "@gridkitjs/core";
-import type { PagerConfig } from "../DataGrid";
-import type { PaginationApi } from "../usePagination";
+import type { PagerConfig, PagerTemplateContext } from "../DataGrid";
 
 interface GridPagerProps {
-  pager: PaginationApi;
+  /** The same context a `pager.template` is handed. */
+  pager: PagerTemplateContext;
   /** Presentation options for the pager. `undefined` renders the `"compact"` default with no page-size control. */
   config: PagerConfig | undefined;
 }

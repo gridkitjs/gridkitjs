@@ -5,6 +5,7 @@ import type { MountResult } from "@playwright/experimental-ct-react";
 import type { ColumnDefinition, ColumnSortEvent } from "@gridkitjs/core";
 import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
+import ControlledStateGrid from "./support/ControlledStateGrid";
 import { mountGrid } from "./support/mountGrid";
 import RowIdentifiedGrid from "./support/RowIdentifiedGrid";
 
@@ -34,6 +35,17 @@ function headers(root: MountResult) {
 
 function toggle(header: ReturnType<typeof headers>) {
   return header.locator(".header-sort-toggle");
+}
+
+interface ControlledStatus {
+  requestCount: number;
+}
+
+async function readControlledStatus(
+  root: MountResult,
+): Promise<ControlledStatus> {
+  const text = await root.getByTestId("controlled-status").textContent();
+  return JSON.parse(text ?? "{}") as ControlledStatus;
 }
 
 async function names(root: MountResult): Promise<string[]> {
@@ -399,4 +411,77 @@ test("row selection is preserved by identity across a sort that moves rows to ne
   await expect(
     root.locator("tbody tr", { hasText: "Charlie" }),
   ).toHaveAttribute("aria-selected", "true");
+});
+
+test("a controlled columnSort ignores a header click until the parent applies the sort it asked for", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ControlledStateGrid
+      columns={columns}
+      dataSource={buildRows()}
+      label="Controlled sort"
+      sortableColumns
+      controlled={{ columnSort: [] }}
+    />,
+  );
+  const header = headers(root).nth(1);
+
+  await toggle(header).click();
+  await expect
+    .poll(async () => (await readControlledStatus(root)).requestCount)
+    .toBe(1);
+  await expect(header).not.toHaveAttribute("aria-sort");
+  expect(await names(root)).toEqual(["Charlie", "Alice", "Bravo"]);
+
+  await root.getByRole("button", { name: "apply-requests" }).click();
+  await expect(header).toHaveAttribute("aria-sort", "ascending");
+  expect(await names(root)).toEqual(["Alice", "Bravo", "Charlie"]);
+});
+
+test("a controlled columnSort shows the sort it is given", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows()}
+      label="Given sort"
+      sortableColumns
+      columnSort={[{ columnId: "score", direction: "desc" }]}
+    />,
+  );
+
+  await expect(headers(root).nth(2)).toHaveAttribute("aria-sort", "descending");
+  expect(await names(root)).toEqual(["Charlie", "Bravo", "Alice"]);
+});
+
+test("giving both columnSort and defaultColumnSort logs one error, and the controlled sort wins", async ({
+  mount,
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") {
+      errors.push(message.text());
+    }
+  });
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows()}
+      label="Both given"
+      sortableColumns
+      columnSort={[{ columnId: "name", direction: "asc" }]}
+      defaultColumnSort={[{ columnId: "score", direction: "asc" }]}
+    />,
+  );
+
+  expect(await names(root)).toEqual(["Alice", "Bravo", "Charlie"]);
+  expect(
+    errors.filter((error) => error.includes("defaultColumnSort")),
+  ).toHaveLength(1);
 });

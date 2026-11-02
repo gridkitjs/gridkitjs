@@ -49,8 +49,8 @@ const EMPTY_RANGE: VisibleRange = {
  * The height cache is a mutable array in a ref, not an immutable structure
  * threaded through React state — recomputing an immutable structure on every
  * single-row height measurement (which can happen many times per second
- * while scrolling) is real, avoidable overhead, the same reason
- * `useColumnResize`'s drag-move phase bypasses `commitIfChanged`. The pure
+ * while scrolling) is real, avoidable overhead, the same reason a resize's
+ * drag-move phase skips the controller's unchanged-value check. The pure
  * math over a snapshot of that cache lives in `@gridkitjs/core`'s
  * `visibleRange`; this hook owns only the mutability around it.
  *

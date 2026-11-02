@@ -7,8 +7,8 @@ const FALLBACK_SIZING: ColumnSizingState = {};
 
 /**
  * Reactive column-sizing state read off a mounted `DataGrid`'s
- * `ref`. Read-only — sizing stays uncontrolled via `defaultColumnSizing`/the
- * grid's own resize handles, the same gap `useColumnSortState` has for sort.
+ * `ref`. Reads only; change the widths through the ref's `setColumnSizing`,
+ * or hold them yourself with the controlled `columnSizing` prop.
  *
  * Before the grid mounts, reads as an empty object.
  */

@@ -25,6 +25,8 @@ reducer for a checklist editor. No UI in this phase; the toolbar/menu plans buil
 
 ## Starting point
 
+- (From Phase 04) Operator entries need handling in `serializeEntry`/`reviveEntry`
+  (`packages/core/src/util/serialize.ts`) and `sameEntry` (`packages/core/src/controller/changes.ts`).
 - `FilterEntry<Row>` is `TextFilterEntry | ValueFilterEntry | PredicateFilterEntry |
 GroupFilterEntry`; entries are discriminated structurally (`"combinator" in entry`,
   `"predicate" in entry`, `"value" in entry`, else text). An `OperatorFilterEntry` has

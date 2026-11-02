@@ -1,6 +1,12 @@
 import { useRef, useState } from "react";
+import type {
+  ColumnSortState,
+  FilterState,
+  SerializedGridState,
+} from "@gridkitjs/core";
 import {
   DataGrid,
+  serializeGridState,
   type DataGridApi,
   type DataGridProps,
 } from "@gridkitjs/react";
@@ -20,6 +26,14 @@ export interface ImperativeApiGridProps<Row extends RowWithId> extends Omit<
   focusColumnIndex?: number;
   /** Column ids `hide-columns` hides and `show-columns` shows. */
   visibilityColumnIds?: readonly string[];
+  /** The filter `set-filter` applies. */
+  filterToSet?: FilterState<Row>;
+  /** Row ids `select-rows` selects. */
+  selectRowIds?: readonly string[];
+  /** The sort `set-column-sort` applies. */
+  sortToSet?: ColumnSortState;
+  /** The column `auto-fit-column` sizes to its content. */
+  autoFitColumnId?: string;
 }
 
 /**
@@ -37,11 +51,9 @@ export interface ImperativeApiGridProps<Row extends RowWithId> extends Omit<
  * identity rather than its position.
  *
  * Reading state is a separate button from triggering an action, deliberately:
- * an action like `focusCell` or `selectAllRows` only queues a React state
- * update, which isn't visible on `gridRef.current` until after the state
- * setter's own event handler has returned and React has re-rendered. Reading
- * inside the same handler that wrote would return the previous render's
- * value.
+ * `focusCell` still only queues a React state update, which isn't visible on
+ * `gridRef.current` until React has re-rendered, and one `report` button
+ * keeps every read on the same footing whichever action came before it.
  *
  * The grid is wrapped in its own fixed-height, scrollable container (rather
  * than relying on `gridkit-data-grid-viewport`, which only scrolls
@@ -54,10 +66,16 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
   focusRowIndex,
   focusColumnIndex,
   visibilityColumnIds,
+  filterToSet,
+  selectRowIds,
+  sortToSet,
+  autoFitColumnId,
   ...props
 }: ImperativeApiGridProps<Row>) {
   const gridRef = useRef<DataGridApi<Row>>(null);
   const [status, setStatus] = useState("");
+  /** What `save-state` stored, as JSON — the way a real page would keep it. */
+  const [savedState, setSavedState] = useState<string | null>(null);
 
   function report(): void {
     const api = gridRef.current;
@@ -74,6 +92,7 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         columnSizing: api.getColumnSizing(),
         columnOrder: api.getColumnOrder(),
         columnSort: api.getColumnSort(),
+        filter: api.getFilter(),
         groupBy: api.getGroupBy(),
         groupExpansion: api.getGroupExpansion(),
         displayRowCount: api.getDisplayRows().length,
@@ -83,9 +102,13 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         pagination: api.getPagination(),
         pageCount: api.getPageCount(),
         rowSelection: api.getRowSelection(),
+        selectedRowIds: api.getSelectedRows().map((row) => row.rowId),
         columnSelection: api.getColumnSelection(),
         cellSelection: api.getCellSelection(),
         focusedCell: api.getFocusedCell(),
+        columnWidths: api
+          .getColumns()
+          .map((column) => [column.id, column.width]),
       }),
     );
   }
@@ -189,6 +212,63 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         }}
       >
         show-columns
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          gridRef.current?.setFilter(filterToSet ?? []);
+        }}
+      >
+        set-filter
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          gridRef.current?.selectRows(selectRowIds ?? []);
+        }}
+      >
+        select-rows
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          gridRef.current?.setColumnSort(sortToSet ?? []);
+        }}
+      >
+        set-column-sort
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          if (autoFitColumnId !== undefined) {
+            gridRef.current?.autoFitColumn(autoFitColumnId);
+          }
+        }}
+      >
+        auto-fit-column
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          const api = gridRef.current;
+          if (api !== null) {
+            setSavedState(JSON.stringify(serializeGridState(api.getState())));
+          }
+        }}
+      >
+        save-state
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          if (savedState !== null) {
+            gridRef.current?.restoreState(
+              JSON.parse(savedState) as SerializedGridState<Row>,
+            );
+          }
+        }}
+      >
+        restore-state
       </button>
       <button type="button" onClick={report}>
         report

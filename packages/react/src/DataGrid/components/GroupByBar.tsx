@@ -1,16 +1,22 @@
 import { createPortal } from "react-dom";
-import { resolveColumnLabel, resolveKeyboardDropTarget } from "@gridkitjs/core";
+import {
+  resolveColumnLabel,
+  resolveKeyboardDropTarget,
+  type GroupByState,
+} from "@gridkitjs/core";
 import type { ColumnDefinition, ResolvedColumn } from "../DataGrid";
 import { classNames } from "../classNames";
 import type { GroupByDropTarget } from "../groupByDropTarget";
 import useGroupByDrag from "../useGroupByDrag";
-import type { RowGroupingApi } from "../useRowGrouping";
+import type { DataGridController } from "../useGridController";
 
 interface GroupByBarProps<Row> {
   columns: readonly ResolvedColumn<Row>[];
   /** Every column's definition by id, hidden ones included, so a chip for a hidden column still carries its label. */
   definitions: ReadonlyMap<string, ColumnDefinition<Row>>;
-  grouping: RowGroupingApi<Row>;
+  groupBy: GroupByState;
+  /** What a chip's drag, move or remove button changes. */
+  controller: DataGridController<Row>;
   /** A column's accessible name — see `DataGrid.tsx`'s own `columnName`. */
   columnName: (columnId: string) => string;
   /** Whether the header drag currently open (if any) could drop into this bar. */
@@ -51,19 +57,19 @@ interface GroupByBarProps<Row> {
 export default function GroupByBar<Row>({
   columns,
   definitions,
-  grouping,
+  groupBy,
+  controller,
   columnName,
   headerDragEligible,
   headerDragBlocked,
   headerDropTarget,
 }: GroupByBarProps<Row>) {
-  const { groupBy } = grouping;
   const groupByIds = groupBy.map((entry) => entry.columnId);
 
   const chipDrag = useGroupByDrag({
     groupBy,
     onDrop: (movedId, beforeColumnId) => {
-      grouping.moveGroupBy(movedId, beforeColumnId);
+      controller.moveGroupBy(movedId, beforeColumnId);
     },
   });
 
@@ -89,7 +95,7 @@ export default function GroupByBar<Row>({
     if (beforeColumnId === undefined) {
       return;
     }
-    grouping.moveGroupBy(columnId, beforeColumnId);
+    controller.moveGroupBy(columnId, beforeColumnId);
   }
 
   return (
@@ -161,7 +167,7 @@ export default function GroupByBar<Row>({
                 event.stopPropagation();
               }}
               onClick={() => {
-                grouping.toggleGroupBy(entry.columnId);
+                controller.toggleGroupBy(entry.columnId);
               }}
             >
               ×

@@ -2,9 +2,15 @@
 // ./support/coverage rather than directly from the CT package — see that
 // file for why.
 import type { MountResult } from "@playwright/experimental-ct-react";
-import type { ColumnDefinition, FilterState } from "@gridkitjs/core";
+import type {
+  ColumnDefinition,
+  FilterChangeEvent,
+  FilterState,
+  PaginationState,
+} from "@gridkitjs/core";
 import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
+import ImperativeApiGrid from "./support/ImperativeApiGrid";
 import { mountGrid } from "./support/mountGrid";
 
 interface Row {
@@ -202,4 +208,38 @@ test("omitting defaultFilter renders every row", async ({ mount }) => {
   );
 
   expect(await names(root)).toEqual(["Alice", "Bob", "Charlie"]);
+});
+
+test("setFilter through the ref filters the rendered rows, goes back to page 0 and reports once", async ({
+  mount,
+}) => {
+  const events: FilterChangeEvent<Row>[] = [];
+  const filter: FilterState<Row> = [{ columnId: "active", value: true }];
+  const root = await mountGrid(
+    mount,
+    <ImperativeApiGrid
+      columns={columns}
+      dataSource={buildRows()}
+      label="setFilter"
+      paginated
+      defaultPagination={{ pageIndex: 1, pageSize: 2 }}
+      filterToSet={filter}
+      onFilterChange={(event) => {
+        events.push(event);
+      }}
+    />,
+  );
+  expect(await names(root)).toEqual(["Charlie"]);
+
+  await root.getByRole("button", { name: "set-filter" }).click();
+  expect(await names(root)).toEqual(["Alice", "Charlie"]);
+
+  await root.getByRole("button", { name: "set-filter" }).click();
+  await root.getByRole("button", { name: "report" }).click();
+  const status = JSON.parse(
+    (await root.getByTestId("imperative-status").textContent()) ?? "{}",
+  ) as { filter: FilterState<Row>; pagination: PaginationState };
+  expect(status.filter).toEqual(filter);
+  expect(status.pagination.pageIndex).toBe(0);
+  expect(events).toEqual([{ filter }]);
 });

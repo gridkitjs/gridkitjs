@@ -3,7 +3,7 @@ title: "Events"
 description: "The callbacks DataGrid fires as a user resizes, reorders, and selects."
 ---
 
-Every interaction reports through a callback prop rather than a ref or an event you have to subscribe to. Resizing, reordering, and sorting fire one each; selection fires thirteen, one per row, column, and cell transition plus a whole-selection change to persist from.
+Every interaction reports through a callback prop rather than a ref or an event you have to subscribe to — and so does every change made through the [imperative handle](/docs/react/imperative-handle)'s setters and `restoreState`, with the same payload, so one callback sees every change to its slice. A setter whose value equals the current one fires nothing. Resizing, reordering, and sorting fire one each; selection fires thirteen, one per row, column, and cell transition plus a whole-selection change to persist from.
 
 ## Every callback, firing live
 
@@ -13,14 +13,15 @@ Every interaction reports through a callback prop rather than a ref or an event 
 
 ## Resizing, reordering & sorting
 
-| Prop                       | Type                                     | Description                                                                                                                                                                                                                               |
-| -------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `onColumnResize`           | `(event: ColumnResizeEvent) => void`     | Fires continuously with phase "move" while dragging, once with "end" on release — the one to persist. Auto-fit does not call it.                                                                                                          |
-| `onColumnOrderChange`      | `(event: ColumnOrderEvent) => void`      | Fires once when the user drops a column somewhere new. A drop that leaves the order unchanged does not call it.                                                                                                                           |
-| `onColumnVisibilityChange` | `(event: ColumnVisibilityEvent) => void` | Fires once per `showColumns`/`hideColumns` call that changes something, with every column it touched (`columnIds`) and the whole `visibility` state to persist. See [column visibility](/docs/react/column-definition#column-visibility). |
-| `onColumnSortChange`       | `(event: ColumnSortEvent) => void`       | Fires once when the user changes the sort — a toggle, a stack, or a clear back to "none".                                                                                                                                                 |
-| `onGroupByChange`          | `(event: GroupByEvent) => void`          | Fires once when the user adds, removes, or reorders a group-by level.                                                                                                                                                                     |
-| `onGroupExpansionChange`   | `(event: GroupExpansionEvent) => void`   | Fires once when the user expands or collapses a group, or every group at once.                                                                                                                                                            |
+| Prop                       | Type                                      | Description                                                                                                                                                                                                                               |
+| -------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `onColumnResize`           | `(event: ColumnResizeEvent) => void`      | Fires continuously with phase "move" while dragging, once with "end" on release — the one to persist. Auto-fit does not call it.                                                                                                          |
+| `onColumnOrderChange`      | `(event: ColumnOrderEvent) => void`       | Fires once when the user drops a column somewhere new. A drop that leaves the order unchanged does not call it.                                                                                                                           |
+| `onColumnVisibilityChange` | `(event: ColumnVisibilityEvent) => void`  | Fires once per `showColumns`/`hideColumns` call that changes something, with every column it touched (`columnIds`) and the whole `visibility` state to persist. See [column visibility](/docs/react/column-definition#column-visibility). |
+| `onColumnSortChange`       | `(event: ColumnSortEvent) => void`        | Fires once when the user changes the sort — a toggle, a stack, or a clear back to "none".                                                                                                                                                 |
+| `onGroupByChange`          | `(event: GroupByEvent) => void`           | Fires once when the user adds, removes, or reorders a group-by level.                                                                                                                                                                     |
+| `onGroupExpansionChange`   | `(event: GroupExpansionEvent) => void`    | Fires once when the user expands or collapses a group, or every group at once.                                                                                                                                                            |
+| `onFilterChange`           | `(event: FilterChangeEvent<Row>) => void` | Fires once per filter change — today a `setFilter` call on the ref — with the whole `filter` to persist. See [column filtering](/docs/react/column-filtering).                                                                            |
 
 ## Selection
 

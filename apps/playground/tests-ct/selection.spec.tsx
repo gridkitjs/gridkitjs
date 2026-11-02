@@ -12,6 +12,8 @@ import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import { mountGrid, updateGrid } from "./support/mountGrid";
 import ButtonCellGrid from "./support/ButtonCellGrid";
+import ControlledStateGrid from "./support/ControlledStateGrid";
+import ImperativeApiGrid from "./support/ImperativeApiGrid";
 import RowIdentifiedGrid from "./support/RowIdentifiedGrid";
 
 interface Row {
@@ -600,4 +602,96 @@ test("a selected cell survives its row being removed from dataSource, without cr
 
   await expect(root.getByRole("grid")).toBeVisible();
   expect(deselectCount).toBe(0);
+});
+
+test("selectRows through the ref selects rows, and getSelectedRows resolves them", async ({
+  mount,
+}) => {
+  const changes: RowSelectionChangeEvent<Row>[] = [];
+  const root = await mountGrid(
+    mount,
+    <ImperativeApiGrid
+      columns={columns}
+      dataSource={buildRows(4)}
+      label="selectRows"
+      selectable={{ rows: "multiple" }}
+      selectRowIds={["row-3", "row-1"]}
+      onRowSelectionChange={(event) => {
+        changes.push(event);
+      }}
+    />,
+  );
+
+  await root.getByRole("button", { name: "select-rows" }).click();
+  await expect(root.locator("tbody tr").nth(1)).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(root.locator("tbody tr").nth(3)).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(root.locator('[role="status"]')).toHaveText("2 rows selected");
+
+  await root.getByRole("button", { name: "select-rows" }).click();
+  await root.getByRole("button", { name: "report" }).click();
+  const status = JSON.parse(
+    (await root.getByTestId("imperative-status").textContent()) ?? "{}",
+  ) as { rowSelection: string[]; selectedRowIds: string[] };
+  expect(status.rowSelection).toEqual(["row-3", "row-1"]);
+  expect(status.selectedRowIds).toEqual(["row-3", "row-1"]);
+  expect(changes).toHaveLength(1);
+});
+
+test("a controlled rowSelection ignores a click until the parent applies the selection it asked for", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ControlledStateGrid
+      columns={columns}
+      dataSource={buildRows(3)}
+      label="Controlled rows"
+      selectable={{ rows: "multiple" }}
+      controlled={{ rowSelection: ["row-0"] }}
+    />,
+  );
+  const rows = root.locator("tbody tr");
+  await expect(rows.nth(0)).toHaveAttribute("aria-selected", "true");
+
+  await rows.nth(2).locator("td").first().click();
+  await expect(root.getByTestId("controlled-status")).toContainText(
+    '"rowSelection":["row-2"]',
+  );
+  await expect(rows.nth(0)).toHaveAttribute("aria-selected", "true");
+  await expect(rows.nth(2)).toHaveAttribute("aria-selected", "false");
+
+  await root.getByRole("button", { name: "apply-requests" }).click();
+  await expect(rows.nth(0)).toHaveAttribute("aria-selected", "false");
+  await expect(rows.nth(2)).toHaveAttribute("aria-selected", "true");
+});
+
+test("a controlled cellSelection of null keeps every cell unselected until the parent applies one", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ControlledStateGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Controlled cell"
+      selectable={{ cells: "single" }}
+      controlled={{ cellSelection: null }}
+    />,
+  );
+  const cell = root.locator("tbody tr").nth(1).locator("td").nth(1);
+
+  await cell.click();
+  await expect(root.getByTestId("controlled-status")).toContainText(
+    '"requestCount":1',
+  );
+  await expect(cell).toHaveAttribute("aria-selected", "false");
+
+  await root.getByRole("button", { name: "apply-requests" }).click();
+  await expect(cell).toHaveAttribute("aria-selected", "true");
 });

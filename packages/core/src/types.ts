@@ -638,6 +638,36 @@ export type FilterEntry<Row> =
 export type FilterState<Row> = readonly FilterEntry<Row>[];
 
 /**
+ * A `ValueFilterEntry` as JSON holds it: a `Date` value becomes its ISO
+ * string, which restoring turns back into a `Date`.
+ */
+export interface SerializedValueFilterEntry<Row> extends FilterEntryBase<Row> {
+  readonly value: number | boolean | string;
+}
+
+/** A `GroupFilterEntry` whose entries are serialised too. */
+export interface SerializedGroupFilterEntry<Row> {
+  readonly combinator: "and" | "or";
+  readonly entries: SerializedFilterState<Row>;
+}
+
+/**
+ * A filter entry that survives `JSON.stringify`: every kind but a predicate,
+ * which is a function and cannot be written down.
+ */
+export type SerializedFilterEntry<Row> =
+  | TextFilterEntry<Row>
+  | SerializedValueFilterEntry<Row>
+  | SerializedGroupFilterEntry<Row>;
+
+export type SerializedFilterState<Row> = readonly SerializedFilterEntry<Row>[];
+
+/** Reports a filter change whole — the filter to persist from. */
+export interface FilterChangeEvent<Row> {
+  readonly filter: FilterState<Row>;
+}
+
+/**
  * Ids selected, in the order they were selected — so the most recent is last,
  * and a consumer wanting only that reads `at(-1)` rather than tracking it
  * alongside.
@@ -818,7 +848,31 @@ export interface GridState<Row> {
   readonly groupBy: GroupByState;
   readonly groupExpansion: GroupExpansionState;
   readonly pagination: PaginationState;
+  readonly rowSelection: SelectionState;
+  readonly columnSelection: SelectionState;
+  readonly cellSelection: CellSelectionState;
 }
+
+/**
+ * `GridState` as `serializeGridState` writes it: safe to pass through
+ * `JSON.stringify` and back, and to hand straight to `restoreState`.
+ */
+export interface SerializedGridState<Row> extends Omit<
+  GridState<Row>,
+  "filter"
+> {
+  readonly filter: SerializedFilterState<Row>;
+}
+
+/**
+ * The slices the view is derived from: every one but the selections, which
+ * change what is highlighted and never what is shown. A whole `GridState`
+ * is one.
+ */
+export type GridViewState<Row> = Omit<
+  GridState<Row>,
+  "rowSelection" | "columnSelection" | "cellSelection"
+>;
 
 /**
  * The settings that shape the view but are not user state: what the grid is
@@ -851,7 +905,7 @@ export interface GridViewInput<Row, Node = string> {
   readonly rows: readonly Row[];
   readonly getRowId?: ((row: Row, index: number) => string) | undefined;
   readonly columns: readonly ColumnDefinition<Row, Node>[];
-  readonly state: GridState<Row>;
+  readonly state: GridViewState<Row>;
   readonly options: GridViewOptions<Row>;
 }
 

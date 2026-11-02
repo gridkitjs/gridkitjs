@@ -123,8 +123,8 @@ phases). An effort word may follow (`opus xhigh`, `sonnet low`); none means `hig
 | 01  | Boundaries and hygiene                               | [phase-01-boundaries-hygiene.md](phase-01-boundaries-hygiene.md) | done        | none       | opus medium | refactor/boundaries-hygiene | 4ccb606..3c788d8 |
 | 02  | `resolveGridView` and the width-free pipeline        | [phase-02-grid-view.md](phase-02-grid-view.md)                   | done        | 01         | opus        | feat/grid-view              | 1ffa0c7..fa8df01 |
 | 03  | Column model: header, formatting, locale, visibility | [phase-03-column-model.md](phase-03-column-model.md)             | done        | 02         | opus        | feat/column-model           | 8bca2fc..6f0cf5b |
-| 04  | `GridOptions` and `createGridController`             | [phase-04-controller.md](phase-04-controller.md)                 | in-progress | 03         | opus xhigh  | feat/grid-controller        |                  |
-| 05  | Serialisable filters and the filter-editor model     | [phase-05-filters.md](phase-05-filters.md)                       | todo        | 04         | opus        |                             |                  |
+| 04  | `GridOptions` and `createGridController`             | [phase-04-controller.md](phase-04-controller.md)                 | done        | 03         | opus xhigh  | feat/grid-controller        | 37815bc..5d52fb9 |
+| 05  | Serialisable filters and the filter-editor model     | [phase-05-filters.md](phase-05-filters.md)                       | in-progress | 04         | opus        | feat/serialisable-filters   |                  |
 | 06  | Row hooks, simple multi-select, messages             | [phase-06-row-hooks-messages.md](phase-06-row-hooks-messages.md) | todo        | 04         | opus        |                             |                  |
 | 07  | `@gridkitjs/dom`: behaviours out of React            | [phase-07-dom-package.md](phase-07-dom-package.md)               | todo        | 04         | opus xhigh  |                             |                  |
 
@@ -132,8 +132,8 @@ Phases 05, 06 and 07 are independent of each other and may run in any order afte
 
 ## Now
 
-- **In progress:** 04
-- **Next:** 05, 06, 07 (any order)
+- **In progress:** 05
+- **Next:** 06, then 07
 - **Waiting on the user:** nothing
 
 ## Handoffs
@@ -221,6 +221,33 @@ undefined || locale !== undefined`; `formatAggregateValue` uses `toLocaleString(
 - Gotcha: the Bash tool strips backslashes (`\|` in markdown tables); edit those with
   Edit/Write.
 
+### Phase 04
+
+- `GridOptions<Row>` lives in `packages/core/src/options.ts` (with `Borders`, `HoverableConfig`,
+  `GroupByBarVisibility`, `SelectionCallbacks<Row, Node>`); `DataGridProps` = `GridOptions &
+ReactRenderSlots & SelectionCallbacks & { ref }`.
+- `createGridController` (`packages/core/src/controller/`) owns all 11 slices, every DESIGN §5
+  action, the page-reset rule, column inference, controlled-or-uncontrolled per slice.
+  `GridControllerOptions` is flat (`GridOptions` + `SelectionCallbacks` + `columns`,
+  `viewportWidth`, `onSelectionDiff`). Members are readonly function properties, safe to detach.
+- React binds it via `useGridController.ts` (`setOptions` in render, never notifies;
+  `useSyncExternalStore` on `controller.getState()`), typed `DataGridController<Row>`. No grid
+  `useState` left in `DataGrid.tsx` except `announcement` and two reader memo caches. Focus
+  (`nav.focus`) is still React state; `DataGridApi.subscribe` listeners hear of it through an
+  effect gated on `[view, state, nav.focus]`.
+- Extras beyond DESIGN: `cancelColumnResize`, `onSelectionDiff`/`SelectionDiffEvent`,
+  `GridViewState` (type of `resolveGridView`'s `state`), `Serialized*` types; `restoreState` and
+  `serializeGridState` (core function, re-exported from react). `selectRows` intent is
+  `"replace" | "toggle"`.
+- Core has no `console` global; report via `reportError` (`util/report.ts`). Test files declare
+  `console` locally. `memoizeLast` moved to `util/memoize.ts` (internal).
+  `defineColumnsFromRows<Row, Node>` is generic over `Node`.
+- Phase 05 hook points: operator entries need handling in `serializeEntry`/`reviveEntry`
+  (`util/serialize.ts`) and `sameEntry` (`controller/changes.ts`).
+- Phase 06 hook points: announcement text lives in `DataGrid.tsx` handlers and `countMessage`.
+- `DataGrid.tsx` is still ~1180 lines; Phase 07 moves DOM behaviours out.
+- Counts: 471 core Vitest, 228 Playwright CT; coverage ~96 % lines.
+
 ## Decisions to review
 
 (Choices sub-agents made that the user should look at, tagged with their phase.)
@@ -242,11 +269,22 @@ undefined || locale !== undefined`; `formatAggregateValue` uses `toLocaleString(
   (`toLocaleString()`), as before. Objects/arrays print as JSON (DESIGN said `String`), keeping
   the old group-header output. A non-text `headerTemplate` on a dotted field is announced
   "Application Id" (was "Application.Id"). `ColumnVisibilityEvent` carries `columnIds` (plural).
+- [04] A controlled `pagination` is never reset by a filter/sort/group change (the view clamps
+  the page); the alternative needs a callback fired during render. Agent recommends keeping it.
+- [04] New controller option `onSelectionDiff` (id-level diff) keeps the "N rows selected"
+  announcement exact for off-page ids without changing `RowSelectionChangeEvent`. Alternative:
+  add id lists to that public event type. Agent recommends keeping `onSelectionDiff`.
+- [04] Setters skip structurally equal values; `setColumnSizing` reports a removed entry at its
+  definition width; `resizeColumn` merges into the current sizing, not the drag-start base.
 
 ## Follow-ups
 
-- [phase 04] Move `locale` and visibility into `GridOptions` and the controller; add controlled
-  `columnVisibility` / `onColumnVisibilityChange` alongside `defaultColumnVisibility`.
+- [later] `goToPage`/`nextPage` still report when the page doesn't change (old behaviour),
+  contradicting `DataGridApi.nextPage`'s "no-op" doc.
+- [later] `column-filtering.mdx` shows a value entry with a string value (older doc bug).
+- [phase 05] Handle operator entries in `serializeEntry`/`reviveEntry` (`util/serialize.ts`) and
+  `sameEntry` (`controller/changes.ts`).
+- [phase 06] Announcement text lives in `DataGrid.tsx` handlers and `countMessage`.
 - [phase 06] Boolean text ("true"/"false") and the group header's "(blank)" are candidates for
   `messages`.
 - [phase 07] Add `@gridkitjs/dom` to core's ESLint import ban and ban `react` in
@@ -276,3 +314,5 @@ undefined || locale !== undefined`; `formatAggregateValue` uses `toLocaleString(
 - 2026-11-02 · phase 03 · user chose opt-in formatting (plain unless format/locale)
 - 2026-11-02 · phase 03 · done · header, formatting, locale, visibility (8bca2fc..6f0cf5b)
 - 2026-11-02 · phase 04 · started on feat/grid-controller
+- 2026-11-02 · phase 04 · done · GridOptions, createGridController, controlled slices, setters (37815bc..5d52fb9)
+- 2026-11-02 · phase 05 · started on feat/serialisable-filters

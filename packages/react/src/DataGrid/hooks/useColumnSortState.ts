@@ -9,9 +9,8 @@ const FALLBACK_SORT: ColumnSortState = [];
  * Reactive column-sort state read off a mounted `DataGrid`'s `ref`,
  * for a sort indicator living outside the grid's own DOM.
  *
- * `DataGridApi` has no sort-mutating action today — sort stays uncontrolled
- * via `defaultColumnSort`/the grid's own header UI, the same gap
- * `useGroupByState` has for group-by. Reads only.
+ * Reads only; change the sort through the ref's `setColumnSort`, or hold it
+ * yourself with the controlled `columnSort` prop.
  *
  * Before the grid mounts, reads as an empty array.
  */

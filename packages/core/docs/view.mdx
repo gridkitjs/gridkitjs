@@ -52,7 +52,7 @@ view.grandTotal.get("Amount"); // the sum over every filtered row, on every page
 
 ## Input
 
-`state` is a `GridState<Row>`: `columnSizing`, `columnOrder`, `columnVisibility`, `columnSort`, `filter`, `groupBy`, `groupExpansion` and `pagination`, each the same type as the matching `default*` prop on DataGrid. `options` is a `GridViewOptions<Row>`; every field is optional and defaults the way DataGrid's prop of the same name does:
+`state` is a `GridViewState<Row>`: `columnSizing`, `columnOrder`, `columnVisibility`, `columnSort`, `filter`, `groupBy`, `groupExpansion` and `pagination`, each the same type as the matching `default*` prop on DataGrid — every slice of `GridState` but the three selections, which change what is highlighted and never what is shown, so a whole `GridState` serves too. `options` is a `GridViewOptions<Row>`; every field is optional and defaults the way DataGrid's prop of the same name does:
 
 | Option                                                              | Default    | Description                                                                                  |
 | ------------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------- |
@@ -66,7 +66,7 @@ view.grandTotal.get("Amount"); // the sum over every filtered row, on every page
 
 A column hidden by its definition's `hidden` or by `columnVisibility` leaves `columns` but stays in `dataColumns`, so a sort, filter or grouping on it still applies, and it keeps its slot in the column order for when it is shown again. `isColumnVisible(column, visibility)` answers for one column, `applyColumnVisibility(dataColumns, visibility)` drops the hidden ones, and `setColumnVisibility(dataColumns, visibility, columnIds, visible)` returns the next state, or the same one when nothing changes.
 
-`columns` is used as given: DataGrid's inference of columns from the rows, when it is passed none, happens before the view is resolved.
+`columns` is used as given: inferring columns from the rows when a grid is given none is the [controller](/docs/core/controller)'s job, done before it resolves the view.
 
 ## Memoisation
 

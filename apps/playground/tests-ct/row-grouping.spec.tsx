@@ -4,6 +4,7 @@
 import type { MountResult } from "@playwright/experimental-ct-react";
 import type { ColumnDefinition, GroupExpansionState } from "@gridkitjs/core";
 import { expect, test } from "./support/coverage";
+import ControlledStateGrid from "./support/ControlledStateGrid";
 import { mountGrid } from "./support/mountGrid";
 import ImperativeApiGrid from "./support/ImperativeApiGrid";
 import MixedGroupValueGrid from "./support/MixedGroupValueGrid";
@@ -432,4 +433,57 @@ test('groupByBarVisibility="never" hides the bar even with a non-empty defaultGr
   await expect(root.locator(".gridkit-group-by-bar")).toHaveCount(0);
   // Grouping itself still applies — only the bar's visibility is off.
   await expect(groupHeaders(root)).toHaveCount(2);
+});
+
+test("a controlled groupBy ignores a header's group toggle until the parent applies it", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ControlledStateGrid
+      columns={columns}
+      dataSource={buildRows()}
+      label="Controlled groupBy"
+      groupableColumns
+      controlled={{ groupBy: [] }}
+    />,
+  );
+
+  const regionHeader = root.locator("thead th").filter({ hasText: "region" });
+  await regionHeader.focus();
+  await regionHeader.press("Alt+ArrowDown");
+  await expect(root.getByTestId("controlled-status")).toContainText(
+    '"groupBy":[{"columnId":"region"}]',
+  );
+  await expect(groupHeaders(root)).toHaveCount(0);
+
+  await root.getByRole("button", { name: "apply-requests" }).click();
+  await expect(groupHeaders(root)).toHaveCount(2);
+});
+
+test("a controlled groupExpansion keeps a clicked group open until the parent applies the collapse", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ControlledStateGrid
+      columns={columns}
+      dataSource={buildRows()}
+      label="Controlled expansion"
+      defaultGroupBy={[{ columnId: "region" }]}
+      controlled={{ groupExpansion: [] }}
+    />,
+  );
+
+  const east = groupHeaders(root).filter({ hasText: "East" });
+  await east.click();
+  await expect(root.getByTestId("controlled-status")).toContainText(
+    '"requestCount":1',
+  );
+  await expect(east).toHaveAttribute("aria-expanded", "true");
+  await expect(dataRows(root)).toHaveCount(5);
+
+  await root.getByRole("button", { name: "apply-requests" }).click();
+  await expect(east).toHaveAttribute("aria-expanded", "false");
+  await expect(dataRows(root)).toHaveCount(3);
 });
