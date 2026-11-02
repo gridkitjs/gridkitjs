@@ -1,26 +1,35 @@
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { buildKeyShortcuts, intentOf, KEYBOARD_STEP } from "@gridkitjs/core";
+import {
+  buildKeyShortcuts,
+  intentOf,
+  KEYBOARD_STEP,
+  sortDirectionFor,
+  sortPriorityFor,
+  type ColumnSortState,
+  type GroupByState,
+} from "@gridkitjs/core";
 import type { ResolvedColumn } from "../DataGrid";
 import { ariaAttr } from "../ariaAttr";
 import { classNames } from "../classNames";
 import type { ColumnDragApi } from "../useColumnDrag";
 import type { ColumnResizeApi } from "../useColumnResize";
-import type { ColumnSortApi } from "../useColumnSort";
 import { HEADER_ROW, type GridNavigationApi } from "../useGridNavigation";
 import {
   keyboardSelectIntent,
   type GridSelectionApi,
 } from "../useGridSelection";
-import type { RowGroupingApi } from "../useRowGrouping";
+import type { DataGridController } from "../useGridController";
 
 interface GridHeaderProps<Row> {
   columns: readonly ResolvedColumn<Row>[];
   resize: ColumnResizeApi<Row>;
   drag: ColumnDragApi<Row>;
-  sort: ColumnSortApi<Row>;
+  /** What a header toggle changes — the sort and the group-by stack. */
+  controller: DataGridController<Row>;
+  columnSort: ColumnSortState;
   sortableColumns: boolean;
-  grouping: RowGroupingApi<Row>;
+  groupBy: GroupByState;
   groupableColumns: boolean;
   groupToggleIconColumns: boolean;
   nav: GridNavigationApi;
@@ -81,9 +90,10 @@ export default function GridHeader<Row>({
   columns,
   resize,
   drag,
-  sort,
+  controller,
+  columnSort,
   sortableColumns,
-  grouping,
+  groupBy,
   groupableColumns,
   groupToggleIconColumns,
   nav,
@@ -116,14 +126,15 @@ export default function GridHeader<Row>({
           const dropAfter = beforeId === null && index === columns.length - 1;
           const selected = selection.selectedColumnIds.has(entry.id);
           const sortable = column.sortable ?? sortableColumns;
-          const sortDirection = sort.directionFor(entry.id);
-          const sortPriority = sort.priorityFor(entry.id);
+          const sortDirection = sortDirectionFor(columnSort, entry.id);
+          // Only meaningful once two or more columns are stacked.
+          const sortPriority = sortPriorityFor(columnSort, entry.id);
           const groupable = column.groupable ?? groupableColumns;
           // Purely a rendering choice — see the prop's own doc comment. Never
           // gates `groupable` itself, `aria-keyshortcuts`, or `Alt+ArrowDown`.
           const showGroupToggleIcon =
             column.groupToggleIcon ?? groupToggleIconColumns;
-          const isGrouped = grouping.groupBy.some(
+          const isGrouped = groupBy.some(
             (level) => level.columnId === entry.id,
           );
 
@@ -200,12 +211,14 @@ export default function GridHeader<Row>({
                 }
                 if (event.key === "ArrowUp" && event.altKey && sortable) {
                   event.preventDefault();
-                  sort.toggle(entry, { shiftKey: event.shiftKey });
+                  controller.toggleColumnSort(entry.id, {
+                    stack: event.shiftKey,
+                  });
                   return;
                 }
                 if (event.key === "ArrowDown" && event.altKey && groupable) {
                   event.preventDefault();
-                  grouping.toggleGroupBy(entry.id);
+                  controller.toggleGroupBy(entry.id);
                   return;
                 }
                 // Space builds a selection up and Enter replaces it, as in the
@@ -273,7 +286,7 @@ export default function GridHeader<Row>({
                   }}
                   onClick={(event) => {
                     event.stopPropagation();
-                    grouping.toggleGroupBy(entry.id);
+                    controller.toggleGroupBy(entry.id);
                   }}
                 >
                   <GroupIcon />
@@ -305,7 +318,9 @@ export default function GridHeader<Row>({
                     event.stopPropagation();
                   }}
                   onClick={(event) => {
-                    sort.toggle(entry, { shiftKey: event.shiftKey });
+                    controller.toggleColumnSort(entry.id, {
+                      stack: event.shiftKey,
+                    });
                   }}
                 >
                   {sortDirection === null ? (

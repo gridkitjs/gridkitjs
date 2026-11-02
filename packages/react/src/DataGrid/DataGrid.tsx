@@ -9,8 +9,6 @@ import {
   type Ref,
 } from "react";
 import {
-  createGridViewResolver,
-  defineColumnsFromRows,
   moveColumnBefore,
   resolveColumnHeaderText,
   totalColumnWidth,
@@ -27,7 +25,6 @@ import {
   type ColumnSortState,
   type ColumnVisibilityState,
   type DisplayRow,
-  type FilterState,
   type GridOptions,
   type GroupByBarVisibility,
   type GroupByEvent,
@@ -59,14 +56,13 @@ import { ariaAttr } from "./ariaAttr";
 import { classNames } from "./classNames";
 import useColumnDrag, { type DropTarget } from "./useColumnDrag";
 import useColumnResize from "./useColumnResize";
-import useColumnSort from "./useColumnSort";
-import useColumnVisibility from "./useColumnVisibility";
 import useElementWidth from "./useElementWidth";
+import useGridController, {
+  type DataGridController,
+} from "./useGridController";
 import useGridNavigation, { HEADER_ROW } from "./useGridNavigation";
 import useGridSelection, { type SelectionCallbacks } from "./useGridSelection";
 import useInfiniteScroll from "./useInfiniteScroll";
-import usePagination from "./usePagination";
-import useRowGrouping from "./useRowGrouping";
 import useRowVirtualizer from "./useRowVirtualizer";
 
 /**
@@ -219,20 +215,32 @@ export interface DataGridApi<Row> {
  */
 export type { Borders, GroupByBarVisibility, HoverableConfig, ResizeMode };
 
-/** `pagination.pageSize` a paginated grid starts at when `defaultPagination` omits one — a reasonable default for an ERP-grade dataset. */
-const DEFAULT_PAGE_SIZE = 25;
-
 /**
- * A stable empty fallback for an omitted `aggregates` prop — a fresh `[]`
- * every render would change identity each time and defeat the view
- * stages memoised on it, the same reason `groupRows`/`withGroupAggregates`
- * themselves return their input untouched for an empty array rather than a
- * new one.
+ * A stable empty fallback for an omitted `aggregates` prop, for the parts of
+ * the grid that draw aggregate cells — a fresh `[]` every render would hand
+ * them a new array each time.
  */
 const NO_AGGREGATES: AggregateState<never> = [];
 
-/** A stable empty fallback for an omitted `dataSource`, for the same reason. */
-const NO_ROWS: readonly never[] = [];
+/**
+ * `DataGridApi.getPagination`, read off `controller` at call time: the page
+ * shown — clamped, unlike the stored index — and the page size. The same
+ * object while both stay the same, since a `useSyncExternalStore` snapshot
+ * built fresh on every read makes React warn and re-render forever.
+ */
+function paginationReader<Row>(
+  controller: DataGridController<Row>,
+): () => PaginationState {
+  let last: PaginationState | undefined;
+  return () => {
+    const { pageIndex } = controller.getView();
+    const { pageSize } = controller.getState().pagination;
+    if (last?.pageIndex !== pageIndex || last.pageSize !== pageSize) {
+      last = { pageIndex, pageSize };
+    }
+    return last;
+  };
+}
 
 /**
  * Everything a `pager.template` render prop needs to rebuild the built-in
@@ -326,55 +334,39 @@ export interface DataGridProps<Row>
   ref?: Ref<DataGridApi<Row>> | undefined;
 }
 
-export function DataGrid<Row>({
-  dataSource,
-  columns,
-  getRowId,
-  borders,
-  hoverable,
-  selectable,
-  defaultRowSelection,
-  defaultColumnSelection,
-  defaultCellSelection,
-  resizableColumns = false,
-  reorderableColumns = false,
-  resizeMode = "fit",
-  defaultColumnSizing,
-  defaultColumnOrder,
-  defaultColumnVisibility,
-  onColumnVisibilityChange,
-  columnSizeDefaults,
-  onColumnResize,
-  onColumnOrderChange,
-  sortableColumns = false,
-  defaultColumnSort,
-  onColumnSortChange,
-  groupableColumns = false,
-  groupToggleIconColumns = true,
-  groupByDraggableColumns = false,
-  groupByBarVisibility = "auto",
-  defaultGroupBy,
-  onGroupByChange,
-  defaultGroupExpansion,
-  onGroupExpansionChange,
-  defaultFilter,
-  paginated = false,
-  defaultPagination,
-  pager,
-  onPaginationChange,
-  infiniteScroll,
-  aggregates,
-  groupAggregateDisplay = "inline",
-  height,
-  virtualized = false,
-  overscan = 4,
-  estimatedRowHeight = 40,
-  label,
-  labelledBy,
-  locale,
-  ref,
-  ...callbacks
-}: DataGridProps<Row>) {
+export function DataGrid<Row>(props: DataGridProps<Row>) {
+  const {
+    borders,
+    hoverable,
+    selectable,
+    defaultRowSelection,
+    defaultColumnSelection,
+    defaultCellSelection,
+    resizeMode = "fit",
+    columnSizeDefaults,
+    onColumnResize,
+    sortableColumns = false,
+    onColumnSortChange,
+    groupableColumns = false,
+    groupToggleIconColumns = true,
+    groupByBarVisibility = "auto",
+    onGroupByChange,
+    onGroupExpansionChange,
+    paginated = false,
+    pager,
+    onPaginationChange,
+    infiniteScroll,
+    aggregates = NO_AGGREGATES as AggregateState<Row>,
+    groupAggregateDisplay = "inline",
+    height,
+    virtualized = false,
+    overscan = 4,
+    estimatedRowHeight = 40,
+    label,
+    labelledBy,
+    locale,
+    ref,
+  } = props;
   const hoverRows = hoverable?.rows ?? true;
   const hoverColumns = hoverable?.columns ?? true;
   const hoverCells = hoverable?.cells ?? true;
@@ -386,24 +378,6 @@ export function DataGrid<Row>({
   const sentinelRef = useRef<HTMLTableRowElement>(null);
   const viewportWidth = useElementWidth(viewportRef, resizeMode === "fit");
   const subscribersRef = useRef(new Set<() => void>());
-  const [sizing, setSizing] = useState<ColumnSizingState>(
-    defaultColumnSizing ?? {},
-  );
-  const [order, setOrder] = useState<ColumnOrderState>(
-    defaultColumnOrder ?? [],
-  );
-  const [visibility, setVisibility] = useState<ColumnVisibilityState>(
-    defaultColumnVisibility ?? {},
-  );
-  const [sort, setSort] = useState<ColumnSortState>(defaultColumnSort ?? []);
-  const [groupBy, setGroupBy] = useState<GroupByState>(defaultGroupBy ?? []);
-  const [expansion, setExpansion] = useState<GroupExpansionState>(
-    defaultGroupExpansion ?? [],
-  );
-  const [filter] = useState<FilterState<Row>>(defaultFilter ?? []);
-  const [pagination, setPagination] = useState<PaginationState>(
-    defaultPagination ?? { pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE },
-  );
   const [announcement, setAnnouncement] = useState("");
   const [rowSelection, setRowSelection] = useState<SelectionState>(
     defaultRowSelection ?? [],
@@ -415,51 +389,28 @@ export function DataGrid<Row>({
     defaultCellSelection ?? null,
   );
 
-  const definedColumns = useMemo<readonly ColumnDefinition<Row>[]>(() => {
-    if (columns && columns.length !== 0) return columns;
-    if (dataSource && dataSource.length > 0)
-      return defineColumnsFromRows(dataSource);
-    return [];
-  }, [columns, dataSource]);
-
-  const activeAggregates = aggregates ?? (NO_AGGREGATES as AggregateState<Row>);
+  /**
+   * Every slice of grid state, and everything the grid draws, comes from
+   * here. The change callbacks go in wrapped, so each change is announced
+   * where the controller reports it — see `announce`.
+   */
+  const { controller, state, view } = useGridController<Row>({
+    ...props,
+    viewportWidth,
+    onColumnResize: handleColumnResize,
+    onColumnSortChange: handleColumnSortChange,
+    onGroupByChange: handleGroupByChange,
+    onGroupExpansionChange: handleGroupExpansionChange,
+    onPaginationChange: handlePaginationChange,
+  });
 
   /**
-   * Everything the grid draws, derived in one place. Held for the grid's
-   * lifetime so each stage's memo survives between renders: a render that
-   * changed only `sizing` or the viewport width re-sizes the columns and
-   * hands back the very same row lists, so a resize never re-runs filtering,
-   * sorting or grouping. See `createGridViewResolver` in `@gridkitjs/core`.
+   * `getPagination()`'s value: the page shown — clamped, unlike the stored
+   * index — and the page size, kept as one object while both stay the same.
+   * Read live off the controller rather than this render, so a read straight
+   * after an action sees it.
    */
-  const [resolveView] = useState(() =>
-    createGridViewResolver<Row, ReactNode>(),
-  );
-  const view = resolveView({
-    rows: dataSource ?? NO_ROWS,
-    getRowId,
-    columns: definedColumns,
-    state: {
-      columnSizing: sizing,
-      columnOrder: order,
-      columnVisibility: visibility,
-      columnSort: sort,
-      filter,
-      groupBy,
-      groupExpansion: expansion,
-      pagination,
-    },
-    options: {
-      paginated,
-      aggregates: activeAggregates,
-      groupAggregateDisplay,
-      columnSizeDefaults,
-      resizableColumns,
-      reorderableColumns,
-      groupByDraggableColumns,
-      resizeMode,
-      viewportWidth,
-    },
-  });
+  const [readPagination] = useState(() => paginationReader(controller));
 
   /**
    * `enabled` is `virtualized` alone, independent of `height`: an `auto`
@@ -499,19 +450,6 @@ export function DataGrid<Row>({
     config: infiniteScroll,
   });
 
-  /**
-   * Cached rather than built fresh on every `getPagination()` call: a
-   * `useSyncExternalStore`-based hook's `getSnapshot` must return a
-   * referentially stable value when nothing changed, or React warns/loops.
-   */
-  const paginationSnapshot = useMemo<PaginationState>(
-    () => ({
-      pageIndex: view.pageIndex,
-      pageSize: pagination.pageSize,
-    }),
-    [view.pageIndex, pagination.pageSize],
-  );
-
   /** What a column is called in an announcement — see `resolveColumnHeaderText`. */
   function columnName(columnId: string): string {
     const entry = view.dataColumns.find(
@@ -532,9 +470,9 @@ export function DataGrid<Row>({
   }
 
   /**
-   * Wrapped rather than announced from the resize hook, which reports the
-   * continuous `"move"` phase as well — a live region given every frame of a
-   * drag says nothing an assistive technology can keep up with.
+   * Announced only once the drag ends: the controller reports the continuous
+   * `"move"` phase as well, and a live region given every frame of a drag
+   * says nothing an assistive technology can keep up with.
    */
   function handleColumnResize(event: ColumnResizeEvent): void {
     onColumnResize?.(event);
@@ -550,10 +488,8 @@ export function DataGrid<Row>({
     // (never `th`), so the header table has nothing for it to find — the
     // body table alone was already the effective scope before this split.
     tableRef: bodyTableRef,
-    sizing,
-    setSizing,
+    controller,
     columnSizeDefaults,
-    onColumnResize: handleColumnResize,
   });
 
   /** Wrapped the same way `handleColumnResize` is, for its own announcement. */
@@ -596,18 +532,33 @@ export function DataGrid<Row>({
   }
 
   /**
-   * Constructed ahead of `handleDrop`/`drag` below (rather than alongside
-   * `columnSort`, its closest sibling) because `handleDrop`'s `"group-by"`
-   * arm calls `grouping.moveGroupBy` directly.
+   * Wrapped the same way `handleColumnResize` is, so a toggle, a stack, or a
+   * clear back to "none" each get their own announcement.
    */
-  const grouping = useRowGrouping<Row>({
-    groupBy,
-    setGroupBy,
-    expansion,
-    setExpansion,
-    onGroupByChange: handleGroupByChange,
-    onGroupExpansionChange: handleGroupExpansionChange,
-  });
+  function handleColumnSortChange(event: ColumnSortEvent): void {
+    onColumnSortChange?.(event);
+    const entry = event.sort.find(
+      (candidate) => candidate.columnId === event.columnId,
+    );
+    if (entry === undefined) {
+      announce(`${columnName(event.columnId)}, sort cleared`);
+      return;
+    }
+    const direction = entry.direction === "asc" ? "ascending" : "descending";
+    announce(
+      event.sort.length > 1
+        ? `${columnName(event.columnId)} sorted ${direction}, key ${String(event.sort.indexOf(entry) + 1)} of ${String(event.sort.length)}`
+        : `${columnName(event.columnId)} sorted ${direction}`,
+    );
+  }
+
+  /** Wrapped the same way `handleColumnSortChange` is, for its own announcement. */
+  function handlePaginationChange(event: PaginationChangeEvent): void {
+    onPaginationChange?.(event);
+    announce(
+      `Page ${String(event.pagination.pageIndex + 1)} of ${String(event.pageCount)}`,
+    );
+  }
 
   const nav = useGridNavigation({
     headerTableRef,
@@ -636,10 +587,9 @@ export function DataGrid<Row>({
   });
 
   /**
-   * Every id in display order, hidden ones included, which a drop is applied
-   * to — the order state starts empty and may name only some columns, so
-   * moving against it directly would have nothing to rearrange, and a hidden
-   * column has to keep its slot through a move made around it.
+   * Every id in display order, hidden ones included — the list a column
+   * move is made among, so a hidden column keeps its slot through a move
+   * made around it.
    */
   const orderedIds = useMemo(
     () => view.dataColumns.map((entry) => entry.id),
@@ -679,28 +629,29 @@ export function DataGrid<Row>({
    */
   function handleDrop(target: DropTarget, movedId: string): void {
     if (target.kind === "group-by") {
-      // Already announced: `grouping.moveGroupBy` commits through the same
+      // Already announced: `moveGroupBy` reports through the same
       // `onGroupByChange` pipeline the header toggle and the bar's own chip
       // drag do, so this needs no announcement or focus-follow of its own —
       // unlike a column-order drop, the moved thing leaves the grid's single
       // tab-stop system entirely for the bar's own independently-focusable
       // chips, which have no shared index to update.
-      grouping.moveGroupBy(movedId, target.beforeColumnId);
+      controller.moveGroupBy(movedId, target.beforeColumnId);
       return;
     }
 
+    // The order the controller will arrive at, worked out here as well for
+    // where the column lands on screen. `moveColumnBefore` hands back the
+    // same reference for a move that changes nothing, so a drop in place
+    // neither renders nor reports.
     const next = moveColumnBefore(orderedIds, movedId, target.beforeId);
-    // `moveColumnBefore` hands back the same reference for a move that changes
-    // nothing, so a drop in place neither renders nor reports.
     if (next === orderedIds) {
       return;
     }
+    controller.moveColumn(movedId, target.beforeId);
     // Counted among the columns on screen, which is what the user can see
     // and what the tab stop indexes.
     const shown = next.filter((id) => displayedIds.includes(id));
     const position = shown.indexOf(movedId);
-    setOrder(next);
-    onColumnOrderChange?.({ columnId: movedId, order: next });
     announce(
       `${columnName(movedId)}, column ${String(position + 1)} of ${String(shown.length)}`,
     );
@@ -715,7 +666,7 @@ export function DataGrid<Row>({
 
   const drag = useColumnDrag<Row>({
     order: displayedIds,
-    groupBy,
+    groupBy: state.groupBy,
     groupByDraggableIds,
     onDrop: handleDrop,
   });
@@ -723,7 +674,7 @@ export function DataGrid<Row>({
   /** Whether the header drag currently open (if any) is for a column already in the group-by stack — reordering it is the chip's job, so dragging it back in is never a valid target. */
   const draggedColumnAlreadyGrouped =
     drag.draggedColumnId !== null &&
-    groupBy.some((entry) => entry.columnId === drag.draggedColumnId);
+    state.groupBy.some((entry) => entry.columnId === drag.draggedColumnId);
 
   /**
    * Whether the drag currently open (if any) could land on the group-by bar
@@ -742,85 +693,22 @@ export function DataGrid<Row>({
   const showGroupByBar =
     groupByBarVisibility === "always" ||
     (groupByBarVisibility === "auto" &&
-      (groupBy.length > 0 || dragEligibleForGroupBy));
+      (state.groupBy.length > 0 || dragEligibleForGroupBy));
 
   const headerGroupByDropTarget =
     drag.dropTarget?.kind === "group-by" ? drag.dropTarget : null;
 
-  /**
-   * Wrapped the same way `handleColumnResize`/`handleDrop` are, so a toggle,
-   * a stack, or a clear back to "none" each get their own announcement.
-   */
-  function handleColumnSortChange(event: ColumnSortEvent): void {
-    onColumnSortChange?.(event);
-    const entry = event.sort.find(
-      (candidate) => candidate.columnId === event.columnId,
-    );
-    if (entry === undefined) {
-      announce(`${columnName(event.columnId)}, sort cleared`);
-      return;
-    }
-    const direction = entry.direction === "asc" ? "ascending" : "descending";
-    announce(
-      event.sort.length > 1
-        ? `${columnName(event.columnId)} sorted ${direction}, key ${String(event.sort.indexOf(entry) + 1)} of ${String(event.sort.length)}`
-        : `${columnName(event.columnId)} sorted ${direction}`,
-    );
-  }
-
-  const columnSort = useColumnSort<Row>({
-    sort,
-    setSort,
-    onColumnSortChange: handleColumnSortChange,
-  });
-
-  /** Wrapped the same way `handleColumnSortChange` is, for its own announcement. */
-  function handlePaginationChange(event: PaginationChangeEvent): void {
-    onPaginationChange?.(event);
-    announce(
-      `Page ${String(event.pagination.pageIndex + 1)} of ${String(event.pageCount)}`,
-    );
-  }
-
-  const columnVisibility = useColumnVisibility<Row>({
-    dataColumns: view.dataColumns,
-    visibility,
-    setVisibility,
-    onColumnVisibilityChange,
-  });
-
-  const paginationApi = usePagination<Row>({
-    pagination,
-    setPagination,
-    rows: view.displayRows,
-    onPaginationChange: handlePaginationChange,
-  });
-
-  /**
-   * A user looking at page 7 of a result that filtering, sorting, or
-   * regrouping just shrank to 2 pages must not be silently stranded on an
-   * empty page — reset to the first page whenever any of the three change.
-   *
-   * Adjusted during render (React's own pattern for "state changed, derive a
-   * reset" — see https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
-   * rather than in a `useEffect`, which would `setState` a render after the
-   * change already committed and paint the stale page for one frame. A
-   * plain `setPagination` rather than `pager.goToPage(0)`: this is a
-   * consequence of another change, not a page navigation of its own, and so
-   * reports no `onPaginationChange` of its own either — the filter/sort/
-   * group change's own callback already covers it.
-   */
-  const [previous, setPrevious] = useState({ filter, sort, groupBy });
-  if (
-    previous.filter !== filter ||
-    previous.sort !== sort ||
-    previous.groupBy !== groupBy
-  ) {
-    setPrevious({ filter, sort, groupBy });
-    if (pagination.pageIndex !== 0) {
-      setPagination({ ...pagination, pageIndex: 0 });
-    }
-  }
+  /** What the built-in pager draws, and what a `pager.template` is handed. */
+  const pagerContext: PagerTemplateContext = {
+    pagination: state.pagination,
+    currentPage: Math.min(state.pagination.pageIndex + 1, view.pageCount),
+    pageCount: view.pageCount,
+    pageSizeOptions: pager?.sizeOptions,
+    goToPage: controller.goToPage,
+    nextPage: controller.nextPage,
+    previousPage: controller.previousPage,
+    setPageSize: controller.setPageSize,
+  };
 
   const selection = useGridSelection<Row>({
     rows: view.displayDataRows,
@@ -832,7 +720,7 @@ export function DataGrid<Row>({
     setColumnSelection,
     cellSelection,
     setCellSelection,
-    callbacks,
+    callbacks: props,
     announce,
     columnName,
   });
@@ -841,56 +729,28 @@ export function DataGrid<Row>({
     selection.rowMode === "multiple" || selection.columnMode === "multiple";
 
   /**
-   * Deps list every getter's own backing value, not threaded through each
-   * individual `commitIfChanged`/`setState` call site across the various
-   * `use*` hooks above. Several of those bypass `commitIfChanged` on
-   * purpose (pagination's own filter/sort/group-triggered page reset,
-   * `useColumnResize`'s drag-move phase, `useGroupByDrag`/`useColumnDrag`'s
-   * transient drag state) or don't use it at all, so threading a `notify()`
-   * through each call site individually is real surface area to get wrong
-   * and silently miss a spot. Listing every value here instead means any
-   * future getter just needs adding to this array, not a new call site.
+   * Tells `subscribe`'s listeners once a render has drawn a change: to the
+   * controller's state or view — whether an action or a prop made it — or to
+   * what React still holds itself (focus, selection).
    *
-   * A plain no-deps effect (fire after every render, let each `listener`'s
-   * own `useSyncExternalStore` reference-equality check filter out the
-   * no-op ones) looks equivalent but isn't: `useSyncExternalStore` schedules
-   * a re-render *before* that bail-out check runs, not after, so notifying
-   * on a render that changed nothing here still forces the subscribing
-   * component to re-render — and if that component also renders this same
-   * `DataGrid` as a plain (non-memoized) sibling, its own re-render
-   * re-runs this very effect, forever, even though no value below ever
-   * actually changes. Gating on the dependency array is what breaks that
-   * cycle, not the listener-side check.
+   * Gated on those values, not run after every render: `useSyncExternalStore`
+   * re-renders a subscriber that is notified, and a subscriber that renders
+   * this grid as a plain (non-memoized) child would re-render it in turn and
+   * be notified again, forever, though nothing ever changed. The state and
+   * view objects keep their identity until something in them changes, which
+   * is what breaks that cycle.
    */
   useEffect(() => {
     for (const listener of subscribersRef.current) {
       listener();
     }
-  }, [
-    view.rows,
-    view.displayRows,
-    view.columns,
-    view.dataColumns,
-    sizing,
-    order,
-    visibility,
-    sort,
-    groupBy,
-    expansion,
-    paginationSnapshot,
-    view.pageCount,
-    view.grandTotal,
-    rowSelection,
-    columnSelection,
-    cellSelection,
-    nav.focus,
-  ]);
+  }, [view, state, rowSelection, columnSelection, cellSelection, nav.focus]);
 
   /**
-   * No deps array: `nav`, `selection`, `resize`, and `drag` are all freshly
+   * No deps array: `nav`, `selection` and `virtualizer` are freshly
    * constructed every render (none of those hooks memoize their returned
    * API), so the handle has to be rebuilt every render too or its closures
-   * would go stale.
+   * would go stale. Grid state is read off the controller at call time.
    */
   useImperativeHandle(ref, () => ({
     get element() {
@@ -899,23 +759,23 @@ export function DataGrid<Row>({
     get table() {
       return bodyTableRef.current;
     },
-    getRows: () => view.rows,
+    getRows: () => controller.getView().rows,
     // Every group header's own `aggregates` field is populated here — the
     // whole reason `getDisplayRows()` is where a consumer reads a specific
     // group's computed results from.
-    getDisplayRows: () => view.displayRows,
-    getPageRows: () => view.pageRows,
-    getColumns: () => view.columns,
-    getDataColumns: () => view.dataColumns,
-    getColumnSizing: () => sizing,
-    getColumnOrder: () => order,
-    getColumnVisibility: () => visibility,
-    getColumnSort: () => sort,
-    getGroupBy: () => groupBy,
-    getGroupExpansion: () => expansion,
-    getPagination: () => paginationSnapshot,
-    getPageCount: () => view.pageCount,
-    getAggregates: () => view.grandTotal,
+    getDisplayRows: () => controller.getView().displayRows,
+    getPageRows: () => controller.getView().pageRows,
+    getColumns: () => controller.getView().columns,
+    getDataColumns: () => controller.getView().dataColumns,
+    getColumnSizing: () => controller.getState().columnSizing,
+    getColumnOrder: () => controller.getState().columnOrder,
+    getColumnVisibility: () => controller.getState().columnVisibility,
+    getColumnSort: () => controller.getState().columnSort,
+    getGroupBy: () => controller.getState().groupBy,
+    getGroupExpansion: () => controller.getState().groupExpansion,
+    getPagination: readPagination,
+    getPageCount: () => controller.getView().pageCount,
+    getAggregates: () => controller.getView().grandTotal,
     getRowSelection: () => rowSelection,
     getColumnSelection: () => columnSelection,
     getCellSelection: () => cellSelection,
@@ -923,25 +783,25 @@ export function DataGrid<Row>({
     focusCell: nav.focusCell,
     clearSelection: selection.clear,
     selectAllRows: selection.selectAllRows,
-    expandAllGroups: grouping.expandAll,
-    collapseAllGroups: () => {
-      grouping.collapseAll(view.displayRows);
-    },
-    goToPage: paginationApi.goToPage,
-    nextPage: paginationApi.nextPage,
-    previousPage: paginationApi.previousPage,
-    setPageSize: paginationApi.setPageSize,
-    showColumns: columnVisibility.showColumns,
-    hideColumns: columnVisibility.hideColumns,
+    expandAllGroups: controller.expandAllGroups,
+    collapseAllGroups: controller.collapseAllGroups,
+    goToPage: controller.goToPage,
+    nextPage: controller.nextPage,
+    previousPage: controller.previousPage,
+    setPageSize: controller.setPageSize,
+    showColumns: controller.showColumns,
+    hideColumns: controller.hideColumns,
     scrollToRow: (rowId, options) => {
-      // `view.pageRows`, not `view.displayRows`: a data row's DOM position is
-      // its place in the currently rendered page — with grouping active,
-      // that's its place in the grouped, flattened output; with pagination
-      // also active, that's the page's own slice of it. A row on a different
-      // page isn't in the DOM at all, so there is nothing to scroll to.
-      const index = view.pageRows.findIndex(
-        (entry) => !("kind" in entry) && entry.rowId === rowId,
-      );
+      // `pageRows`, not `displayRows`: a data row's DOM position is its place
+      // in the currently rendered page — with grouping active, that's its
+      // place in the grouped, flattened output; with pagination also active,
+      // that's the page's own slice of it. A row on a different page isn't
+      // in the DOM at all, so there is nothing to scroll to.
+      const index = controller
+        .getView()
+        .pageRows.findIndex(
+          (entry) => !("kind" in entry) && entry.rowId === rowId,
+        );
       if (index === -1) return;
       // Under virtualization the target row may not be mounted at all —
       // `virtualizer.scrollToIndex` estimates, scrolls, and self-corrects
@@ -1003,7 +863,8 @@ export function DataGrid<Row>({
         <GroupByBar<Row>
           columns={view.columns}
           definitions={definitions}
-          grouping={grouping}
+          groupBy={state.groupBy}
+          controller={controller}
           columnName={columnName}
           headerDragEligible={dragEligibleForGroupBy}
           headerDragBlocked={draggedColumnAlreadyGrouped}
@@ -1032,7 +893,7 @@ export function DataGrid<Row>({
          * changes shape. See the "Scope note" this mirrors: grouping stays
          * an internal detail for an ungrouped grid, ARIA role included.
          */
-        role={groupBy.length > 0 ? "treegrid" : "grid"}
+        role={state.groupBy.length > 0 ? "treegrid" : "grid"}
         // The header is a row too, and counted from one; group headers (and,
         // under `groupAggregateDisplay: "row"`, each group's own summary
         // row) count as rows here too, the same way they do in `nav`'s
@@ -1086,9 +947,10 @@ export function DataGrid<Row>({
             columns={view.columns}
             resize={resize}
             drag={drag}
-            sort={columnSort}
+            controller={controller}
+            columnSort={state.columnSort}
             sortableColumns={sortableColumns}
-            grouping={grouping}
+            groupBy={state.groupBy}
             groupableColumns={groupableColumns}
             groupToggleIconColumns={groupToggleIconColumns}
             nav={nav}
@@ -1121,8 +983,8 @@ export function DataGrid<Row>({
               activeColumnId={resize.activeColumnId}
               nav={nav}
               selection={selection}
-              grouping={grouping}
-              aggregates={activeAggregates}
+              controller={controller}
+              aggregates={aggregates}
               groupAggregateDisplay={groupAggregateDisplay}
               virtualRange={virtualized ? virtualizer : null}
               infiniteScroll={infiniteScroll}
@@ -1132,7 +994,7 @@ export function DataGrid<Row>({
           </table>
         </div>
 
-        {activeAggregates.length > 0 && (
+        {aggregates.length > 0 && (
           <table
             style={{ width: totalColumnWidth(view.columns) }}
             className={classNames(
@@ -1143,7 +1005,7 @@ export function DataGrid<Row>({
             <GridColgroup columns={view.columns} />
             <GridFooter<Row>
               columns={view.columns}
-              aggregates={activeAggregates}
+              aggregates={aggregates}
               results={view.grandTotal}
               rows={view.rows.map((entry) => entry.row)}
               locale={locale}
@@ -1153,18 +1015,9 @@ export function DataGrid<Row>({
       </div>
       {paginated &&
         (pager?.template ? (
-          pager.template({
-            pagination: paginationApi.pagination,
-            currentPage: paginationApi.currentPage,
-            pageCount: paginationApi.pageCount,
-            pageSizeOptions: pager.sizeOptions,
-            goToPage: paginationApi.goToPage,
-            nextPage: paginationApi.nextPage,
-            previousPage: paginationApi.previousPage,
-            setPageSize: paginationApi.setPageSize,
-          })
+          pager.template(pagerContext)
         ) : (
-          <GridPager pager={paginationApi} config={pager} />
+          <GridPager pager={pagerContext} config={pager} />
         ))}
       {/*
        * Outside the table, which admits no `div`, and polite so it waits for a
