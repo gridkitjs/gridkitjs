@@ -375,9 +375,14 @@ export function createGridController<Row, Node = string>(
 
   /**
    * The page count reported is over every display row whether or not the
-   * grid is paginated, which is what a pager built on the event shows.
+   * grid is paginated, which is what a pager built on the event shows. A
+   * pagination equal to the current one — `nextPage` on the last page,
+   * `goToPage` to the page shown — reports nothing.
    */
   function commitPagination(next: PaginationState): void {
+    if (samePagination(state.pagination, next)) {
+      return;
+    }
     commit("pagination", next, () => {
       options.onPaginationChange?.({
         pagination: next,
@@ -582,11 +587,7 @@ export function createGridController<Row, Node = string>(
       commitGroupExpansion(collapsedGroups(getView().displayRows), null);
     },
 
-    setPagination(pagination) {
-      if (!samePagination(state.pagination, pagination)) {
-        commitPagination(pagination);
-      }
-    },
+    setPagination: commitPagination,
     goToPage,
     nextPage() {
       goToPage(shownPageIndex() + 1);

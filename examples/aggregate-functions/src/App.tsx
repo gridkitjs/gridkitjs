@@ -1,5 +1,5 @@
 import { defineColumnsFromRows } from "@gridkitjs/core";
-import { DataGridComponent, type ColumnDefinition } from "@gridkitjs/react";
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
 import { deploymentRows, type DeploymentRow } from "./fixtures";
 
 const columns: readonly ColumnDefinition<DeploymentRow>[] = [
@@ -12,7 +12,7 @@ export default function App() {
       <h1 className="text-xl font-semibold">
         {'aggregates={[{ columnId: "Cost", fn: "sum" }]}'}
       </h1>
-      <DataGridComponent
+      <DataGrid
         columns={columns}
         dataSource={deploymentRows}
         borders="horizontal"

@@ -264,10 +264,18 @@ export interface GridController<Row, Node = string> {
    * the last one. An equal pagination reports nothing.
    */
   readonly setPagination: (pagination: PaginationState) => void;
-  /** Moves to the given page, clamped into range. */
+  /**
+   * Moves to the given page, clamped into range. A page that clamps to the
+   * current one reports nothing.
+   */
   readonly goToPage: (pageIndex: number) => void;
+  /** Moves one page on; on the last page it does nothing and reports nothing. */
   readonly nextPage: () => void;
+  /** Moves one page back; on the first page it does nothing and reports nothing. */
   readonly previousPage: () => void;
-  /** Changes the page size and goes back to the first page. */
+  /**
+   * Changes the page size and goes back to the first page. The current size,
+   * already on the first page, reports nothing.
+   */
   readonly setPageSize: (pageSize: number) => void;
 }
