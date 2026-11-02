@@ -1,16 +1,18 @@
+import type { GridMessages } from "../messages";
+import { resolveMessages } from "../messages";
 import type {
+  ColumnType,
   DataColumn,
   FilterEntry,
   FilterScalar,
   FilterState,
   OperatorFilterEntry,
 } from "../types";
-import { isEmptyCell, isScalarList } from "./filterOperators";
+import { filterValueKey, isEmptyCell, isScalarList } from "./filterOperators";
 import { compileFilter } from "./filtering";
 import type { FormatLocale } from "./format";
 import { formatCellValue } from "./format";
 import { accessDotted } from "./grid";
-import { bucketKey } from "./grouping";
 import { compareValues } from "./sorting";
 
 /**
@@ -58,6 +60,11 @@ export interface ColumnValueQuery {
   readonly limit?: number;
   /** The locale labels are formatted for — the grid's own `locale`. */
   readonly locale?: FormatLocale;
+  /**
+   * The grid's own `messages`, over the defaults: a boolean is labelled
+   * `booleanTrue`/`booleanFalse`, as its cells print it.
+   */
+  readonly messages?: Partial<GridMessages>;
 }
 
 export interface ColumnValueOptions {
@@ -69,6 +76,12 @@ export interface ColumnValueOptions {
   readonly truncated: boolean;
   /** How many of the same rows hold a blank — `null`, `undefined` or `""`. */
   readonly blanks: number;
+  /**
+   * The column's `type`, which tells values apart the way an `in` filter
+   * does — on a date column, a date string and the `Date` it names are one
+   * value. `initialFilterEditorDraft` carries it into the draft.
+   */
+  readonly columnType?: ColumnType | undefined;
 }
 
 /**
@@ -85,11 +98,13 @@ export interface FilterEditorDraft<Row> {
   /** How many rows hold a blank; the blanks entry only matters when some do. */
   readonly blanks: number;
   readonly search: string;
-  /** The checked values, keyed as grouping keys them. */
+  /** The checked values, keyed as an `in` filter on the column keys them. */
   readonly checked: ReadonlyMap<string, FilterScalar>;
   readonly includeBlanks: boolean;
   readonly conditions: readonly OperatorFilterEntry<Row>[];
   readonly combinator: "and" | "or";
+  /** The column's `type`, from `ColumnValueOptions` — what values are keyed by. */
+  readonly columnType?: ColumnType | undefined;
 }
 
 export type FilterEditorAction<Row> =
@@ -243,9 +258,11 @@ interface Bucket<Row> {
  * Counted over the rows every *other* column's filter keeps — every entry
  * except those `describeColumnFilter` would count for this column — so a
  * column's list cascades from the other filters without its own pick
- * hiding the values the user unchecked. Values are told apart as grouping
- * tells them apart, ordered as the column sorts, labelled as its cells
- * print; blanks are counted apart, in `blanks`.
+ * hiding the values the user unchecked. Values are told apart as an `in`
+ * filter tells them apart — as grouping does, except that a date column's
+ * date strings are the dates they name — ordered as the column sorts, and
+ * labelled as its cells print, a boolean in `query.messages`' words; blanks
+ * are counted apart, in `blanks`.
  *
  * Costs one pass over `rows` (tens of milliseconds at 100k rows), so compute
  * it when an editor opens rather than on every render, and hand the whole
@@ -277,7 +294,7 @@ export function columnValueOptions<Row>(
     if (isEmptyCell(value)) {
       blanks++;
     } else if (isOfferable(value)) {
-      const key = bucketKey(value);
+      const key = filterValueKey(value, column.type);
       const bucket = buckets.get(key);
       if (bucket === undefined) {
         buckets.set(key, { value, row, count: 1 });
@@ -288,11 +305,12 @@ export function columnValueOptions<Row>(
   }
 
   const { search = "", limit, locale } = query;
+  const messages = resolveMessages(query.messages);
   const options = [...buckets.values()]
     .sort((a, b) => compareValues(a.value, b.value, column.type))
     .map(({ value, row, count }) => ({
       value,
-      label: formatCellValue(value, column, locale, row),
+      label: formatCellValue(value, column, locale, row, messages),
       count,
     }))
     .filter((option) => matchesSearch(option.label, search));
@@ -302,14 +320,23 @@ export function columnValueOptions<Row>(
     total: options.length,
     truncated: shown.length < options.length,
     blanks,
+    columnType: column.type,
   };
 }
 
-function everyOption(
-  options: readonly ColumnValueOption[],
+/** The key `draft.checked` holds `value` under. */
+function keyOf<Row>(
+  draft: Pick<FilterEditorDraft<Row>, "columnType">,
+  value: FilterScalar,
+): string {
+  return filterValueKey(value, draft.columnType);
+}
+
+function everyOption<Row>(
+  draft: Pick<FilterEditorDraft<Row>, "columnType" | "options">,
 ): ReadonlyMap<string, FilterScalar> {
   return new Map(
-    options.map((option) => [bucketKey(option.value), option.value]),
+    draft.options.map((option) => [keyOf(draft, option.value), option.value]),
   );
 }
 
@@ -328,10 +355,11 @@ export function initialFilterEditorDraft<Row>(
     options: values.options,
     blanks: values.blanks,
     search: "",
-    checked: everyOption(values.options),
+    checked: everyOption(values),
     includeBlanks: values.blanks > 0,
     conditions: [],
     combinator: "and",
+    columnType: values.columnType,
   };
   switch (shape.kind) {
     case "values":
@@ -340,7 +368,7 @@ export function initialFilterEditorDraft<Row>(
         checked: new Map(
           shape.values
             .filter((value) => !isEmptyCell(value))
-            .map((value) => [bucketKey(value), value]),
+            .map((value) => [keyOf(draft, value), value]),
         ),
         includeBlanks: shape.includeBlanks,
       };
@@ -382,7 +410,7 @@ export function selectAllState<Row>(
   draft: FilterEditorDraft<Row>,
 ): SelectAllState {
   const states = visibleFilterOptions(draft).map((option) =>
-    draft.checked.has(bucketKey(option.value)),
+    draft.checked.has(keyOf(draft, option.value)),
   );
   if (selectAllCoversBlanks(draft)) {
     states.push(draft.includeBlanks);
@@ -397,7 +425,7 @@ function toggleAll<Row>(draft: FilterEditorDraft<Row>): FilterEditorDraft<Row> {
   const check = selectAllState(draft) !== "checked";
   const checked = new Map(draft.checked);
   for (const option of visibleFilterOptions(draft)) {
-    const key = bucketKey(option.value);
+    const key = keyOf(draft, option.value);
     if (check) {
       checked.set(key, option.value);
     } else {
@@ -426,7 +454,7 @@ export function filterEditorReducer<Row>(
     case "search":
       return { ...draft, search: action.search };
     case "toggleValue": {
-      const key = bucketKey(action.value);
+      const key = keyOf(draft, action.value);
       const checked = new Map(draft.checked);
       if (checked.has(key)) {
         checked.delete(key);
@@ -450,7 +478,7 @@ export function filterEditorReducer<Row>(
       return {
         ...draft,
         search: "",
-        checked: everyOption(draft.options),
+        checked: everyOption(draft),
         includeBlanks: draft.blanks > 0,
         conditions: [],
       };
@@ -464,7 +492,7 @@ export function filterEditorReducer<Row>(
 function checksEverything<Row>(draft: FilterEditorDraft<Row>): boolean {
   return (
     draft.options.every((option) =>
-      draft.checked.has(bucketKey(option.value)),
+      draft.checked.has(keyOf(draft, option.value)),
     ) &&
     (draft.includeBlanks || draft.blanks === 0)
   );

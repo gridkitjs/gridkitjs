@@ -51,10 +51,11 @@ An editor shows a custom filter as such; applying its draft replaces it.
 
 ## The values a checklist offers
 
-`columnValueOptions(rows, dataColumns, filter, columnId, { search?, limit?, locale? })` lists the column's distinct values, each with its `label` and the `count` of rows holding it:
+`columnValueOptions(rows, dataColumns, filter, columnId, { search?, limit?, locale?, messages? })` lists the column's distinct values, each with its `label` and the `count` of rows holding it:
 
 - **It cascades.** Values are counted over the rows that pass every entry _except_ those about this column, so one column's list narrows with the filters on the others, while its own pick never hides the values the user unchecked.
-- Values are told apart as [grouping](/docs/react/row-grouping) tells them apart, ordered as the column sorts (`compareValues` under its `type`), and labelled as its cells print (`formatCellValue`, with the column's `format`, `valueFormatter` and the `locale` given).
+- Values are told apart as an `in` entry tells them apart — as [grouping](/docs/react/row-grouping) does, except that on a date, date-time or time column a date string and the `Date` it names are one value — ordered as the column sorts (`compareValues` under its `type`), and labelled as its cells print (`formatCellValue`, with the column's `format`, `valueFormatter` and the `locale` given).
+- Pass the grid's own `messages` (a partial `GridMessages`, filled in from the defaults) so a boolean is labelled `booleanTrue`/`booleanFalse`, the same words its cells use. Without it, a boolean reads `"true"`/`"false"`. `search` matches those labels.
 - Blank cells — `null`, `undefined` and `""` — are counted apart, in `blanks`. A cell holding an object or an array is not offered: an `in` entry can't hold it.
 - `search` keeps the values whose label contains it, ignoring case; `total` is how many matched. `limit` cuts the list after that many, and `truncated` says it did.
 
@@ -63,6 +64,8 @@ An editor shows a custom filter as such; applying its draft replaces it.
 ## The editor draft
 
 `initialFilterEditorDraft(shape, values)` opens a `FilterEditorDraft` over a shape and the list from `columnValueOptions`. With no filter (or a custom one) every value is checked, the blanks too when there are any; a checklist opens with its own values checked, kept even when the other filters now hide them; conditions open as they are.
+
+The draft keys its checked values the way the column's `in` entry matches them, using the `columnType` that `columnValueOptions` returns. So a saved checklist on a date column whose cells hold ISO strings, which `restoreState` reads back as `Date`s, opens with those dates checked.
 
 `filterEditorReducer(draft, action)` is a plain reducer, so a renderer keeps the draft in whatever state it has — `useReducer`, a signal, a store:
 
