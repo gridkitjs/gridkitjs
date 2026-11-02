@@ -54,9 +54,12 @@ export interface GridControllerOptions<
  * subscriber, synchronously. The setters (`setColumnSort` and the like) also
  * stop for a value equal to the current one, so restoring what is already
  * there reports nothing.
+ *
+ * Every member is a plain function bound to its grid, safe to hand around on
+ * its own — `onClick={controller.nextPage}`.
  */
 export interface GridController<Row, Node = string> {
-  getOptions(): GridControllerOptions<Row, Node>;
+  readonly getOptions: () => GridControllerOptions<Row, Node>;
   /**
    * Replaces the options, as a renderer does with its current props on every
    * update; calling it again with equal options changes nothing. A controlled
@@ -67,16 +70,16 @@ export interface GridController<Row, Node = string> {
    * mid-update too. A renderer that also tells other listeners about it does
    * so once its update is done.
    */
-  setOptions(options: GridControllerOptions<Row, Node>): void;
+  readonly setOptions: (options: GridControllerOptions<Row, Node>) => void;
   /** Every slice as the grid now applies it. The same object until a slice changes. */
-  getState(): GridState<Row>;
+  readonly getState: () => GridState<Row>;
   /** What the user is looking at — see `resolveGridView`. The same object until something in it changes. */
-  getView(): GridView<Row, Node>;
+  readonly getView: () => GridView<Row, Node>;
   /**
    * Calls `listener` after each action that got as far as reporting a
    * change. Returns the function that unsubscribes it.
    */
-  subscribe(listener: () => void): () => void;
+  readonly subscribe: (listener: () => void) => () => void;
 
   /**
    * Replaces the column widths. Reported through `onColumnResize` as the
@@ -84,103 +87,110 @@ export interface GridController<Row, Node = string> {
    * width — or, when its entry was removed, the width its definition gives
    * it. Equal widths report nothing.
    */
-  setColumnSizing(sizing: ColumnSizingState): void;
+  readonly setColumnSizing: (sizing: ColumnSizingState) => void;
   /**
    * Sets one column's width, as a resize gesture does: `"move"` while the
    * gesture lasts, `"end"` once it is over. Never skipped for an unchanged
    * width, so a drag held against a column's minimum still reports every
    * move.
    */
-  resizeColumn(columnId: string, width: number, phase: "move" | "end"): void;
+  readonly resizeColumn: (
+    columnId: string,
+    width: number,
+    phase: "move" | "end",
+  ) => void;
   /**
    * Ends a resize gesture by putting its column back as it was when the
    * gesture began — `startSizing` is the sizing state then, `startWidth` the
    * width the column was drawn at — keeping any other column's change made in
    * the meantime. Reported as the gesture's `"end"`, at `startWidth`.
    */
-  cancelColumnResize(
+  readonly cancelColumnResize: (
     columnId: string,
     startSizing: ColumnSizingState,
     startWidth: number,
-  ): void;
+  ) => void;
 
   /**
    * Replaces the column order. Reported through `onColumnOrderChange` naming
    * the first column whose position changed; an equal order reports nothing.
    */
-  setColumnOrder(order: ColumnOrderState): void;
+  readonly setColumnOrder: (order: ColumnOrderState) => void;
   /**
    * Moves a column in front of `beforeId`, or to the end when that is
    * `null`, among every column — hidden ones keep their place. A move that
    * changes nothing reports nothing.
    */
-  moveColumn(columnId: string, beforeId: string | null): void;
+  readonly moveColumn: (columnId: string, beforeId: string | null) => void;
 
   /**
    * Replaces the column visibility state. Reported through
    * `onColumnVisibilityChange` with every column whose entry changed; an
    * equal state reports nothing.
    */
-  setColumnVisibility(visibility: ColumnVisibilityState): void;
+  readonly setColumnVisibility: (visibility: ColumnVisibilityState) => void;
   /** Shows the given columns, each in the place it held when hidden. One report for the whole call. */
-  showColumns(columnIds: readonly string[]): void;
+  readonly showColumns: (columnIds: readonly string[]) => void;
   /** Hides the given columns. A hidden column still sorts, filters and groups. */
-  hideColumns(columnIds: readonly string[]): void;
+  readonly hideColumns: (columnIds: readonly string[]) => void;
 
   /**
    * Replaces the filter. Reported through `onFilterChange`; the same
    * entries in the same order report nothing.
    */
-  setFilter(filter: FilterState<Row>): void;
+  readonly setFilter: (filter: FilterState<Row>) => void;
 
   /**
    * Replaces the sort. Reported through `onColumnSortChange` naming the
    * first column whose place or direction changed; a sort equal to the
    * current one changes nothing and reports nothing.
    */
-  setColumnSort(sort: ColumnSortState): void;
+  readonly setColumnSort: (sort: ColumnSortState) => void;
   /**
    * Cycles a column's sort, as its header toggle does: ascending, descending,
    * off. `stack` adds it to the sort rather than replacing the sort with it.
    */
-  toggleColumnSort(
+  readonly toggleColumnSort: (
     columnId: string,
     options?: { readonly stack?: boolean | undefined },
-  ): void;
+  ) => void;
 
   /**
    * Replaces the group-by stack. Reported through `onGroupByChange` naming
    * the first level that changed; an equal stack reports nothing.
    */
-  setGroupBy(groupBy: GroupByState): void;
+  readonly setGroupBy: (groupBy: GroupByState) => void;
   /** Adds a column to the end of the group-by stack, or removes it if it is already there. */
-  toggleGroupBy(columnId: string): void;
+  readonly toggleGroupBy: (columnId: string) => void;
   /**
    * Puts a column into the group-by stack in front of `beforeColumnId`, or at
    * the end when that is `null` — adding it, or moving it if it is already
    * there.
    */
-  moveGroupBy(columnId: string, beforeColumnId: string | null): void;
+  readonly moveGroupBy: (
+    columnId: string,
+    beforeColumnId: string | null,
+  ) => void;
 
   /**
    * Replaces the collapsed groups. Reported with `groupId: null`, as a change
    * to every group at once; the same ids in the same order report nothing.
    */
-  setGroupExpansion(expansion: GroupExpansionState): void;
-  toggleGroupExpansion(groupId: string): void;
-  expandAllGroups(): void;
+  readonly setGroupExpansion: (expansion: GroupExpansionState) => void;
+  readonly toggleGroupExpansion: (groupId: string) => void;
+  readonly expandAllGroups: () => void;
   /** Collapses every group currently shown — see `collapseAllGroups`. */
-  collapseAllGroups(): void;
+  readonly collapseAllGroups: () => void;
 
   /**
    * Replaces the page and page size as given; the view clamps a page past
    * the last one. An equal pagination reports nothing.
    */
-  setPagination(pagination: PaginationState): void;
+  readonly setPagination: (pagination: PaginationState) => void;
   /** Moves to the given page, clamped into range. */
-  goToPage(pageIndex: number): void;
-  nextPage(): void;
-  previousPage(): void;
+  readonly goToPage: (pageIndex: number) => void;
+  readonly nextPage: () => void;
+  readonly previousPage: () => void;
   /** Changes the page size and goes back to the first page. */
-  setPageSize(pageSize: number): void;
+  readonly setPageSize: (pageSize: number) => void;
 }
