@@ -38,6 +38,9 @@ importers:
       '@gridkitjs/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@gridkitjs/dom':
+        specifier: workspace:*
+        version: link:../../packages/dom
       '@gridkitjs/react':
         specifier: workspace:*
         version: link:../../packages/react

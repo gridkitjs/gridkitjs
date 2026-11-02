@@ -27,3 +27,30 @@ announcer.destroy();
 ```
 
 A live region speaks only when its text changes, so `announce` makes a repeat of the last message a change of its own: the same text twice in a row is read twice.
+
+## Overlay
+
+`attachOverlay(anchor, panel, options)` shows a panel the renderer has already put in the page — a menu, a popover, a filter editor, usually rendered into `document.body` so no scrolling ancestor clips it — beside `anchor`, an element or an `{ x, y }` point, and returns the function that ends it.
+
+```ts
+import { attachOverlay } from "@gridkitjs/dom";
+
+const detach = attachOverlay(headerCell, menuElement, {
+  placement: "bottom-start",
+  gap: 4,
+  onDismiss: (reason) => closeMenu(), // removes menuElement, then calls detach()
+});
+```
+
+| Option          | Type                                                        | Description                                                                                                    |
+| --------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `placement`     | `"bottom-start"`, `"top-end"`, `"right-start"` and the rest | Where the panel would rather open. Defaults to `"bottom-start"`.                                               |
+| `gap`           | `number`                                                    | Pixels between the anchor and the panel. Defaults to `0`.                                                      |
+| `onDismiss`     | `(reason) => void`                                          | Called with `"escape"`, `"outside"`, `"scroll"`, `"resize"` or `"blur"`; the caller closes the panel, or not.  |
+| `returnFocusTo` | `HTMLElement \| null`                                       | Where focus goes on detach. Defaults to the element focused when the overlay attached; `null` leaves it alone. |
+
+The panel is positioned `fixed` and opens on the preferred side unless only the opposite side has room for it, lines up with the preferred edge of the anchor unless only the other edge keeps it on screen, and is pushed back inside the viewport if it still overflows. The placement it ends up with is written to `data-gridkit-placement`. Focus moves to the panel's first focusable element, or to the panel itself.
+
+It asks to close on <Kbd>Escape</Kbd>, a pointer down outside it, a scroll anywhere outside it (it is placed in viewport coordinates, so the anchor would move away from it), a window resize, the window losing focus, or focus moving outside it. Nothing on the anchor counts, so a button that toggles the panel closes it with its own click. Detaching returns focus only while focus is still in the panel or nowhere — after a click on another control, focus stays there.
+
+`placeOverlay(anchorRect, panelSize, viewport, { placement, gap })` is the placement on its own: pure arithmetic over boxes, returning `{ top, left, placement }`, for a renderer that positions its own panels.

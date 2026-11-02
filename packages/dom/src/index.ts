@@ -2,3 +2,19 @@
 // owns its listeners and observers and reports through callbacks, so it names
 // no framework's types.
 export { createLiveAnnouncer, type LiveAnnouncer } from "./announcer";
+export {
+  attachOverlay,
+  type OverlayAnchor,
+  type OverlayDismissReason,
+  type OverlayOptions,
+} from "./overlay/attachOverlay";
+export {
+  placeOverlay,
+  type OverlayAlign,
+  type OverlayPlacement,
+  type OverlayPlacementOptions,
+  type OverlayPosition,
+  type OverlayRect,
+  type OverlaySide,
+  type OverlaySize,
+} from "./overlay/placeOverlay";
