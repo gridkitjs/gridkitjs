@@ -43,3 +43,8 @@ export {
   type OverlaySize,
 } from "./overlay/placeOverlay";
 export type { PointerPress } from "./pointerGesture";
+export {
+  createRowVirtualizer,
+  type RowVirtualizer,
+  type RowVirtualizerOptions,
+} from "./rowVirtualizer";

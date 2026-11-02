@@ -109,6 +109,34 @@ The grid's own targets are hit-tested against its markup:
 
 Either returns `null` for a drop that would change nothing, so a drop indicator only ever promises a move that happens.
 
+## Row virtualizer
+
+`createRowVirtualizer(scrollElement, { estimatedRowHeight, overscan, onRange })` windows a long list of rows inside a scrolling element down to those near its scroll position. It measures each rendered row's real height — rows need not be uniform — and reports the window to render through `onRange({ startIndex, endIndex, offsetBefore, offsetAfter })`, with `offsetBefore`/`offsetAfter` the heights of the spacers that stand in for the rows outside it. It reports only when the window moves.
+
+| Member                          | Description                                                                                                                |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `setRowCount(count)`            | How many rows there are. Heights measured for rows that remain are kept.                                                   |
+| `resetHeights()`                | Forgets every measured height — after a sort or filter, when the rows at each index are different rows.                    |
+| `measureRow(index)`             | A ref callback for row `index`'s element, measuring it while mounted. The same function for the same index every time.     |
+| `scrollToIndex(index, options)` | Scrolls a mounted row into view; jumps to an unmounted one's estimated offset, then scrolls to it properly once it mounts. |
+| `destroy()`                     | Stops listening and measuring.                                                                                             |
+
+```ts
+import { createRowVirtualizer } from "@gridkitjs/dom";
+
+const virtualizer = createRowVirtualizer(bodyElement, {
+  estimatedRowHeight: 40,
+  overscan: 4,
+  onRange: (range) => drawRows(range), // rows startIndex..endIndex, between two spacers
+});
+virtualizer.setRowCount(rows.length);
+
+// while drawing row `index`:
+virtualizer.measureRow(index)(rowElement);
+```
+
+The arithmetic is @gridkitjs/core's `visibleRange`; this owns the measured heights, the scroll and resize listeners, and one `ResizeObserver` for every mounted row.
+
 ## Infinite scroll
 
 `attachInfiniteScroll(root, options)` calls `onLoadMore` as a sentinel element — the last row of the body — comes within `rootMargin` of the scrolling `root`, at most once until `isLoadingMore` has gone from `true` back to `false`. It returns `update(options)`, which a renderer calls after every render with the current options and sentinel (the sentinel comes and goes with `hasMore`), and `detach()`.
