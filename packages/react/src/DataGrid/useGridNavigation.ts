@@ -1,37 +1,21 @@
 import {
   useEffect,
-  useMemo,
-  useRef,
+  useLayoutEffect,
   useState,
+  useSyncExternalStore,
   type KeyboardEvent as ReactKeyboardEvent,
   type RefObject,
 } from "react";
+import { HEADER_ROW, type GridFocus } from "@gridkitjs/core";
 import {
-  clampFocus,
-  nextFocusForKey,
-  HEADER_ROW,
-  type GridFocus,
-} from "@gridkitjs/core";
+  createGridFocus,
+  findBodyRow,
+  measurePageSize,
+  type FocusVirtualRange,
+  type GridFocusOptions,
+} from "@gridkitjs/dom";
 
 export { HEADER_ROW, type GridFocus };
-
-/** Rows a page key moves when the viewport cannot be measured. */
-const FALLBACK_PAGE = 10;
-
-/**
- * The slice of `RowVirtualizerApi` a pending focus move needs: the currently
- * mounted range, to tell whether the target row is in the DOM at all, and
- * `scrollToIndex` to bring it into range when it isn't. `null`/absent when
- * virtualization is off, in which case behavior is byte-for-byte unchanged.
- */
-interface VirtualRangeOption {
-  readonly startIndex: number;
-  readonly endIndex: number;
-  readonly scrollToIndex: (
-    index: number,
-    options?: ScrollIntoViewOptions,
-  ) => void;
-}
 
 interface UseGridNavigationOptions {
   headerTableRef: RefObject<HTMLTableElement | null>;
@@ -47,12 +31,13 @@ interface UseGridNavigationOptions {
    */
   isSkippableRow?: ((rowIndex: number) => boolean) | undefined;
   /**
-   * Present only when `virtualized` is on. A focus move can target a row
-   * index that isn't currently mounted — `ArrowDown` repeated past the
-   * mounted window's end, or `End`/`Ctrl+End` jumping straight to the last
-   * row — where `cellAt` alone would find nothing and silently strand focus.
+   * The window `useRowVirtualizer` drew, present only when `virtualized` is
+   * on, in which case behavior is otherwise unchanged. A focus move can
+   * target a row index that isn't currently mounted — `ArrowDown` repeated
+   * past the mounted window's end, or `End`/`Ctrl+End` jumping straight to
+   * the last row.
    */
-  virtualRange?: VirtualRangeOption | null | undefined;
+  virtualRange?: FocusVirtualRange | null | undefined;
 }
 
 export interface GridNavigationApi {
@@ -86,49 +71,11 @@ export function tabIndexFor(
 }
 
 /**
- * The cell at a coordinate. The header row comes from the header table's own
- * `.tHead`; a body row is looked up by its `data-gridkit-row-index` rather
- * than by position in `.tBodies[0].rows`, because under virtualization the
- * body holds only a slice of the rows, behind a leading spacer `<tr>` — once
- * the window scrolls, a DOM position no longer matches the row's index in
- * the full array and addresses some other mounted row, or none. `GridBody`'s
- * `cellFrom` reads the same attribute for the same reason.
- *
- * The attribute holds a plain integer, so a selector built from it needs no
- * escaping, unlike one built from a consumer-supplied row id.
- *
- * `columnIndex` is clamped to the row's own last cell rather than read
- * directly: a group-header row renders one `<td colSpan>` regardless of
- * `columnCount`, so a focus arriving from a data row further right (or a
- * `columnIndex` a keyboard `End` left behind) would otherwise address a cell
- * that row doesn't have.
- */
-function cellAt(
-  headerTable: HTMLTableElement | null,
-  bodyTable: HTMLTableElement | null,
-  focus: GridFocus,
-): HTMLElement | null {
-  const row =
-    focus.rowIndex === HEADER_ROW
-      ? (headerTable?.tHead?.rows[0] ?? null)
-      : (bodyTable?.tBodies[0]?.querySelector<HTMLTableRowElement>(
-          `:scope > tr[data-gridkit-row-index="${String(focus.rowIndex)}"]`,
-        ) ?? null);
-  if (row === null) {
-    return null;
-  }
-  const columnIndex = Math.min(focus.columnIndex, row.cells.length - 1);
-  return row.cells[columnIndex] ?? null;
-}
-
-/**
- * Moves one tab stop around the grid, which is what `role="grid"` obliges:
- * arrow keys travel cell to cell and Tab passes the whole grid by.
- *
- * Separate from selection because focus and selection are different states — a
- * cell is focused while travelling before anything is selected, and every cell
- * of a range is selected without being focused. Navigation also has to work
- * with selection turned off entirely, so it cannot depend on it.
+ * The grid's single tab stop, kept by `@gridkitjs/dom`'s `createGridFocus`
+ * and drawn from it: created once, handed the current counts and window on
+ * every render, and subscribed to, so a move re-renders the grid. The
+ * header row comes from the header table's own `.tHead`; a body row through
+ * `findBodyRow`, by its `data-gridkit-row-index`.
  */
 export default function useGridNavigation({
   headerTableRef,
@@ -138,148 +85,34 @@ export default function useGridNavigation({
   isSkippableRow,
   virtualRange,
 }: UseGridNavigationOptions): GridNavigationApi {
-  const [stored, setStored] = useState<GridFocus>({
-    rowIndex: HEADER_ROW,
-    columnIndex: 0,
-  });
+  const options: GridFocusOptions = {
+    rowCount,
+    columnCount,
+    isSkippableRow,
+    virtualRange,
+  };
+  const [gridFocus] = useState(() => createGridFocus(options));
+  gridFocus.setOptions(options);
+  const focus = useSyncExternalStore(gridFocus.subscribe, gridFocus.getFocus);
 
-  /**
-   * Clamped on the way out rather than written back, so that a coordinate
-   * pushed out of range by a change to the data is restored when the data
-   * comes back — and so the effect below cannot chase its own output.
-   * Memoized on the individual coordinates rather than recomputed on every
-   * render: `clampFocus` always returns a fresh object, and `getFocusedCell`
-   * on `DataGridApi` hands this same value to `useSyncExternalStore`-based
-   * hooks, which need a referentially stable snapshot when nothing changed.
-   */
-  const focus = useMemo(
-    () => clampFocus(stored, rowCount, columnCount),
-    [stored, rowCount, columnCount],
+  useLayoutEffect(
+    () =>
+      gridFocus.attach({
+        getHeaderRow: () => headerTableRef.current?.tHead?.rows[0] ?? null,
+        getBodyRow: (rowIndex) => findBodyRow(bodyTableRef.current, rowIndex),
+      }),
+    [gridFocus, headerTableRef, bodyTableRef],
   );
 
-  /**
-   * The move the browser's focus still has to follow, or `null` once it has.
-   * Without it every render would pull focus into the grid, including the
-   * first.
-   *
-   * Holds the very `stored` object `focusCell` wrote rather than a plain flag,
-   * so only the effect run that belongs to that move can act on it. Under
-   * virtualization a scroll-driven range update can commit just before a key
-   * press, and React flushes that render's still-queued effect — closed over
-   * the previous focus — after the press has already marked a new move
-   * pending. With a flag, that stale run found its own (still mounted) cell,
-   * focused it and cleared the flag, so the new move's own run returned early
-   * and never scrolled its row into range.
-   */
-  const pendingMove = useRef<GridFocus | null>(null);
-
+  // After every commit rather than only when `focus` changes: under
+  // virtualization the target row may mount only in a later drawing, once
+  // the window has scrolled to it, and this is what retries.
   useEffect(() => {
-    if (pendingMove.current !== stored) {
-      return;
-    }
-    const cell = cellAt(headerTableRef.current, bodyTableRef.current, {
-      rowIndex: focus.rowIndex,
-      columnIndex: focus.columnIndex,
-    });
-    if (cell !== null) {
-      pendingMove.current = null;
-      // Focusing the cell the browser already sits on is a no-op, which is
-      // what makes one method serve both a key press and a cell reporting a
-      // click.
-      cell.focus();
-      return;
-    }
+    gridFocus.focusDrawnCell(focus);
+  });
 
-    // The target row isn't mounted — under virtualization, that means it's
-    // outside the current window rather than an actual failure. Ask the
-    // virtualizer to bring it into range; `pendingMove` stays set, so
-    // this same effect retries once the range below changes and the row
-    // mounts. A grid with virtualization off (or a row genuinely out of
-    // bounds even for it) has nothing further to try, so the pending move is
-    // dropped rather than left to retry forever.
-    if (
-      virtualRange != null &&
-      focus.rowIndex !== HEADER_ROW &&
-      (focus.rowIndex < virtualRange.startIndex ||
-        focus.rowIndex > virtualRange.endIndex)
-    ) {
-      virtualRange.scrollToIndex(focus.rowIndex);
-      return;
-    }
-    pendingMove.current = null;
-  }, [
-    headerTableRef,
-    bodyTableRef,
-    stored,
-    focus.rowIndex,
-    focus.columnIndex,
-    virtualRange,
-  ]);
-
-  /**
-   * How many rows fit the viewport, which is what a page key should move.
-   * `bodyTable.parentElement` is the `.gridkit-data-grid-body` scroll
-   * wrapper — the row area alone, not the header/footer/pager chrome
-   * around it, unlike the shared-table days when a table's own parent was
-   * the whole `.gridkit-data-grid-viewport`.
-   */
-  function pageSize(): number {
-    const table = bodyTableRef.current;
-    const firstRow = table?.tBodies[0]?.rows[0];
-    const viewport = table?.parentElement;
-    if (
-      firstRow === undefined ||
-      viewport === null ||
-      viewport === undefined ||
-      firstRow.offsetHeight === 0
-    ) {
-      return FALLBACK_PAGE;
-    }
-    return Math.max(
-      1,
-      Math.floor(viewport.clientHeight / firstRow.offsetHeight),
-    );
-  }
-
-  function focusCell(rowIndex: number, columnIndex: number): void {
-    const next = clampFocus({ rowIndex, columnIndex }, rowCount, columnCount);
-    if (
-      next.rowIndex === focus.rowIndex &&
-      next.columnIndex === focus.columnIndex
-    ) {
-      return;
-    }
-    pendingMove.current = next;
-    setStored(next);
-  }
-
-  function onKeyDown(event: ReactKeyboardEvent<HTMLElement>): void {
-    const next = nextFocusForKey(
-      event.key,
-      {
-        ctrlKey: event.ctrlKey,
-        metaKey: event.metaKey,
-        altKey: event.altKey,
-        shiftKey: event.shiftKey,
-      },
-      focus,
-      rowCount,
-      columnCount,
-      pageSize(),
-      isSkippableRow,
-    );
-    if (next === null) {
-      return;
-    }
-
-    // Taken even when the move lands nowhere: an arrow at the last row would
-    // otherwise scroll the page out from under the grid.
-    event.preventDefault();
-    focusCell(next.rowIndex, next.columnIndex);
-  }
-
-  // A new object each render, as the other hooks here return: the handlers
-  // close over the focus they move from.
+  // A new object each render, as the other hooks here return: `tabIndexFor`
+  // closes over the focus it draws.
   return {
     focus,
     tabIndexFor: (rowIndex, columnIndex) =>
@@ -287,7 +120,17 @@ export default function useGridNavigation({
         columnIndex,
         rowIndex === focus.rowIndex ? focus.columnIndex : null,
       ),
-    focusCell,
-    onKeyDown,
+    focusCell: gridFocus.focusCell,
+    onKeyDown: (event) => {
+      if (
+        gridFocus.handleKey(
+          event.key,
+          event,
+          measurePageSize(bodyTableRef.current),
+        )
+      ) {
+        event.preventDefault();
+      }
+    },
   };
 }
