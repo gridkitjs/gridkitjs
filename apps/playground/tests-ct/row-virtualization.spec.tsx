@@ -3,7 +3,7 @@
 // file for why.
 import type { MountResult } from "@playwright/experimental-ct-react";
 import type { ColumnDefinition } from "@gridkitjs/core";
-import { DataGridComponent } from "@gridkitjs/react";
+import RowIdentifiedGrid from "./support/RowIdentifiedGrid";
 import { expect, test } from "./support/coverage";
 import { mountGrid, updateGrid } from "./support/mountGrid";
 import ImperativeApiGrid from "./support/ImperativeApiGrid";
@@ -47,10 +47,9 @@ test.describe("row virtualization", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <RowIdentifiedGrid
         columns={columns}
         dataSource={buildRows(3000)}
-        getRowId={(row) => row.id}
         label="Virtualized"
         height={200}
         virtualized
@@ -71,10 +70,9 @@ test.describe("row virtualization", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <RowIdentifiedGrid
         columns={columns}
         dataSource={buildRows(1000)}
-        getRowId={(row) => row.id}
         label="Virtualized"
         height={200}
         virtualized
@@ -119,10 +117,9 @@ test.describe("row virtualization", () => {
     const rows = buildRows(200);
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <RowIdentifiedGrid
         columns={columns}
         dataSource={rows}
-        getRowId={(row) => row.id}
         label="Virtualized nav"
         height={150}
         virtualized
@@ -182,10 +179,9 @@ test.describe("row virtualization", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <RowIdentifiedGrid
         columns={columns}
         dataSource={buildRows(50)}
-        getRowId={(row) => row.id}
         label="Mixed heights"
         height={400}
         virtualized
@@ -219,10 +215,9 @@ test.describe("row virtualization", () => {
     const rows = buildRows(300);
     function grid(height: number) {
       return (
-        <DataGridComponent
+        <RowIdentifiedGrid
           columns={columns}
           dataSource={rows}
-          getRowId={(row) => row.id}
           label="Resizable"
           height={height}
           virtualized
@@ -243,10 +238,9 @@ test.describe("row virtualization", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <RowIdentifiedGrid
         columns={columns}
         dataSource={buildRows(200)}
-        getRowId={(row) => row.id}
         label="Virtualized paginated"
         height={300}
         virtualized
@@ -271,10 +265,9 @@ test.describe("row virtualization", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <RowIdentifiedGrid
         columns={columns}
         dataSource={buildRows(300)}
-        getRowId={(row) => row.id}
         label="Virtualized grouped"
         height={300}
         virtualized
@@ -297,10 +290,9 @@ test.describe("row virtualization", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <RowIdentifiedGrid
         columns={columns}
         dataSource={buildRows(10)}
-        getRowId={(row) => row.id}
         label="No height"
         virtualized
       />,
