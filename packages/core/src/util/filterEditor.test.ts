@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { createGridController } from "../controller/createGridController";
+import type { GridMessages } from "../messages";
 import type {
   ColumnDefinition,
   DataColumn,
@@ -312,6 +313,36 @@ describe("columnValueOptions", () => {
     expect(first?.label).toBe(
       new Intl.DateTimeFormat("en-US").format(new Date("2024-01-01")),
     );
+  });
+
+  test("labels booleans in the grid's messages, true/false by default", () => {
+    interface FlagRow {
+      Active: boolean;
+    }
+    const flagRows: readonly FlagRow[] = [{ Active: true }, { Active: false }];
+    const flagColumns: readonly DataColumn<FlagRow, unknown>[] = [
+      { id: "Active", column: { field: "Active", type: "boolean" } },
+    ];
+    const labels = (messages?: Partial<GridMessages>) =>
+      columnValueOptions(
+        flagRows,
+        flagColumns,
+        [],
+        "Active",
+        messages === undefined ? {} : { messages },
+      ).options.map((option) => option.label);
+
+    expect(labels()).toEqual(["false", "true"]);
+    expect(labels({ booleanTrue: "ja", booleanFalse: "nein" })).toEqual([
+      "nein",
+      "ja",
+    ]);
+    expect(
+      columnValueOptions(flagRows, flagColumns, [], "Active", {
+        search: "JA",
+        messages: { booleanTrue: "ja", booleanFalse: "nein" },
+      }).options,
+    ).toEqual([{ value: true, label: "ja", count: 1 }]);
   });
 
   test("offers no object or array, which an in entry can't hold", () => {

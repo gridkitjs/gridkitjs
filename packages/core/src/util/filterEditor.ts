@@ -1,3 +1,5 @@
+import type { GridMessages } from "../messages";
+import { resolveMessages } from "../messages";
 import type {
   ColumnType,
   DataColumn,
@@ -58,6 +60,11 @@ export interface ColumnValueQuery {
   readonly limit?: number;
   /** The locale labels are formatted for — the grid's own `locale`. */
   readonly locale?: FormatLocale;
+  /**
+   * The grid's own `messages`, over the defaults: a boolean is labelled
+   * `booleanTrue`/`booleanFalse`, as its cells print it.
+   */
+  readonly messages?: Partial<GridMessages>;
 }
 
 export interface ColumnValueOptions {
@@ -253,8 +260,9 @@ interface Bucket<Row> {
  * column's list cascades from the other filters without its own pick
  * hiding the values the user unchecked. Values are told apart as an `in`
  * filter tells them apart — as grouping does, except that a date column's
- * date strings are the dates they name — ordered as the column sorts, labelled as its cells
- * print; blanks are counted apart, in `blanks`.
+ * date strings are the dates they name — ordered as the column sorts, and
+ * labelled as its cells print, a boolean in `query.messages`' words; blanks
+ * are counted apart, in `blanks`.
  *
  * Costs one pass over `rows` (tens of milliseconds at 100k rows), so compute
  * it when an editor opens rather than on every render, and hand the whole
@@ -297,11 +305,12 @@ export function columnValueOptions<Row>(
   }
 
   const { search = "", limit, locale } = query;
+  const messages = resolveMessages(query.messages);
   const options = [...buckets.values()]
     .sort((a, b) => compareValues(a.value, b.value, column.type))
     .map(({ value, row, count }) => ({
       value,
-      label: formatCellValue(value, column, locale, row),
+      label: formatCellValue(value, column, locale, row, messages),
       count,
     }))
     .filter((option) => matchesSearch(option.label, search));
