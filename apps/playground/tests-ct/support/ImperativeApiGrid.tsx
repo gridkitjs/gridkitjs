@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import type { FilterState } from "@gridkitjs/core";
 import {
   DataGrid,
   type DataGridApi,
@@ -20,6 +21,8 @@ export interface ImperativeApiGridProps<Row extends RowWithId> extends Omit<
   focusColumnIndex?: number;
   /** Column ids `hide-columns` hides and `show-columns` shows. */
   visibilityColumnIds?: readonly string[];
+  /** The filter `set-filter` applies. */
+  filterToSet?: FilterState<Row>;
 }
 
 /**
@@ -54,6 +57,7 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
   focusRowIndex,
   focusColumnIndex,
   visibilityColumnIds,
+  filterToSet,
   ...props
 }: ImperativeApiGridProps<Row>) {
   const gridRef = useRef<DataGridApi<Row>>(null);
@@ -74,6 +78,7 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         columnSizing: api.getColumnSizing(),
         columnOrder: api.getColumnOrder(),
         columnSort: api.getColumnSort(),
+        filter: api.getFilter(),
         groupBy: api.getGroupBy(),
         groupExpansion: api.getGroupExpansion(),
         displayRowCount: api.getDisplayRows().length,
@@ -189,6 +194,14 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         }}
       >
         show-columns
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          gridRef.current?.setFilter(filterToSet ?? []);
+        }}
+      >
+        set-filter
       </button>
       <button type="button" onClick={report}>
         report

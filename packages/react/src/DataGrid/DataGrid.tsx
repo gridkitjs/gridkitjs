@@ -25,6 +25,7 @@ import {
   type ColumnSortState,
   type ColumnVisibilityState,
   type DisplayRow,
+  type FilterState,
   type GridOptions,
   type GroupByBarVisibility,
   type GroupByEvent,
@@ -148,6 +149,8 @@ export interface DataGridApi<Row> {
   /** Columns shown or hidden since the grid mounted. A column absent from it follows its definition's `hidden`. */
   getColumnVisibility(): ColumnVisibilityState;
   getColumnSort(): ColumnSortState;
+  /** The filter the rows are shown through — every entry, ANDed together. */
+  getFilter(): FilterState<Row>;
   getGroupBy(): GroupByState;
   getGroupExpansion(): GroupExpansionState;
   /** The active page and page size. Meaningful even when `paginated` is off — it stays at page 0 over the grid's whole (single) page. */
@@ -193,6 +196,13 @@ export interface DataGridApi<Row> {
    * filters and groups, and keeps its place in the column order.
    */
   hideColumns(columnIds: readonly string[]): void;
+  /**
+   * Replaces the filter, the way a filter UI would, and sends an uncontrolled
+   * grid back to its first page. Reports one `onFilterChange`, and none when
+   * `filter` holds the same entries as the current one. With a controlled
+   * `filter` prop it only asks, as any change does.
+   */
+  setFilter(filter: FilterState<Row>): void;
   /** Scrolls the row with the given id into view, if it is currently shown. */
   scrollToRow(rowId: string, options?: ScrollIntoViewOptions): void;
   /** Scrolls the column with the given id into view. */
@@ -771,6 +781,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     getColumnOrder: () => controller.getState().columnOrder,
     getColumnVisibility: () => controller.getState().columnVisibility,
     getColumnSort: () => controller.getState().columnSort,
+    getFilter: () => controller.getState().filter,
     getGroupBy: () => controller.getState().groupBy,
     getGroupExpansion: () => controller.getState().groupExpansion,
     getPagination: readPagination,
@@ -791,6 +802,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     setPageSize: controller.setPageSize,
     showColumns: controller.showColumns,
     hideColumns: controller.hideColumns,
+    setFilter: controller.setFilter,
     scrollToRow: (rowId, options) => {
       // `pageRows`, not `displayRows`: a data row's DOM position is its place
       // in the currently rendered page — with grouping active, that's its

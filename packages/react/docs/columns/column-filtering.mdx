@@ -1,9 +1,9 @@
 ---
 title: "Column filtering"
-description: "FilterState, the four entry kinds, and defaultFilter — the state and logic layer, ahead of any built-in filter UI."
+description: "FilterState, the four entry kinds, defaultFilter and setFilter — the state and logic layer, ahead of any built-in filter UI."
 ---
 
-This page describes the filtering **engine** — the state shape and the functions that apply it. There is no header or toolbar filter UI yet; that's coming in a future release, built on exactly what's described here. Today, filtering is available two ways: seed a grid with `defaultFilter`, or filter `dataSource` yourself before it reaches the grid, using the same exported functions a future built-in UI will use internally.
+This page describes the filtering **engine** — the state shape and the functions that apply it. There is no header or toolbar filter UI yet; that's coming in a future release, built on exactly what's described here. Today, a grid's filter is seeded with `defaultFilter`, changed with `setFilter` from your own filter UI, or held entirely by you with the controlled `filter` prop.
 
 ## The four ways to match
 
@@ -67,9 +67,29 @@ pending **and** whose age is between 18 and 65 — the OR stays scoped to the
 status check, while the name and age entries AND against it and each other
 at the top level.
 
+## Change the filter from your own UI
+
+A search box or filter bar outside the grid changes the filter through the grid's `ref`. `setFilter` replaces the whole filter, sends the grid back to its first page — a filter change can empty the page being shown — and fires `onFilterChange` once:
+
+```tsx
+const gridRef = useRef<DataGridApi<Row>>(null);
+
+<input
+  type="search"
+  onChange={(event) => {
+    gridRef.current?.setFilter(
+      event.target.value === "" ? [] : [{ query: `%${event.target.value}%` }],
+    );
+  }}
+/>;
+<DataGrid ref={gridRef} columns={columns} dataSource={rows} />;
+```
+
+`useFilterState(gridRef)` returns `{ filter, setFilter }` and re-renders its component whenever the filter changes, for a filter UI elsewhere in the tree that shows the filter as well as setting it. To keep the filter in your own state instead, pass it as the controlled `filter` prop with `onFilterChange` — see [controlled state](/docs/react/state).
+
 ## Filter data before it reaches the grid
 
-Without built-in filter UI yet, a custom search box built today applies its own filter directly, ahead of `dataSource`:
+The grid can also be handed rows already filtered, with the same functions it uses internally:
 
 ```ts
 import { filterRows } from "@gridkitjs/core";
@@ -83,6 +103,8 @@ const filtered = filterRows(rows, [{ query: searchText }], resolvedColumns);
 
 ## Props
 
-| Prop            | Type               | Default | Description                                                                   |
-| --------------- | ------------------ | ------- | ----------------------------------------------------------------------------- |
-| `defaultFilter` | `FilterState<Row>` |         | The filter to start with — every applied entry, ANDed together. Uncontrolled. |
+| Prop             | Type                                      | Default | Description                                                                   |
+| ---------------- | ----------------------------------------- | ------- | ----------------------------------------------------------------------------- |
+| `defaultFilter`  | `FilterState<Row>`                        |         | The filter to start with — every applied entry, ANDed together. Uncontrolled. |
+| `filter`         | `FilterState<Row>`                        |         | The filter, controlled — changed only through `onFilterChange`.               |
+| `onFilterChange` | `(event: FilterChangeEvent<Row>) => void` |         | Called once when the filter changes, with the whole `filter` to persist.      |
