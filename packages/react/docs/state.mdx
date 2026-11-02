@@ -105,7 +105,7 @@ function restore() {
 
 `restoreState` takes the whole state or any part of it — `{ columnSizing, columnOrder, columnVisibility }` restores just the column layout. Each slice that changes fires its own callback, as its setter would, and the grid re-renders once. A restored page is kept even when the same restore changes the sort or the filter, which would otherwise send it back to the first page.
 
-Everything in the state is plain data except the filter. `serializeGridState` writes a `Date` value as its ISO string, which `restoreState` turns back into a `Date`. A predicate entry is a function and cannot be saved: it is left out, with a `console.error` naming its column, so a filter built on predicates has to be rebuilt by your own code after a restore.
+Everything in the state is plain data except the filter. `serializeGridState` writes a `Date` as its ISO string, which `restoreState` turns back into a `Date`. A predicate entry is a function and cannot be saved: it is left out, with a `console.error` naming its column. Write a filter you want saved with [operator entries](/docs/react/column-filtering#the-fifth-kind-operators) instead — a range, a list of values or a blank check needs no predicate.
 
 For a slice you hold with a controlled prop, keep it in your own state as you already do — `restoreState` only asks for it, through the slice's callback.
 

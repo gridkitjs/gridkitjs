@@ -620,7 +620,7 @@ export function createGridController<Row, Node = string>(
       controller.setColumnSort(saved.columnSort);
     }
     if (saved.filter !== undefined) {
-      controller.setFilter(reviveFilter(saved.filter));
+      controller.setFilter(reviveFilter(saved.filter, getView().dataColumns));
     }
     if (saved.groupBy !== undefined) {
       controller.setGroupBy(saved.groupBy);

@@ -425,6 +425,50 @@ describe("filterRows", () => {
     });
   });
 
+  describe("OperatorFilterEntry", () => {
+    test("compares under the column's type", () => {
+      const filter: FilterState<SampleRow> = [
+        { columnId: "Score", operator: "between", value: [5, 10] },
+      ];
+
+      expect(idsOf(filterRows(rows, filter, columns))).toEqual([2]);
+    });
+
+    test("matches through a dotted field path", () => {
+      const filter: FilterState<SampleRow> = [
+        {
+          columnId: "Application.Name",
+          operator: "in",
+          value: ["Portal", "Billing"],
+        },
+      ];
+
+      expect(idsOf(filterRows(rows, filter, columns))).toEqual([1, 3]);
+    });
+
+    test("nests in a group like any other entry", () => {
+      const filter: FilterState<SampleRow> = [
+        {
+          combinator: "or",
+          entries: [
+            { columnId: "JoinedAt", operator: "lt", value: "2019-06-01" },
+            { columnId: "Name", operator: "startsWith", value: "b" },
+          ],
+        },
+      ];
+
+      expect(idsOf(filterRows(rows, filter, columns))).toEqual([2, 3]);
+    });
+
+    test("is dropped when it names a column absent from columns", () => {
+      const filter: FilterState<SampleRow> = [
+        { columnId: "Missing", operator: "isEmpty" },
+      ];
+
+      expect(filterRows(rows, filter, columns)).toBe(rows);
+    });
+  });
+
   test("two entries of different variants AND together", () => {
     const filter: FilterState<SampleRow> = [
       { columnId: "Name", query: "%a%" },

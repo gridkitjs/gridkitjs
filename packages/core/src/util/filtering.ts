@@ -8,6 +8,7 @@ import type {
   ResolvedRow,
   TextFilterEntry,
 } from "../types";
+import { compileOperatorEntry } from "./filterOperators";
 import { accessDotted } from "./grid";
 
 interface FilterPattern {
@@ -137,7 +138,7 @@ function compileFilterEntry<Row>(
   entry: FilterEntry<Row>,
   byId: ReadonlyMap<string, ColumnDefinition<Row, unknown>>,
   columns: readonly DataColumn<Row, unknown>[],
-): (row: ResolvedRow<Row>) => boolean {
+): (row: Row) => boolean {
   if ("combinator" in entry) {
     const tests = entry.entries
       .filter((nested) => isEntryUsable(nested, byId))
@@ -152,9 +153,19 @@ function compileFilterEntry<Row>(
     const column = columnId === undefined ? undefined : byId.get(columnId);
     return (row) =>
       predicate(
-        column === undefined ? undefined : accessDotted(row.row, column.field),
-        row.row,
+        column === undefined ? undefined : accessDotted(row, column.field),
+        row,
       );
+  }
+
+  // Before the `value` check: an operator entry usually has a `value` too.
+  if ("operator" in entry) {
+    const column = byId.get(entry.columnId);
+    if (column === undefined) {
+      return () => false;
+    }
+    const test = compileOperatorEntry(entry, column.type);
+    return (row) => test(accessDotted(row, column.field));
   }
 
   if ("value" in entry) {
@@ -165,16 +176,12 @@ function compileFilterEntry<Row>(
         return () => false;
       }
       return (row) =>
-        matchesTypedValue(
-          accessDotted(row.row, column.field),
-          value,
-          column.type,
-        );
+        matchesTypedValue(accessDotted(row, column.field), value, column.type);
     }
     return (row) =>
       columns.some((entry) =>
         matchesTypedValue(
-          accessDotted(row.row, entry.column.field),
+          accessDotted(row, entry.column.field),
           value,
           entry.column.type,
         ),
@@ -188,10 +195,29 @@ function compileFilterEntry<Row>(
     if (column === undefined) {
       return () => false;
     }
-    return (row) => test(accessDotted(row.row, column.field));
+    return (row) => test(accessDotted(row, column.field));
   }
   return (row) =>
-    columns.some((entry) => test(accessDotted(row.row, entry.column.field)));
+    columns.some((entry) => test(accessDotted(row, entry.column.field)));
+}
+
+/**
+ * `filter` compiled to one test of a row, every entry ANDed as `filterRows`
+ * applies them — or `undefined` when no entry applies to `columns`, so a
+ * caller can skip the row loop. Entries naming a column absent from
+ * `columns` are dropped, as `filterRows` drops them.
+ */
+export function compileFilter<Row>(
+  filter: FilterState<Row>,
+  columns: readonly DataColumn<Row, unknown>[],
+): ((row: Row) => boolean) | undefined {
+  const byId = new Map(columns.map((entry) => [entry.id, entry.column]));
+  const compiled = filter
+    .filter((entry) => isEntryUsable(entry, byId))
+    .map((entry) => compileFilterEntry(entry, byId, columns));
+  return compiled.length === 0
+    ? undefined
+    : (row) => compiled.every((test) => test(row));
 }
 
 /**
@@ -212,8 +238,8 @@ export function matchesQuery(value: unknown, query: string): boolean {
  * This column's current text query, or the global entry's when `columnId`
  * is omitted; `null` if no `TextFilterEntry` names it — including when the
  * entry that exists for that key is a `ValueFilterEntry`/
- * `PredicateFilterEntry`/`GroupFilterEntry` instead, since none of those
- * hold a query string to report.
+ * `PredicateFilterEntry`/`OperatorFilterEntry`/`GroupFilterEntry` instead,
+ * since none of those hold a query string to report.
  */
 export function filterQueryFor<Row>(
   filter: FilterState<Row>,
@@ -299,17 +325,12 @@ export function filterRows<Row>(
   if (filter.length === 0) {
     return rows;
   }
-
-  const byId = new Map(columns.map((entry) => [entry.id, entry.column]));
-  const active = filter.filter((entry) => isEntryUsable(entry, byId));
-  if (active.length === 0) {
+  const test = compileFilter(filter, columns);
+  if (test === undefined) {
     return rows;
   }
 
-  const compiled = active.map((entry) =>
-    compileFilterEntry(entry, byId, columns),
-  );
-  const filtered = rows.filter((row) => compiled.every((test) => test(row)));
+  const filtered = rows.filter((row) => test(row.row));
 
   return filtered.map((row, index) =>
     row.rowIndex === index ? row : { ...row, rowIndex: index },
