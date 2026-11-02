@@ -76,7 +76,8 @@ test("dragging a resize handle updates width continuously, with no minimum-dista
   );
   const start = await pointerDragStart(page, headerHandle(root, 0));
   await page.mouse.move(start.x + 20, start.y);
-  expect(events.length).toBeGreaterThan(0);
+  // The events cross the CT bridge after `mouse.move()` has resolved.
+  await expect.poll(() => events.length).toBeGreaterThan(0);
   expect(events.every((event) => event.phase === "move")).toBe(true);
   await page.mouse.up();
 });
@@ -102,7 +103,9 @@ test('releasing the pointer fires one final onColumnResize with phase "end"', as
   const start = await pointerDragStart(page, headerHandle(root, 0));
   await page.mouse.move(start.x + 30, start.y);
   await page.mouse.up();
-  expect(events.at(-1)?.phase).toBe("end");
+  // `onColumnResize` runs in the browser and reaches this spec over the CT
+  // bridge, so the "end" event can land after `mouse.up()` has resolved.
+  await expect.poll(() => events.at(-1)?.phase).toBe("end");
 });
 
 test("a right-button drag on a resize handle does not resize the column", async ({
@@ -139,7 +142,15 @@ test("a right-button drag on a resize handle does not resize the column", async 
   await page.mouse.up({ button: "right" });
 
   expect(await colWidth(root, 0)).toBeCloseTo(originalWidth, 0);
-  expect(events).toEqual([]);
+  // A stray event from the drag would still be crossing the CT bridge, so an
+  // empty array proves nothing yet. Bridged calls arrive in order: once a
+  // keyboard nudge on another column has landed, anything the drag fired
+  // would have landed before it.
+  const sentinel = root.locator("thead th").nth(2);
+  await sentinel.focus();
+  await sentinel.press("Alt+ArrowRight");
+  await expect.poll(() => events.at(-1)?.columnId).toBe("description");
+  expect(events.slice(0, -1)).toEqual([]);
   // Nor did the press reach the header's own drag.
   await expect(root.locator("thead th").nth(0)).not.toHaveClass(/is-dragging/);
 });

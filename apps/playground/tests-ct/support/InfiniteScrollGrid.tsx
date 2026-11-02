@@ -14,6 +14,12 @@ export interface InfiniteScrollGridProps<Row extends RowWithId> extends Omit<
   chunkSize: number;
   /** Simulated request latency for each `onLoadMore`, in ms. Kept short by default so tests don't wait on it. */
   delay?: number;
+  /**
+   * Keeps every `onLoadMore` in flight for as long as the grid is mounted, in
+   * place of finishing it after `delay` — so a spec can assert on the loading
+   * state without racing the simulated request.
+   */
+  holdLoads?: boolean;
   rootMargin?: string;
 }
 
@@ -31,6 +37,7 @@ export default function InfiniteScrollGrid<Row extends RowWithId>({
   allRows,
   chunkSize,
   delay = 20,
+  holdLoads = false,
   rootMargin,
   ...props
 }: InfiniteScrollGridProps<Row>) {
@@ -40,6 +47,9 @@ export default function InfiniteScrollGrid<Row extends RowWithId>({
 
   function onLoadMore(): void {
     setIsLoadingMore(true);
+    if (holdLoads) {
+      return;
+    }
     setTimeout(() => {
       setLoaded((current) => Math.min(current + chunkSize, allRows.length));
       setIsLoadingMore(false);
