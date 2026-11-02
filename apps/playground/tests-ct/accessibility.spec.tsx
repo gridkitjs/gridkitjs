@@ -2,7 +2,7 @@
 // ./support/coverage rather than directly from the CT package — see that
 // file for why.
 import type { ColumnDefinition } from "@gridkitjs/core";
-import { DataGridComponent } from "@gridkitjs/react";
+import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
 
@@ -28,7 +28,7 @@ test('aria-selected is absent, not "false", when no selection mode is on — che
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(2)}
       label="No selection"
@@ -50,7 +50,7 @@ test("aria-selected is present as true/false once every mode is on, and only the
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(2)}
       label="All selection"
@@ -73,7 +73,7 @@ test("aria-selected is present as true/false once every mode is on, and only the
 test('aria-multiselectable is absent under "single"', async ({ mount }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(2)}
       label="Single"
@@ -90,7 +90,7 @@ test('aria-multiselectable is "true" when rows is "multiple"', async ({
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(2)}
       label="Multi rows"
@@ -108,7 +108,7 @@ test('aria-multiselectable is "true" when columns is "multiple", independent of 
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(2)}
       label="Multi columns"
@@ -131,7 +131,7 @@ test("aria-keyshortcuts reflects exactly the applicable reorder/resize combinati
   ];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={shortcutColumns}
       dataSource={buildRows(2)}
       label="Shortcuts"
@@ -155,7 +155,7 @@ test("labelledBy takes precedence over label", async ({ mount }) => {
     mount,
     <>
       <h2 id="heading">Heading</h2>
-      <DataGridComponent
+      <DataGrid
         columns={columns}
         dataSource={buildRows(1)}
         label="Ignored"
@@ -173,7 +173,7 @@ test("neither label nor labelledBy given means neither attribute appears", async
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent columns={columns} dataSource={buildRows(1)} />,
+    <DataGrid columns={columns} dataSource={buildRows(1)} />,
   );
   const table = root.getByRole("grid");
   await expect(table).not.toHaveAttribute("aria-label");
@@ -185,11 +185,7 @@ test('role="grid"/"row"/"columnheader"/"gridcell" are present throughout, the he
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
-      columns={columns}
-      dataSource={buildRows(2)}
-      label="Roles"
-    />,
+    <DataGrid columns={columns} dataSource={buildRows(2)} label="Roles" />,
   );
   await expect(root.getByRole("grid")).toHaveCount(1);
   // The header row plus 2 body rows.
@@ -210,7 +206,7 @@ test("aria-keyshortcuts on body cells advertises Space/Enter when cell selection
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(2)}
       label="Body shortcuts on"
@@ -228,7 +224,7 @@ test("aria-keyshortcuts is absent from body cells when cell selection is off", a
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(2)}
       label="Body shortcuts off"
@@ -244,7 +240,7 @@ test("a plain single-row selection leaves the live region unchanged; a multi-row
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(4)}
       label="Announce"

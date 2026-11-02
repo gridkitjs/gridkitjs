@@ -2,7 +2,7 @@
 // ./support/coverage rather than directly from the CT package — see that
 // file for why.
 import type { ColumnDefinition } from "@gridkitjs/core";
-import { DataGridComponent } from "@gridkitjs/react";
+import { DataGrid } from "@gridkitjs/react";
 import type { MountResult } from "@playwright/experimental-ct-react";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
@@ -45,11 +45,7 @@ test.describe("structural rendering", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
-        columns={columns}
-        dataSource={buildRows(5)}
-        label="Costs"
-      />,
+      <DataGrid columns={columns} dataSource={buildRows(5)} label="Costs" />,
     );
     const table = root.getByRole("grid");
     await expect(table).toHaveAttribute("aria-rowcount", "6");
@@ -61,7 +57,7 @@ test.describe("structural rendering", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent columns={columns} dataSource={[]} label="Empty" />,
+      <DataGrid columns={columns} dataSource={[]} label="Empty" />,
     );
     const table = root.getByRole("grid");
     await expect(table).toHaveAttribute("aria-rowcount", "1");
@@ -73,11 +69,7 @@ test.describe("structural rendering", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
-        columns={columns}
-        dataSource={buildRows(1)}
-        label="One row"
-      />,
+      <DataGrid columns={columns} dataSource={buildRows(1)} label="One row" />,
     );
     await expect(root.locator("tbody tr")).toHaveAttribute(
       "aria-rowindex",
@@ -90,7 +82,7 @@ test.describe("structural rendering", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent dataSource={buildRows(3)} label="Inferred" />,
+      <DataGrid dataSource={buildRows(3)} label="Inferred" />,
     );
     // Row has three fields: id, name, status.
     await expect(root.getByRole("grid")).toHaveAttribute("aria-colcount", "3");
@@ -103,7 +95,7 @@ test.describe("structural rendering", () => {
     // width at all, which Playwright treats as not visible — the point of
     // this test is exactly that degenerate, zero-width case, so it only
     // checks the table is attached with the right attributes, not visible.
-    const root = await mount(<DataGridComponent label="Nothing" />);
+    const root = await mount(<DataGrid label="Nothing" />);
     const table = root.getByRole("grid");
     await expect(table).toBeAttached();
     await expect(table).toHaveAttribute("aria-colcount", "0");
@@ -115,7 +107,7 @@ test.describe("structural rendering", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <DataGrid
         columns={columns}
         dataSource={buildRows(3)}
         label="Widths"
@@ -144,7 +136,7 @@ test.describe("structural rendering", () => {
     }) => {
       const root = await mountGrid(
         mount,
-        <DataGridComponent
+        <DataGrid
           columns={columns}
           dataSource={buildRows(2)}
           label="Borders"
@@ -167,7 +159,7 @@ test.describe("structural rendering", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <DataGrid
         columns={columns}
         dataSource={buildRows(2)}
         label="No borders prop"
@@ -181,7 +173,7 @@ test.describe("structural rendering", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <DataGrid
         columns={columns}
         dataSource={buildRows(2)}
         label="Hover"
@@ -199,7 +191,7 @@ test.describe("structural rendering", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <DataGrid
         columns={columns}
         dataSource={buildRows(2)}
         label="Fixed"
@@ -218,11 +210,7 @@ test.describe("structural rendering", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
-        columns={columns}
-        dataSource={buildRows(2)}
-        label="Fit"
-      />,
+      <DataGrid columns={columns} dataSource={buildRows(2)} label="Fit" />,
       { width: 500 },
     );
     const tableWidth = await gridTable(root).evaluate((element) =>
@@ -236,11 +224,7 @@ test.describe("structural rendering", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
-        columns={columns}
-        dataSource={buildRows(2)}
-        label="Unmount"
-      />,
+      <DataGrid columns={columns} dataSource={buildRows(2)} label="Unmount" />,
     );
     await root.unmount();
   });
@@ -254,7 +238,7 @@ test.describe("structural rendering", () => {
     ];
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <DataGrid
         columns={wrappingColumns}
         dataSource={buildRows(1)}
         label="Wrap"

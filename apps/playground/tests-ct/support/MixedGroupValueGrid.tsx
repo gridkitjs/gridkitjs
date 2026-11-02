@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { ColumnDefinition } from "@gridkitjs/core";
-import { DataGridComponent, type DataGridProps } from "@gridkitjs/react";
+import { DataGrid, type DataGridProps } from "@gridkitjs/react";
 
 export interface MixedGroupValueRow {
   id: string;
@@ -30,5 +30,5 @@ const columns: readonly ColumnDefinition<MixedGroupValueRow, ReactNode>[] = [
 export default function MixedGroupValueGrid(
   props: Omit<DataGridProps<MixedGroupValueRow>, "columns">,
 ) {
-  return <DataGridComponent {...props} columns={columns} />;
+  return <DataGrid {...props} columns={columns} />;
 }

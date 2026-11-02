@@ -88,7 +88,7 @@ required.
 **Playwright component tests** cover `react`'s `DataGrid` — pointer drags,
 keyboard navigation, real layout and `ResizeObserver`, all of which need an
 actual browser rather than jsdom. They live in `apps/playground/tests-ct/`,
-mounting `DataGridComponent` in isolation through
+mounting `DataGrid` in isolation through
 `@playwright/experimental-ct-react` rather than through the playground's own
 demo (`App.tsx`), against the real `theme-tailwind` stylesheet so measured
 widths and paddings are real ones. Chromium only — this is an internal

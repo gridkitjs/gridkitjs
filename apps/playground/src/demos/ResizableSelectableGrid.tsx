@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DataGridComponent, type ResizeMode } from "@gridkitjs/react";
+import { DataGrid, type ResizeMode } from "@gridkitjs/react";
 import { columns, rows } from "./applicationCosts";
 
 const modes: readonly { value: ResizeMode; description: string }[] = [
@@ -37,7 +37,7 @@ export function ResizableSelectableGrid() {
         ))}
       </fieldset>
       <div className="mt-4">
-        <DataGridComponent
+        <DataGrid
           columns={columns}
           dataSource={rows}
           getRowId={(row) => String(row.Id)}

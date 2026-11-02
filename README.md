@@ -54,7 +54,7 @@ npm install @gridkitjs/theme-tailwind
 
 ```tsx
 import { defineColumnsFromRows } from "@gridkitjs/core";
-import { DataGridComponent, type ColumnDefinition } from "@gridkitjs/react";
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
 
 const rows = [
   { Id: 1, Application: { Id: 9, Name: "Portal" }, Cost: 1250.5 },
@@ -73,7 +73,7 @@ const columns: readonly ColumnDefinition<Row>[] = [
   },
 ];
 
-<DataGridComponent
+<DataGrid
   dataSource={rows}
   columns={columns}
   getRowId={(row) => String(row.Id)}

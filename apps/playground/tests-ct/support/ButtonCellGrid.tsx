@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { ColumnDefinition } from "@gridkitjs/core";
-import { DataGridComponent, type DataGridProps } from "@gridkitjs/react";
+import { DataGrid, type DataGridProps } from "@gridkitjs/react";
 
 export interface ButtonCellRow {
   id: string;
@@ -26,5 +26,5 @@ const columns: readonly ColumnDefinition<ButtonCellRow, ReactNode>[] = [
 export default function ButtonCellGrid(
   props: Omit<DataGridProps<ButtonCellRow>, "columns">,
 ) {
-  return <DataGridComponent {...props} columns={columns} />;
+  return <DataGrid {...props} columns={columns} />;
 }

@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import {
-  DataGridComponent,
+  DataGrid,
   usePaginationState,
   useSelectionState,
   type DataGridApi,
@@ -24,7 +24,7 @@ const rows: Row[] = Array.from({ length: 43 }, (_unused, index) => ({
 }));
 
 /**
- * A toolbar living entirely outside `DataGridComponent`'s own tree, built
+ * A toolbar living entirely outside `DataGrid`'s own tree, built
  * from `usePaginationState`/`useSelectionState` rather than a `ref` +
  * hand-rolled `on*Change` wiring — it never touches `onPaginationChange` or
  * `onRowSelectionChange`, and stays current anyway, including through the
@@ -80,7 +80,7 @@ function Toolbar({
 }
 
 /**
- * The toolbar above sits outside `DataGridComponent`'s own DOM entirely —
+ * The toolbar above sits outside `DataGrid`'s own DOM entirely —
  * unlike `CustomPagerGrid`'s `pager.template`, which only replaces the
  * built-in pager's own slot, this could just as easily live in a sidebar or
  * a totally different part of the page.
@@ -92,7 +92,7 @@ export function ReactiveToolbarGrid() {
     <div>
       <Toolbar gridRef={gridRef} />
       <div className="mt-2">
-        <DataGridComponent
+        <DataGrid
           ref={gridRef}
           columns={[
             { field: "Id", width: 80 },

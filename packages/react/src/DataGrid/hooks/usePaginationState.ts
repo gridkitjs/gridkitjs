@@ -15,7 +15,7 @@ export interface PaginationStateApi {
 }
 
 /**
- * Reactive pagination state read off a mounted `DataGridComponent`'s `ref`,
+ * Reactive pagination state read off a mounted `DataGrid`'s `ref`,
  * for building a pager entirely outside the grid's own DOM — a toolbar or
  * sidebar `pager.template` can't reach. Updates on every pagination change,
  * including the silent page-0 reset a filter/sort/group change triggers,

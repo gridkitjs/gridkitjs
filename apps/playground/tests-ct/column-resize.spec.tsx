@@ -4,7 +4,7 @@
 import type { Page } from "@playwright/test";
 import type { MountResult } from "@playwright/experimental-ct-react";
 import type { ColumnDefinition, ColumnResizeEvent } from "@gridkitjs/core";
-import { DataGridComponent } from "@gridkitjs/react";
+import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import { mountGrid, updateGrid } from "./support/mountGrid";
 
@@ -62,7 +62,7 @@ test("dragging a resize handle updates width continuously, with no minimum-dista
   const events: ColumnResizeEvent[] = [];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(2)}
       label="Resize"
@@ -87,7 +87,7 @@ test('releasing the pointer fires one final onColumnResize with phase "end"', as
   const events: ColumnResizeEvent[] = [];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(2)}
       label="Resize end"
@@ -111,7 +111,7 @@ test("Escape mid-resize restores the width captured at drag-start", async ({
   const events: ColumnResizeEvent[] = [];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(2)}
       label="Resize cancel"
@@ -141,7 +141,7 @@ test("cancelling one column's drag with Escape does not clobber another column r
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(2)}
       label="Concurrent"
@@ -182,7 +182,7 @@ test("double-click sizes an over-wide column down to its content", async ({
   ];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={wideColumns}
       dataSource={buildRows(3)}
       label="Fit content down"
@@ -213,7 +213,7 @@ test("double-click sizes an under-wide column up to its content, not only down",
   ];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={narrowColumns}
       dataSource={rows}
       label="Fit content up"
@@ -232,7 +232,7 @@ test("double-click on a column with no rows is a no-op", async ({ mount }) => {
   const events: ColumnResizeEvent[] = [];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={[]}
       label="Empty fit"
@@ -258,7 +258,7 @@ test("Alt+Enter on a focused header sizes the column to its content, the keyboar
   ];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={wideColumns}
       dataSource={buildRows(3)}
       label="Fit content via keyboard"
@@ -280,7 +280,7 @@ test("Alt+Enter does nothing on a column that is not resizable", async ({
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(2)}
       label="No resize via keyboard"
@@ -301,7 +301,7 @@ test("double-click still measures correctly when the column id needs CSS.escape"
   ];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={dottedColumns}
       dataSource={buildRows(2)}
       label="Dotted id"
@@ -319,7 +319,7 @@ test("keyboard nudge stays clamped at the column's min and max width", async ({
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(2)}
       label="Clamp"
@@ -346,11 +346,7 @@ test("resizableColumns={false} renders no resize handle, and Alt+Arrow does noth
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
-      columns={columns}
-      dataSource={buildRows(2)}
-      label="No resize"
-    />,
+    <DataGrid columns={columns} dataSource={buildRows(2)} label="No resize" />,
   );
   await expect(root.locator(".header-resize-handle")).toHaveCount(0);
 
@@ -367,7 +363,7 @@ test('resizing the container under resizeMode="fit" changes widths without ever 
   const events: ColumnResizeEvent[] = [];
   function grid() {
     return (
-      <DataGridComponent
+      <DataGrid
         columns={columns}
         dataSource={buildRows(2)}
         label="Auto-fit"
@@ -393,7 +389,7 @@ test("the live region announces the new width only once the drag ends, not on ev
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(2)}
       label="Announce"

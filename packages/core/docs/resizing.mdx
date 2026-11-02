@@ -3,7 +3,7 @@ title: "Resizing"
 description: "The sizing logic underneath resizableColumns."
 ---
 
-resolveColumnWidths and fitColumnsToWidth are the functions DataGridComponent calls internally when resizableColumns is enabled — the first resolves each column's width from its definition, the sizing state, and the grid's defaults, the second redistributes width across columns under resizeMode="fit". Reach for them directly if you're building a custom grid adapter.
+resolveColumnWidths and fitColumnsToWidth are the functions DataGrid calls internally when resizableColumns is enabled — the first resolves each column's width from its definition, the sizing state, and the grid's defaults, the second redistributes width across columns under resizeMode="fit". Reach for them directly if you're building a custom grid adapter.
 
 ## Functions
 
@@ -26,7 +26,7 @@ resolveColumnWidths and fitColumnsToWidth are the functions DataGridComponent ca
 </LiveExampleFrame>
 
 ```ts
-<DataGridComponent
+<DataGrid
   columns={columns}
   dataSource={rows}
   resizableColumns

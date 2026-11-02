@@ -1,4 +1,4 @@
-import { DataGridComponent, type ColumnDefinition } from "@gridkitjs/react";
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
 
 interface PropRow {
   name: string;
@@ -112,7 +112,7 @@ const propRows: readonly PropRow[] = [
 export function PropsTable() {
   return (
     <div className="w-full rounded-xl border border-gray-300 border-b-0">
-      <DataGridComponent
+      <DataGrid
         columns={propColumns}
         dataSource={propRows}
         getRowId={(row) => row.name}

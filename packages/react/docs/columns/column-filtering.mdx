@@ -19,7 +19,7 @@ Any entry except a group may omit `columnId` to match against **every** column i
 ## Seed a grid already filtered
 
 ```ts
-<DataGridComponent
+<DataGrid
   columns={columns}
   dataSource={rows}
   defaultFilter={[{ columnId: "status", query: "active" }]}
@@ -59,7 +59,7 @@ const filter: FilterState<Row> = [
   },
 ];
 
-<DataGridComponent columns={columns} dataSource={rows} defaultFilter={filter} />;
+<DataGrid columns={columns} dataSource={rows} defaultFilter={filter} />;
 ```
 
 Keeps rows whose name contains "smith" **and** whose status is active or
@@ -76,7 +76,7 @@ import { filterRows } from "@gridkitjs/core";
 
 const filtered = filterRows(rows, [{ query: searchText }], resolvedColumns);
 
-<DataGridComponent columns={columns} dataSource={filtered.map((r) => r.row)} />;
+<DataGrid columns={columns} dataSource={filtered.map((r) => r.row)} />;
 ```
 
 `matchesQuery(value, query)` is available for a single ad hoc check — the same matcher `TextFilterEntry` uses internally, exposed standalone.

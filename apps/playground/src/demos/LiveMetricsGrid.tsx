@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { DataGridComponent, type ColumnDefinition } from "@gridkitjs/react";
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
 
 interface ServerMetric {
   Server: string;
@@ -128,7 +128,7 @@ export function LiveMetricsGrid() {
         <span className="text-gray-600">tick {tick} — updates every 700ms</span>
       </div>
       <div className="mt-2">
-        <DataGridComponent
+        <DataGrid
           selectable={{
             cells: "single",
             columns: "multiple",

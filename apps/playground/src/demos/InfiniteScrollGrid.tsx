@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DataGridComponent } from "@gridkitjs/react";
+import { DataGrid } from "@gridkitjs/react";
 import { largeRows, type LargeRow } from "../largeDataset";
 
 const CHUNK_SIZE = 100;
@@ -38,7 +38,7 @@ export function InfiniteScrollGrid() {
   }
 
   return (
-    <DataGridComponent<LargeRow>
+    <DataGrid<LargeRow>
       columns={[
         { field: "Id", width: 70 },
         { field: "Name", width: 140 },

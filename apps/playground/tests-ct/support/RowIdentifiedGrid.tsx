@@ -1,4 +1,4 @@
-import { DataGridComponent, type DataGridProps } from "@gridkitjs/react";
+import { DataGrid, type DataGridProps } from "@gridkitjs/react";
 
 interface RowWithId {
   readonly id: string;
@@ -12,12 +12,12 @@ interface RowWithId {
  * row id. Defining it here instead means it never crosses that bridge: it's
  * ordinary browser-side code bundled alongside the component itself.
  *
- * Use this in place of `DataGridComponent` for any test whose point is row
+ * Use this in place of `DataGrid` for any test whose point is row
  * identity that outlives a position change — everything else should mount
- * `DataGridComponent` directly and let rows fall back to their position.
+ * `DataGrid` directly and let rows fall back to their position.
  */
 export default function RowIdentifiedGrid<Row extends RowWithId>(
   props: Omit<DataGridProps<Row>, "getRowId">,
 ) {
-  return <DataGridComponent {...props} getRowId={(row) => row.id} />;
+  return <DataGrid {...props} getRowId={(row) => row.id} />;
 }

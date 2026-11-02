@@ -3,7 +3,7 @@
 // file for why.
 import type { MountResult } from "@playwright/experimental-ct-react";
 import type { ColumnDefinition } from "@gridkitjs/core";
-import { DataGridComponent } from "@gridkitjs/react";
+import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import { mountGrid, updateGrid } from "./support/mountGrid";
 
@@ -32,11 +32,7 @@ function activeCell(root: MountResult) {
 test("the initial tab stop is the header's first cell", async ({ mount }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
-      columns={columns}
-      dataSource={buildRows(3)}
-      label="Nav"
-    />,
+    <DataGrid columns={columns} dataSource={buildRows(3)} label="Nav" />,
   );
   const headerCells = root.locator("thead th");
   await expect(headerCells.first()).toHaveAttribute("tabindex", "0");
@@ -48,11 +44,7 @@ test("ArrowDown from the header moves into body row 0; ArrowUp moves back", asyn
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
-      columns={columns}
-      dataSource={buildRows(3)}
-      label="Nav"
-    />,
+    <DataGrid columns={columns} dataSource={buildRows(3)} label="Nav" />,
   );
   const active = activeCell(root);
   await active.press("ArrowDown");
@@ -72,11 +64,7 @@ test("Home and End move within the row; Ctrl+Home and Ctrl+End reach the grid's 
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
-      columns={columns}
-      dataSource={buildRows(4)}
-      label="Nav"
-    />,
+    <DataGrid columns={columns} dataSource={buildRows(4)} label="Nav" />,
   );
   const active = activeCell(root);
   await active.press("ArrowDown"); // header -> row 0
@@ -114,11 +102,7 @@ test("PageDown clamps to the last row when the grid has fewer rows than a page",
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
-      columns={columns}
-      dataSource={buildRows(3)}
-      label="Nav"
-    />,
+    <DataGrid columns={columns} dataSource={buildRows(3)} label="Nav" />,
   );
   const active = activeCell(root);
   await active.press("ArrowDown"); // header -> row 0
@@ -133,7 +117,7 @@ test("PageUp and PageDown on a 0-row grid are a no-crash no-op", async ({
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent columns={columns} dataSource={[]} label="Empty nav" />,
+    <DataGrid columns={columns} dataSource={[]} label="Empty nav" />,
   );
   const headerCell = root.locator("thead th").first();
   await headerCell.press("PageDown");
@@ -147,11 +131,7 @@ test("ArrowLeft at column 0 and ArrowRight at the last column are clamped, not w
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
-      columns={columns}
-      dataSource={buildRows(2)}
-      label="Nav"
-    />,
+    <DataGrid columns={columns} dataSource={buildRows(2)} label="Nav" />,
   );
   const active = activeCell(root);
   await active.press("ArrowLeft");
@@ -173,11 +153,7 @@ test("Ctrl+Arrow and Alt+Arrow are ignored by navigation when nothing else claim
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
-      columns={columns}
-      dataSource={buildRows(2)}
-      label="Nav"
-    />,
+    <DataGrid columns={columns} dataSource={buildRows(2)} label="Nav" />,
   );
   const active = activeCell(root);
   // Neither resizable nor reorderable, so the header doesn't intercept
@@ -200,13 +176,7 @@ test("focus lost to a shrinking grid is restored, not left clamped, once the gri
 }) => {
   const allRows = buildRows(6);
   function grid(dataSource: readonly Row[]) {
-    return (
-      <DataGridComponent
-        columns={columns}
-        dataSource={dataSource}
-        label="Clamp"
-      />
-    );
+    return <DataGrid columns={columns} dataSource={dataSource} label="Clamp" />;
   }
   const root = await mountGrid(mount, grid(allRows));
   const active = activeCell(root);
@@ -237,11 +207,7 @@ test("clicking a body cell moves the tab stop there, and a subsequent arrow cont
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
-      columns={columns}
-      dataSource={buildRows(3)}
-      label="Click nav"
-    />,
+    <DataGrid columns={columns} dataSource={buildRows(3)} label="Click nav" />,
   );
   const targetCell = root.locator("tbody tr").nth(1).locator("td").nth(1);
   await targetCell.click();
@@ -258,11 +224,7 @@ test("exactly one cell across the whole grid holds the tab stop at any moment", 
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
-      columns={columns}
-      dataSource={buildRows(3)}
-      label="One stop"
-    />,
+    <DataGrid columns={columns} dataSource={buildRows(3)} label="One stop" />,
   );
   const active = activeCell(root);
   await expect(root.locator('[tabindex="0"]')).toHaveCount(1);

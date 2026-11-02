@@ -6,7 +6,7 @@ import useGridSnapshot from "./useGridSnapshot";
 const FALLBACK_ORDER: ColumnOrderState = [];
 
 /**
- * Reactive column-order state read off a mounted `DataGridComponent`'s
+ * Reactive column-order state read off a mounted `DataGrid`'s
  * `ref`. Read-only — order stays uncontrolled via `defaultColumnOrder`/the
  * grid's own header drag, the same gap `useColumnSortState` has for sort.
  *

@@ -15,7 +15,7 @@ selectable.rows takes a SelectionMode — false, "single", or "multiple" — off
 </LiveExampleFrame>
 
 ```ts
-<DataGridComponent
+<DataGrid
   columns={columns}
   dataSource={rows}
   getRowId={(row) => String(row.Id)}
@@ -55,7 +55,7 @@ See [imperative handle](/docs/react/imperative-handle#resolved-row-and-column) f
 ```ts
 import { useRef } from "react";
 import {
-  DataGridComponent,
+  DataGrid,
   useSelectionState,
   type DataGridApi,
 } from "@gridkitjs/react";

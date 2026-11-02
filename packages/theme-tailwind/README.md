@@ -46,7 +46,7 @@ the grid's own root:
 
 ```tsx
 <div className="gridkit-dark">
-  <DataGridComponent ... />
+  <DataGrid ... />
 </div>
 ```
 
