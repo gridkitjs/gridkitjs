@@ -5,6 +5,8 @@ description: "FilterState, the five entry kinds, defaultFilter and setFilter —
 
 This page describes the filtering **engine** — the state shape and the functions that apply it. There is no header or toolbar filter UI yet; that's coming in a future release, built on exactly what's described here. Today, a grid's filter is seeded with `defaultFilter`, changed with `setFilter` from your own filter UI, or held entirely by you with the controlled `filter` prop.
 
+Building that filter UI yourself? `@gridkitjs/core` has the headless model behind one — a column's filter shape, the cascaded list of its values with counts, and a draft reducer for a checklist or condition editor. See [filter state and the editor model](/docs/core/filtering).
+
 ## The five ways to match
 
 A `FilterState<Row>` is an array of `FilterEntry<Row>`, ANDed together — a row has to satisfy every entry to stay. Each entry is one of five kinds:

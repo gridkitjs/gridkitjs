@@ -189,6 +189,24 @@ export {
 } from "./util/visibility";
 export { createGridViewResolver, resolveGridView } from "./util/view";
 export { serializeGridState } from "./util/serialize";
+export type {
+  ColumnFilterShape,
+  ColumnValueOption,
+  ColumnValueOptions,
+  ColumnValueQuery,
+  FilterEditorAction,
+  FilterEditorDraft,
+  SelectAllState,
+} from "./util/filterEditor";
+export {
+  columnValueOptions,
+  describeColumnFilter,
+  draftToFilter,
+  filterEditorReducer,
+  initialFilterEditorDraft,
+  selectAllState,
+  visibleFilterOptions,
+} from "./util/filterEditor";
 export type { FormatLocale } from "./util/format";
 export { formatAggregateValue, formatCellValue } from "./util/format";
 export type { RowHeights, VisibleRange } from "./util/virtualization";

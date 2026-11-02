@@ -1,0 +1,88 @@
+---
+title: "Filter state and the editor model"
+description: "describeColumnFilter, columnValueOptions and filterEditorReducer: the headless model a column's filter editor is drawn over."
+---
+
+A grid's filter is one `FilterState` — entries ANDed together, described with every entry kind on [Column filtering](/docs/react/column-filtering). A filter editor, whether a list of conditions or an Excel-style checklist of values, is a UI over one column's part of that state. Core holds everything such an editor decides, so a renderer only draws it and every renderer's editor behaves the same:
+
+1. `describeColumnFilter` reads which form the column's filter is in.
+2. `columnValueOptions` lists the values a checklist offers.
+3. `initialFilterEditorDraft` and `filterEditorReducer` hold the user's edits as a draft.
+4. `draftToFilter` turns the draft into the next `FilterState` when the user applies it.
+
+```ts
+import {
+  columnValueOptions,
+  describeColumnFilter,
+  draftToFilter,
+  filterEditorReducer,
+  initialFilterEditorDraft,
+} from "@gridkitjs/core";
+
+const { filter } = controller.getState();
+const { dataColumns } = controller.getView();
+
+// When the editor opens:
+let draft = initialFilterEditorDraft(
+  describeColumnFilter(filter, "Region"),
+  columnValueOptions(rows, dataColumns, filter, "Region"),
+);
+
+// As the user works:
+draft = filterEditorReducer(draft, { type: "search", search: "we" });
+draft = filterEditorReducer(draft, { type: "toggleAll" });
+
+// On apply (cancelling is just dropping the draft):
+controller.setFilter(draftToFilter(draft, "Region", filter));
+```
+
+## A column's filter shape
+
+`describeColumnFilter(filter, columnId)` returns a `ColumnFilterShape` — the one form an editor can show the column's filter in. Only entries **about the column** count: those naming it, and any group with such an entry anywhere inside. Entries about other columns and entries across every column (a global search) are someone else's.
+
+| `kind`         | Holds                      | When the column's entries are…                                                                                   |
+| -------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `"none"`       | —                          | absent                                                                                                           |
+| `"values"`     | `values`, `includeBlanks`  | one `in` entry, or one `"or"` group of an `in` and an `isEmpty` (`includeBlanks: true`)                          |
+| `"conditions"` | `conditions`, `combinator` | one or two operator entries other than `in` — at the top level (`"and"`), or alone in one group (its combinator) |
+| `"custom"`     | —                          | anything else: a text query, a predicate, a group reaching into another column, three conditions                 |
+
+An editor shows a custom filter as such; applying its draft replaces it.
+
+## The values a checklist offers
+
+`columnValueOptions(rows, dataColumns, filter, columnId, { search?, limit?, locale? })` lists the column's distinct values, each with its `label` and the `count` of rows holding it:
+
+- **It cascades.** Values are counted over the rows that pass every entry _except_ those about this column, so one column's list narrows with the filters on the others, while its own pick never hides the values the user unchecked.
+- Values are told apart as [grouping](/docs/react/row-grouping) tells them apart, ordered as the column sorts (`compareValues` under its `type`), and labelled as its cells print (`formatCellValue`, with the column's `format`, `valueFormatter` and the `locale` given).
+- Blank cells — `null`, `undefined` and `""` — are counted apart, in `blanks`. A cell holding an object or an array is not offered: an `in` entry can't hold it.
+- `search` keeps the values whose label contains it, ignoring case; `total` is how many matched. `limit` cuts the list after that many, and `truncated` says it did.
+
+`rows` are the grid's own rows, unfiltered — its `dataSource`. One call is a single pass over them: tens of milliseconds at 100k rows. Make it when the editor opens, not on every render, and hand the whole list to the draft, whose own search needs no recount.
+
+## The editor draft
+
+`initialFilterEditorDraft(shape, values)` opens a `FilterEditorDraft` over a shape and the list from `columnValueOptions`. With no filter (or a custom one) every value is checked, the blanks too when there are any; a checklist opens with its own values checked, kept even when the other filters now hide them; conditions open as they are.
+
+`filterEditorReducer(draft, action)` is a plain reducer, so a renderer keeps the draft in whatever state it has — `useReducer`, a signal, a store:
+
+| Action                                               | Does                                                                                                              |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `{ type: "search", search }`                         | Narrows the values shown; what is checked stays checked.                                                          |
+| `{ type: "toggleValue", value }`                     | Checks or unchecks one value.                                                                                     |
+| `{ type: "toggleAll" }`                              | Checks every value the search shows — or unchecks them, once all are. The blanks count while nothing is searched. |
+| `{ type: "setIncludeBlanks", includeBlanks }`        | Checks or unchecks the blanks.                                                                                    |
+| `{ type: "setConditions", conditions, combinator? }` | Replaces the conditions, keeping the combinator unless one is given.                                              |
+| `{ type: "clear" }`                                  | Back to no filter: every value checked, no conditions, no search.                                                 |
+
+A value or blanks action switches the draft to its checklist (`mode: "values"`); `setConditions` switches it to its conditions. `visibleFilterOptions(draft)` returns the values the search shows, and `selectAllState(draft)` the select-all checkbox's `"checked"`, `"unchecked"` or `"mixed"` over them.
+
+## Applying a draft
+
+`draftToFilter(draft, columnId, current)` returns `current` with the column's entries replaced by the draft's, in the place of the first one so the others keep their order:
+
+- A checklist with **everything checked** is no filter: the column's entries are removed.
+- A **partial pick** is one `in` entry, OR-grouped with an `isEmpty` when the blanks are checked.
+- One condition is stored as itself, two or more as one group with the draft's combinator; no conditions is no filter.
+
+What `draftToFilter` writes, `describeColumnFilter` reads back as the same shape. When nothing changes it returns `current` itself, and `setFilter` reports nothing for a filter equal to the one it has.
