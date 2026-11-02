@@ -9,18 +9,10 @@ import {
   type Ref,
 } from "react";
 import {
-  applyColumnOrder,
-  computeAggregates,
+  createGridViewResolver,
   defineColumnsFromRows,
-  fitColumnsToWidth,
-  groupRows,
   moveColumnBefore,
-  paginateRows,
-  resolveColumnWidths,
-  resolveRowId,
-  resolveShownRows,
   totalColumnWidth,
-  withGroupAggregates,
   type ColumnDefinition as CoreColumnDefinition,
   type ResolvedColumn as CoreResolvedColumn,
   type AggregateResults,
@@ -41,6 +33,7 @@ import {
   type GroupExpansionState,
   type PaginationChangeEvent,
   type PaginationState,
+  type ResizeMode,
   type ResolvedRow,
   type CellSelectionState,
   type SelectableConfig,
@@ -193,27 +186,23 @@ export interface DataGridApi<Row> {
 
 export type Borders = "horizontal" | "vertical" | "all" | "none";
 
-/**
- * How a column's width relates to the grid's.
- *
- * `"fit"` keeps the columns filling the grid: the space a column gives up is
- * handed to the others, and the space it takes comes out of them. `"fixed"`
- * lets every column keep its own width, so a resize moves one column and
- * nothing else, and the grid scrolls or leaves a gap accordingly.
- */
-export type ResizeMode = "fit" | "fixed";
+/** Defined in `@gridkitjs/core`, which resolves the widths it governs. */
+export type { ResizeMode };
 
 /** `pagination.pageSize` a paginated grid starts at when `defaultPagination` omits one — a reasonable default for an ERP-grade dataset. */
 const DEFAULT_PAGE_SIZE = 25;
 
 /**
  * A stable empty fallback for an omitted `aggregates` prop — a fresh `[]`
- * every render would change identity each time and defeat the `useMemo`s
- * that depend on it, the same reason `groupRows`/`withGroupAggregates`
+ * every render would change identity each time and defeat the view
+ * stages memoised on it, the same reason `groupRows`/`withGroupAggregates`
  * themselves return their input untouched for an empty array rather than a
  * new one.
  */
 const NO_AGGREGATES: AggregateState<never> = [];
+
+/** A stable empty fallback for an omitted `dataSource`, for the same reason. */
+const NO_ROWS: readonly never[] = [];
 
 /**
  * How the group-by bar's visibility follows the active grouping. `"always"`
@@ -585,27 +574,6 @@ export function DataGrid<Row>({
     defaultCellSelection ?? null,
   );
 
-  /**
-   * The rows as rendered, each carrying the id everything downstream keys it
-   * by. Resolved once here rather than per consumer so a row's id cannot come
-   * out differently in two places — the same reason `resolveColumnWidths` runs
-   * once ahead of the header and the body.
-   *
-   * An array rather than a map keyed by id: two rows given the same id is a
-   * caller's mistake, and one that should render twice and look wrong rather
-   * than silently lose a row.
-   */
-  const rows = useMemo<readonly ResolvedRow<Row>[]>(
-    () =>
-      dataSource?.map((row, rowIndex) => ({
-        rowId: resolveRowId(row, rowIndex, getRowId),
-        row,
-        rowIndex,
-        datasetIndex: rowIndex,
-      })) ?? [],
-    [dataSource, getRowId],
-  );
-
   const definedColumns = useMemo<readonly ColumnDefinition<Row>[]>(() => {
     if (columns && columns.length !== 0) return columns;
     if (dataSource && dataSource.length > 0)
@@ -613,131 +581,43 @@ export function DataGrid<Row>({
     return [];
   }, [columns, dataSource]);
 
-  /**
-   * Ahead of sizing, so everything downstream reads one already-ordered list
-   * and no part of the grid has to know a reorder happened.
-   */
-  const orderedColumns = useMemo(
-    () => applyColumnOrder(definedColumns, order),
-    [definedColumns, order],
-  );
-
-  /**
-   * Auto-fit is a derivation rather than a write back into `sizing`, so that a
-   * `width` set in a column definition is never overwritten and the effect
-   * cannot chase its own output. `"fixed"` is then simply the absence of it.
-   */
-  const resolved = useMemo(() => {
-    const widths = resolveColumnWidths(orderedColumns, sizing, {
-      sizes: columnSizeDefaults,
-      resizable: resizableColumns,
-      reorderable: reorderableColumns,
-      groupByDraggable: groupByDraggableColumns,
-    });
-    return resizeMode === "fit" && viewportWidth !== null
-      ? fitColumnsToWidth(widths, viewportWidth, columnSizeDefaults)
-      : widths;
-  }, [
-    orderedColumns,
-    sizing,
-    resizeMode,
-    viewportWidth,
-    columnSizeDefaults,
-    resizableColumns,
-    reorderableColumns,
-    groupByDraggableColumns,
-  ]);
-
-  /**
-   * `rows`, filtered then sorted — needs `resolved` for each column's
-   * `field` and `type`, so it runs after sizing rather than alongside
-   * `rows` itself. Everything downstream that renders or interacts with row
-   * order and membership reads this rather than `rows`, so what the user
-   * sees, filters, sorts, and clicks all agree.
-   */
-  const shownRows = useMemo(
-    () => resolveShownRows(rows, filter, sort, resolved),
-    [rows, filter, sort, resolved],
-  );
-
-  /**
-   * `shownRows` regrouped into `groupBy` — group headers interleaved with
-   * data rows, in render order. `GridBody` renders this rather than
-   * `shownRows` directly, grouped or not: `groupRows` returns `shownRows`
-   * itself, untouched, when `groupBy` is empty, so an ungrouped grid pays
-   * only the cost of that check.
-   */
-  const displayRows = useMemo(
-    () => groupRows(shownRows, groupBy, expansion, resolved),
-    [shownRows, groupBy, expansion, resolved],
-  );
-
   const activeAggregates = aggregates ?? (NO_AGGREGATES as AggregateState<Row>);
 
   /**
-   * `displayRows` with each group header's `aggregates` field set — always
-   * ahead of pagination, so a subtotal is computed over a group's full
-   * dataset-wide leaf set rather than only the rows a page happens to show.
-   * `groupAggregateDisplay: "row"` additionally inserts a summary row after
-   * each group's last visible entry. `withGroupAggregates` returns
-   * `displayRows` itself, untouched, when no aggregates are active, so an
-   * aggregate-less grid pays only that check.
+   * Everything the grid draws, derived in one place. Held for the grid's
+   * lifetime so each stage's memo survives between renders: a render that
+   * changed only `sizing` or the viewport width re-sizes the columns and
+   * hands back the very same row lists, so a resize never re-runs filtering,
+   * sorting or grouping. See `createGridViewResolver` in `@gridkitjs/core`.
    */
-  const aggregatedRows = useMemo(
-    () =>
-      withGroupAggregates(
-        displayRows,
-        shownRows,
-        groupBy,
-        activeAggregates,
-        resolved,
-        groupAggregateDisplay,
-      ),
-    [
-      displayRows,
-      shownRows,
+  const [resolveView] = useState(() =>
+    createGridViewResolver<Row, ReactNode>(),
+  );
+  const view = resolveView({
+    rows: dataSource ?? NO_ROWS,
+    getRowId,
+    columns: definedColumns,
+    state: {
+      columnSizing: sizing,
+      columnOrder: order,
+      columnSort: sort,
+      filter,
       groupBy,
-      activeAggregates,
-      resolved,
+      groupExpansion: expansion,
+      pagination,
+    },
+    options: {
+      paginated,
+      aggregates: activeAggregates,
       groupAggregateDisplay,
-    ],
-  );
-
-  /**
-   * The grand total: every aggregate over the whole filtered/sorted dataset,
-   * ungrouped — independent of `aggregatedRows`, which only ever attaches
-   * results to group headers. Recomputed from `shownRows` directly rather
-   * than derived from any per-group result, for the same reason a nested
-   * group's own subtotal is: a non-associative custom aggregate would be
-   * wrong if combined from parts instead of the full set.
-   */
-  const grandTotal = useMemo<AggregateResults>(
-    () =>
-      computeAggregates(
-        shownRows.map((entry) => entry.row),
-        activeAggregates,
-        resolved,
-      ),
-    [shownRows, activeAggregates, resolved],
-  );
-
-  /**
-   * `aggregatedRows` windowed to the current page — always last in the
-   * pipeline, after grouping and aggregation, so a page never splits a
-   * group and a subtotal never changes value depending on which page is
-   * showing. `GridBody` renders this rather than `aggregatedRows` directly,
-   * paginated or not: when `paginated` is off the grid is a single page
-   * over every row, and `pageCount`/`pageIndex` report that (`1`/`0`)
-   * rather than the possibly-stale values a consumer's own `pagination`
-   * prop state might otherwise carry.
-   */
-  const paginatedRows = useMemo(
-    () =>
-      paginated
-        ? paginateRows(aggregatedRows, pagination)
-        : { rows: aggregatedRows, pageCount: 1, pageIndex: 0 },
-    [paginated, aggregatedRows, pagination],
-  );
+      columnSizeDefaults,
+      resizableColumns,
+      reorderableColumns,
+      groupByDraggableColumns,
+      resizeMode,
+      viewportWidth,
+    },
+  });
 
   /**
    * `enabled` is `virtualized` alone, independent of `height`: an `auto`
@@ -748,7 +628,7 @@ export function DataGrid<Row>({
    */
   const virtualizer = useRowVirtualizer({
     enabled: virtualized,
-    rows: paginatedRows.rows,
+    rows: view.pageRows,
     bodyScrollRef,
     estimatedRowHeight,
     overscan,
@@ -784,29 +664,10 @@ export function DataGrid<Row>({
    */
   const paginationSnapshot = useMemo<PaginationState>(
     () => ({
-      pageIndex: paginatedRows.pageIndex,
+      pageIndex: view.pageIndex,
       pageSize: pagination.pageSize,
     }),
-    [paginatedRows.pageIndex, pagination.pageSize],
-  );
-
-  /**
-   * `paginatedRows.rows` narrowed back to its data rows, in the same
-   * (possibly regrouped, possibly paginated) order — what row/cell selection
-   * anchors its range-select against, so that a Shift-click spans the rows
-   * actually adjacent on screen rather than their pre-grouping,
-   * pre-pagination order. A group collapsed at selection time, or a row on a
-   * different page, contributes no rows here at all, so a range spanning its
-   * position includes only what was visible when the range was drawn.
-   */
-  const displayDataRows = useMemo(
-    () =>
-      groupBy.length === 0 && !paginated
-        ? shownRows
-        : paginatedRows.rows.filter(
-            (entry): entry is ResolvedRow<Row> => !("kind" in entry),
-          ),
-    [paginatedRows, groupBy.length, paginated, shownRows],
+    [view.pageIndex, pagination.pageSize],
   );
 
   /**
@@ -815,7 +676,7 @@ export function DataGrid<Row>({
    * path stands in whenever it is not.
    */
   function columnName(columnId: string): string {
-    const entry = resolved.find((candidate) => candidate.id === columnId);
+    const entry = view.columns.find((candidate) => candidate.id === columnId);
     if (entry === undefined) {
       return columnId;
     }
@@ -918,17 +779,17 @@ export function DataGrid<Row>({
     // Group headers are addressable rows too — the whole point of the flat
     // `DisplayRow[]` shape is that they share one position space with data
     // rows, so navigation counts them the same way. Page-relative
-    // (`paginatedRows`, not `displayRows`): arrow keys operate on what's
+    // (`view.pageRows`, not `view.displayRows`): arrow keys operate on what's
     // actually in the DOM, which is the current page — a different "page"
     // concept than `useGridNavigation`'s own Page Up/Down viewport scrolling.
-    rowCount: paginatedRows.rows.length,
-    columnCount: resolved.length,
+    rowCount: view.pageRows.length,
+    columnCount: view.columns.length,
     // A group's own summary row (`groupAggregateDisplay: "row"`) occupies a
     // real slot in `rowCount` above — its DOM position has to line up with
     // everything else — but is presentational, never a tab stop: arrow-key
     // vertical movement steps over it rather than landing there.
     isSkippableRow: (rowIndex) => {
-      const entry = paginatedRows.rows[rowIndex];
+      const entry = view.pageRows[rowIndex];
       return (
         entry !== undefined && "kind" in entry && entry.kind === "group-summary"
       );
@@ -941,19 +802,19 @@ export function DataGrid<Row>({
    * would have nothing to rearrange.
    */
   const displayedIds = useMemo(
-    () => orderedColumns.map((column) => column.id ?? column.field),
-    [orderedColumns],
+    () => view.dataColumns.map((entry) => entry.id),
+    [view.dataColumns],
   );
 
   /** Column ids whose header may be dragged into the group-by bar at all. */
   const groupByDraggableIds = useMemo(
     () =>
       new Set(
-        resolved
+        view.columns
           .filter((entry) => entry.groupByDraggable)
           .map((entry) => entry.id),
       ),
-    [resolved],
+    [view.columns],
   );
 
   /**
@@ -1065,7 +926,7 @@ export function DataGrid<Row>({
   const paginationApi = usePagination<Row>({
     pagination,
     setPagination,
-    rows: displayRows,
+    rows: view.displayRows,
     onPaginationChange: handlePaginationChange,
   });
 
@@ -1096,8 +957,8 @@ export function DataGrid<Row>({
   }
 
   const selection = useGridSelection<Row>({
-    rows: displayDataRows,
-    columns: resolved,
+    rows: view.displayDataRows,
+    columns: view.columns,
     selectable,
     rowSelection,
     setRowSelection,
@@ -1140,17 +1001,17 @@ export function DataGrid<Row>({
       listener();
     }
   }, [
-    shownRows,
-    aggregatedRows,
-    resolved,
+    view.rows,
+    view.displayRows,
+    view.columns,
     sizing,
     order,
     sort,
     groupBy,
     expansion,
     paginationSnapshot,
-    paginatedRows.pageCount,
-    grandTotal,
+    view.pageCount,
+    view.grandTotal,
     rowSelection,
     columnSelection,
     cellSelection,
@@ -1170,21 +1031,20 @@ export function DataGrid<Row>({
     get table() {
       return bodyTableRef.current;
     },
-    getRows: () => shownRows,
-    // `aggregatedRows`, not the plain `displayRows` it's derived from: the
-    // same array shape and content, except every group header's own
-    // `aggregates` field is populated — the whole reason `getDisplayRows()`
-    // is where a consumer reads a specific group's computed results from.
-    getDisplayRows: () => aggregatedRows,
-    getColumns: () => resolved,
+    getRows: () => view.rows,
+    // Every group header's own `aggregates` field is populated here — the
+    // whole reason `getDisplayRows()` is where a consumer reads a specific
+    // group's computed results from.
+    getDisplayRows: () => view.displayRows,
+    getColumns: () => view.columns,
     getColumnSizing: () => sizing,
     getColumnOrder: () => order,
     getColumnSort: () => sort,
     getGroupBy: () => groupBy,
     getGroupExpansion: () => expansion,
     getPagination: () => paginationSnapshot,
-    getPageCount: () => paginatedRows.pageCount,
-    getAggregates: () => grandTotal,
+    getPageCount: () => view.pageCount,
+    getAggregates: () => view.grandTotal,
     getRowSelection: () => rowSelection,
     getColumnSelection: () => columnSelection,
     getCellSelection: () => cellSelection,
@@ -1194,19 +1054,19 @@ export function DataGrid<Row>({
     selectAllRows: selection.selectAllRows,
     expandAllGroups: grouping.expandAll,
     collapseAllGroups: () => {
-      grouping.collapseAll(displayRows);
+      grouping.collapseAll(view.displayRows);
     },
     goToPage: paginationApi.goToPage,
     nextPage: paginationApi.nextPage,
     previousPage: paginationApi.previousPage,
     setPageSize: paginationApi.setPageSize,
     scrollToRow: (rowId, options) => {
-      // `paginatedRows.rows`, not `displayRows`: a data row's DOM position is
+      // `view.pageRows`, not `view.displayRows`: a data row's DOM position is
       // its place in the currently rendered page — with grouping active,
       // that's its place in the grouped, flattened output; with pagination
       // also active, that's the page's own slice of it. A row on a different
       // page isn't in the DOM at all, so there is nothing to scroll to.
-      const index = paginatedRows.rows.findIndex(
+      const index = view.pageRows.findIndex(
         (entry) => !("kind" in entry) && entry.rowId === rowId,
       );
       if (index === -1) return;
@@ -1268,7 +1128,7 @@ export function DataGrid<Row>({
     <div className="gridkit-data-grid-viewport" ref={viewportRef}>
       {showGroupByBar && (
         <GroupByBar<Row>
-          columns={resolved}
+          columns={view.columns}
           grouping={grouping}
           columnName={columnName}
           headerDragEligible={dragEligibleForGroupBy}
@@ -1302,13 +1162,11 @@ export function DataGrid<Row>({
         // The header is a row too, and counted from one; group headers (and,
         // under `groupAggregateDisplay: "row"`, each group's own summary
         // row) count as rows here too, the same way they do in `nav`'s
-        // `rowCount`. `aggregatedRows`, not `displayRows`: the latter is
-        // pre-aggregation and never carries summary rows at all. Total
-        // dataset count, not the current page's — neither array is ever
-        // windowed to one page, so this stays the true row count per the
-        // WAI-ARIA grid pattern even while paged.
-        aria-rowcount={aggregatedRows.length + 1}
-        aria-colcount={resolved.length}
+        // `rowCount`. `view.displayRows`, not `view.pageRows`: the total
+        // dataset count, not the current page's, so this stays the true row
+        // count per the WAI-ARIA grid pattern even while paged.
+        aria-rowcount={view.displayRows.length + 1}
+        aria-colcount={view.columns.length}
         {...ariaAttr(multiselectable, "aria-multiselectable", true)}
         {...ariaAttr(labelledBy !== undefined, "aria-labelledby", labelledBy)}
         {...ariaAttr(
@@ -1346,12 +1204,12 @@ export function DataGrid<Row>({
           ref={headerTableRef}
           // Widths are only honoured exactly when the table is as wide as its
           // columns; at `100%` the fixed layout redistributes the difference.
-          style={{ width: totalColumnWidth(resolved) }}
+          style={{ width: totalColumnWidth(view.columns) }}
           className={classNames(gridTableClassName, "gridkit-data-grid-header")}
         >
-          <GridColgroup columns={resolved} />
+          <GridColgroup columns={view.columns} />
           <GridHeader<Row>
-            columns={resolved}
+            columns={view.columns}
             resize={resize}
             drag={drag}
             sort={columnSort}
@@ -1378,13 +1236,13 @@ export function DataGrid<Row>({
         >
           <table
             ref={bodyTableRef}
-            style={{ width: totalColumnWidth(resolved) }}
+            style={{ width: totalColumnWidth(view.columns) }}
             className={gridTableClassName}
           >
-            <GridColgroup columns={resolved} />
+            <GridColgroup columns={view.columns} />
             <GridBody<Row>
-              columns={resolved}
-              rows={paginatedRows.rows}
+              columns={view.columns}
+              rows={view.pageRows}
               activeColumnId={resize.activeColumnId}
               nav={nav}
               selection={selection}
@@ -1400,18 +1258,18 @@ export function DataGrid<Row>({
 
         {activeAggregates.length > 0 && (
           <table
-            style={{ width: totalColumnWidth(resolved) }}
+            style={{ width: totalColumnWidth(view.columns) }}
             className={classNames(
               gridTableClassName,
               "gridkit-data-grid-footer",
             )}
           >
-            <GridColgroup columns={resolved} />
+            <GridColgroup columns={view.columns} />
             <GridFooter<Row>
-              columns={resolved}
+              columns={view.columns}
               aggregates={activeAggregates}
-              results={grandTotal}
-              rows={shownRows.map((entry) => entry.row)}
+              results={view.grandTotal}
+              rows={view.rows.map((entry) => entry.row)}
             />
           </table>
         )}
