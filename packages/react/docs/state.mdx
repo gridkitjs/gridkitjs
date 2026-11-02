@@ -3,7 +3,7 @@ title: "Controlled and uncontrolled state"
 description: "Letting DataGrid keep its own sort, grouping and paging, or holding them in your component and passing them back in."
 ---
 
-Every piece of state a user can change — the sort, the filter, the grouping, which groups are collapsed, the page — is either kept by the grid or held by you, one slice at a time, the way a React `<input>` takes either `defaultValue` or `value`.
+Every piece of state a user can change — the sort, the filter, the grouping, which groups are collapsed, the page, the selection — is either kept by the grid or held by you, one slice at a time, the way a React `<input>` takes either `defaultValue` or `value`.
 
 ## Uncontrolled: the grid keeps it
 
@@ -39,13 +39,16 @@ const [sort, setSort] = useState<ColumnSortState>([]);
 
 That makes it yours to adjust, limit or ignore — keep at most two sort keys, refuse to sort a column while a request is in flight, or drive the sort from the URL. It also lets two grids, or a grid and a toolbar, share one value.
 
-| State            | Controlled prop  | Uncontrolled default    | Change callback          |
-| ---------------- | ---------------- | ----------------------- | ------------------------ |
-| Sort             | `columnSort`     | `defaultColumnSort`     | `onColumnSortChange`     |
-| Filter           | `filter`         | `defaultFilter`         | `onFilterChange`         |
-| Group-by stack   | `groupBy`        | `defaultGroupBy`        | `onGroupByChange`        |
-| Collapsed groups | `groupExpansion` | `defaultGroupExpansion` | `onGroupExpansionChange` |
-| Page and size    | `pagination`     | `defaultPagination`     | `onPaginationChange`     |
+| State            | Controlled prop   | Uncontrolled default     | Change callback                                            |
+| ---------------- | ----------------- | ------------------------ | ---------------------------------------------------------- |
+| Sort             | `columnSort`      | `defaultColumnSort`      | `onColumnSortChange`                                       |
+| Filter           | `filter`          | `defaultFilter`          | `onFilterChange`                                           |
+| Group-by stack   | `groupBy`         | `defaultGroupBy`         | `onGroupByChange`                                          |
+| Collapsed groups | `groupExpansion`  | `defaultGroupExpansion`  | `onGroupExpansionChange`                                   |
+| Page and size    | `pagination`      | `defaultPagination`      | `onPaginationChange`                                       |
+| Selected rows    | `rowSelection`    | `defaultRowSelection`    | `onRowSelectionChange` (and the other row callbacks)       |
+| Selected columns | `columnSelection` | `defaultColumnSelection` | `onColumnSelectionChange` (and the other column callbacks) |
+| Selected cell    | `cellSelection`   | `defaultCellSelection`   | `onCellSelectionChange` (and the other cell callbacks)     |
 
 Each slice is independent: control the sort and leave paging to the grid, or the other way round. Passing `undefined` is the same as leaving the prop out, so a slice can start uncontrolled and be taken over later. Passing both a controlled prop and its default logs a `console.error` once; the controlled value wins.
 

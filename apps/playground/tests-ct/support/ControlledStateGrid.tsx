@@ -10,7 +10,13 @@ interface RowWithId {
 export type ControlledSlices<Row> = Partial<
   Pick<
     GridState<Row>,
-    "columnSort" | "groupBy" | "groupExpansion" | "pagination"
+    | "columnSort"
+    | "groupBy"
+    | "groupExpansion"
+    | "pagination"
+    | "rowSelection"
+    | "columnSelection"
+    | "cellSelection"
   >
 >;
 
@@ -73,6 +79,15 @@ export default function ControlledStateGrid<Row extends RowWithId>({
         }}
         onPaginationChange={(event) => {
           request("pagination", event.pagination);
+        }}
+        onRowSelectionChange={(event) => {
+          request("rowSelection", event.selection);
+        }}
+        onColumnSelectionChange={(event) => {
+          request("columnSelection", event.selection);
+        }}
+        onCellSelectionChange={(event) => {
+          request("cellSelection", event.selection);
         }}
       />
       <button

@@ -23,6 +23,8 @@ export interface ImperativeApiGridProps<Row extends RowWithId> extends Omit<
   visibilityColumnIds?: readonly string[];
   /** The filter `set-filter` applies. */
   filterToSet?: FilterState<Row>;
+  /** Row ids `select-rows` selects. */
+  selectRowIds?: readonly string[];
 }
 
 /**
@@ -58,6 +60,7 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
   focusColumnIndex,
   visibilityColumnIds,
   filterToSet,
+  selectRowIds,
   ...props
 }: ImperativeApiGridProps<Row>) {
   const gridRef = useRef<DataGridApi<Row>>(null);
@@ -88,6 +91,7 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         pagination: api.getPagination(),
         pageCount: api.getPageCount(),
         rowSelection: api.getRowSelection(),
+        selectedRowIds: api.getSelectedRows().map((row) => row.rowId),
         columnSelection: api.getColumnSelection(),
         cellSelection: api.getCellSelection(),
         focusedCell: api.getFocusedCell(),
@@ -202,6 +206,14 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         }}
       >
         set-filter
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          gridRef.current?.selectRows(selectRowIds ?? []);
+        }}
+      >
+        select-rows
       </button>
       <button type="button" onClick={report}>
         report

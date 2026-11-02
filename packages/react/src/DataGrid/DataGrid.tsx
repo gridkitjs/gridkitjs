@@ -11,6 +11,7 @@ import {
 import {
   moveColumnBefore,
   resolveColumnHeaderText,
+  resolveRows,
   totalColumnWidth,
   type ColumnDefinition as CoreColumnDefinition,
   type DataColumn as CoreDataColumn,
@@ -168,6 +169,12 @@ export interface DataGridApi<Row> {
    */
   getAggregates(): AggregateResults;
   getRowSelection(): SelectionState;
+  /**
+   * The selected rows themselves, in the order they were selected — among
+   * every row the filter lets through, on any page or in any group, so a row
+   * filtered out while selected is left out until it is back.
+   */
+  getSelectedRows(): readonly ResolvedRow<Row>[];
   getColumnSelection(): SelectionState;
   getCellSelection(): CellSelectionState;
   /** The cell currently holding the grid's single tab stop. */
@@ -176,6 +183,13 @@ export interface DataGridApi<Row> {
   focusCell(rowIndex: number, columnIndex: number): void;
   clearSelection(): void;
   selectAllRows(): void;
+  /**
+   * Selects rows by id, as far as `selectable.rows` allows: `"replace"` (the
+   * default) selects exactly these — only the last of them under
+   * `"single"` — and `"toggle"` flips each one. Fires the row selection
+   * callbacks once for the whole call, and none when nothing changed.
+   */
+  selectRows(rowIds: readonly string[], intent?: "replace" | "toggle"): void;
   /** Expands every group at once — there is no dedicated UI control for it. */
   expandAllGroups(): void;
   /** Collapses every group currently shown at once — see `collapseAllGroups` in `@gridkitjs/core` for what "currently shown" means for a group already nested under a collapsed one. */
@@ -347,6 +361,33 @@ export interface DataGridProps<Row>
   ref?: Ref<DataGridApi<Row>> | undefined;
 }
 
+/**
+ * `DataGridApi.getSelectedRows`, read off `controller` at call time: the
+ * selected ids resolved against every filtered row. Recomputed only when the
+ * rows or the selection change, so repeated reads are cheap and return the
+ * same array.
+ */
+function selectedRowsReader<Row>(
+  controller: DataGridController<Row>,
+): () => readonly ResolvedRow<Row>[] {
+  let last:
+    | {
+        readonly rows: readonly ResolvedRow<Row>[];
+        readonly selection: SelectionState;
+        readonly selected: readonly ResolvedRow<Row>[];
+      }
+    | undefined;
+  return () => {
+    const { rows } = controller.getView();
+    const selection = controller.getState().rowSelection;
+    if (last?.rows !== rows || last.selection !== selection) {
+      const rowsById = new Map(rows.map((entry) => [entry.rowId, entry]));
+      last = { rows, selection, selected: resolveRows(rowsById, selection) };
+    }
+    return last.selected;
+  };
+}
+
 /** "3 rows selected", for the live region. */
 function countMessage(count: number, noun: string): string {
   if (count === 0) {
@@ -425,6 +466,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
    * after an action sees it.
    */
   const [readPagination] = useState(() => paginationReader(controller));
+  const [readSelectedRows] = useState(() => selectedRowsReader(controller));
 
   /**
    * `enabled` is `virtualized` alone, independent of `height`: an `auto`
@@ -815,12 +857,14 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     getPageCount: () => controller.getView().pageCount,
     getAggregates: () => controller.getView().grandTotal,
     getRowSelection: () => controller.getState().rowSelection,
+    getSelectedRows: readSelectedRows,
     getColumnSelection: () => controller.getState().columnSelection,
     getCellSelection: () => controller.getState().cellSelection,
     getFocusedCell: () => nav.focus,
     focusCell: nav.focusCell,
     clearSelection: controller.clearSelection,
     selectAllRows: controller.selectAllRows,
+    selectRows: controller.selectRows,
     expandAllGroups: controller.expandAllGroups,
     collapseAllGroups: controller.collapseAllGroups,
     goToPage: controller.goToPage,
