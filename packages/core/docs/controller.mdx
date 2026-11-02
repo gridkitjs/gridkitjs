@@ -96,7 +96,7 @@ Every action works out the next value, stops if it is the value the slice alread
 | `setPageSize(pageSize)`                                            | `onPaginationChange`       | Changes the page size and goes back to the first page.                                                                                     |
 | `setPagination(pagination)`                                        | `onPaginationChange`       | Replaces the page and page size as given.                                                                                                  |
 
-Every `set*` action also stops for a value equal to the current one, so setting what is already there reports nothing.
+Every `set*` action also stops for a value equal to the current one, so setting what is already there reports nothing. The page actions do the same: `nextPage()` on the last page, `previousPage()` on the first, `goToPage()` to the page already shown (or one that clamps to it) and `setPageSize()` with the current size on the first page leave the pagination as it is, so they neither fire `onPaginationChange` nor call subscribers.
 
 ## Saving and restoring state
 
