@@ -102,12 +102,19 @@ export interface ColumnDefinition<Row, Node = string> {
    * same field differently.
    */
   id?: string;
+  /**
+   * The column's name as plain text. The header shows it when there is no
+   * `headerTemplate`, and anything that needs the name as text rather than
+   * markup — a screen-reader announcement, an export — reads it even when
+   * there is one, since a template's output need not be text at all.
+   */
+  header?: string | undefined;
   /** Header content, or a function returning it at render time. */
   headerTemplate?: Node | (() => Node) | undefined;
   /**
-   * Renders this column's cells in place of the raw value at `field`. The
-   * value is still resolved and handed over, so a template that only formats
-   * it never repeats the field path.
+   * Renders this column's cells in place of the text `formatCellValue` makes
+   * of the value at `field`. The raw value is still resolved and handed over,
+   * so a template never repeats the field path.
    */
   cellTemplate?: ((context: CellTemplateContext<Row>) => Node) | undefined;
   /**
@@ -122,6 +129,21 @@ export interface ColumnDefinition<Row, Node = string> {
    * defaults to `string`;
    */
   type?: ColumnType;
+  /**
+   * `Intl` options for how this column's values read as text: number options
+   * for a numeric `type`, date options for a date or time one. Passed to
+   * `Intl.NumberFormat`/`Intl.DateTimeFormat` with the grid's `locale` — see
+   * `formatCellValue` for the defaults each `type` starts from.
+   */
+  format?: Intl.NumberFormatOptions | Intl.DateTimeFormatOptions | undefined;
+  /**
+   * Turns a value into the text shown for it, in place of `format` and
+   * `type`. Applies wherever this column's values are shown as text — its
+   * cells and its aggregates. `row` is the cell's row, and `undefined` for a
+   * value no single row owns: an aggregate result, or a group header's value.
+   */
+  valueFormatter?:
+    ((value: unknown, row: Row | undefined) => string) | undefined;
   /**
    * Alignment of this column's cells. This package is framework-agnostic so it
    * defaults to `left` (`right` for numbers);
@@ -276,9 +298,9 @@ export interface ResolvedColumn<Row, Node = string> {
    */
   sized: boolean;
   /**
-   * What the header shows: the column's own `headerTemplate`, or a label read
-   * off the field path. `string` is in the union because that fallback is text
-   * whatever `Node` is bound to.
+   * What the header shows: the column's own `headerTemplate`, else its
+   * `header`, else a label read off the field path. `string` is in the
+   * union because both fallbacks are text whatever `Node` is bound to.
    */
   label: Node | string;
   /** Whether this column can be resized, after the grid-level default. */

@@ -120,17 +120,22 @@ export function resolveRowId<Row>(
   return getRowId?.(row, index) ?? String(index);
 }
 
+/** A label read off the field path — `"Application.Id"` reading as `"Application Id"`. */
+function labelFromField(field: string): string {
+  return field.split(".").join(" ");
+}
+
 /**
  * What a column's header shows: its own `headerTemplate`, called first if it is
- * a function, or else a label read off the field path — `"Application.Id"`
- * reading as `"Application Id"`.
+ * a function, or else its plain-text `header`, or else a label read off the
+ * field path.
  */
 export function resolveColumnLabel<Row, Node>(
   column: ColumnDefinition<Row, Node>,
 ): Node | string {
   const { headerTemplate } = column;
   if (headerTemplate === undefined) {
-    return column.field.split(".").join(" ");
+    return column.header ?? labelFromField(column.field);
   }
   // `Node` is open, so it could itself be a function type and the `typeof`
   // check cannot narrow on its own. A header that is callable is the lazy
@@ -138,6 +143,23 @@ export function resolveColumnLabel<Row, Node>(
   return typeof headerTemplate === "function"
     ? (headerTemplate as () => Node)()
     : headerTemplate;
+}
+
+/**
+ * A column's name as text, for wherever markup will not do — an
+ * announcement, an export. Its `header` first, even beside a
+ * `headerTemplate`, since a template's output need not be text; then the
+ * label `resolveColumnLabel` gives, when that is a string; then the label
+ * read off the field path.
+ */
+export function resolveColumnHeaderText<Row>(
+  column: ColumnDefinition<Row, unknown>,
+): string {
+  if (column.header !== undefined) {
+    return column.header;
+  }
+  const label = resolveColumnLabel(column);
+  return typeof label === "string" ? label : labelFromField(column.field);
 }
 
 /** Which of a column header's keyboard interactions to announce. */
