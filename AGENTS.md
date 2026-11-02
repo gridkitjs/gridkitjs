@@ -49,6 +49,12 @@ rendered docs (registered in `gridkit-website`'s MDX component map), so it
 needs no import. Reserve it for keys, not mouse actions worded with "click"
 or "drag".
 
+## Plans
+
+Multi-phase work is planned under `.claude/plans/<slug>/` — a `MASTER.md` that
+tracks status plus one file per phase — and executed with the `run-plan`
+skill. Status lives only in the master; phase files describe work.
+
 ## Tests
 
 Two layers, at two different points in the stack.
