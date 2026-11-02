@@ -1,5 +1,5 @@
 import { defineColumnsFromRows } from "@gridkitjs/core";
-import { DataGridComponent, type ColumnDefinition } from "@gridkitjs/react";
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
 import { deploymentRows, type DeploymentRow } from "./fixtures";
 import { EventLog, useEventLog } from "./EventLog";
 
@@ -15,7 +15,7 @@ export default function App() {
       <h1 className="text-xl font-semibold">
         {'selectable={{ cells: "single" }}'}
       </h1>
-      <DataGridComponent
+      <DataGrid
         columns={columns}
         dataSource={deploymentRows}
         getRowId={(row) => String(row.Id)}
