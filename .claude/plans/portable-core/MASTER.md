@@ -125,15 +125,15 @@ phases). An effort word may follow (`opus xhigh`, `sonnet low`); none means `hig
 | 03  | Column model: header, formatting, locale, visibility | [phase-03-column-model.md](phase-03-column-model.md)             | done        | 02         | opus        | feat/column-model           | 8bca2fc..6f0cf5b |
 | 04  | `GridOptions` and `createGridController`             | [phase-04-controller.md](phase-04-controller.md)                 | done        | 03         | opus xhigh  | feat/grid-controller        | 37815bc..5d52fb9 |
 | 05  | Serialisable filters and the filter-editor model     | [phase-05-filters.md](phase-05-filters.md)                       | done        | 04         | opus        | feat/serialisable-filters   | ee1ef74..b47eaca |
-| 06  | Row hooks, simple multi-select, messages             | [phase-06-row-hooks-messages.md](phase-06-row-hooks-messages.md) | in-progress | 04         | opus        | feat/row-hooks-messages     |                  |
-| 07  | `@gridkitjs/dom`: behaviours out of React            | [phase-07-dom-package.md](phase-07-dom-package.md)               | todo        | 04         | opus xhigh  |                             |                  |
+| 06  | Row hooks, simple multi-select, messages             | [phase-06-row-hooks-messages.md](phase-06-row-hooks-messages.md) | done        | 04         | opus        | feat/row-hooks-messages     | bcdd2c3..9f0d17a |
+| 07  | `@gridkitjs/dom`: behaviours out of React            | [phase-07-dom-package.md](phase-07-dom-package.md)               | in-progress | 04         | opus xhigh  | feat/dom-package            |                  |
 
 Phases 05, 06 and 07 are independent of each other and may run in any order after 04.
 
 ## Now
 
-- **In progress:** 06
-- **Next:** 07
+- **In progress:** 07
+- **Next:** finish: full verification, move plan to finished/, push and open PRs
 - **Waiting on the user:** nothing
 
 ## Handoffs
@@ -265,6 +265,23 @@ ReactRenderSlots & SelectionCallbacks & { ref }`.
 - Core `lib` has no `performance` global; use `Date.now()` in tests.
 - Counts: 570 core Vitest, 228 Playwright CT.
 
+### Phase 06
+
+- New core exports: `RowPointerEvent`, `RowProps` (`{ className?, attributes? }`, no `style`),
+  `GridMessages`, `defaultMessages`, `resolveMessages` (`packages/core/src/messages.ts`);
+  `GridOptions` gained `onRowClick`, `onRowDoubleClick`, `getRowProps`, `messages`,
+  `selectable.toggleOnClick` (via `intentOf(event, { toggleOnClick })`). React re-exports the
+  types.
+- Row click/double-click is a delegated DOM behaviour in `GridBody` (`rowPointerEventOf`) —
+  a Phase 07 candidate for `dom`. `GridBody` takes `getRowProps`, `onRowClick`,
+  `onRowDoubleClick`, `messages`; GridRow gets `rowClassName` + `rowAttributes` (kept stable by
+  `createRowPropsResolver` in `packages/react/src/DataGrid/rowProps.ts`).
+- Every data `<tr>` carries `data-gridkit-row-id` (stable selector by id).
+- `DataGrid` holds `messages = useMemo(resolveMessages(props.messages))`; every built-in string
+  and announcement comes from it (`countMessage` removed). `formatCellValue` takes an optional
+  5th `messages` argument (boolean text).
+- Counts: 582 core Vitest, 238 Playwright CT; coverage ~97 % lines.
+
 ## Decisions to review
 
 (Choices sub-agents made that the user should look at, tagged with their phase.)
@@ -297,6 +314,11 @@ ReactRenderSlots & SelectionCallbacks & { ref }`.
   (blanks and wrong-kind cells match them); an operand of the wrong kind matches no row; text
   comparisons are case-insensitive but `in` is case-sensitive (keys by `bucketKey`); `between` is
   inclusive. A custom filter shape opens in the editor as "no filter" and applying replaces it.
+- [06] `selectable.toggleOnClick` also applies under `rows: "single"` (clicking the selected row
+  deselects it) and makes <Kbd>Enter</Kbd> toggle too. Agent recommends keeping it.
+- [06] Message keys are named by area (`previousPage`/`nextPage`), `selectedCount(count, target)`
+  takes `"rows" | "columns"`, one `pageStatus` key serves the pager and the announcement;
+  symbols (×, …, —) and dev console warnings are not message keys.
 
 ## Follow-ups
 
@@ -305,9 +327,10 @@ ReactRenderSlots & SelectionCallbacks & { ref }`.
 - [later] Filter editor: on a date column whose cells are ISO strings, a restored `in` list
   (revived to `Date`s) filters correctly but opens in the checklist with those values unchecked
   (the draft keys by plain `bucketKey`).
-- [phase 06] Announcement text lives in `DataGrid.tsx` handlers and `countMessage`.
-- [phase 06] Boolean text ("true"/"false") and the group header's "(blank)" are candidates for
-  `messages`.
+- [later] `columnValueOptions` (filter editor) labels booleans "true"/"false" without
+  `messages`; aggregate cells (`renderAggregate`) don't use the boolean messages either.
+- [phase 07] Row click/double-click handling (`rowPointerEventOf` in `GridBody`) is a candidate
+  to move into `dom`.
 - [phase 07] Add `@gridkitjs/dom` to core's ESLint import ban and ban `react` in
   `packages/dom/**` (`eslint.config.mjs`).
 - [later] `test:e2e:coverage` reuses a stale uninstrumented CT bundle after `test:e2e` and
@@ -339,3 +362,5 @@ ReactRenderSlots & SelectionCallbacks & { ref }`.
 - 2026-11-02 · phase 05 · started on feat/serialisable-filters
 - 2026-11-02 · phase 05 · done · operator filter entries, headless filter-editor model (ee1ef74..b47eaca)
 - 2026-11-02 · phase 06 · started on feat/row-hooks-messages
+- 2026-11-02 · phase 06 · done · row hooks, toggleOnClick, GridMessages (bcdd2c3..9f0d17a)
+- 2026-11-02 · phase 07 · started on feat/dom-package

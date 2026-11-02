@@ -26,6 +26,11 @@ templates and glue, and a second renderer reuses `core` + `dom` unchanged.
 
 ## Starting point
 
+- (From Phase 01) Add `@gridkitjs/dom` to core's ESLint import ban (one array in `eslint.config.mjs`) and
+  ban `react` in `packages/dom/**`. `react-hooks` lint runs only under `packages/react/**` and
+  `apps/**`, which is right for `dom`.
+- (From Phase 06) Row click/double-click handling (`rowPointerEventOf` in `GridBody`) is a
+  delegated DOM behaviour and a candidate to move into `dom`.
 - `pointerGesture.ts#startPointerGesture(element, pointerId, handlers)` is already a plain
   function; `useDragReorder` holds drag state in React (`draggedId`, `dropTarget`,
   `ghostTransform`) and a `dragged` ref; `useRowVirtualizer` keeps a mutable height cache in
