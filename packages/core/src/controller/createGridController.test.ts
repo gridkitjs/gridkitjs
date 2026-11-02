@@ -326,6 +326,58 @@ describe("createGridController: pagination", () => {
     expect(controller.getView().pageIndex).toBe(0);
   });
 
+  test("a page action that leaves the page where it is reports nothing and notifies no one", () => {
+    const onPaginationChange = vi.fn();
+    const listener = vi.fn();
+    const controller = paginated({ onPaginationChange });
+    controller.subscribe(listener);
+
+    controller.previousPage();
+    controller.goToPage(0);
+    controller.goToPage(-3);
+    controller.setPageSize(2);
+    controller.goToPage(2);
+    onPaginationChange.mockClear();
+    listener.mockClear();
+    controller.nextPage();
+    controller.goToPage(2);
+    controller.goToPage(9);
+
+    expect(onPaginationChange).not.toHaveBeenCalled();
+    expect(listener).not.toHaveBeenCalled();
+    expect(controller.getState().pagination).toEqual({
+      pageIndex: 2,
+      pageSize: 2,
+    });
+  });
+
+  test("a page action from a stored page past the last reports the clamped page", () => {
+    const onPaginationChange = vi.fn<(event: PaginationChangeEvent) => void>();
+    const controller = paginated({ onPaginationChange });
+
+    controller.setPagination({ pageIndex: 9, pageSize: 2 });
+    onPaginationChange.mockClear();
+    controller.nextPage();
+
+    expect(onPaginationChange.mock.calls.map(([event]) => event)).toEqual([
+      { pagination: { pageIndex: 2, pageSize: 2 }, pageCount: 3 },
+    ]);
+  });
+
+  test("a controlled pagination asking for the page it already has asks nothing", () => {
+    const onPaginationChange = vi.fn();
+    const controller = create({
+      paginated: true,
+      pagination: { pageIndex: 0, pageSize: 2 },
+      onPaginationChange,
+    });
+
+    controller.previousPage();
+    controller.goToPage(0);
+
+    expect(onPaginationChange).not.toHaveBeenCalled();
+  });
+
   test("setPagination keeps the value as given and reports an equal one not at all", () => {
     const onPaginationChange = vi.fn<(event: PaginationChangeEvent) => void>();
     const controller = paginated({ onPaginationChange });
