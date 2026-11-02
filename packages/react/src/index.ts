@@ -37,6 +37,7 @@ export type {
   FilterChangeEvent,
   FilterEntry,
   FilterState,
+  GridMessages,
   GridOptions,
   GridState,
   SerializedGridState,

@@ -10,6 +10,7 @@ import {
   type AggregateState,
   type DisplayRow,
   type FormatLocale,
+  type GridMessages,
   type GridOptions,
   type GroupAggregateDisplay,
   type ResolvedRow,
@@ -58,6 +59,7 @@ interface GridBodyProps<Row> {
   getRowProps: GridOptions<Row>["getRowProps"];
   onRowClick: GridOptions<Row>["onRowClick"];
   onRowDoubleClick: GridOptions<Row>["onRowDoubleClick"];
+  messages: GridMessages;
 }
 
 /** Where a cell sits, read off the table's own indices rather than an attribute. */
@@ -187,6 +189,7 @@ export default function GridBody<Row>({
   getRowProps,
   onRowClick,
   onRowDoubleClick,
+  messages,
 }: GridBodyProps<Row>) {
   const { selectedCell, rowMode, cellMode, toggleOnClick } = selection;
   const ariaMeta = useMemo(() => groupAriaMeta(rows), [rows]);
@@ -197,6 +200,13 @@ export default function GridBody<Row>({
     virtualRange === null
       ? rows
       : rows.slice(virtualRange.startIndex, virtualRange.endIndex + 1);
+  const { booleanTrue, booleanFalse, blankGroupValue } = messages;
+  // Keyed on the strings rather than `messages`, so the memoised rows hold
+  // still under a `messages` object rebuilt on every render.
+  const cellMessages = useMemo(
+    () => ({ booleanTrue, booleanFalse, blankGroupValue }),
+    [booleanTrue, booleanFalse, blankGroupValue],
+  );
   const [resolveRowProps] = useState(() => createRowPropsResolver<Row>());
   const rowPropsOf = resolveRowProps(
     visibleRows.filter(
@@ -394,6 +404,7 @@ export default function GridBody<Row>({
               rowsSelectable={rowMode !== false}
               cellsSelectable={cellMode !== false}
               locale={locale}
+              cellMessages={cellMessages}
               rowClassName={rowPropsOf(entry.rowId).className}
               rowAttributes={rowPropsOf(entry.rowId).attributes}
             />
@@ -443,6 +454,7 @@ export default function GridBody<Row>({
             results={entry.aggregates}
             definitions={definitions}
             locale={locale}
+            cellMessages={cellMessages}
             // Ignores `nav.focus.columnIndex`: with only one cell in this
             // row, whether it holds the tab stop depends on `rowIndex`
             // alone.
@@ -476,7 +488,7 @@ export default function GridBody<Row>({
               <td colSpan={columns.length} className="grid-loading-cell">
                 {infiniteScroll.loadingTemplate
                   ? infiniteScroll.loadingTemplate()
-                  : "Loading more…"}
+                  : messages.loadingMore}
               </td>
             </tr>
           )}

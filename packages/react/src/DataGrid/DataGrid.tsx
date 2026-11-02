@@ -11,6 +11,7 @@ import {
 import {
   moveColumnBefore,
   resolveColumnHeaderText,
+  resolveMessages,
   resolveRows,
   totalColumnWidth,
   type ColumnDefinition as CoreColumnDefinition,
@@ -373,7 +374,7 @@ export interface InfiniteScrollConfig {
    * scrolling into view. Defaults to `"200px"`.
    */
   readonly rootMargin?: string | undefined;
-  /** Replaces the built-in "Loading more…" row. */
+  /** Replaces the built-in "Loading more…" row (`messages.loadingMore`). */
   readonly loadingTemplate?: (() => ReactNode) | undefined;
 }
 
@@ -434,16 +435,6 @@ function selectedRowsReader<Row>(
   };
 }
 
-/** "3 rows selected", for the live region. */
-function countMessage(count: number, noun: string): string {
-  if (count === 0) {
-    return `No ${noun}s selected`;
-  }
-  return count === 1
-    ? `1 ${noun} selected`
-    : `${String(count)} ${noun}s selected`;
-}
-
 export function DataGrid<Row>(props: DataGridProps<Row>) {
   const {
     borders,
@@ -476,6 +467,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     getRowProps,
     onRowClick,
     onRowDoubleClick,
+    messages: messageOverrides,
     ref,
   } = props;
   const hoverRows = hoverable?.rows ?? true;
@@ -490,6 +482,11 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   const viewportWidth = useElementWidth(viewportRef, resizeMode === "fit");
   const subscribersRef = useRef(new Set<() => void>());
   const [announcement, setAnnouncement] = useState("");
+  /** Every string the grid shows or announces, `messages` over the English defaults. */
+  const messages = useMemo(
+    () => resolveMessages(messageOverrides),
+    [messageOverrides],
+  );
 
   /**
    * Every slice of grid state, and everything the grid draws, comes from
@@ -583,7 +580,10 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     onColumnResize?.(event);
     if (event.phase === "end") {
       announce(
-        `${columnName(event.columnId)}, ${String(Math.round(event.width))} pixels wide`,
+        messages.columnResized(
+          columnName(event.columnId),
+          Math.round(event.width),
+        ),
       );
     }
   }
@@ -604,13 +604,15 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
       (candidate) => candidate.columnId === event.columnId,
     );
     if (entry === undefined) {
-      announce(`${columnName(event.columnId)}, grouping removed`);
+      announce(messages.groupingRemoved(columnName(event.columnId)));
       return;
     }
     announce(
-      event.groupBy.length > 1
-        ? `Grouped by ${columnName(event.columnId)}, level ${String(event.groupBy.indexOf(entry) + 1)} of ${String(event.groupBy.length)}`
-        : `Grouped by ${columnName(event.columnId)}`,
+      messages.groupedBy(
+        columnName(event.columnId),
+        event.groupBy.indexOf(entry) + 1,
+        event.groupBy.length,
+      ),
     );
   }
 
@@ -624,15 +626,15 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     if (event.groupId === null) {
       announce(
         event.expansion.length === 0
-          ? "All groups expanded"
-          : "All groups collapsed",
+          ? messages.allGroupsExpanded
+          : messages.allGroupsCollapsed,
       );
       return;
     }
     announce(
       event.expansion.includes(event.groupId)
-        ? "Group collapsed"
-        : "Group expanded",
+        ? messages.groupCollapsed
+        : messages.groupExpanded,
     );
   }
 
@@ -646,14 +648,16 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
       (candidate) => candidate.columnId === event.columnId,
     );
     if (entry === undefined) {
-      announce(`${columnName(event.columnId)}, sort cleared`);
+      announce(messages.sortCleared(columnName(event.columnId)));
       return;
     }
-    const direction = entry.direction === "asc" ? "ascending" : "descending";
     announce(
-      event.sort.length > 1
-        ? `${columnName(event.columnId)} sorted ${direction}, key ${String(event.sort.indexOf(entry) + 1)} of ${String(event.sort.length)}`
-        : `${columnName(event.columnId)} sorted ${direction}`,
+      messages.columnSorted(
+        columnName(event.columnId),
+        entry.direction,
+        event.sort.indexOf(entry) + 1,
+        event.sort.length,
+      ),
     );
   }
 
@@ -661,7 +665,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   function handlePaginationChange(event: PaginationChangeEvent): void {
     onPaginationChange?.(event);
     announce(
-      `Page ${String(event.pagination.pageIndex + 1)} of ${String(event.pageCount)}`,
+      messages.pageStatus(event.pagination.pageIndex + 1, event.pageCount),
     );
   }
 
@@ -674,12 +678,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
    */
   function handleSelectionDiff(event: SelectionDiffEvent): void {
     if (event.added.length + event.removed.length > 1) {
-      announce(
-        countMessage(
-          event.selection.length,
-          event.target === "rows" ? "row" : "column",
-        ),
-      );
+      announce(messages.selectedCount(event.selection.length, event.target));
     }
   }
 
@@ -696,7 +695,10 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     onCellSelectionChange?.(event);
     if (event.selected !== null) {
       announce(
-        `${columnName(event.selected.columnId)}, row ${String(event.selected.rowIndex + 1)}, selected`,
+        messages.cellSelected(
+          columnName(event.selected.columnId),
+          event.selected.rowIndex + 1,
+        ),
       );
     }
   }
@@ -794,7 +796,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     const shown = next.filter((id) => displayedIds.includes(id));
     const position = shown.indexOf(movedId);
     announce(
-      `${columnName(movedId)}, column ${String(position + 1)} of ${String(shown.length)}`,
+      messages.columnMoved(columnName(movedId), position + 1, shown.length),
     );
     /**
      * The tab stop travels with the column. React reorders the headers by key,
@@ -1021,6 +1023,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
           headerDragEligible={dragEligibleForGroupBy}
           headerDragBlocked={draggedColumnAlreadyGrouped}
           headerDropTarget={headerGroupByDropTarget}
+          messages={messages}
         />
       )}
       <div
@@ -1145,6 +1148,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
               getRowProps={getRowProps}
               onRowClick={onRowClick}
               onRowDoubleClick={onRowDoubleClick}
+              messages={messages}
             />
           </table>
         </div>
@@ -1172,7 +1176,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
         (pager?.template ? (
           pager.template(pagerContext)
         ) : (
-          <GridPager pager={pagerContext} config={pager} />
+          <GridPager pager={pagerContext} config={pager} messages={messages} />
         ))}
       {/*
        * Outside the table, which admits no `div`, and polite so it waits for a

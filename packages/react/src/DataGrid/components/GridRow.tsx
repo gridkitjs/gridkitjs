@@ -2,6 +2,7 @@ import {
   accessDotted,
   formatCellValue,
   type FormatLocale,
+  type GridMessages,
 } from "@gridkitjs/core";
 import { memo, type Ref } from "react";
 import type { ResolvedColumn } from "../DataGrid";
@@ -29,6 +30,8 @@ interface GridRowProps<Row> {
   cellsSelectable: boolean;
   /** The grid's `locale`, which a cell without a template is formatted for. */
   locale: FormatLocale;
+  /** A boolean cell's words, from `messages` — memoised on the two strings by `GridBody`. */
+  cellMessages: Pick<GridMessages, "booleanTrue" | "booleanFalse">;
   /** The class `getRowProps` gave this row, `""` for none. */
   rowClassName: string;
   /** The `data-*` attributes `getRowProps` gave this row — the same object while they read the same, so they do not defeat `memo`. */
@@ -50,6 +53,7 @@ function GridRowComponent<Row>({
   rowsSelectable,
   cellsSelectable,
   locale,
+  cellMessages,
   rowClassName,
   rowAttributes,
   ref,
@@ -117,7 +121,7 @@ function GridRowComponent<Row>({
                   rowId,
                   selected,
                 })
-              : formatCellValue(value, column, locale, row)}
+              : formatCellValue(value, column, locale, row, cellMessages)}
           </td>
         );
       })}

@@ -61,7 +61,7 @@ This is also why `aria-rowindex` on a rendered row reports the dataset position,
 
 ## The built-in pager
 
-Turning `paginated` on renders a minimal pager below the grid: a Previous button, a "Page X of Y" display, a Next button, and — when `pager.sizeOptions` is given — a page-size `<select>`. It's semantically classed (`gridkit-grid-pager`, `grid-pager-button`, `grid-pager-status`, `grid-pager-page-size`) rather than carrying its own layout, the same as the rest of `@gridkitjs/react`; style it via `@gridkitjs/theme-tailwind` or your own CSS targeting those classes.
+Turning `paginated` on renders a minimal pager below the grid: a Previous button, a "Page X of Y" display, a Next button, and — when `pager.sizeOptions` is given — a page-size `<select>`. Its text comes from `messages` (`previousPage`, `pageStatus`, `nextPage`, `pageSizeLabel`), so it can be translated — see [localization](/docs/react/localization). It's semantically classed (`gridkit-grid-pager`, `grid-pager-button`, `grid-pager-status`, `grid-pager-page-size`) rather than carrying its own layout, the same as the rest of `@gridkitjs/react`; style it via `@gridkitjs/theme-tailwind` or your own CSS targeting those classes.
 
 To suppress the built-in pager while keeping row-windowing and the imperative API active, pass `pager={{ template: () => null }}` rather than turning `paginated` off — see [Custom pager template](#custom-pager-template) below.
 

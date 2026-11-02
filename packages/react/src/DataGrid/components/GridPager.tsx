@@ -1,4 +1,4 @@
-import { paginationWindow } from "@gridkitjs/core";
+import { paginationWindow, type GridMessages } from "@gridkitjs/core";
 import type { PagerConfig, PagerTemplateContext } from "../DataGrid";
 
 interface GridPagerProps {
@@ -6,6 +6,7 @@ interface GridPagerProps {
   pager: PagerTemplateContext;
   /** Presentation options for the pager. `undefined` renders the `"compact"` default with no page-size control. */
   config: PagerConfig | undefined;
+  messages: GridMessages;
 }
 
 /**
@@ -19,13 +20,17 @@ interface GridPagerProps {
  * Whether this mounts at all is `DataGrid.tsx`'s call (`paginated`), not
  * this component's own.
  */
-export default function GridPager({ pager, config }: GridPagerProps) {
+export default function GridPager({ pager, config, messages }: GridPagerProps) {
   const { pagination, pageCount, currentPage } = pager;
   const variant = config?.variant ?? "compact";
   const sizeOptions = config?.sizeOptions;
 
   return (
-    <div className="gridkit-grid-pager" role="group" aria-label="Pagination">
+    <div
+      className="gridkit-grid-pager"
+      role="group"
+      aria-label={messages.pagerLabel}
+    >
       <button
         type="button"
         className="grid-pager-button"
@@ -34,7 +39,7 @@ export default function GridPager({ pager, config }: GridPagerProps) {
           pager.previousPage();
         }}
       >
-        Previous
+        {messages.previousPage}
       </button>
       {variant === "numbered" ? (
         paginationWindow(currentPage, pageCount, {
@@ -54,7 +59,7 @@ export default function GridPager({ pager, config }: GridPagerProps) {
               key={entry}
               type="button"
               className="grid-pager-button"
-              aria-label={`Page ${String(entry)}`}
+              aria-label={messages.pageButtonLabel(entry)}
               aria-current={entry === currentPage ? "page" : undefined}
               onClick={() => {
                 pager.goToPage(entry - 1);
@@ -66,7 +71,7 @@ export default function GridPager({ pager, config }: GridPagerProps) {
         )
       ) : (
         <span className="grid-pager-status">
-          Page {pageCount === 0 ? 0 : currentPage} of {pageCount}
+          {messages.pageStatus(pageCount === 0 ? 0 : currentPage, pageCount)}
         </span>
       )}
       <button
@@ -77,11 +82,11 @@ export default function GridPager({ pager, config }: GridPagerProps) {
           pager.nextPage();
         }}
       >
-        Next
+        {messages.nextPage}
       </button>
       {sizeOptions !== undefined && sizeOptions.length > 0 && (
         <label className="grid-pager-page-size">
-          Rows per page
+          {messages.pageSizeLabel}
           <select
             value={pagination.pageSize}
             onChange={(event) => {

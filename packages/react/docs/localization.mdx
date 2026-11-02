@@ -1,0 +1,97 @@
+---
+title: "Localization"
+description: "Translating the grid's own strings with messages, and formatting values with locale."
+---
+
+Two props put a grid into another language, and they divide the work:
+
+- **`locale`** formats values — dates and numbers in cells and aggregates, through `Intl`. See [formatting values](/docs/react/column-definition#formatting-values).
+- **`messages`** replaces the grid's own strings — the pager's buttons, the group-by bar, the loading row, boolean and blank values, and every [live announcement](/docs/react/accessibility#live-announcements) a screen reader hears.
+
+Text your data supplies — cell values, headers, `label` — is already yours to choose, so neither touches it.
+
+## Translating the grid's strings
+
+`messages` takes a partial `GridMessages`: give the keys you want to change and the rest keep their English. A message that names something is a function, so a translation can put the name, page or count where its own grammar wants it.
+
+```ts
+import { useState } from "react";
+import { DataGrid, type GridMessages } from "@gridkitjs/react";
+
+const german: Partial<GridMessages> = {
+  previousPage: "Zurück",
+  nextPage: "Weiter",
+  pageSizeLabel: "Zeilen pro Seite",
+  pageStatus: (page, pageCount) => `Seite ${page} von ${pageCount}`,
+  booleanTrue: "ja",
+  booleanFalse: "nein",
+  selectedCount: (count, target) =>
+    `${count} ${target === "rows" ? "Zeilen" : "Spalten"} ausgewählt`,
+};
+
+const french: Partial<GridMessages> = {
+  previousPage: "Précédent",
+  nextPage: "Suivant",
+  pageSizeLabel: "Lignes par page",
+  pageStatus: (page, pageCount) => `Page ${page} sur ${pageCount}`,
+  booleanTrue: "oui",
+  booleanFalse: "non",
+  selectedCount: (count, target) =>
+    `${count} ${target === "rows" ? "lignes" : "colonnes"} sélectionnées`,
+};
+
+const translations = { "de-DE": german, "fr-FR": french };
+
+const [language, setLanguage] = useState<keyof typeof translations>("de-DE");
+
+<DataGrid
+  columns={columns}
+  dataSource={rows}
+  paginated
+  locale={language}
+  messages={translations[language]}
+/>;
+```
+
+Define each set once, outside the component, as you would `columns`. A `messages` object rebuilt on every render still works — rows are not redrawn for it unless the boolean or blank-value text actually changes — but a stable one saves the grid re-reading it.
+
+`defaultMessages` and `resolveMessages` are exported from `@gridkitjs/core` for building on the English defaults, or for a renderer of your own.
+
+## Every key
+
+Functions are called with numbers that count from one, and receive a column by its accessible name — its `header`, or its label.
+
+| Key                     | Type                                               | Default                                                                                                             |
+| ----------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `pagerLabel`            | `string`                                           | "Pagination" — the pager's accessible name.                                                                         |
+| `previousPage`          | `string`                                           | "Previous"                                                                                                          |
+| `nextPage`              | `string`                                           | "Next"                                                                                                              |
+| `pageSizeLabel`         | `string`                                           | "Rows per page"                                                                                                     |
+| `pageButtonLabel`       | `(page) => string`                                 | "Page 3" — a numbered pager button's accessible name.                                                               |
+| `pageStatus`            | `(page, pageCount) => string`                      | "Page 2 of 5" — the compact pager's status, and announced on a page change. `page` is `0` while there are no pages. |
+| `loadingMore`           | `string`                                           | "Loading more…" — the [infinite scroll](/docs/react/infinite-scroll) loading row.                                   |
+| `booleanTrue`           | `string`                                           | "true" — a boolean cell without a template or `valueFormatter`.                                                     |
+| `booleanFalse`          | `string`                                           | "false"                                                                                                             |
+| `blankGroupValue`       | `string`                                           | "(blank)" — a group header for missing values.                                                                      |
+| `groupByBarLabel`       | `string`                                           | "Grouped by" — the group-by bar's accessible name.                                                                  |
+| `groupByBarPlaceholder` | `string`                                           | "Drag a column here to group by it"                                                                                 |
+| `groupByChipLabel`      | `(columnName, level, levelCount) => string`        | "Region, level 2 of 3", or "Region" alone with one level.                                                           |
+| `removeGroupBy`         | `(columnName) => string`                           | "Stop grouping by Region"                                                                                           |
+| `columnResized`         | `(columnName, width) => string`                    | "Name, 120 pixels wide" — announced when a resize ends.                                                             |
+| `columnMoved`           | `(columnName, position, columnCount) => string`    | "Name, column 2 of 4"                                                                                               |
+| `columnSorted`          | `(columnName, direction, key, keyCount) => string` | "Name sorted descending, key 1 of 2", or without the key in a one-column sort. `direction` is `"asc"` or `"desc"`.  |
+| `sortCleared`           | `(columnName) => string`                           | "Name, sort cleared"                                                                                                |
+| `groupedBy`             | `(columnName, level, levelCount) => string`        | "Grouped by Region, level 1 of 2", or without the level with one.                                                   |
+| `groupingRemoved`       | `(columnName) => string`                           | "Region, grouping removed"                                                                                          |
+| `groupExpanded`         | `string`                                           | "Group expanded"                                                                                                    |
+| `groupCollapsed`        | `string`                                           | "Group collapsed"                                                                                                   |
+| `allGroupsExpanded`     | `string`                                           | "All groups expanded"                                                                                               |
+| `allGroupsCollapsed`    | `string`                                           | "All groups collapsed"                                                                                              |
+| `selectedCount`         | `(count, target) => string`                        | "3 rows selected", "1 column selected", "No rows selected". `target` is `"rows"` or `"columns"`.                    |
+| `cellSelected`          | `(columnName, rowNumber) => string`                | "Name, row 4, selected"                                                                                             |
+
+## What messages don't cover
+
+- **A `pager.template` or `infiniteScroll.loadingTemplate`** replaces the built-in UI outright, so its text is whatever you render.
+- **Symbols** — the "×" on a group-by chip's remove button, the "…" between numbered pages, the "—" in an empty aggregate cell — read the same in any language and are not keys.
+- **Development warnings** logged to the console stay in English: they are for whoever is building the page, not its users.
