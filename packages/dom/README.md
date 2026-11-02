@@ -45,6 +45,7 @@ announcer.destroy();
 | `startDragReorder`         | Drags a header or chip to a new place, with the drop-target hit-tests.        |
 | `createRowVirtualizer`     | Windows rows of any height down to those near the scroll position.            |
 | `createGridFocus`          | Keeps the grid's single tab stop and moves the browser's focus with the keys. |
+| `bodyCellFrom` and others  | Resolve a delegated body event to the cell, row or group header it addresses. |
 | `attachOverlay`            | Positions a panel beside an anchor or point, and reports when to dismiss it.  |
 
 Full documentation: [github.com/blagojablazhevski/gridkit](https://github.com/blagojablazhevski/gridkit#readme)

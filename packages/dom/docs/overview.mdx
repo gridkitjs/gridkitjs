@@ -27,6 +27,27 @@ detach();
 
 Where a behaviour reads the grid's markup, it relies on the attributes @gridkitjs/react renders — `data-gridkit-column` on header and body cells, `data-gridkit-row-index` on body rows, `data-gridkit-group-by-bar` and `data-gridkit-group-chip` on the group-by bar — so a renderer that draws the same markup gets the same behaviour. What a behaviour reports that changes how the grid looks — a drop target, the window of rows, the focused cell — is the renderer's to draw; what changes the grid's state goes through the controller's actions.
 
+## Body event targets
+
+A renderer keeps its rows cheap to re-render by handling the body's clicks, focus and keys with one listener on the `<tbody>` rather than one per cell. These turn such an event's `target` into what it addresses in the grid's markup, `null` when it addresses none:
+
+| Function               | Returns                                                                                                                                       |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bodyCellFrom(target)` | `{ rowIndex, columnIndex, columnId }` — the data cell (`td[data-gridkit-column]`) it is in. Never a group header's cell, which has no column. |
+| `groupRowFrom(target)` | `{ rowIndex, groupId }` — the group-header row (`tr[data-gridkit-group]`) it is in.                                                           |
+| `bodyRowFrom(target)`  | `{ rowIndex, columnId }` — any body row it is in, with the column of its cell in that row, or `null` for none — what a row click reports.     |
+
+`rowIndex` is the row's place among every body row, read off its `data-gridkit-row-index`, so it holds under virtualization, where a row's place in the DOM does not.
+
+```ts
+import { bodyCellFrom } from "@gridkitjs/dom";
+
+tbody.addEventListener("click", (event) => {
+  const cell = bodyCellFrom(event.target);
+  if (cell !== null) select(view.pageRows[cell.rowIndex], cell.columnId);
+});
+```
+
 ## Live announcer
 
 `createLiveAnnouncer(container?)` adds one visually hidden live region (`role="status"`, `aria-live="polite"`) as the last child of `container` — `document.body` when omitted — and returns `announce(text)` and `destroy()`. The region carries the `gridkit-sr-only` class, which @gridkitjs/theme-tailwind clips to nothing while keeping it in the accessibility tree.

@@ -3,6 +3,14 @@
 // no framework's types.
 export { createLiveAnnouncer, type LiveAnnouncer } from "./announcer";
 export {
+  bodyCellFrom,
+  bodyRowFrom,
+  groupRowFrom,
+  type BodyCellTarget,
+  type BodyRowTarget,
+  type GroupRowTarget,
+} from "./bodyTargets";
+export {
   measureColumnContent,
   startColumnResizeGesture,
   type ColumnResizeGestureHandlers,
