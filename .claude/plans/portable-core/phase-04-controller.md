@@ -28,6 +28,9 @@ plan: after it, a renderer owns no grid logic.
 
 ## Starting point
 
+- (From Phase 02) Still in React and to move into the controller: column inference
+  (`defineColumnsFromRows` when no `columns`), the page reset on filter/sort/group change (the
+  `previous` state in `DataGrid.tsx`), and `activeAggregates`.
 - After Phase 02, `DataGrid.tsx` derives everything from `resolveGridView`; after Phase 03,
   `GridState` has sizing, order, visibility, sort, filter, groupBy, expansion, pagination (plus
   selection to add here).
