@@ -253,3 +253,84 @@ test.describe("structural rendering", () => {
     await expect(cells.nth(1)).not.toHaveClass(/is-wrapped/);
   });
 });
+
+test.describe("value formatting", () => {
+  interface TypedRow {
+    id: string;
+    due: Date;
+    active: boolean;
+    price: number;
+  }
+
+  const typedRows: TypedRow[] = [
+    {
+      id: "a",
+      due: new Date(2024, 2, 15, 13, 5, 9),
+      active: true,
+      price: 1234.5,
+    },
+    { id: "b", due: new Date(2024, 11, 1), active: false, price: 3 },
+  ];
+
+  function cell(root: MountResult, rowIndex: number, columnId: string) {
+    return root
+      .locator("tbody tr")
+      .nth(rowIndex)
+      .locator(`td[data-gridkit-column="${columnId}"]`);
+  }
+
+  test("a Date column and a boolean column render as text with no template", async ({
+    mount,
+  }) => {
+    const typedColumns: readonly ColumnDefinition<TypedRow>[] = [
+      { field: "due", type: "date", width: 120 },
+      { field: "active", type: "boolean", width: 80 },
+    ];
+    const root = await mountGrid(
+      mount,
+      <DataGrid
+        columns={typedColumns}
+        dataSource={typedRows}
+        label="Typed"
+        locale="en-GB"
+      />,
+    );
+
+    await expect(cell(root, 0, "due")).toHaveText("15/03/2024");
+    await expect(cell(root, 1, "due")).toHaveText("01/12/2024");
+    await expect(cell(root, 0, "active")).toHaveText("true");
+    await expect(cell(root, 1, "active")).toHaveText("false");
+  });
+
+  test("a column's format and the grid's locale shape the text", async ({
+    mount,
+  }) => {
+    const typedColumns: readonly ColumnDefinition<TypedRow>[] = [
+      { field: "id", width: 60 },
+      {
+        field: "price",
+        type: "currency",
+        format: { currency: "USD" },
+        width: 120,
+      },
+      { field: "due", format: { dateStyle: "long" }, width: 160 },
+    ];
+    const root = await mountGrid(
+      mount,
+      <DataGrid
+        columns={typedColumns}
+        dataSource={typedRows}
+        label="Formatted"
+        locale="en-US"
+        aggregates={[{ columnId: "price", fn: "sum" }]}
+      />,
+    );
+
+    await expect(cell(root, 0, "price")).toHaveText("$1,234.50");
+    await expect(cell(root, 1, "price")).toHaveText("$3.00");
+    await expect(cell(root, 0, "due")).toHaveText("March 15, 2024");
+    await expect(
+      root.locator('.grid-footer td[data-gridkit-column="price"]'),
+    ).toHaveText("$1,237.50");
+  });
+});

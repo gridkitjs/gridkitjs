@@ -12,6 +12,7 @@ import {
   createGridViewResolver,
   defineColumnsFromRows,
   moveColumnBefore,
+  resolveColumnHeaderText,
   totalColumnWidth,
   type ColumnDefinition as CoreColumnDefinition,
   type ResolvedColumn as CoreResolvedColumn,
@@ -26,6 +27,7 @@ import {
   type ColumnSortState,
   type DisplayRow,
   type FilterState,
+  type FormatLocale,
   type GroupAggregateDisplay,
   type GroupByEvent,
   type GroupByState,
@@ -492,6 +494,13 @@ export interface DataGridProps<Row> extends SelectionCallbacks<Row> {
    * Takes precedence over `label`, as `aria-labelledby` does.
    */
   labelledBy?: string | undefined;
+  /**
+   * The locale values are formatted for — a BCP 47 tag such as `"de-DE"`, or
+   * a list to fall back through. Applies to every cell and aggregate shown
+   * without a template; see `format` on a column. Defaults to the
+   * browser's own.
+   */
+  locale?: FormatLocale;
   /** Imperative handle for reading live grid state and triggering actions. */
   ref?: Ref<DataGridApi<Row>> | undefined;
 }
@@ -539,6 +548,7 @@ export function DataGrid<Row>({
   estimatedRowHeight = 40,
   label,
   labelledBy,
+  locale,
   ref,
   ...callbacks
 }: DataGridProps<Row>) {
@@ -675,17 +685,14 @@ export function DataGrid<Row>({
     [view.pageIndex, pagination.pageSize],
   );
 
-  /**
-   * What a column is called in an announcement. `label` carries whatever a
-   * `headerTemplate` returned, which need not be text at all, so the field
-   * path stands in whenever it is not.
-   */
+  /** What a column is called in an announcement — see `resolveColumnHeaderText`. */
   function columnName(columnId: string): string {
-    const entry = view.columns.find((candidate) => candidate.id === columnId);
-    if (entry === undefined) {
-      return columnId;
-    }
-    return typeof entry.label === "string" ? entry.label : entry.column.field;
+    const entry = view.dataColumns.find(
+      (candidate) => candidate.id === columnId,
+    );
+    return entry === undefined
+      ? columnId
+      : resolveColumnHeaderText(entry.column);
   }
 
   /**
@@ -1258,6 +1265,7 @@ export function DataGrid<Row>({
               virtualRange={virtualized ? virtualizer : null}
               infiniteScroll={infiniteScroll}
               sentinelRef={sentinelRef}
+              locale={locale}
             />
           </table>
         </div>
@@ -1276,6 +1284,7 @@ export function DataGrid<Row>({
               aggregates={activeAggregates}
               results={view.grandTotal}
               rows={view.rows.map((entry) => entry.row)}
+              locale={locale}
             />
           </table>
         )}

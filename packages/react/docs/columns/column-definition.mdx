@@ -13,8 +13,11 @@ Every entry in `columns` is a `ColumnDefinition<Row>`, the same shape `defineCol
 | `id`                    | `string`                                                                                                      | `field`                          | Stable identity for state keyed by this column. Needed when two columns render the same field differently.                                          |
 | `type`                  | `"dateTime" \| "date" \| "time" \| "number" \| "string" \| "boolean" \| "decimal" \| "currency" \| "percent"` | `"string"`                       | The value type of this column's cells.                                                                                                              |
 | `alignment`             | `"left" \| "center" \| "right"`                                                                               | `"left"` (`"right"` for numbers) | Alignment of this column's cells.                                                                                                                   |
+| `header`                | `string`                                                                                                      | the field path                   | The column's name as plain text. The header shows it when there is no `headerTemplate`; announcements use it either way.                            |
+| `format`                | `Intl.NumberFormatOptions \| Intl.DateTimeFormatOptions`                                                      |                                  | How this column's values read as text, with the grid's `locale`. See [formatting values](#formatting-values).                                       |
+| `valueFormatter`        | `(value: unknown, row: Row \| undefined) => string`                                                           |                                  | Turns a value into its text, in place of `format` and `type`. See [formatting values](#formatting-values).                                          |
 | `headerTemplate`        | `Node \| (() => Node)`                                                                                        |                                  | Header content, or a function returning it at render time. See [column templates](/docs/react/column-templates).                                    |
-| `cellTemplate`          | `(context: CellTemplateContext<Row>) => Node`                                                                 |                                  | Renders this column's cells in place of the raw value. See [column templates](/docs/react/column-templates).                                        |
+| `cellTemplate`          | `(context: CellTemplateContext<Row>) => Node`                                                                 |                                  | Renders this column's cells in place of the formatted value. See [column templates](/docs/react/column-templates).                                  |
 | `footerTemplate`        | `(context: FooterTemplateContext<Row>) => Node`                                                               |                                  | Renders this column's own aggregate result in a group header or the grand-total footer. See [aggregate functions](/docs/react/aggregate-functions). |
 | `width`                 | `number`                                                                                                      |                                  | Width in px this column starts at. See [column resizing](/docs/react/column-resizing).                                                              |
 | `minWidth` / `maxWidth` | `number`                                                                                                      |                                  | Bounds a resize may not drag past. See [column resizing](/docs/react/column-resizing).                                                              |
@@ -27,6 +30,41 @@ Every entry in `columns` is a `ColumnDefinition<Row>`, the same shape `defineCol
 | `wrap`                  | `{ header?, cells? }`                                                                                         | `all off`                        | Lets this column's header and/or cell text wrap onto multiple lines instead of eliding to one.                                                      |
 | `headerClassName`       | `string`                                                                                                      |                                  | Extra class names appended to this column's `th`.                                                                                                   |
 | `cellClassName`         | `string`                                                                                                      |                                  | Extra class names appended to this column's `td`, on every row.                                                                                     |
+
+## Formatting values
+
+A column with no `cellTemplate` shows its value as text, and its aggregates in the footer and group headers read the same way. The value's kind picks how, and the column's `type` refines it:
+
+- **Dates** go through `Intl.DateTimeFormat`: the date alone for `type: "date"`, the time alone for `"time"`, both otherwise.
+- **Numbers** in a `number`, `decimal`, `currency` or `percent` column go through `Intl.NumberFormat`. A `currency` column shows a symbol once `format.currency` names one, and two fraction digits until then; a `percent` column reads `0.25` as 25%. A number in any other column is shown as it is, so a numeric id stays `1001`.
+- **Booleans** read `true` / `false`; `null` and `undefined` leave the cell empty.
+
+`format` takes the options of whichever `Intl` formatter applies, and the grid's [`locale`](/docs/react/data-grid#props) picks the language:
+
+```tsx
+const columns: readonly ColumnDefinition<Row>[] = [
+  { field: "Name", header: "Product" },
+  { field: "Price", type: "currency", format: { currency: "EUR" } },
+  { field: "Shipped", type: "date", format: { dateStyle: "medium" } },
+  { field: "Margin", type: "percent", format: { maximumFractionDigits: 1 } },
+];
+
+<DataGrid columns={columns} dataSource={rows} locale="de-DE" />;
+// Price reads "1.234,50 €", Shipped "15.03.2024", Margin "12,5 %"
+```
+
+Number options are laid over the type's defaults, so `{ maximumFractionDigits: 0 }` on a currency column keeps its symbol. Date options replace the defaults, since `dateStyle` cannot be combined with individual fields.
+
+`valueFormatter` decides the text outright, for anything `Intl` cannot express. It receives the row too — `undefined` when the value is an aggregate result or a group's value, which belong to no single row:
+
+```tsx
+{
+  field: "Weight",
+  valueFormatter: (value) => `${String(value)} kg`,
+}
+```
+
+A `count` or `countDistinct` aggregate is a number of rows rather than a value from the column, so it always reads as a plain number. The same text is what `formatCellValue` in `@gridkitjs/core` returns, for building it outside the grid. Reach for a [`cellTemplate`](/docs/react/column-templates) when a cell needs markup — a link, a badge, a conditional style — rather than different text.
 
 ## See also
 
