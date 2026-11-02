@@ -6,7 +6,7 @@ import useGridSnapshot from "./useGridSnapshot";
 const FALLBACK_SORT: ColumnSortState = [];
 
 /**
- * Reactive column-sort state read off a mounted `DataGridComponent`'s `ref`,
+ * Reactive column-sort state read off a mounted `DataGrid`'s `ref`,
  * for a sort indicator living outside the grid's own DOM.
  *
  * `DataGridApi` has no sort-mutating action today — sort stays uncontrolled

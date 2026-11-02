@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import {
-  DataGridComponent,
+  DataGrid,
   type DataGridApi,
   type DataGridProps,
 } from "@gridkitjs/react";
@@ -21,7 +21,7 @@ export interface ImperativeApiGridProps<Row extends RowWithId> extends Omit<
 }
 
 /**
- * A test-only harness for `DataGridComponent`'s `ref` prop. Playwright CT's
+ * A test-only harness for `DataGrid`'s `ref` prop. Playwright CT's
  * function-prop bridge only supports fire-and-forget async handlers — the
  * same limitation `RowIdentifiedGrid` and `ButtonCellGrid` work around for
  * `getRowId`/`cellTemplate` — so a spec can't pass a `ref` in directly and
@@ -88,11 +88,7 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         data-testid="scroll-container"
         style={{ maxHeight: 160, overflow: "auto" }}
       >
-        <DataGridComponent
-          {...props}
-          getRowId={(row) => row.id}
-          ref={gridRef}
-        />
+        <DataGrid {...props} getRowId={(row) => row.id} ref={gridRef} />
       </div>
       <button
         type="button"

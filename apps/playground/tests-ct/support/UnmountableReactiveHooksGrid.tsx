@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import {
-  DataGridComponent,
+  DataGrid,
   usePaginationState,
   type DataGridApi,
   type DataGridProps,
@@ -34,7 +34,7 @@ export default function UnmountableReactiveHooksGrid<Row extends RowWithId>(
 
   return (
     <div>
-      <DataGridComponent {...props} getRowId={(row) => row.id} ref={gridRef} />
+      <DataGrid {...props} getRowId={(row) => row.id} ref={gridRef} />
       {mounted && (
         <PaginationReadout
           gridRef={gridRef as React.RefObject<DataGridApi<RowWithId> | null>}

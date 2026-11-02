@@ -86,14 +86,16 @@ export function tabIndexFor(
 }
 
 /**
- * The cell at a coordinate, found through the header or body table's own row
- * and cell collections rather than a selector. Each table still has its own
- * real `<thead>`/`<tbody>`, so `.tHead`/`.tBodies` resolve the same way they
- * did against the one shared table before the header/body split — just
- * scoped to a smaller table each.
+ * The cell at a coordinate. The header row comes from the header table's own
+ * `.tHead`; a body row is looked up by its `data-gridkit-row-index` rather
+ * than by position in `.tBodies[0].rows`, because under virtualization the
+ * body holds only a slice of the rows, behind a leading spacer `<tr>` — once
+ * the window scrolls, a DOM position no longer matches the row's index in
+ * the full array and addresses some other mounted row, or none. `GridBody`'s
+ * `cellFrom` reads the same attribute for the same reason.
  *
- * Ids can hold anything a consumer's data holds, and an attribute selector
- * built from one would have to escape it; positions need no quoting.
+ * The attribute holds a plain integer, so a selector built from it needs no
+ * escaping, unlike one built from a consumer-supplied row id.
  *
  * `columnIndex` is clamped to the row's own last cell rather than read
  * directly: a group-header row renders one `<td colSpan>` regardless of
@@ -109,7 +111,9 @@ function cellAt(
   const row =
     focus.rowIndex === HEADER_ROW
       ? (headerTable?.tHead?.rows[0] ?? null)
-      : (bodyTable?.tBodies[0]?.rows[focus.rowIndex] ?? null);
+      : (bodyTable?.tBodies[0]?.querySelector<HTMLTableRowElement>(
+          `:scope > tr[data-gridkit-row-index="${String(focus.rowIndex)}"]`,
+        ) ?? null);
   if (row === null) {
     return null;
   }
@@ -154,13 +158,23 @@ export default function useGridNavigation({
   );
 
   /**
-   * Whether the browser's focus still has to be moved to match. Without it
-   * every render would pull focus into the grid, including the first.
+   * The move the browser's focus still has to follow, or `null` once it has.
+   * Without it every render would pull focus into the grid, including the
+   * first.
+   *
+   * Holds the very `stored` object `focusCell` wrote rather than a plain flag,
+   * so only the effect run that belongs to that move can act on it. Under
+   * virtualization a scroll-driven range update can commit just before a key
+   * press, and React flushes that render's still-queued effect — closed over
+   * the previous focus — after the press has already marked a new move
+   * pending. With a flag, that stale run found its own (still mounted) cell,
+   * focused it and cleared the flag, so the new move's own run returned early
+   * and never scrolled its row into range.
    */
-  const pending = useRef(false);
+  const pendingMove = useRef<GridFocus | null>(null);
 
   useEffect(() => {
-    if (!pending.current) {
+    if (pendingMove.current !== stored) {
       return;
     }
     const cell = cellAt(headerTableRef.current, bodyTableRef.current, {
@@ -168,7 +182,7 @@ export default function useGridNavigation({
       columnIndex: focus.columnIndex,
     });
     if (cell !== null) {
-      pending.current = false;
+      pendingMove.current = null;
       // Focusing the cell the browser already sits on is a no-op, which is
       // what makes one method serve both a key press and a cell reporting a
       // click.
@@ -178,7 +192,7 @@ export default function useGridNavigation({
 
     // The target row isn't mounted — under virtualization, that means it's
     // outside the current window rather than an actual failure. Ask the
-    // virtualizer to bring it into range; `pending.current` stays `true`, so
+    // virtualizer to bring it into range; `pendingMove` stays set, so
     // this same effect retries once the range below changes and the row
     // mounts. A grid with virtualization off (or a row genuinely out of
     // bounds even for it) has nothing further to try, so the pending move is
@@ -192,10 +206,11 @@ export default function useGridNavigation({
       virtualRange.scrollToIndex(focus.rowIndex);
       return;
     }
-    pending.current = false;
+    pendingMove.current = null;
   }, [
     headerTableRef,
     bodyTableRef,
+    stored,
     focus.rowIndex,
     focus.columnIndex,
     virtualRange,
@@ -234,7 +249,7 @@ export default function useGridNavigation({
     ) {
       return;
     }
-    pending.current = true;
+    pendingMove.current = next;
     setStored(next);
   }
 

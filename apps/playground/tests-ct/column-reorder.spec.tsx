@@ -4,7 +4,7 @@
 import type { Page } from "@playwright/test";
 import type { MountResult } from "@playwright/experimental-ct-react";
 import type { ColumnDefinition, ColumnOrderEvent } from "@gridkitjs/core";
-import { DataGridComponent } from "@gridkitjs/react";
+import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
 
@@ -60,7 +60,7 @@ test("a pointer move under the 4px threshold stays a click, not a drag", async (
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(2)}
       label="Threshold"
@@ -82,7 +82,7 @@ test("crossing the drag threshold shows a ghost portalled to document.body, not 
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(2)}
       label="Ghost"
@@ -117,7 +117,7 @@ test("dragging over a column's first half marks it drop-before; the last column'
   ];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={fourColumns}
       dataSource={buildRows(2)}
       label="Drop zones"
@@ -155,7 +155,7 @@ test("Escape mid-drag cancels: order unchanged, onColumnOrderChange never called
   const events: ColumnOrderEvent[] = [];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(2)}
       label="Cancel"
@@ -190,7 +190,7 @@ test("dropping a column back into the gap it already occupies is a no-op", async
   const events: ColumnOrderEvent[] = [];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(2)}
       label="Same gap"
@@ -218,7 +218,7 @@ test("a real drop calls onColumnOrderChange, announces the new position, and kee
   const events: ColumnOrderEvent[] = [];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(2)}
       label="Real drop"
@@ -263,7 +263,7 @@ test("Ctrl+Arrow moves a middle column one place; the first column leftward and 
   const events: ColumnOrderEvent[] = [];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(2)}
       label="Keyboard reorder"
@@ -300,7 +300,7 @@ test("a column with reorderable: false does nothing on Ctrl+Arrow, not even move
   const events: ColumnOrderEvent[] = [];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={mixedColumns}
       dataSource={buildRows(2)}
       label="Locked column"

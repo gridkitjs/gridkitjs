@@ -1,4 +1,4 @@
-import { DataGridComponent } from "@gridkitjs/react";
+import { DataGrid } from "@gridkitjs/react";
 
 interface Row {
   Id: number;
@@ -19,7 +19,7 @@ const rows: Row[] = Array.from({ length: 24 }, (_unused, index) => ({
  */
 export function CustomPagerGrid() {
   return (
-    <DataGridComponent
+    <DataGrid
       columns={[
         { field: "Id", width: 80 },
         { field: "Name", width: 160 },

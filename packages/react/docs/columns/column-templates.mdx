@@ -13,7 +13,7 @@ Start from defineColumnsFromRows for the columns you don't need to customize, th
 
 ```ts
 import { defineColumnsFromRows } from "@gridkitjs/core";
-import { DataGridComponent, type ColumnDefinition } from "@gridkitjs/react";
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -35,7 +35,7 @@ const columns: readonly ColumnDefinition<Row>[] = [
   },
 ];
 
-<DataGridComponent columns={columns} dataSource={rows} borders="horizontal" />;
+<DataGrid columns={columns} dataSource={rows} borders="horizontal" />;
 ```
 
 ## The `cellTemplate` context

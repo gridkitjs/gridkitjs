@@ -105,7 +105,7 @@ export type CellSelectionChangeEvent<Row> = CoreCellSelectionChangeEvent<
 >;
 
 /**
- * Imperative handle for a mounted `DataGridComponent`, reached via its `ref`
+ * Imperative handle for a mounted `DataGrid`, reached via its `ref`
  * prop. Read-plus-standard-actions: getters mirror the grid's live state,
  * and the actions are the ones every grid ref carries (focus, clear/select
  * all, scroll-to). Sizing, order, sort, and selection stay uncontrolled via
@@ -502,7 +502,7 @@ export interface DataGridProps<Row> extends SelectionCallbacks<Row> {
   ref?: Ref<DataGridApi<Row>> | undefined;
 }
 
-export function DataGridComponent<Row>({
+export function DataGrid<Row>({
   dataSource,
   columns,
   getRowId,
@@ -757,7 +757,7 @@ export function DataGridComponent<Row>({
   useEffect(() => {
     if (virtualized && height === undefined) {
       console.error(
-        "DataGridComponent: `virtualized` has no effect without `height` — a body with no bounded height has no viewport to window rows against.",
+        "DataGrid: `virtualized` has no effect without `height` — a body with no bounded height has no viewport to window rows against.",
       );
     }
   }, [virtualized, height]);
@@ -766,7 +766,7 @@ export function DataGridComponent<Row>({
   useEffect(() => {
     if (paginated && hasInfiniteScroll) {
       console.error(
-        "DataGridComponent: `paginated` and `infiniteScroll` are mutually exclusive — only `paginated` takes effect while both are set.",
+        "DataGrid: `paginated` and `infiniteScroll` are mutually exclusive — only `paginated` takes effect while both are set.",
       );
     }
   }, [paginated, hasInfiniteScroll]);
@@ -1130,7 +1130,7 @@ export function DataGridComponent<Row>({
    * a re-render *before* that bail-out check runs, not after, so notifying
    * on a render that changed nothing here still forces the subscribing
    * component to re-render — and if that component also renders this same
-   * `DataGridComponent` as a plain (non-memoized) sibling, its own re-render
+   * `DataGrid` as a plain (non-memoized) sibling, its own re-render
    * re-runs this very effect, forever, even though no value below ever
    * actually changes. Gating on the dependency array is what breaks that
    * cycle, not the listener-side check.

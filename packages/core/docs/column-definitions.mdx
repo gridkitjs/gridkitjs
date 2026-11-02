@@ -32,11 +32,11 @@ defineColumnsFromRows inspects your row data and infers a type and alignment per
 
 ```ts
 import { defineColumnsFromRows } from "@gridkitjs/core";
-import { DataGridComponent } from "@gridkitjs/react";
+import { DataGrid } from "@gridkitjs/react";
 
 const columns = defineColumnsFromRows(rows);
 
-<DataGridComponent columns={columns} dataSource={rows} borders="horizontal" />;
+<DataGrid columns={columns} dataSource={rows} borders="horizontal" />;
 ```
 
 | Function                          | Type                               | Description                                                                                     |

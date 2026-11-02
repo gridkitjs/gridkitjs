@@ -12,7 +12,7 @@ description: "Splitting rows into pages with paginated, defaultPagination, and p
 </LiveExampleFrame>
 
 ```ts
-<DataGridComponent
+<DataGrid
   columns={columns}
   dataSource={rows}
   paginated
@@ -29,7 +29,7 @@ Off by default, matching `sortableColumns`'s convention. `defaultPagination` see
 When grouping and pagination are both on, `pageSize` counts top-level groups, not leaf rows — a group is never split across a page boundary. This is the same behavior ag-Grid Enterprise and Excel's own "page break between groups" option use, because a group header on one page and its remaining rows on the next reads as broken, not as a smaller page.
 
 ```ts
-<DataGridComponent
+<DataGrid
   columns={columns}
   dataSource={rows}
   groupableColumns
@@ -70,7 +70,7 @@ To suppress the built-in pager while keeping row-windowing and the imperative AP
 `pager={{ variant: "numbered" }}` swaps the "Page X of Y" display for a row of page-number buttons — `[Prev][1][2][3]…[n][Next]` — instead of the default `"compact"` display:
 
 ```ts
-<DataGridComponent
+<DataGrid
   columns={columns}
   dataSource={rows}
   paginated
@@ -90,7 +90,7 @@ Each page button carries `aria-label="Page N"`, and the active page's button car
 Reach for `template` only when `pager.variant: "numbered"` genuinely doesn't fit — it already gives you `[Prev][1][2][3]…[n][Next]` with no markup of your own to write.
 
 ```ts
-<DataGridComponent
+<DataGrid
   columns={columns}
   dataSource={rows}
   paginated
@@ -130,12 +130,12 @@ Reach for `template` only when `pager.variant: "numbered"` genuinely doesn't fit
 
 ## Building a pager outside the grid's own tree
 
-`pager.template` only reaches the built-in pager's own DOM slot — `DataGridComponent` still renders it, so it's for replacing that one widget's markup, not for a toolbar or sidebar living elsewhere on the page. `usePaginationState` covers that case: it subscribes to the grid's pagination state through its `ref`, so a component anywhere in the tree stays current with no `on*Change` prop to forward and no polling.
+`pager.template` only reaches the built-in pager's own DOM slot — `DataGrid` still renders it, so it's for replacing that one widget's markup, not for a toolbar or sidebar living elsewhere on the page. `usePaginationState` covers that case: it subscribes to the grid's pagination state through its `ref`, so a component anywhere in the tree stays current with no `on*Change` prop to forward and no polling.
 
 ```ts
 import { useRef } from "react";
 import {
-  DataGridComponent,
+  DataGrid,
   usePaginationState,
   type DataGridApi,
 } from "@gridkitjs/react";
@@ -160,7 +160,7 @@ function App() {
   return (
     <>
       <Toolbar gridRef={gridRef} />
-      <DataGridComponent ref={gridRef} paginated columns={columns} dataSource={rows} />
+      <DataGrid ref={gridRef} paginated columns={columns} dataSource={rows} />
     </>
   );
 }

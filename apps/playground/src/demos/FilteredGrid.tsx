@@ -1,5 +1,5 @@
 import type { FilterState } from "@gridkitjs/core";
-import { DataGridComponent } from "@gridkitjs/react";
+import { DataGrid } from "@gridkitjs/react";
 import { columns, rows, type Row } from "./applicationCosts";
 
 /**
@@ -44,7 +44,7 @@ export function FilteredGrid() {
 ]`}
       </pre>
       <div className="mt-2">
-        <DataGridComponent
+        <DataGrid
           columns={columns}
           dataSource={rows}
           getRowId={(row) => String(row.Id)}

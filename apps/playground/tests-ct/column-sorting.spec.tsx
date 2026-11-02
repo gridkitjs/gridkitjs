@@ -3,9 +3,10 @@
 // file for why.
 import type { MountResult } from "@playwright/experimental-ct-react";
 import type { ColumnDefinition, ColumnSortEvent } from "@gridkitjs/core";
-import { DataGridComponent } from "@gridkitjs/react";
+import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
+import RowIdentifiedGrid from "./support/RowIdentifiedGrid";
 
 interface Row {
   id: string;
@@ -48,7 +49,7 @@ test("a click cycles a column: unsorted -> ascending -> descending -> cleared", 
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows()}
       label="Cycle"
@@ -76,7 +77,7 @@ test("a plain click on a different column replaces the sort; Shift-click stacks 
   const events: ColumnSortEvent[] = [];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows()}
       label="Replace vs stack"
@@ -112,7 +113,7 @@ test("Shift-click cycles a stacked column's own direction in place, and clearing
   const events: ColumnSortEvent[] = [];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows()}
       label="Stack cycle"
@@ -148,7 +149,7 @@ test("a priority badge shows only once two or more columns are stacked", async (
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows()}
       label="Priority"
@@ -174,7 +175,7 @@ test("a priority badge shows only once two or more columns are stacked", async (
 test("every toggle state renders an svg glyph", async ({ mount }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows()}
       label="Glyph"
@@ -197,7 +198,7 @@ test("Alt+ArrowUp toggles like a click, and Alt+Shift+ArrowUp stacks like a Shif
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows()}
       label="Keyboard"
@@ -224,7 +225,7 @@ test("the single tab stop survives a sort and stays in bounds", async ({
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows()}
       label="Focus survives"
@@ -244,7 +245,7 @@ test("the live region announces a sort, a stack, and a clear", async ({
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows()}
       label="Announce"
@@ -271,7 +272,7 @@ test("sortableColumns is off by default: no toggle renders, and Alt+ArrowUp does
   const events: ColumnSortEvent[] = [];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows()}
       label="Off by default"
@@ -299,7 +300,7 @@ test("a column's own sortable overrides the grid-level default, in both directio
   ];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={mixedColumns}
       dataSource={buildRows()}
       label="Per-column override"
@@ -331,7 +332,7 @@ test("sorts through a dotted field path", async ({ mount }) => {
   ];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={nestedColumns}
       dataSource={rows}
       label="Dotted path"
@@ -358,7 +359,7 @@ test("clicking the sort toggle on a grid that is also reorderableColumns sorts r
   // of the toggle, so the click is read as nothing rather than a sort.
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows()}
       label="Sortable and reorderable"
@@ -379,13 +380,12 @@ test("row selection is preserved by identity across a sort that moves rows to ne
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <RowIdentifiedGrid
       columns={columns}
       dataSource={buildRows()}
       label="Selection survives"
       sortableColumns
       selectable={{ rows: "multiple" }}
-      getRowId={(row) => row.id}
     />,
   );
   // Charlie starts first; select it, then sort by name so it moves last.

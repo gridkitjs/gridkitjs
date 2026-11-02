@@ -2,7 +2,7 @@
 // ./support/coverage rather than directly from the CT package — see that
 // file for why.
 import type { AggregateState, ColumnDefinition } from "@gridkitjs/core";
-import { DataGridComponent } from "@gridkitjs/react";
+import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
 import ImperativeApiGrid from "./support/ImperativeApiGrid";
@@ -35,7 +35,7 @@ test.describe("scrollable layout", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <DataGrid
         columns={columns}
         dataSource={buildRows(50)}
         label="Scrollable"
@@ -82,7 +82,7 @@ test.describe("scrollable layout", () => {
     ];
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <DataGrid
         columns={wideColumns}
         dataSource={buildRows(3)}
         label="Wide"
@@ -142,7 +142,7 @@ test.describe("scrollable layout", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <DataGrid
         columns={columns}
         dataSource={buildRows(50)}
         label="No height"

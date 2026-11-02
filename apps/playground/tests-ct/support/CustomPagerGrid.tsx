@@ -1,5 +1,5 @@
 import {
-  DataGridComponent,
+  DataGrid,
   type DataGridProps,
   type PagerTemplateContext,
 } from "@gridkitjs/react";
@@ -9,7 +9,7 @@ interface RowWithId {
 }
 
 /**
- * `pager.template` is called synchronously by `DataGridComponent` during
+ * `pager.template` is called synchronously by `DataGrid` during
  * render — the same cross-process bridge limitation documented on
  * `RowIdentifiedGrid` for `getRowId` — so defining it here keeps it
  * browser-side rather than crossing the bridge from a spec file.
@@ -23,7 +23,7 @@ export default function CustomPagerGrid<Row extends RowWithId>(
   const { pagerTemplate = "custom", ...rest } = props;
 
   return (
-    <DataGridComponent
+    <DataGrid
       {...rest}
       getRowId={(row) => row.id}
       pager={{

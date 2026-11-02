@@ -1,4 +1,7 @@
-// Framework-agnostic grid logic: sorting, filtering, paging will live here so it stays testable without a DOM.
+// Framework-agnostic grid logic: column inference, sizing, ordering, selection,
+// sorting, the filtering engine, grouping, aggregates, paging, virtualization
+// math and keyboard navigation. Kept free of React and the DOM so it is
+// testable in Node and reusable from any renderer.
 export type {
   AggregateFn,
   AggregateResults,

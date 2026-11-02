@@ -3,7 +3,7 @@ title: "Ordering"
 description: "The reordering logic underneath reorderableColumns."
 ---
 
-applyColumnOrder and moveColumnBefore are the functions DataGridComponent calls internally when reorderableColumns is enabled — the first puts a column list in the order an order state gives, the second moves one column id to sit before another. Reach for them directly if you're building a custom grid adapter.
+applyColumnOrder and moveColumnBefore are the functions DataGrid calls internally when reorderableColumns is enabled — the first puts a column list in the order an order state gives, the second moves one column id to sit before another. Reach for them directly if you're building a custom grid adapter.
 
 ## Functions
 
@@ -22,7 +22,7 @@ applyColumnOrder and moveColumnBefore are the functions DataGridComponent calls 
 </LiveExampleFrame>
 
 ```ts
-<DataGridComponent
+<DataGrid
   columns={columns}
   dataSource={rows}
   reorderableColumns

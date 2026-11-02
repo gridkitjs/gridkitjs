@@ -7,7 +7,7 @@ const FALLBACK_AGGREGATES: AggregateResults = new Map();
 
 /**
  * Reactive grand-total aggregate results read off a mounted
- * `DataGridComponent`'s `ref`, for a summary footer or bar living outside
+ * `DataGrid`'s `ref`, for a summary footer or bar living outside
  * the grid's own DOM — mirroring the built-in one the grid renders itself.
  *
  * Read-only: `getAggregates` is already read-only on `DataGridApi`, computed

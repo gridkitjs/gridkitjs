@@ -16,7 +16,7 @@ export interface SelectionStateApi {
 
 /**
  * Reactive row/column/cell selection state read off a mounted
- * `DataGridComponent`'s `ref`, for a "N rows selected" toolbar living
+ * `DataGrid`'s `ref`, for a "N rows selected" toolbar living
  * outside the grid's own DOM. One combined hook rather than three, matching
  * how `useGridSelection` already treats all three as one concern
  * internally.

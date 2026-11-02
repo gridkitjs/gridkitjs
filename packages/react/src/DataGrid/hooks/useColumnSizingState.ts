@@ -6,7 +6,7 @@ import useGridSnapshot from "./useGridSnapshot";
 const FALLBACK_SIZING: ColumnSizingState = {};
 
 /**
- * Reactive column-sizing state read off a mounted `DataGridComponent`'s
+ * Reactive column-sizing state read off a mounted `DataGrid`'s
  * `ref`. Read-only — sizing stays uncontrolled via `defaultColumnSizing`/the
  * grid's own resize handles, the same gap `useColumnSortState` has for sort.
  *

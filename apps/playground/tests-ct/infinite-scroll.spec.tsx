@@ -3,7 +3,7 @@
 // file for why.
 import type { MountResult } from "@playwright/experimental-ct-react";
 import type { ColumnDefinition } from "@gridkitjs/core";
-import { DataGridComponent } from "@gridkitjs/react";
+import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
 import InfiniteScrollGrid from "./support/InfiniteScrollGrid";
@@ -192,7 +192,7 @@ test.describe("infinite scroll", () => {
 
     await mountGrid(
       mount,
-      <DataGridComponent
+      <DataGrid
         columns={columns}
         dataSource={buildRows(10)}
         label="Paginated plus infinite scroll"

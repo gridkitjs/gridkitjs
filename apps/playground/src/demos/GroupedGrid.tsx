@@ -1,4 +1,4 @@
-import { DataGridComponent } from "@gridkitjs/react";
+import { DataGrid } from "@gridkitjs/react";
 import { columns, rows } from "./applicationCosts";
 
 /**
@@ -15,7 +15,7 @@ import { columns, rows } from "./applicationCosts";
 export function GroupedGrid() {
   return (
     <div>
-      <DataGridComponent
+      <DataGrid
         columns={columns}
         dataSource={rows}
         getRowId={(row) => String(row.Id)}
