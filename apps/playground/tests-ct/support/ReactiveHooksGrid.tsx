@@ -6,6 +6,7 @@ import {
   useColumnSizingState,
   useColumnSortState,
   useColumnVisibilityState,
+  useFilterState,
   useGroupByState,
   usePaginationState,
   useSelectionState,
@@ -50,6 +51,7 @@ export default function ReactiveHooksGrid<Row extends RowWithId>(
   const columnSizing = useColumnSizingState(gridRef);
   const columnOrder = useColumnOrderState(gridRef);
   const columnVisibility = useColumnVisibilityState(gridRef);
+  const { filter, setFilter } = useFilterState(gridRef);
 
   return (
     <div>
@@ -68,6 +70,7 @@ export default function ReactiveHooksGrid<Row extends RowWithId>(
           columnSizing,
           columnOrder,
           columnVisibility,
+          filter,
         })}
       </pre>
       <button
@@ -111,6 +114,14 @@ export default function ReactiveHooksGrid<Row extends RowWithId>(
         }}
       >
         reactive-hide-last-column
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          setFilter([{ columnId: "region", query: "East" }]);
+        }}
+      >
+        reactive-filter-east
       </button>
     </div>
   );

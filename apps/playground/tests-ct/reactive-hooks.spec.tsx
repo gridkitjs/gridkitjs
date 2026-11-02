@@ -53,6 +53,7 @@ interface ReactiveStatus {
   columnSizing: Record<string, number>;
   columnOrder: readonly string[];
   columnVisibility: Record<string, boolean>;
+  filter: unknown[];
 }
 
 async function readReactiveStatus(root: MountResult): Promise<ReactiveStatus> {
@@ -389,4 +390,20 @@ test("the reactive hooks don't warn under React Strict Mode's double-render/doub
   expect(warnings.filter((warning) => warning.includes("getSnapshot"))).toEqual(
     [],
   );
+});
+
+test("useFilterState reads the filter and its setFilter filters the grid", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ReactiveHooksGrid columns={columns} dataSource={buildRows()} />,
+  );
+
+  expect((await readReactiveStatus(root)).filter).toEqual([]);
+  await root.getByRole("button", { name: "reactive-filter-east" }).click();
+  await expect
+    .poll(async () => (await readReactiveStatus(root)).filter)
+    .toEqual([{ columnId: "region", query: "East" }]);
+  await expect(root.locator("tbody tr")).toHaveCount(2);
 });
