@@ -51,11 +51,9 @@ export interface ImperativeApiGridProps<Row extends RowWithId> extends Omit<
  * identity rather than its position.
  *
  * Reading state is a separate button from triggering an action, deliberately:
- * an action like `focusCell` or `selectAllRows` only queues a React state
- * update, which isn't visible on `gridRef.current` until after the state
- * setter's own event handler has returned and React has re-rendered. Reading
- * inside the same handler that wrote would return the previous render's
- * value.
+ * `focusCell` still only queues a React state update, which isn't visible on
+ * `gridRef.current` until React has re-rendered, and one `report` button
+ * keeps every read on the same footing whichever action came before it.
  *
  * The grid is wrapped in its own fixed-height, scrollable container (rather
  * than relying on `gridkit-data-grid-viewport`, which only scrolls
