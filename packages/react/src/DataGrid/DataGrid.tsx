@@ -46,6 +46,8 @@ import {
   type ColumnSelectEvent as CoreColumnSelectEvent,
   type ColumnSelectionChangeEvent as CoreColumnSelectionChangeEvent,
   type ColumnsSelectEvent as CoreColumnsSelectEvent,
+  type SelectionCallbacks as CoreSelectionCallbacks,
+  type SelectionDiffEvent,
 } from "@gridkitjs/core";
 import GridColgroup from "./components/GridColgroup";
 import GridHeader from "./components/GridHeader";
@@ -62,7 +64,7 @@ import useGridController, {
   type DataGridController,
 } from "./useGridController";
 import useGridNavigation, { HEADER_ROW } from "./useGridNavigation";
-import useGridSelection, { type SelectionCallbacks } from "./useGridSelection";
+import useGridSelection from "./useGridSelection";
 import useInfiniteScroll from "./useInfiniteScroll";
 import useRowVirtualizer from "./useRowVirtualizer";
 
@@ -100,6 +102,7 @@ export type CellSelectionChangeEvent<Row> = CoreCellSelectionChangeEvent<
   Row,
   ReactNode
 >;
+export type SelectionCallbacks<Row> = CoreSelectionCallbacks<Row, ReactNode>;
 
 /**
  * Imperative handle for a mounted `DataGrid`, reached via its `ref`
@@ -344,14 +347,21 @@ export interface DataGridProps<Row>
   ref?: Ref<DataGridApi<Row>> | undefined;
 }
 
+/** "3 rows selected", for the live region. */
+function countMessage(count: number, noun: string): string {
+  if (count === 0) {
+    return `No ${noun}s selected`;
+  }
+  return count === 1
+    ? `1 ${noun} selected`
+    : `${String(count)} ${noun}s selected`;
+}
+
 export function DataGrid<Row>(props: DataGridProps<Row>) {
   const {
     borders,
     hoverable,
     selectable,
-    defaultRowSelection,
-    defaultColumnSelection,
-    defaultCellSelection,
     resizeMode = "fit",
     columnSizeDefaults,
     onColumnResize,
@@ -365,6 +375,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     paginated = false,
     pager,
     onPaginationChange,
+    onCellSelectionChange,
     infiniteScroll,
     aggregates = NO_AGGREGATES as AggregateState<Row>,
     groupAggregateDisplay = "inline",
@@ -389,15 +400,6 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   const viewportWidth = useElementWidth(viewportRef, resizeMode === "fit");
   const subscribersRef = useRef(new Set<() => void>());
   const [announcement, setAnnouncement] = useState("");
-  const [rowSelection, setRowSelection] = useState<SelectionState>(
-    defaultRowSelection ?? [],
-  );
-  const [columnSelection, setColumnSelection] = useState<SelectionState>(
-    defaultColumnSelection ?? [],
-  );
-  const [cellSelection, setCellSelection] = useState<CellSelectionState>(
-    defaultCellSelection ?? null,
-  );
 
   /**
    * Every slice of grid state, and everything the grid draws, comes from
@@ -412,6 +414,8 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     onGroupByChange: handleGroupByChange,
     onGroupExpansionChange: handleGroupExpansionChange,
     onPaginationChange: handlePaginationChange,
+    onCellSelectionChange: handleCellSelectionChange,
+    onSelectionDiff: handleSelectionDiff,
   });
 
   /**
@@ -570,6 +574,42 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     );
   }
 
+  /**
+   * Announced only for a change touching more than one row or column. A
+   * single selection is already carried by the focused member's own
+   * `aria-selected`, and repeating it here would talk over that. Counted by
+   * id, so rows the change touched off screen — on another page, in a
+   * collapsed group — count too.
+   */
+  function handleSelectionDiff(event: SelectionDiffEvent): void {
+    if (event.added.length + event.removed.length > 1) {
+      announce(
+        countMessage(
+          event.selection.length,
+          event.target === "rows" ? "row" : "column",
+        ),
+      );
+    }
+  }
+
+  /**
+   * Unlike rows and columns, a cell selection is always exactly one cell —
+   * there is no multi-cell range — so it never crosses the count's >1
+   * threshold and the focused cell's own `aria-selected` is the only
+   * feedback a screen-reader user would otherwise get. Announced on every
+   * change that lands on a cell instead.
+   */
+  function handleCellSelectionChange(
+    event: CellSelectionChangeEvent<Row>,
+  ): void {
+    onCellSelectionChange?.(event);
+    if (event.selected !== null) {
+      announce(
+        `${columnName(event.selected.columnId)}, row ${String(event.selected.rowIndex + 1)}, selected`,
+      );
+    }
+  }
+
   const nav = useGridNavigation({
     headerTableRef,
     bodyTableRef,
@@ -720,20 +760,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     setPageSize: controller.setPageSize,
   };
 
-  const selection = useGridSelection<Row>({
-    rows: view.displayDataRows,
-    columns: view.columns,
-    selectable,
-    rowSelection,
-    setRowSelection,
-    columnSelection,
-    setColumnSelection,
-    cellSelection,
-    setCellSelection,
-    callbacks: props,
-    announce,
-    columnName,
-  });
+  const selection = useGridSelection<Row>({ controller, state, selectable });
 
   const multiselectable =
     selection.rowMode === "multiple" || selection.columnMode === "multiple";
@@ -741,7 +768,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   /**
    * Tells `subscribe`'s listeners once a render has drawn a change: to the
    * controller's state or view — whether an action or a prop made it — or to
-   * what React still holds itself (focus, selection).
+   * the focused cell, which React still holds itself.
    *
    * Gated on those values, not run after every render: `useSyncExternalStore`
    * re-renders a subscriber that is notified, and a subscriber that renders
@@ -754,10 +781,10 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     for (const listener of subscribersRef.current) {
       listener();
     }
-  }, [view, state, rowSelection, columnSelection, cellSelection, nav.focus]);
+  }, [view, state, nav.focus]);
 
   /**
-   * No deps array: `nav`, `selection` and `virtualizer` are freshly
+   * No deps array: `nav` and `virtualizer` are freshly
    * constructed every render (none of those hooks memoize their returned
    * API), so the handle has to be rebuilt every render too or its closures
    * would go stale. Grid state is read off the controller at call time.
@@ -787,13 +814,13 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     getPagination: readPagination,
     getPageCount: () => controller.getView().pageCount,
     getAggregates: () => controller.getView().grandTotal,
-    getRowSelection: () => rowSelection,
-    getColumnSelection: () => columnSelection,
-    getCellSelection: () => cellSelection,
+    getRowSelection: () => controller.getState().rowSelection,
+    getColumnSelection: () => controller.getState().columnSelection,
+    getCellSelection: () => controller.getState().cellSelection,
     getFocusedCell: () => nav.focus,
     focusCell: nav.focusCell,
-    clearSelection: selection.clear,
-    selectAllRows: selection.selectAllRows,
+    clearSelection: controller.clearSelection,
+    selectAllRows: controller.selectAllRows,
     expandAllGroups: controller.expandAllGroups,
     collapseAllGroups: controller.collapseAllGroups,
     goToPage: controller.goToPage,
