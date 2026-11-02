@@ -1,6 +1,7 @@
-// Framework-agnostic grid logic: column inference, sizing, ordering, selection,
-// sorting, the filtering engine, grouping, aggregates, paging, the composed
-// view, value formatting, virtualization math and keyboard navigation. Kept
+// Framework-agnostic grid logic: the grid's options, column inference, sizing,
+// ordering, selection, sorting, the filtering engine, grouping, aggregates,
+// paging, the composed view, value formatting, virtualization math and
+// keyboard navigation. Kept
 // free of React and the DOM so it is testable in Node and reusable from any
 // renderer.
 export type {
@@ -76,6 +77,12 @@ export type {
   TextFilterEntry,
   ValueFilterEntry,
 } from "./types";
+export type {
+  Borders,
+  GridOptions,
+  GroupByBarVisibility,
+  HoverableConfig,
+} from "./options";
 export type { KeyShortcutCapabilities } from "./util/grid";
 export {
   accessDotted,
