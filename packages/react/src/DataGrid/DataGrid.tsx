@@ -371,9 +371,9 @@ export interface InfiniteScrollConfig {
   /** Whether a load triggered by `onLoadMore` is still in flight. Suppresses further calls to it until this goes back to `false`. */
   readonly isLoadingMore?: boolean | undefined;
   /**
-   * `IntersectionObserver`'s `rootMargin` — how far from the bottom of the
-   * scrollable body `onLoadMore` fires, ahead of the sentinel actually
-   * scrolling into view. Defaults to `"200px"`.
+   * How far from the bottom of the scrollable body `onLoadMore` fires, ahead
+   * of the sentinel actually scrolling into view, as CSS margins — an
+   * intersection observer's `rootMargin`. Defaults to `"200px"`.
    */
   readonly rootMargin?: string | undefined;
   /** Replaces the built-in "Loading more…" row (`messages.loadingMore`). */
@@ -583,9 +583,10 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   }
 
   const resize = useColumnResize<Row>({
-    // `measureColumnContent` only ever matches `td[data-gridkit-column]`
-    // (never `th`), so the header table has nothing for it to find — the
-    // body table alone was already the effective scope before this split.
+    // `@gridkitjs/dom`'s `measureColumnContent` only ever matches
+    // `td[data-gridkit-column]` (never `th`), so the header table has nothing
+    // for it to find — the body table alone was already the effective scope
+    // before this split.
     tableRef: bodyTableRef,
     controller,
     columnSizeDefaults,
