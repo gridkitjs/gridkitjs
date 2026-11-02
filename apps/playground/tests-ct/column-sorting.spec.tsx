@@ -6,6 +6,7 @@ import type { ColumnDefinition, ColumnSortEvent } from "@gridkitjs/core";
 import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
+import RowIdentifiedGrid from "./support/RowIdentifiedGrid";
 
 interface Row {
   id: string;
@@ -379,13 +380,12 @@ test("row selection is preserved by identity across a sort that moves rows to ne
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGrid
+    <RowIdentifiedGrid
       columns={columns}
       dataSource={buildRows()}
       label="Selection survives"
       sortableColumns
       selectable={{ rows: "multiple" }}
-      getRowId={(row) => row.id}
     />,
   );
   // Charlie starts first; select it, then sort by name so it moves last.
