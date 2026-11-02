@@ -209,6 +209,8 @@ export {
   selectAllState,
   visibleFilterOptions,
 } from "./util/filterEditor";
+export type { GridMessages } from "./messages";
+export { defaultMessages, resolveMessages } from "./messages";
 export type { FormatLocale } from "./util/format";
 export { formatAggregateValue, formatCellValue } from "./util/format";
 export type { RowHeights, VisibleRange } from "./util/virtualization";

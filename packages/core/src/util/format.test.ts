@@ -186,6 +186,29 @@ describe("formatCellValue", () => {
     expect(formatCellValue(false, column(undefined))).toBe("false");
   });
 
+  test("prints a boolean in the messages' words when given", () => {
+    const messages = { booleanTrue: "ja", booleanFalse: "nein" };
+    expect(
+      formatCellValue(true, column("boolean"), undefined, undefined, messages),
+    ).toBe("ja");
+    expect(
+      formatCellValue(false, column(undefined), "de-DE", undefined, messages),
+    ).toBe("nein");
+  });
+
+  test("lets valueFormatter claim a boolean over the messages", () => {
+    const yesNo: ColumnDefinition<unknown, unknown> = {
+      field: "flag",
+      valueFormatter: (value) => (value === true ? "yes" : "no"),
+    };
+    expect(
+      formatCellValue(true, yesNo, undefined, undefined, {
+        booleanTrue: "ja",
+        booleanFalse: "nein",
+      }),
+    ).toBe("yes");
+  });
+
   test("writes a plain object or array as JSON", () => {
     expect(formatCellValue({ tag: "x" }, column(undefined))).toBe(
       '{"tag":"x"}',

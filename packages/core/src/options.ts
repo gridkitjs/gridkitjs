@@ -33,6 +33,7 @@ import type {
   SelectableConfig,
   SelectionState,
 } from "./types";
+import type { GridMessages } from "./messages";
 import type { FormatLocale } from "./util/format";
 
 /** Which cell borders a grid draws. */
@@ -391,6 +392,13 @@ export interface GridOptions<Row> {
    * runtime's locale, and the rest print as they always have.
    */
   locale?: FormatLocale;
+  /**
+   * The grid's own strings, replacing its English key by key — the pager's
+   * buttons, the group-by bar, the loading row, boolean and blank values,
+   * and every live-region announcement. Keys left out keep their default.
+   * Formatting is `locale`'s, not this.
+   */
+  messages?: Partial<GridMessages> | undefined;
 }
 
 /**
