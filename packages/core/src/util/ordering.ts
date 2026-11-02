@@ -1,4 +1,9 @@
-import type { ColumnDefinition, ColumnOrderState, DropSide } from "../types";
+import type {
+  ColumnDefinition,
+  ColumnOrderState,
+  DataColumn,
+  DropSide,
+} from "../types";
 import { getColumnId } from "./grid";
 
 /**
@@ -27,6 +32,23 @@ export function applyColumnOrder<Row, Node>(
     ...listed,
     ...columns.filter((column) => !taken.has(getColumnId(column))),
   ];
+}
+
+/**
+ * `columns` in the order `order` gives, each paired with its id — the
+ * width-free column list the data stages (filter, sort, group, aggregate)
+ * read. Ordered here, ahead of sizing, so every later stage sees the one
+ * already-ordered list and no part of the grid has to know a reorder
+ * happened.
+ */
+export function resolveDataColumns<Row, Node>(
+  columns: readonly ColumnDefinition<Row, Node>[],
+  order: ColumnOrderState,
+): readonly DataColumn<Row, Node>[] {
+  return applyColumnOrder(columns, order).map((column) => ({
+    id: getColumnId(column),
+    column,
+  }));
 }
 
 /**

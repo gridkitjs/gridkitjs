@@ -7,13 +7,14 @@ applyColumnOrder and moveColumnBefore are the functions DataGrid calls internall
 
 ## Functions
 
-| Function                                                     | Type                               | Description                                                                                                                                 |
-| ------------------------------------------------------------ | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `applyColumnOrder(columns, order)`                           | `readonly ColumnDefinition<Row>[]` | Puts columns in the order order gives. Ids it omits keep their position among the definitions and follow those listed.                      |
-| `moveColumnBefore(orderedIds, movedId, beforeId)`            | `ColumnOrderState`                 | Moves one column id to sit before another, or to the end when beforeId is null. Returns the same reference for a move that changes nothing. |
-| `movesColumn(orderedIds, movedId, beforeId)`                 | `boolean`                          | Whether moving movedId in front of beforeId would rearrange anything, for a drop indicator that promises only real moves.                   |
-| `resolveDropBefore(orderedIds, targetId, side)`              | `string \| null`                   | "After C" and "before D" name the same gap — this collapses either side of a drop to the one id it lands in front of.                       |
-| `resolveKeyboardDropTarget(orderedIds, columnId, direction)` | `string \| null \| undefined`      | The beforeId a keyboard nudge (-1 or 1) produces, matching the pointer-drag drop path. undefined means the nudge is a no-op.                |
+| Function                                                     | Type                               | Description                                                                                                                                       |
+| ------------------------------------------------------------ | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `applyColumnOrder(columns, order)`                           | `readonly ColumnDefinition<Row>[]` | Puts columns in the order order gives. Ids it omits keep their position among the definitions and follow those listed.                            |
+| `resolveDataColumns(columns, order)`                         | `readonly DataColumn<Row>[]`       | applyColumnOrder, with each column paired with its id as `{ id, column }` — the width-free list filtering, sorting, grouping and aggregates read. |
+| `moveColumnBefore(orderedIds, movedId, beforeId)`            | `ColumnOrderState`                 | Moves one column id to sit before another, or to the end when beforeId is null. Returns the same reference for a move that changes nothing.       |
+| `movesColumn(orderedIds, movedId, beforeId)`                 | `boolean`                          | Whether moving movedId in front of beforeId would rearrange anything, for a drop indicator that promises only real moves.                         |
+| `resolveDropBefore(orderedIds, targetId, side)`              | `string \| null`                   | "After C" and "before D" name the same gap — this collapses either side of a drop to the one id it lands in front of.                             |
+| `resolveKeyboardDropTarget(orderedIds, columnId, direction)` | `string \| null \| undefined`      | The beforeId a keyboard nudge (-1 or 1) produces, matching the pointer-drag drop path. undefined means the nudge is a no-op.                      |
 
 ## The same logic, in the React grid
 

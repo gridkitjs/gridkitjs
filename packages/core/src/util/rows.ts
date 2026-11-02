@@ -1,5 +1,6 @@
 import type {
   ColumnSortState,
+  DataColumn,
   FilterState,
   ResolvedColumn,
   ResolvedRow,
@@ -26,7 +27,7 @@ export function resolveShownRows<Row>(
   rows: readonly ResolvedRow<Row>[],
   filter: FilterState<Row>,
   sort: ColumnSortState,
-  columns: readonly ResolvedColumn<Row, unknown>[],
+  columns: readonly DataColumn<Row, unknown>[],
 ): readonly ResolvedRow<Row>[] {
   return sortRows(filterRows(rows, filter, columns), sort, columns);
 }

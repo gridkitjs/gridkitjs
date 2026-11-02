@@ -4,10 +4,10 @@ import type {
   AggregateState,
   BuiltInAggregate,
   ColumnDefinition,
+  DataColumn,
   DisplayRow,
   GroupAggregateDisplay,
   GroupByState,
-  ResolvedColumn,
   ResolvedGroupRow,
   ResolvedGroupSummaryRow,
   ResolvedRow,
@@ -71,7 +71,7 @@ function distinctKey(value: unknown): string {
 function reduceBuiltIn<Row>(
   rows: readonly Row[],
   fn: BuiltInAggregate,
-  column: ResolvedColumn<Row, unknown> | undefined,
+  column: DataColumn<Row, unknown> | undefined,
 ): unknown {
   if (fn === "count") {
     return rows.length;
@@ -150,7 +150,7 @@ function keyOf<Row>(spec: AggregateSpec<Row>): string {
 export function computeAggregates<Row>(
   rows: readonly Row[],
   specs: AggregateState<Row>,
-  columns: readonly ResolvedColumn<Row, unknown>[],
+  columns: readonly DataColumn<Row, unknown>[],
 ): AggregateResults {
   const results = new Map<string, unknown>();
   if (specs.length === 0) {
@@ -248,7 +248,7 @@ function appendAggregatedSpan<Row>(
   groupBy: GroupByState,
   byId: ReadonlyMap<string, ColumnDefinition<Row, unknown>>,
   specs: AggregateState<Row>,
-  columns: readonly ResolvedColumn<Row, unknown>[],
+  columns: readonly DataColumn<Row, unknown>[],
   display: GroupAggregateDisplay,
   out: DisplayRow<Row>[],
 ): number {
@@ -313,7 +313,7 @@ export function withGroupAggregates<Row>(
   flatRows: readonly ResolvedRow<Row>[],
   groupBy: GroupByState,
   specs: AggregateState<Row>,
-  columns: readonly ResolvedColumn<Row, unknown>[],
+  columns: readonly DataColumn<Row, unknown>[],
   display: GroupAggregateDisplay = "inline",
 ): readonly DisplayRow<Row>[] {
   if (specs.length === 0) {
