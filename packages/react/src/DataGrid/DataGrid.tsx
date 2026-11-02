@@ -856,7 +856,8 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   /**
    * Tells `subscribe`'s listeners once a render has drawn a change: to the
    * controller's state or view — whether an action or a prop made it — or to
-   * the focused cell, which React still holds itself.
+   * the focused cell, which `@gridkitjs/dom`'s grid focus keeps apart from
+   * the controller.
    *
    * Gated on those values, not run after every render: `useSyncExternalStore`
    * re-renders a subscriber that is notified, and a subscriber that renders
