@@ -158,13 +158,23 @@ export default function useGridNavigation({
   );
 
   /**
-   * Whether the browser's focus still has to be moved to match. Without it
-   * every render would pull focus into the grid, including the first.
+   * The move the browser's focus still has to follow, or `null` once it has.
+   * Without it every render would pull focus into the grid, including the
+   * first.
+   *
+   * Holds the very `stored` object `focusCell` wrote rather than a plain flag,
+   * so only the effect run that belongs to that move can act on it. Under
+   * virtualization a scroll-driven range update can commit just before a key
+   * press, and React flushes that render's still-queued effect — closed over
+   * the previous focus — after the press has already marked a new move
+   * pending. With a flag, that stale run found its own (still mounted) cell,
+   * focused it and cleared the flag, so the new move's own run returned early
+   * and never scrolled its row into range.
    */
-  const pending = useRef(false);
+  const pendingMove = useRef<GridFocus | null>(null);
 
   useEffect(() => {
-    if (!pending.current) {
+    if (pendingMove.current !== stored) {
       return;
     }
     const cell = cellAt(headerTableRef.current, bodyTableRef.current, {
@@ -172,7 +182,7 @@ export default function useGridNavigation({
       columnIndex: focus.columnIndex,
     });
     if (cell !== null) {
-      pending.current = false;
+      pendingMove.current = null;
       // Focusing the cell the browser already sits on is a no-op, which is
       // what makes one method serve both a key press and a cell reporting a
       // click.
@@ -182,7 +192,7 @@ export default function useGridNavigation({
 
     // The target row isn't mounted — under virtualization, that means it's
     // outside the current window rather than an actual failure. Ask the
-    // virtualizer to bring it into range; `pending.current` stays `true`, so
+    // virtualizer to bring it into range; `pendingMove` stays set, so
     // this same effect retries once the range below changes and the row
     // mounts. A grid with virtualization off (or a row genuinely out of
     // bounds even for it) has nothing further to try, so the pending move is
@@ -196,10 +206,11 @@ export default function useGridNavigation({
       virtualRange.scrollToIndex(focus.rowIndex);
       return;
     }
-    pending.current = false;
+    pendingMove.current = null;
   }, [
     headerTableRef,
     bodyTableRef,
+    stored,
     focus.rowIndex,
     focus.columnIndex,
     virtualRange,
@@ -238,7 +249,7 @@ export default function useGridNavigation({
     ) {
       return;
     }
-    pending.current = true;
+    pendingMove.current = next;
     setStored(next);
   }
 
