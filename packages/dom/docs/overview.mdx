@@ -1,0 +1,29 @@
+---
+title: "Overview"
+description: "Framework-free browser behaviours for GridKit renderers: gestures, focus, observers, virtualization, overlays and announcements."
+---
+
+@gridkitjs/dom holds every browser behaviour a grid needs that is not drawing: the live region it reports changes through, and more as they move out of the React package. @gridkitjs/core decides what the grid does and runs without a DOM; @gridkitjs/dom does what needs one, with no framework; a renderer such as @gridkitjs/react draws the markup and attaches these behaviours to it.
+
+You only need this package to write a renderer of your own. @gridkitjs/react depends on it already, so installing that is enough to use the grid.
+
+## Install
+
+```ts
+npm install @gridkitjs/dom
+```
+
+## Live announcer
+
+`createLiveAnnouncer(container?)` adds one visually hidden live region (`role="status"`, `aria-live="polite"`) as the last child of `container` — `document.body` when omitted — and returns `announce(text)` and `destroy()`. The region carries the `gridkit-sr-only` class, which @gridkitjs/theme-tailwind clips to nothing while keeping it in the accessibility tree.
+
+```ts
+import { createLiveAnnouncer } from "@gridkitjs/dom";
+
+const announcer = createLiveAnnouncer(gridElement);
+announcer.announce("Amount, column 2 of 5");
+announcer.announce("Amount, column 2 of 5"); // read out again
+announcer.destroy();
+```
+
+A live region speaks only when its text changes, so `announce` makes a repeat of the last message a change of its own: the same text twice in a row is read twice.
