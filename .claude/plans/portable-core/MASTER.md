@@ -129,8 +129,8 @@ Phases 05, 06 and 07 are independent of each other and may run in any order afte
 
 ## Now
 
-- **In progress:** 01 (part B)
-- **Next:** 01 part C
+- **In progress:** 01 (part C)
+- **Next:** 02
 - **Waiting on the user:** nothing
 
 ## Handoffs
@@ -147,12 +147,30 @@ from, and passes the relevant ones to the next sub-agent.)
 - `AGENTS.md` still says `DataGridComponent` (Tests section) for Part C to rename.
 - Core test files compile without the DOM lib.
 
+### Phase 01 part B
+
+- The flake was real bugs, not timing: (1) spec passed `getRowId` across Playwright CT's
+  function-prop bridge, which yields a placeholder, so every row shared one React key; (2)
+  `cellAt` in `useGridNavigation.ts` found rows by DOM position, wrong under virtualization (now
+  `:scope > tr[data-gridkit-row-index="N"]`); (3) a stale queued effect cleared the one-boolean
+  pending-focus marker (now `pendingMove`, holding the exact stored move). Two `react` patch
+  changesets; a new regression test (199 Playwright tests now).
+- `row-virtualization.spec.tsx` now mounts `support/RowIdentifiedGrid.tsx`, which wraps
+  `DataGridComponent`; rename there in Part C.
+- CT gotcha: function props passed from a spec never return real values in the browser; use the
+  browser-side fixtures under `tests-ct/support/`.
+- On this 16-core machine `--repeat-each 5` is too light to show flakes; `--repeat-each 40
+--workers 16` on a single test does.
+
 ## Decisions to review
 
 (Choices sub-agents made that the user should look at, tagged with their phase.)
 
 - [01 A] `AGENTS.md` Tests: the stale six-spec list was replaced with a "one spec file per area"
   sentence (there are 17 specs now).
+- [01 B] Race (3) has no deterministic regression test; stress runs (80/80 vs 11/40 failing
+  before) are its evidence. Existing `row-virtualization.spec.tsx` mounts were switched to the
+  `RowIdentifiedGrid` fixture (assertions unchanged).
 
 ## Follow-ups
 
@@ -160,7 +178,8 @@ from, and passes the relevant ones to the next sub-agent.)
   `packages/react/README.md` (~line 26) back from `headerTemplate: "Cost"` to `header: "Cost"`.
 - [phase 07] Add `@gridkitjs/dom` to core's ESLint import ban and ban `react` in
   `packages/dom/**` (`eslint.config.mjs`).
-
+- [phase 01 C] `column-sorting.spec.tsx:388` passes `getRowId` inline (placeholder ids); switch
+  it to `RowIdentifiedGrid` while renaming.
 - After this plan (next plans in the roadmap): overlay + menu + commands → context menu →
   toolbar → column chooser; filter UIs (`filterableColumns`, `filterMenu: { ui: "simple" |
 "excel" }`, an `excelFilter` preset) over the Phase 05 state; export model + CSV/JSON + print,
@@ -173,3 +192,4 @@ from, and passes the relevant ones to the next sub-agent.)
 - 2026-11-02 · pre-flight · answered; rename added to phase 01 as Part C
 - 2026-11-02 · phase 01 · started at d2a354f
 - 2026-11-02 · phase 01 part A · done · core lib/lint boundary, use-client banner, doc drift (4ccb606..ea49a1d)
+- 2026-11-02 · phase 01 part B · done · virtualized focus: two react fixes + spec row ids (76cb977..d126be8)
