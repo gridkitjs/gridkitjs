@@ -28,6 +28,7 @@ import {
   type DisplayRow,
   type FilterState,
   type GridOptions,
+  type GridState,
   type GroupByBarVisibility,
   type GroupByEvent,
   type GroupByState,
@@ -49,6 +50,7 @@ import {
   type ColumnsSelectEvent as CoreColumnsSelectEvent,
   type SelectionCallbacks as CoreSelectionCallbacks,
   type SelectionDiffEvent,
+  type SerializedGridState,
 } from "@gridkitjs/core";
 import GridColgroup from "./components/GridColgroup";
 import GridHeader from "./components/GridHeader";
@@ -106,18 +108,17 @@ export type CellSelectionChangeEvent<Row> = CoreCellSelectionChangeEvent<
 export type SelectionCallbacks<Row> = CoreSelectionCallbacks<Row, ReactNode>;
 
 /**
- * Imperative handle for a mounted `DataGrid`, reached via its `ref`
- * prop. Read-plus-standard-actions: getters mirror the grid's live state,
- * and the actions are the ones every grid ref carries (focus, clear/select
- * all, scroll-to). State is otherwise set through props — a `default*` to
- * start from, or a controlled value such as `columnSort` to hold it
- * yourself. `subscribe` doesn't change that: it's a
- * read/notify channel for reacting to state that already lives here, not a
- * write path — nothing becomes newly *driven* through the ref by its
- * existence. Column visibility is the one exception: the grid has no
- * built-in control for showing or hiding a column, so `showColumns` and
- * `hideColumns` are how it changes. See `packages/react/src/DataGrid/hooks/`
- * for the public hooks built on it.
+ * Imperative handle for a mounted `DataGrid`, reached via its `ref` prop:
+ * the grid's DOM nodes, getters for its live state, the actions every grid
+ * ref carries (focus, select all, scroll-to), and a setter for every slice of
+ * state, for a toolbar, a saved layout or a test to drive it from outside.
+ *
+ * Every getter reads the grid's state at call time, so a read straight after
+ * an action sees its result. Every setter changes the grid as the user's own
+ * interaction would: it fires the slice's `on*Change` callback, and, for a
+ * slice held through a controlled prop, only asks. `subscribe` is the
+ * notify channel for state that changes; see
+ * `packages/react/src/DataGrid/hooks/` for the public hooks built on it.
  */
 export interface DataGridApi<Row> {
   /** The grid's scrollable viewport element. */
@@ -179,6 +180,21 @@ export interface DataGridApi<Row> {
   getCellSelection(): CellSelectionState;
   /** The cell currently holding the grid's single tab stop. */
   getFocusedCell(): { rowIndex: number; columnIndex: number };
+  /**
+   * Every slice of state as the grid applies it, in one object — what
+   * `restoreState` takes back. Pass it through `serializeGridState` before
+   * saving it as JSON.
+   */
+  getState(): GridState<Row>;
+  /**
+   * Puts back state saved earlier, whole or in part — from `getState()`, or
+   * from `serializeGridState` and back through JSON. Each slice given is set
+   * as its setter would set it, firing its callback when it changes; the
+   * grid re-renders once.
+   */
+  restoreState(
+    saved: Partial<GridState<Row>> | Partial<SerializedGridState<Row>>,
+  ): void;
 
   focusCell(rowIndex: number, columnIndex: number): void;
   clearSelection(): void;
@@ -216,10 +232,40 @@ export interface DataGridApi<Row> {
   /**
    * Replaces the filter, the way a filter UI would, and sends an uncontrolled
    * grid back to its first page. Reports one `onFilterChange`, and none when
-   * `filter` holds the same entries as the current one. With a controlled
-   * `filter` prop it only asks, as any change does.
+   * `filter` is equal to the current one. With a controlled `filter` prop it
+   * only asks, as any change does.
    */
   setFilter(filter: FilterState<Row>): void;
+  /**
+   * Replaces the sort. Reports one `onColumnSortChange`, naming the first
+   * column whose place or direction changed, and none for an equal sort —
+   * the rule every setter below follows for its own slice and callback.
+   */
+  setColumnSort(sort: ColumnSortState): void;
+  /** Replaces the group-by stack. Reports through `onGroupByChange`. */
+  setGroupBy(groupBy: GroupByState): void;
+  /** Replaces the collapsed groups. Reports through `onGroupExpansionChange` with `groupId: null`. */
+  setGroupExpansion(expansion: GroupExpansionState): void;
+  /** Replaces the page and page size as given. Reports through `onPaginationChange`. */
+  setPagination(pagination: PaginationState): void;
+  /** Replaces the column widths. Reports through `onColumnResize`, as the `"end"` of a resize. */
+  setColumnSizing(sizing: ColumnSizingState): void;
+  /** Replaces the column order. Reports through `onColumnOrderChange`. */
+  setColumnOrder(order: ColumnOrderState): void;
+  /** Replaces the column visibility state. Reports through `onColumnVisibilityChange`. */
+  setColumnVisibility(visibility: ColumnVisibilityState): void;
+  /** Replaces the selected row ids as given, whatever `selectable` allows. Fires the row selection callbacks. */
+  setRowSelection(selection: SelectionState): void;
+  /** Replaces the selected column ids as given. Fires the column selection callbacks. */
+  setColumnSelection(selection: SelectionState): void;
+  /** Replaces the selected cell as given, `null` for none. Fires the cell selection callbacks. */
+  setCellSelection(selection: CellSelectionState): void;
+  /**
+   * Sizes a shown column to fit its content, as double-clicking its resize
+   * handle does, reporting through `onColumnResize`. A hidden column, or one
+   * with no rows to measure, is left as it is.
+   */
+  autoFitColumn(columnId: string): void;
   /** Scrolls the row with the given id into view, if it is currently shown. */
   scrollToRow(rowId: string, options?: ScrollIntoViewOptions): void;
   /** Scrolls the column with the given id into view. */
@@ -826,7 +872,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   }, [view, state, nav.focus]);
 
   /**
-   * No deps array: `nav` and `virtualizer` are freshly
+   * No deps array: `nav`, `resize` and `virtualizer` are freshly
    * constructed every render (none of those hooks memoize their returned
    * API), so the handle has to be rebuilt every render too or its closures
    * would go stale. Grid state is read off the controller at call time.
@@ -861,6 +907,8 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     getColumnSelection: () => controller.getState().columnSelection,
     getCellSelection: () => controller.getState().cellSelection,
     getFocusedCell: () => nav.focus,
+    getState: controller.getState,
+    restoreState: controller.restoreState,
     focusCell: nav.focusCell,
     clearSelection: controller.clearSelection,
     selectAllRows: controller.selectAllRows,
@@ -874,6 +922,24 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     showColumns: controller.showColumns,
     hideColumns: controller.hideColumns,
     setFilter: controller.setFilter,
+    setColumnSort: controller.setColumnSort,
+    setGroupBy: controller.setGroupBy,
+    setGroupExpansion: controller.setGroupExpansion,
+    setPagination: controller.setPagination,
+    setColumnSizing: controller.setColumnSizing,
+    setColumnOrder: controller.setColumnOrder,
+    setColumnVisibility: controller.setColumnVisibility,
+    setRowSelection: controller.setRowSelection,
+    setColumnSelection: controller.setColumnSelection,
+    setCellSelection: controller.setCellSelection,
+    autoFitColumn: (columnId) => {
+      const entry = controller
+        .getView()
+        .columns.find((candidate) => candidate.id === columnId);
+      if (entry !== undefined) {
+        resize.sizeToContent(entry);
+      }
+    },
     scrollToRow: (rowId, options) => {
       // `pageRows`, not `displayRows`: a data row's DOM position is its place
       // in the currently rendered page — with grouping active, that's its

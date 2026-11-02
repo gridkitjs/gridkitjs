@@ -38,6 +38,8 @@ export type {
   FilterEntry,
   FilterState,
   GridOptions,
+  GridState,
+  SerializedGridState,
   ResolvedRow,
   RowSelectEvent,
   RowSelectionChangeEvent,
@@ -47,6 +49,9 @@ export type {
   SelectionMode,
   SelectionState,
 } from "@gridkitjs/core";
+
+// Re-exported for the same reason: saving `getState()` as JSON goes through it.
+export { serializeGridState } from "@gridkitjs/core";
 
 // Reactive hooks for building custom UI outside the grid's own DOM, each
 // subscribing to `DataGridApi.subscribe` via `useSyncExternalStore`.

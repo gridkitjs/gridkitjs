@@ -7,8 +7,8 @@ const FALLBACK_ORDER: ColumnOrderState = [];
 
 /**
  * Reactive column-order state read off a mounted `DataGrid`'s
- * `ref`. Read-only — order stays uncontrolled via `defaultColumnOrder`/the
- * grid's own header drag, the same gap `useColumnSortState` has for sort.
+ * `ref`. Reads only; change the order through the ref's `setColumnOrder`,
+ * or hold it yourself with the controlled `columnOrder` prop.
  *
  * Before the grid mounts, reads as an empty array.
  */

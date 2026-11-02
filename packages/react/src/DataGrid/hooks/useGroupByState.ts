@@ -18,9 +18,9 @@ export interface GroupByStateApi {
  * `DataGrid`'s `ref`, for a group-by bar or summary sidebar living
  * outside the grid's own DOM.
  *
- * `DataGridApi` has no per-group toggle action today, only
- * `expandAllGroups`/`collapseAllGroups` — a custom group-by UI needing to
- * toggle a single group has no imperative action to call yet. A specific
+ * The ref's `setGroupBy` and `setGroupExpansion` change the grouping and the
+ * collapsed groups for a custom group-by UI; this hook carries only the
+ * all-at-once expansion actions. A specific
  * group's own computed aggregates are read off `getDisplayRows()`'s
  * per-header `aggregates` field instead of a getter here — see
  * `useAggregateState` for the grand-total equivalent.

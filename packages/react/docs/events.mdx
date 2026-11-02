@@ -3,7 +3,7 @@ title: "Events"
 description: "The callbacks DataGrid fires as a user resizes, reorders, and selects."
 ---
 
-Every interaction reports through a callback prop rather than a ref or an event you have to subscribe to. Resizing, reordering, and sorting fire one each; selection fires thirteen, one per row, column, and cell transition plus a whole-selection change to persist from.
+Every interaction reports through a callback prop rather than a ref or an event you have to subscribe to — and so does every change made through the [imperative handle](/docs/react/imperative-handle)'s setters and `restoreState`, with the same payload, so one callback sees every change to its slice. A setter whose value equals the current one fires nothing. Resizing, reordering, and sorting fire one each; selection fires thirteen, one per row, column, and cell transition plus a whole-selection change to persist from.
 
 ## Every callback, firing live
 
