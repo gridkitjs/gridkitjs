@@ -102,7 +102,9 @@ test('releasing the pointer fires one final onColumnResize with phase "end"', as
   const start = await pointerDragStart(page, headerHandle(root, 0));
   await page.mouse.move(start.x + 30, start.y);
   await page.mouse.up();
-  expect(events.at(-1)?.phase).toBe("end");
+  // `onColumnResize` runs in the browser and reaches this spec over the CT
+  // bridge, so the "end" event can land after `mouse.up()` has resolved.
+  await expect.poll(() => events.at(-1)?.phase).toBe("end");
 });
 
 test("a right-button drag on a resize handle does not resize the column", async ({
