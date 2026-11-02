@@ -12,7 +12,7 @@ pnpm add @gridkitjs/react
 
 ```tsx
 import { defineColumnsFromRows } from "@gridkitjs/core";
-import { DataGridComponent, type ColumnDefinition } from "@gridkitjs/react";
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
 
 const rows = [
   { Id: 1, Application: { Id: 9, Name: "Portal" }, Cost: 1250.5 },
@@ -23,10 +23,15 @@ type Row = (typeof rows)[number];
 
 const columns: readonly ColumnDefinition<Row>[] = [
   ...defineColumnsFromRows(rows),
-  { field: "Cost", id: "Cost.currency", type: "currency", header: "Cost" },
+  {
+    field: "Cost",
+    id: "Cost.currency",
+    type: "currency",
+    headerTemplate: "Cost",
+  },
 ];
 
-<DataGridComponent
+<DataGrid
   dataSource={rows}
   columns={columns}
   getRowId={(row) => String(row.Id)}

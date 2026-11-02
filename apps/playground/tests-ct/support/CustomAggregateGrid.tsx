@@ -1,5 +1,5 @@
 import type { AggregateState, ColumnDefinition } from "@gridkitjs/core";
-import { DataGridComponent, type DataGridProps } from "@gridkitjs/react";
+import { DataGrid, type DataGridProps } from "@gridkitjs/react";
 
 export interface AggregateRow {
   id: string;
@@ -33,7 +33,7 @@ export default function CustomAggregateGrid(
   >,
 ) {
   return (
-    <DataGridComponent
+    <DataGrid
       {...props}
       columns={columns}
       aggregates={aggregates}

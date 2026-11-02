@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DataGridComponent, type DataGridProps } from "@gridkitjs/react";
+import { DataGrid, type DataGridProps } from "@gridkitjs/react";
 
 interface RowWithId {
   readonly id: string;
@@ -49,7 +49,7 @@ export default function InfiniteScrollGrid<Row extends RowWithId>({
 
   return (
     <div>
-      <DataGridComponent
+      <DataGrid
         {...props}
         dataSource={allRows.slice(0, loaded)}
         getRowId={(row) => row.id}

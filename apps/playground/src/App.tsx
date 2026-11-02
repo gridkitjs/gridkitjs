@@ -93,7 +93,7 @@ export default function App() {
       </h2>
       <p className="mt-2 text-sm text-gray-600">
         The pager and selection count above the grid live entirely outside{" "}
-        <code>DataGridComponent</code>'s own tree — no <code>ref</code>-plus-
+        <code>DataGrid</code>'s own tree — no <code>ref</code>-plus-
         <code>on*Change</code> wiring, just the reactive hooks reading the grid
         through its <code>ref</code>. Sort a column to see the toolbar follow
         the silent page reset too.

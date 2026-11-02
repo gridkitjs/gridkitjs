@@ -1,6 +1,6 @@
 // React components will be exported from here. They consume the framework-agnostic logic in @gridkitjs/core.
 export {
-  DataGridComponent,
+  DataGrid,
   type Borders,
   type CellSelectEvent,
   type CellSelectionChangeEvent,

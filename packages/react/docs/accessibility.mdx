@@ -1,9 +1,9 @@
 ---
 title: "Accessibility"
-description: "The keyboard navigation model, ARIA attributes, and live announcements built into DataGridComponent."
+description: "The keyboard navigation model, ARIA attributes, and live announcements built into DataGrid."
 ---
 
-DataGridComponent implements the [WAI-ARIA grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/): `role="grid"`, a single roving tab stop, and a live region for changes no visual cue alone would reach a screen reader with. A grid with an active `groupBy` switches to `role="treegrid"` — the WAI-ARIA pattern for expandable, collapsible rows — instead; an ungrouped grid is unaffected either way.
+DataGrid implements the [WAI-ARIA grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/): `role="grid"`, a single roving tab stop, and a live region for changes no visual cue alone would reach a screen reader with. A grid with an active `groupBy` switches to `role="treegrid"` — the WAI-ARIA pattern for expandable, collapsible rows — instead; an ungrouped grid is unaffected either way.
 
 ## Keyboard navigation
 
@@ -81,7 +81,7 @@ A `role="status" aria-live="polite"` region, outside the table itself, reports c
 
 ## See also
 
-- [DataGridComponent](/docs/react/data-grid) for the props these behaviors are built on.
+- [DataGrid](/docs/react/data-grid) for the props these behaviors are built on.
 - [Row](/docs/react/row-selection), [column](/docs/react/column-selection), and [cell](/docs/react/cell-selection) selection, each in depth.
 - [Column resizing](/docs/react/column-resizing), [reordering](/docs/react/column-reordering), and [sorting](/docs/react/column-sorting), each in depth.
 - [Row grouping](/docs/react/row-grouping) for the `treegrid` role and group-by/expansion state, in depth.

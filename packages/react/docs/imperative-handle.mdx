@@ -1,17 +1,17 @@
 ---
 title: "Imperative handle"
-description: "The DataGridApi reached through DataGridComponent's ref — reading live grid state and triggering focus, scroll, and selection actions."
+description: "The DataGridApi reached through DataGrid's ref — reading live grid state and triggering focus, scroll, and selection actions."
 ---
 
-`DataGridComponent` accepts a `ref` typed `Ref<DataGridApi<Row>>`, for the state and actions that aren't otherwise reachable from outside: the grid's DOM nodes, its live column sizing/order/sort and selection, and the handful of actions every grid ref carries.
+`DataGrid` accepts a `ref` typed `Ref<DataGridApi<Row>>`, for the state and actions that aren't otherwise reachable from outside: the grid's DOM nodes, its live column sizing/order/sort and selection, and the handful of actions every grid ref carries.
 
 ```ts
 import { useRef } from "react";
-import { DataGridComponent, type DataGridApi } from "@gridkitjs/react";
+import { DataGrid, type DataGridApi } from "@gridkitjs/react";
 
 const gridRef = useRef<DataGridApi<Row>>(null);
 
-<DataGridComponent ref={gridRef} columns={columns} dataSource={rows} />;
+<DataGrid ref={gridRef} columns={columns} dataSource={rows} />;
 
 gridRef.current?.scrollToRow("42");
 gridRef.current?.getColumnSizing();
@@ -117,7 +117,7 @@ Each hook falls back to an empty/zero value before the grid mounts, the same way
 
 ## See also
 
-- [DataGridComponent](/docs/react/data-grid) for the rest of the component's props.
+- [DataGrid](/docs/react/data-grid) for the rest of the component's props.
 - [Events](/docs/react/events) for callbacks that report the same interactions as they happen, rather than being queried on demand.
 - [Row grouping](/docs/react/row-grouping) for `getGroupBy`/`getGroupExpansion`/`getDisplayRows`/`expandAllGroups`/`collapseAllGroups`, in depth.
 - [Pagination](/docs/react/pagination) for `getPagination`/`getPageCount`/`goToPage`/`nextPage`/`previousPage`/`setPageSize`, in depth.

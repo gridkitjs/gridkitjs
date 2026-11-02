@@ -1,4 +1,4 @@
-import { DataGridComponent } from "@gridkitjs/react";
+import { DataGrid } from "@gridkitjs/react";
 import { largeRows, type LargeRow } from "../largeDataset";
 
 /**
@@ -11,7 +11,7 @@ import { largeRows, type LargeRow } from "../largeDataset";
  */
 export function VirtualizedGrid() {
   return (
-    <DataGridComponent<LargeRow>
+    <DataGrid<LargeRow>
       columns={[
         { field: "Id", width: 70 },
         { field: "Name", width: 140 },

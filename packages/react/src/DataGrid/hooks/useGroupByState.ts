@@ -15,7 +15,7 @@ export interface GroupByStateApi {
 
 /**
  * Reactive group-by and group-expansion state read off a mounted
- * `DataGridComponent`'s `ref`, for a group-by bar or summary sidebar living
+ * `DataGrid`'s `ref`, for a group-by bar or summary sidebar living
  * outside the grid's own DOM.
  *
  * `DataGridApi` has no per-group toggle action today, only

@@ -1,6 +1,6 @@
 import { useCallback, useRef } from "react";
 import {
-  DataGridComponent,
+  DataGrid,
   useAggregateState,
   useColumnOrderState,
   useColumnSizingState,
@@ -17,7 +17,7 @@ interface RowWithId {
 }
 
 /**
- * Mounts `DataGridComponent` alongside a status readout AND action buttons
+ * Mounts `DataGrid` alongside a status readout AND action buttons
  * built entirely from the reactive `use*State` hooks, reading and driving
  * through the grid's `ref` from a sibling component outside the grid's own
  * tree — the shape a real toolbar or sidebar built on these hooks would
@@ -51,7 +51,7 @@ export default function ReactiveHooksGrid<Row extends RowWithId>(
 
   return (
     <div>
-      <DataGridComponent {...props} getRowId={getRowId} ref={gridRef} />
+      <DataGrid {...props} getRowId={getRowId} ref={gridRef} />
       <pre data-testid="reactive-status">
         {JSON.stringify({
           pagination,

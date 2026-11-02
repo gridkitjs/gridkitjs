@@ -8,7 +8,7 @@ import type {
   RowsSelectEvent,
 } from "@gridkitjs/core";
 import type { CellSelectEvent } from "@gridkitjs/react";
-import { DataGridComponent } from "@gridkitjs/react";
+import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import { mountGrid, updateGrid } from "./support/mountGrid";
 import ButtonCellGrid from "./support/ButtonCellGrid";
@@ -37,7 +37,7 @@ test.describe("mode matrix", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <DataGrid
         columns={columns}
         dataSource={buildRows(3)}
         label="Rows only"
@@ -59,7 +59,7 @@ test.describe("mode matrix", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <DataGrid
         columns={columns}
         dataSource={buildRows(3)}
         label="Columns only"
@@ -77,7 +77,7 @@ test.describe("mode matrix", () => {
   test('cells: "single" selects one cell at a time', async ({ mount }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <DataGrid
         columns={columns}
         dataSource={buildRows(2)}
         label="Cells only"
@@ -94,7 +94,7 @@ test.describe("mode matrix", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <DataGrid
         columns={columns}
         dataSource={buildRows(3)}
         label="Cell announce"
@@ -118,7 +118,7 @@ test.describe("mode matrix", () => {
     let cellChanges = 0;
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <DataGrid
         columns={columns}
         dataSource={buildRows(2)}
         label="Both"
@@ -141,7 +141,7 @@ test.describe("click intent", () => {
   test("a plain click replaces the selection", async ({ mount }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <DataGrid
         columns={columns}
         dataSource={buildRows(3)}
         label="Replace"
@@ -160,7 +160,7 @@ test.describe("click intent", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <DataGrid
         columns={columns}
         dataSource={buildRows(3)}
         label="Toggle"
@@ -191,7 +191,7 @@ test.describe("click intent", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <DataGridComponent
+      <DataGrid
         columns={columns}
         dataSource={buildRows(5)}
         label="Range"
@@ -219,7 +219,7 @@ test("a Shift-click range is re-measured from the last non-range anchor, not the
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(6)}
       label="Anchor"
@@ -274,7 +274,7 @@ test("re-clicking an already-sole-selected row fires no callback at all", async 
   let changes = 0;
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(3)}
       label="No-op"
@@ -298,7 +298,7 @@ test("Ctrl-clicking a new row reports only that row, not the full selection", as
   const rowsSelectEvents: RowsSelectEvent<Row>[] = [];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(3)}
       label="Fan-out"
@@ -334,7 +334,7 @@ test("Escape clears row, column and cell selection all at once", async ({
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(3)}
       label="Clear"
@@ -363,7 +363,7 @@ test("Escape clears row, column and cell selection all at once", async ({
 test('Ctrl+A selects every row when rows is "multiple"', async ({ mount }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(4)}
       label="Select all"
@@ -382,7 +382,7 @@ test('Ctrl+A selects every row when rows is "multiple"', async ({ mount }) => {
 test('Ctrl+A does nothing when rows is "single"', async ({ mount }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(4)}
       label="No select all"
@@ -473,7 +473,7 @@ test("Enter selects a focused body cell the same way a plain click does, and Spa
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(3)}
       label="Keyboard select body"
@@ -496,7 +496,7 @@ test("Enter and Space select a focused header the same way, mirroring the body",
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(2)}
       label="Keyboard select header"
@@ -519,7 +519,7 @@ test("re-clicking an already-selected column or cell fires no callback either", 
   let cellChanges = 0;
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(2)}
       label="No-op column and cell"
@@ -551,7 +551,7 @@ test("clearing a multi-row selection announces a zero count, not silence", async
 }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows(4)}
       label="Clear to zero"

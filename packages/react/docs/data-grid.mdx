@@ -1,13 +1,13 @@
 ---
-title: "DataGridComponent"
+title: "DataGrid"
 description: "The grid component: columns, data, borders, resizing, reordering, and selection."
 ---
 
-DataGridComponent takes a set of columns and a data source and renders a grid. Resizing, reordering, and selection are all opt-in — enable them per grid with resizableColumns, reorderableColumns, and selectable, or per column via each column's own resizable and reorderable fields.
+DataGrid takes a set of columns and a data source and renders a grid. Resizing, reordering, and selection are all opt-in — enable them per grid with resizableColumns, reorderableColumns, and selectable, or per column via each column's own resizable and reorderable fields.
 
 ## Resizable, reorderable columns
 
-<LiveExampleFrame title="DataGridComponent">
+<LiveExampleFrame title="DataGrid">
   <DataGridResizeReorderExample />
 </LiveExampleFrame>
 
@@ -15,7 +15,7 @@ DataGridComponent takes a set of columns and a data source and renders a grid. R
 import { useState } from "react";
 import { defineColumnsFromRows } from "@gridkitjs/core";
 import {
-  DataGridComponent,
+  DataGrid,
   type ColumnDefinition,
   type ResizeMode,
 } from "@gridkitjs/react";
@@ -37,7 +37,7 @@ const columns: readonly ColumnDefinition<Row>[] = [
 
 const [resizeMode, setResizeMode] = useState<ResizeMode>("fit");
 
-<DataGridComponent
+<DataGrid
   columns={columns}
   dataSource={rows}
   borders="all"
@@ -98,7 +98,7 @@ const [resizeMode, setResizeMode] = useState<ResizeMode>("fit");
 Set `height` to bound the row area to a fixed size, independently scrollable, while the group-by bar, header, footer, and pager stay outside it and always visible:
 
 ```tsx
-<DataGridComponent columns={columns} dataSource={rows} height={400} />
+<DataGrid columns={columns} dataSource={rows} height={400} />
 ```
 
 Under the hood, the header, the rows, and (when `aggregates` is active) the grand-total footer each render as their own `<table>` — `.gridkit-data-grid-header`, `.gridkit-data-grid-body` (the one `height` applies to), and `.gridkit-data-grid-footer` — rather than sharing one. That's what keeps the header and footer out of the region that scrolls: they're never inside it to begin with, so there's nothing to pin in place with `position: sticky`. A consumer who wants a divider or shadow at the seam adds their own CSS targeting one of those classes directly, for example:

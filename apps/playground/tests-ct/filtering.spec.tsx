@@ -3,7 +3,7 @@
 // file for why.
 import type { MountResult } from "@playwright/experimental-ct-react";
 import type { ColumnDefinition, FilterState } from "@gridkitjs/core";
-import { DataGridComponent } from "@gridkitjs/react";
+import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
 
@@ -39,7 +39,7 @@ test("a column-scoped TextFilterEntry renders only matching rows", async ({
   const filter: FilterState<Row> = [{ columnId: "name", query: "Ali%" }];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows()}
       label="Column filter"
@@ -57,7 +57,7 @@ test("a global TextFilterEntry matches against every column", async ({
   const filter: FilterState<Row> = [{ query: "%Char%" }];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows()}
       label="Global filter"
@@ -74,7 +74,7 @@ test("a ValueFilterEntry matches only the exact value on a correctly-typed colum
   const filter: FilterState<Row> = [{ columnId: "score", value: 42 }];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows()}
       label="Value filter"
@@ -91,7 +91,7 @@ test("a ValueFilterEntry never matches a differently-typed column, even with an 
   const filter: FilterState<Row> = [{ columnId: "name", value: 42 }];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows()}
       label="Value type mismatch"
@@ -127,7 +127,7 @@ test('a GroupFilterEntry with combinator "or" renders rows matching either neste
   ];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows()}
       label="Group filter"
@@ -147,7 +147,7 @@ test("two entries of different variants AND together, narrower than either alone
   ];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows()}
       label="Mixed filter"
@@ -164,7 +164,7 @@ test("a defaultFilter matching nothing renders zero body rows, not a crash", asy
   const filter: FilterState<Row> = [{ columnId: "name", query: "Nobody" }];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows()}
       label="No matches"
@@ -182,7 +182,7 @@ test("defaultFilter and defaultColumnSort together filter before sorting", async
   const filter: FilterState<Row> = [{ columnId: "active", value: true }];
   const root = await mountGrid(
     mount,
-    <DataGridComponent
+    <DataGrid
       columns={columns}
       dataSource={buildRows()}
       label="Filter and sort"
@@ -198,11 +198,7 @@ test("defaultFilter and defaultColumnSort together filter before sorting", async
 test("omitting defaultFilter renders every row", async ({ mount }) => {
   const root = await mountGrid(
     mount,
-    <DataGridComponent
-      columns={columns}
-      dataSource={buildRows()}
-      label="Unfiltered"
-    />,
+    <DataGrid columns={columns} dataSource={buildRows()} label="Unfiltered" />,
   );
 
   expect(await names(root)).toEqual(["Alice", "Bob", "Charlie"]);

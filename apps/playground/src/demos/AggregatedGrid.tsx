@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { AggregateState } from "@gridkitjs/core";
-import { DataGridComponent } from "@gridkitjs/react";
+import { DataGrid } from "@gridkitjs/react";
 import type { ColumnDefinition } from "@gridkitjs/react";
 
 interface Row {
@@ -142,7 +142,7 @@ export function AggregatedGrid() {
         ))}
       </fieldset>
       <div className="mt-4">
-        <DataGridComponent
+        <DataGrid
           columns={columns}
           dataSource={rows}
           getRowId={(row) => String(row.Id)}

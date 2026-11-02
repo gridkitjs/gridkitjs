@@ -12,7 +12,7 @@ description: "Stacking columns into nested, collapsible groups with groupBy, gro
 </LiveExampleFrame>
 
 ```ts
-<DataGridComponent
+<DataGrid
   columns={columns}
   dataSource={rows}
   groupableColumns
@@ -70,7 +70,7 @@ There's no built-in "expand all" control — call `gridRef.current?.expandAllGro
 ```ts
 import { useRef } from "react";
 import {
-  DataGridComponent,
+  DataGrid,
   useGroupByState,
   type DataGridApi,
 } from "@gridkitjs/react";
@@ -109,7 +109,7 @@ Before the grid mounts, both fields read as empty and the actions are no-ops. Se
 - `"never"` — never rendered, for a grid driving `groupBy` entirely through header toggles or programmatically.
 
 ```ts
-<DataGridComponent
+<DataGrid
   columns={columns}
   dataSource={rows}
   groupableColumns
@@ -138,7 +138,7 @@ Sorting groups by an aggregate value is still out of scope for this release. Ren
 
 ## See also
 
-- [DataGridComponent](/docs/react/data-grid) for the rest of the component's props.
+- [DataGrid](/docs/react/data-grid) for the rest of the component's props.
 - [Column definition](/docs/react/column-definition) for `groupable`, `groupToggleIcon`, and `groupByDraggable`.
 - [Column sorting](/docs/react/column-sorting) and [reordering](/docs/react/column-reordering) for the comparator and drag mechanics grouping reuses.
 - [Aggregate functions](/docs/react/aggregate-functions) for computing and rendering a subtotal per group.
