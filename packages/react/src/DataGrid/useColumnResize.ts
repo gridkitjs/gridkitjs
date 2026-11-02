@@ -4,16 +4,14 @@ import {
   type RefObject,
 } from "react";
 import {
-  applyColumnResize,
   beginColumnResize,
   clampColumnWidth,
   resolveColumnConstraints,
   sizeColumnToContent,
   type ColumnSizeDefaults,
 } from "@gridkitjs/core";
+import { measureColumnContent, startColumnResizeGesture } from "@gridkitjs/dom";
 import type { ResolvedColumn } from "./DataGrid";
-import measureColumnContent from "./measureColumnContent";
-import { startPointerGesture } from "./pointerGesture";
 import type { DataGridController } from "./useGridController";
 
 interface UseColumnResizeOptions<Row> {
@@ -34,9 +32,10 @@ export interface ColumnResizeApi<Row> {
 }
 
 /**
- * Turns pointer and keyboard input into column widths. Every width it produces
- * comes from `@gridkitjs/core` and is applied by the grid's controller; this
- * hook only supplies the coordinates, and holds which column is being dragged.
+ * Turns pointer and keyboard input into column widths. The drag itself is
+ * `@gridkitjs/dom`'s `startColumnResizeGesture`, every width comes from
+ * `@gridkitjs/core`, and the grid's controller applies them; this hook holds
+ * only which column is being dragged.
  */
 export default function useColumnResize<Row>({
   tableRef,
@@ -49,8 +48,10 @@ export default function useColumnResize<Row>({
     entry: ResolvedColumn<Row>,
     event: ReactPointerEvent<HTMLElement>,
   ): void {
-    const handle = event.currentTarget;
-    const { pointerId } = event;
+    // A press on the handle is never the header's, whichever button made it:
+    // a reorderable header's own drag must not see it.
+    event.stopPropagation();
+
     const session = beginColumnResize(
       entry.column,
       entry.width,
@@ -59,43 +60,41 @@ export default function useColumnResize<Row>({
     );
     /** The sizing as the drag found it, which Escape puts the column back to. */
     const base = controller.getState().columnSizing;
-    let width = session.startWidth;
 
-    // Otherwise the drag selects the header text it started on.
-    event.preventDefault();
-    event.stopPropagation();
-    setActiveColumnId(session.columnId);
-
-    startPointerGesture(handle, pointerId, {
-      onMove(moveEvent) {
-        width = applyColumnResize(session, moveEvent.clientX);
-        controller.resizeColumn(session.columnId, width, "move");
+    const started = startColumnResizeGesture(
+      event.currentTarget,
+      event,
+      session,
+      {
+        onMove(width) {
+          controller.resizeColumn(session.columnId, width, "move");
+        },
+        onEnd(width) {
+          setActiveColumnId(null);
+          if (width !== null) {
+            controller.resizeColumn(session.columnId, width, "end");
+          }
+        },
+        /**
+         * Escape puts back only the dragged column's pre-drag width, merged
+         * into whatever the sizing state is *now* — not the `base` snapshot
+         * taken at drag-start — so a different column resized via keyboard
+         * while this drag was still open keeps its change instead of being
+         * clobbered by a stale restore.
+         */
+        onCancel() {
+          setActiveColumnId(null);
+          controller.cancelColumnResize(
+            session.columnId,
+            base,
+            session.startWidth,
+          );
+        },
       },
-      onEnd() {
-        setActiveColumnId(null);
-        // A click with no intervening `move` — as every double-click's two
-        // constituent clicks are — leaves `width` at `startWidth`. Committing
-        // that anyway would fire a spurious onColumnResize on every click.
-        if (width !== session.startWidth) {
-          controller.resizeColumn(session.columnId, width, "end");
-        }
-      },
-      /**
-       * Escape puts back only the dragged column's pre-drag width, merged
-       * into whatever the sizing state is *now* — not the `base` snapshot
-       * taken at drag-start — so a different column resized via keyboard
-       * while this drag was still open keeps its change instead of being
-       * clobbered by a stale restore.
-       */
-      onCancel() {
-        setActiveColumnId(null);
-        controller.cancelColumnResize(
-          session.columnId,
-          base,
-          session.startWidth,
-        );
-      },
-    });
+    );
+    if (started) {
+      setActiveColumnId(session.columnId);
+    }
   }
 
   function sizeToContent(entry: ResolvedColumn<Row>): void {
