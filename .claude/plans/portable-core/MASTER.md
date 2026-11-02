@@ -115,22 +115,22 @@ Model values: `opus` (phases that design or change code or architecture) · `son
 phases). An effort word may follow (`opus xhigh`, `sonnet low`); none means `high` for opus and
 `medium` for sonnet.
 
-| #   | Phase                                                | Plan                                                             | Status | Depends on | Model       | Branch | Commits |
-| --- | ---------------------------------------------------- | ---------------------------------------------------------------- | ------ | ---------- | ----------- | ------ | ------- |
-| 01  | Boundaries and hygiene                               | [phase-01-boundaries-hygiene.md](phase-01-boundaries-hygiene.md) | todo   | none       | opus medium |        |         |
-| 02  | `resolveGridView` and the width-free pipeline        | [phase-02-grid-view.md](phase-02-grid-view.md)                   | todo   | 01         | opus        |        |         |
-| 03  | Column model: header, formatting, locale, visibility | [phase-03-column-model.md](phase-03-column-model.md)             | todo   | 02         | opus        |        |         |
-| 04  | `GridOptions` and `createGridController`             | [phase-04-controller.md](phase-04-controller.md)                 | todo   | 03         | opus xhigh  |        |         |
-| 05  | Serialisable filters and the filter-editor model     | [phase-05-filters.md](phase-05-filters.md)                       | todo   | 04         | opus        |        |         |
-| 06  | Row hooks, simple multi-select, messages             | [phase-06-row-hooks-messages.md](phase-06-row-hooks-messages.md) | todo   | 04         | opus        |        |         |
-| 07  | `@gridkitjs/dom`: behaviours out of React            | [phase-07-dom-package.md](phase-07-dom-package.md)               | todo   | 04         | opus xhigh  |        |         |
+| #   | Phase                                                | Plan                                                             | Status      | Depends on | Model       | Branch                      | Commits |
+| --- | ---------------------------------------------------- | ---------------------------------------------------------------- | ----------- | ---------- | ----------- | --------------------------- | ------- |
+| 01  | Boundaries and hygiene                               | [phase-01-boundaries-hygiene.md](phase-01-boundaries-hygiene.md) | in-progress | none       | opus medium | refactor/boundaries-hygiene |         |
+| 02  | `resolveGridView` and the width-free pipeline        | [phase-02-grid-view.md](phase-02-grid-view.md)                   | todo        | 01         | opus        |                             |         |
+| 03  | Column model: header, formatting, locale, visibility | [phase-03-column-model.md](phase-03-column-model.md)             | todo        | 02         | opus        |                             |         |
+| 04  | `GridOptions` and `createGridController`             | [phase-04-controller.md](phase-04-controller.md)                 | todo        | 03         | opus xhigh  |                             |         |
+| 05  | Serialisable filters and the filter-editor model     | [phase-05-filters.md](phase-05-filters.md)                       | todo        | 04         | opus        |                             |         |
+| 06  | Row hooks, simple multi-select, messages             | [phase-06-row-hooks-messages.md](phase-06-row-hooks-messages.md) | todo        | 04         | opus        |                             |         |
+| 07  | `@gridkitjs/dom`: behaviours out of React            | [phase-07-dom-package.md](phase-07-dom-package.md)               | todo        | 04         | opus xhigh  |                             |         |
 
 Phases 05, 06 and 07 are independent of each other and may run in any order after 04.
 
 ## Now
 
-- **In progress:** none
-- **Next:** 01
+- **In progress:** 01 (part B)
+- **Next:** 01 part C
 - **Waiting on the user:** nothing
 
 ## Handoffs
@@ -138,11 +138,28 @@ Phases 05, 06 and 07 are independent of each other and may run in any order afte
 (The delegator copies each report's Handoff section here, under the phase or part it came
 from, and passes the relevant ones to the next sub-agent.)
 
+### Phase 01 part A
+
+- Core's restricted-import list is a single array in `eslint.config.mjs`, expanded with
+  `flatMap` to `name` and `name/*`; Phase 07 only needs to add a name.
+- `react-hooks` rules run only under `packages/react/**` and `apps/**`; a new `packages/dom`
+  gets none unless added, which is correct for `dom`.
+- `AGENTS.md` still says `DataGridComponent` (Tests section) for Part C to rename.
+- Core test files compile without the DOM lib.
+
 ## Decisions to review
 
 (Choices sub-agents made that the user should look at, tagged with their phase.)
 
+- [01 A] `AGENTS.md` Tests: the stale six-spec list was replaced with a "one spec file per area"
+  sentence (there are 17 specs now).
+
 ## Follow-ups
+
+- [phase 03] Once `ColumnDefinition.header` exists, switch `README.md` (~line 68) and
+  `packages/react/README.md` (~line 26) back from `headerTemplate: "Cost"` to `header: "Cost"`.
+- [phase 07] Add `@gridkitjs/dom` to core's ESLint import ban and ban `react` in
+  `packages/dom/**` (`eslint.config.mjs`).
 
 - After this plan (next plans in the roadmap): overlay + menu + commands → context menu →
   toolbar → column chooser; filter UIs (`filterableColumns`, `filterMenu: { ui: "simple" |
@@ -154,3 +171,5 @@ from, and passes the relevant ones to the next sub-agent.)
 
 - 2026-11-01 · plan · created
 - 2026-11-02 · pre-flight · answered; rename added to phase 01 as Part C
+- 2026-11-02 · phase 01 · started at d2a354f
+- 2026-11-02 · phase 01 part A · done · core lib/lint boundary, use-client banner, doc drift (4ccb606..ea49a1d)
