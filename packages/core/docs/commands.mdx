@@ -1,6 +1,6 @@
 ---
-title: "Commands"
-description: "GridCommand: the one implementation behind a menu item, a toolbar button and the API — the built-in set, app commands and overrides, and the context they run in."
+title: "Commands and menus"
+description: "GridCommand: the one implementation behind a menu item, a toolbar button and the API — the built-in set, app commands and overrides, the context they run in, and the menu model resolveMenu draws from."
 ---
 
 A command is the one implementation behind a menu item, a toolbar button and a renderer's `runCommand` — "Sort ascending", "Hide column", "Clear filters". Whether it shows and whether it can run are predicates over a context, a snapshot of the grid taken where it was asked for, and it changes the grid only through the [controller](/docs/core/controller)'s actions, so a change made from a menu reports through the same callback as the user's own gesture would.
@@ -161,3 +161,88 @@ A command with the id `"separator"` is left out with a `console.error` — a men
 | `resolveCommands(commands)`    | `ReadonlyMap<string, GridCommand<Row>>` | The built-ins, then `commands`, keyed by id — yours replacing a built-in of the same id. |
 | `createCommandContext(input)`  | `GridCommandContext<Row>`               | The context for one target, over the controller as it is now.                            |
 | `runCommand(command, context)` | `boolean`                               | Runs the command when visible and enabled, and says whether it did.                      |
+
+## Menus
+
+A menu is a list of `MenuEntry<Row>`s, the one vocabulary every grid menu and toolbar is written in:
+
+| Entry                                      | Description                                                                                                            |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `"sort.ascending"`                         | A command id — a built-in's or one of yours. Typed as `BuiltInCommandId` or any string, so the built-ins autocomplete. |
+| `"separator"`                              | A separator.                                                                                                           |
+| `{ type: "item", id, label, onSelect, … }` | A `MenuItemEntry`: an item written into this menu alone rather than registered as a command.                           |
+| `{ type: "submenu", id, label, items }`    | A `MenuSubmenuEntry`: an item that opens a menu of its own.                                                            |
+
+An inline item has a command's fields under the names a menu reads naturally: `label`, `icon` and `shortcut`; `hidden`, `disabled` and `checked`, each a boolean or a function of the context, with `checked` present only on a checkable item; and `onSelect(context)` in place of `execute`. A submenu has a `label`, an optional `icon` and its `items`.
+
+```ts
+import { resolveMenu, type MenuEntry } from "@gridkitjs/core";
+
+const headerMenu: readonly MenuEntry<Order>[] = [
+  "sort.ascending",
+  "sort.descending",
+  "sort.clear",
+  "separator",
+  {
+    type: "submenu",
+    id: "grouping",
+    label: "Grouping",
+    items: ["group.add", "group.remove", "group.clearAll"],
+  },
+  "separator",
+  {
+    type: "item",
+    id: "orders.pin",
+    label: "Pin column",
+    checked: ({ column }) => column !== null && pinned.has(column.id),
+    onSelect: ({ column }) => {
+      if (column !== null) {
+        togglePin(column.id);
+      }
+    },
+  },
+];
+
+const entries = resolveMenu(headerMenu, { commands, context });
+```
+
+`resolveMenu(entries, { commands, context })` — a `MenuResolveOptions` — resolves a menu against the grid as the context sees it, and returns the `ResolvedMenuEntry[]` a renderer draws:
+
+- A command id becomes its command's item. A hidden command or inline item is left out, and so is an id naming no command, reported once per command map with a `console.error`.
+- Labels become strings and flags booleans; `checked` stays `undefined` for an item that is not checkable.
+- A submenu is resolved the same way, and left out when nothing in it shows.
+- Separators never lead, trail or sit next to another, however the items around them came and went.
+
+An empty result means there is nothing to show, so a renderer shows no grid menu there.
+
+| Resolved entry          | Fields                                                                                                                |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `ResolvedMenuItem`      | `type: "item"`, `id`, `label`, `icon`, `shortcut`, `disabled`, `checked` (`boolean \| undefined`), `run()`            |
+| `ResolvedMenuSubmenu`   | `type: "submenu"`, `id`, `label`, `icon`, `items` — never empty                                                       |
+| `ResolvedMenuSeparator` | `type: "separator"`, `key` — the separator's place among the entries it came from, unique among its menu's separators |
+
+`run()` runs an item against the context its menu was resolved in — a command through `runCommand`, so only while it is visible and enabled; an inline item unless it is disabled — and returns whether it ran.
+
+## Keyboard
+
+Grid menus follow the [WAI-ARIA menu pattern](https://www.w3.org/WAI/ARIA/apg/patterns/menubar/). A disabled item stays focusable, so a screen reader can find it, and does nothing when activated; a checkable item is a `menuitemcheckbox` with `aria-checked`.
+
+| Key                                              | Does                                                                                         |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| <Kbd>ArrowDown</Kbd> / <Kbd>ArrowUp</Kbd>        | The next or previous item, wrapping round the ends and skipping separators.                  |
+| <Kbd>Home</Kbd> / <Kbd>End</Kbd>                 | The first or last item.                                                                      |
+| <Kbd>Enter</Kbd> / <Kbd>Space</Kbd>              | Runs the item and closes every menu; on a submenu item, opens it and focuses its first item. |
+| <Kbd>ArrowRight</Kbd>                            | On a submenu item, opens it and focuses its first item.                                      |
+| <Kbd>ArrowLeft</Kbd>                             | In a submenu, closes it and focuses the item that opened it.                                 |
+| <Kbd>Escape</Kbd>                                | Closes the current menu only; focus goes back one level.                                     |
+| <Kbd>Tab</Kbd> / <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd> | Closes every menu; focus returns to where the menu was opened from.                          |
+| A printable character                            | Typeahead: the next item whose label starts with what was typed.                             |
+
+Hovering over an item moves focus to it, and hovering over a submenu item opens it after a short delay.
+
+The two decisions those keys need are pure, and live here; the behaviour that holds a menu's focus calls them:
+
+| Function                              | Type     | Description                                                                                                                                                                                                                                                                                                              |
+| ------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `nextMenuIndex(entries, from, move)`  | `number` | The item focus moves to from index `from`, `-1` for none. `move` is a `MenuMove`: `"next"`, `"previous"`, `"first"` or `"last"`. Skips separators, wraps round the ends and counts disabled items; `-1` when there is no item.                                                                                           |
+| `typeaheadIndex(labels, from, query)` | `number` | The item `query` picks, matched case-insensitively against the start of each label, wrapping. One letter, or one letter typed again and again, searches from the item after `from`, so repeating it steps through every item it starts; a longer query keeps the focused item while it still matches. `-1` for no match. |

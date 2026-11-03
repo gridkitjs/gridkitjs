@@ -21,9 +21,9 @@ description: "Framework-agnostic grid logic: columns, sizing, ordering, selectio
 
 [createGridController](/docs/core/controller) holds a grid's state, derives its view and carries every action a user can take, with each slice of state controlled or uncontrolled on its own. A renderer creates one per grid, feeds it its options and draws the view, so the renderer decides nothing the user can see.
 
-## Commands
+## Commands and menus
 
-A [command](/docs/core/commands) is the one implementation behind a menu item, a toolbar button and the API — "Sort ascending", "Hide column", "Clear filters". It decides whether it shows and whether it can run from a snapshot of the grid, and acts through the controller's actions. `builtInCommands` is the grid's own set; `resolveCommands` lays an app's commands over it, replacing a built-in by id.
+A [command](/docs/core/commands) is the one implementation behind a menu item, a toolbar button and the API — "Sort ascending", "Hide column", "Clear filters". It decides whether it shows and whether it can run from a snapshot of the grid, and acts through the controller's actions. `builtInCommands` is the grid's own set; `resolveCommands` lays an app's commands over it, replacing a built-in by id. A menu is a list of command ids, separators, inline items and submenus, which `resolveMenu` turns into what a renderer draws.
 
 ## Filters and filter editors
 
