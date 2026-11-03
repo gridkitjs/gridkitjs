@@ -39,6 +39,7 @@ import type {
   ContextMenuOpenChangeEvent,
   GridContextMenuOptions,
 } from "./menu/contextMenu";
+import type { GridToolbarOptions } from "./toolbar/options";
 import type { FormatLocale } from "./util/format";
 
 /** Which cell borders a grid draws. */
@@ -437,6 +438,13 @@ export interface GridOptions<Row> {
    * reported.
    */
   onCommand?: ((event: GridCommandEvent) => void) | undefined;
+  /**
+   * A toolbar above the grid: its own commands, a search box over the
+   * filter's global text entry, dropdowns and the app's own content, in the
+   * menu vocabulary. Off by default. `true` lists `defaultToolbar`; an object
+   * lists its `items` and may name it with `label` — see `ToolbarEntry`.
+   */
+  toolbar?: boolean | GridToolbarOptions<Row> | undefined;
 }
 
 /**

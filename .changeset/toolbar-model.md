@@ -9,7 +9,7 @@ renderer's own content. `resolveToolbar(entries, { commands, contextFor })`
 resolves them by `resolveMenu`'s rules, each item in a context targeting
 `{ area: "toolbar", itemId }`, and separators also collapse beside a spacer.
 `GridToolbarOptions`, `defaultToolbar` (search, spacer, `filter.clearAll`) and
-`toolbarEntries(toolbar)` describe the coming `toolbar` grid option.
+`toolbarEntries(toolbar)` describe the `toolbar` grid option.
 
 For a toolbar too narrow for its items, `fitToolbarItems` works out how many
 fit — pinned entries (search and custom, see `isPinnedToolbarItem`) always
