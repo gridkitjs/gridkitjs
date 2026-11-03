@@ -220,9 +220,11 @@ export default function useContextMenu<Row>({
       resolved = resolveFor(target);
     }
     if (cell !== null && document.activeElement !== cell.element) {
-      nav.focusCellNow(cell.rowIndex, cell.columnIndex);
-      // The tab stop may have been there already, with focus elsewhere.
+      // Focused without scrolling first: a scroll would close the menu about
+      // to open beside it. Moving the tab stop after it then finds the cell
+      // focused already.
       cell.element.focus({ preventScroll: true });
+      nav.focusCellNow(cell.rowIndex, cell.columnIndex);
     }
     openings.current += 1;
     show({

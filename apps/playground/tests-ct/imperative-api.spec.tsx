@@ -612,6 +612,50 @@ test.describe("context menu", () => {
     expect(status.focusedCell).toEqual({ rowIndex: 1, columnIndex: 1 });
   });
 
+  test("openContextMenu on a group row opens its menu below it", async ({
+    mount,
+    page,
+  }) => {
+    const grid = (groupId?: string) => (
+      <ImperativeApiGrid
+        columns={columns}
+        dataSource={buildRows(3)}
+        label="Open a group menu"
+        defaultGroupBy={[{ columnId: "name" }]}
+        contextMenu
+        {...(groupId === undefined
+          ? {}
+          : {
+              contextMenuTarget: { area: "group", groupId, columnId: "name" },
+            })}
+      />
+    );
+    const root = await mountGrid(mount, grid());
+    const groupRow = root.locator("tr[data-gridkit-group]").nth(1);
+    const groupCell = groupRow.locator("td");
+    // Read off the row rather than built: a group's id is the grid's own.
+    await updateGrid(
+      root,
+      grid((await groupRow.getAttribute("data-gridkit-group")) ?? ""),
+    );
+
+    await root.getByRole("button", { name: "open-context-menu" }).click();
+
+    await expect(
+      page
+        .getByRole("menu", { name: "Group menu" })
+        .getByRole("menuitem", { name: "Stop grouping by name" }),
+    ).toBeVisible();
+    const cellBox = await groupCell.boundingBox();
+    const menuBox = await page.locator(".gridkit-overlay").boundingBox();
+    expect(menuBox?.y).toBeCloseTo(
+      (cellBox?.y ?? 0) + (cellBox?.height ?? 0),
+      0,
+    );
+    await page.keyboard.press("Escape");
+    await expect(groupCell).toBeFocused();
+  });
+
   test("openContextMenu opens nothing for a row not on screen, or without contextMenu", async ({
     mount,
     page,
