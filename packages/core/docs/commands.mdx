@@ -66,7 +66,7 @@ A `GridCommandTarget` says where a command was asked for. A built-in reads the c
 
 ## The context
 
-`createCommandContext({ controller, target, messages, host })` — a `GridCommandContextInput` — builds the `GridCommandContext<Row>` every predicate and `execute` receive, from the controller's state, view and options as they are now. `messages` is the grid's messages already laid over the defaults, as [`resolveMessages`](/docs/core/overview#messages) returns them. The controller may be of any node type, so a renderer's `GridController<Row, ReactNode>` serves as it is.
+`createCommandContext({ controller, target, messages, host })` — a `GridCommandContextInput` — builds the `GridCommandContext<Row>` every predicate and `execute` receive, from the controller's state, view and options as they are now. `messages` is the grid's messages already laid over the defaults, as [`resolveMessages`](/docs/core#messages) returns them. The controller may be of any node type, so a renderer's `GridController<Row, ReactNode>` serves as it is.
 
 | Field          | Type                                | Description                                                                                                                                                                                                    |
 | -------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -401,7 +401,7 @@ Grid menus follow the [WAI-ARIA menu pattern](https://www.w3.org/WAI/ARIA/apg/pa
 
 Hovering over an item moves focus to it, and hovering over a submenu item opens it after a short delay.
 
-The two decisions those keys need are pure, and live here; the behaviour that holds a menu's focus — @gridkitjs/dom's [`attachMenu`](/docs/dom/overview#menu) — calls them:
+The two decisions those keys need are pure, and live here; the behaviour that holds a menu's focus — @gridkitjs/dom's [`attachMenu`](/docs/dom#menu) — calls them:
 
 | Function                              | Type     | Description                                                                                                                                                                                                                                                                                                              |
 | ------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

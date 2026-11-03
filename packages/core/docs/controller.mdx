@@ -25,7 +25,7 @@ controller.getState().pagination; // { pageIndex: 1, pageSize: 25 }
 
 ## Options
 
-createGridController takes a `GridControllerOptions<Row, Node>`: every [`GridOptions`](/docs/core/overview#grid-options) field and selection callback (`onRowSelect`, `onRowSelectionChange` and the rest), plus `columns` (inferred from `dataSource` when omitted or empty, as `defineColumnsFromRows` does) and `viewportWidth`, the width `resizeMode: "fit"` fills — `null` or absent where there is none, such as an export in Node — and `onSelectionDiff`, called after each row or column selection change with the ids it added and removed, including those with no row on screen, for a renderer's own feedback such as a live-region count.
+createGridController takes a `GridControllerOptions<Row, Node>`: every [`GridOptions`](/docs/core#grid-options) field and selection callback (`onRowSelect`, `onRowSelectionChange` and the rest), plus `columns` (inferred from `dataSource` when omitted or empty, as `defineColumnsFromRows` does) and `viewportWidth`, the width `resizeMode: "fit"` fills — `null` or absent where there is none, such as an export in Node — and `onSelectionDiff`, called after each row or column selection change with the ids it added and removed, including those with no row on screen, for a renderer's own feedback such as a live-region count.
 
 `setOptions(options)` replaces them all, as a renderer does with its current props on each update. Calling it again with equal options changes nothing, so it is safe to call on every render. It does not call subscribers: the renderer calling it is already drawing the result.
 
