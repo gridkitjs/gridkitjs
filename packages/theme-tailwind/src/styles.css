@@ -752,6 +752,131 @@
   }
 
   /*
+   * The toolbar: the grid's first child, above the group-by bar, and unscoped
+   * by `.gridkit-data-grid` for the same reason that bar is. The grid scrolls
+   * sideways with everything in it, so the toolbar sticks to its start edge
+   * and stays in view while the tables scroll on under it.
+   *
+   * Its entries keep to one row at their own widths, which is what the
+   * overflow measures: what does not fit goes into "More", and `overflow:
+   * hidden` keeps the frame before that from spilling out of the toolbar.
+   */
+  .gridkit-toolbar {
+    position: sticky;
+    inset-inline-start: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    overflow: hidden;
+    font-size: 0.8125rem;
+    color: var(--gridkit-fg);
+    background-color: var(--gridkit-surface);
+    border-bottom: 1px solid var(--gridkit-line);
+  }
+
+  .gridkit-toolbar > * {
+    flex-shrink: 0;
+  }
+
+  /* A command, a dropdown, or "More". */
+  .toolbar-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    font: inherit;
+    color: var(--gridkit-fg);
+    white-space: nowrap;
+    cursor: pointer;
+    background-color: var(--gridkit-surface);
+    border: 1px solid var(--gridkit-line);
+    border-radius: 0.25rem;
+  }
+
+  .toolbar-button:hover:not([aria-disabled="true"]),
+  .toolbar-button[aria-expanded="true"] {
+    background-color: var(--gridkit-surface-muted);
+  }
+
+  .toolbar-button:focus-visible {
+    outline: 2px solid var(--gridkit-accent);
+    outline-offset: 1px;
+  }
+
+  /* Still focusable, as a menu's disabled item is, so a screen reader finds it. */
+  .toolbar-button[aria-disabled="true"] {
+    color: var(--gridkit-fg-muted);
+    cursor: default;
+    opacity: 0.5;
+  }
+
+  /* A toggle that is on. */
+  .toolbar-button[aria-pressed="true"],
+  .toolbar-button[aria-pressed="true"]:hover {
+    background-color: var(--gridkit-selected-strong);
+    border-color: var(--gridkit-accent);
+  }
+
+  .toolbar-button-icon,
+  .toolbar-button-indicator {
+    display: inline-flex;
+    color: var(--gridkit-fg-muted);
+  }
+
+  /* An icon key the grid has no glyph for draws nothing, and takes no room. */
+  .toolbar-button-icon:empty {
+    display: none;
+  }
+
+  .toolbar-button-icon svg,
+  .toolbar-button-indicator svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .toolbar-button-indicator {
+    margin-inline-end: -0.25rem;
+  }
+
+  .toolbar-search {
+    width: 12rem;
+    padding: 0.25rem 0.5rem;
+    font: inherit;
+    color: var(--gridkit-fg);
+    background-color: var(--gridkit-surface);
+    border: 1px solid var(--gridkit-line);
+    border-radius: 0.25rem;
+  }
+
+  .toolbar-search::placeholder {
+    color: var(--gridkit-fg-muted);
+  }
+
+  .toolbar-search:focus-visible {
+    outline: 2px solid var(--gridkit-accent);
+    outline-offset: 1px;
+  }
+
+  .toolbar-separator {
+    align-self: stretch;
+    width: 1px;
+    margin: 0.125rem 0;
+    background-color: var(--gridkit-line);
+  }
+
+  /* Takes the free space, pushing what follows it to the far end. */
+  .gridkit-toolbar > .toolbar-spacer {
+    flex: 1 1 0;
+  }
+
+  /* Holds what `renderToolbarItem` drew. */
+  .toolbar-custom {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /*
    * The group-by bar. A sibling of the table, not a row inside it — see
    * `GroupByBar.tsx`'s own note on why — so it's unscoped by `.gridkit-data-grid`
    * the way `.gridkit-sr-only` is.

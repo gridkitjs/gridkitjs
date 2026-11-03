@@ -79,3 +79,10 @@ export {
   type RowVirtualizer,
   type RowVirtualizerOptions,
 } from "./rowVirtualizer";
+export { attachToolbar } from "./toolbar/attachToolbar";
+export {
+  observeToolbarOverflow,
+  type ToolbarOverflow,
+  type ToolbarOverflowItem,
+  type ToolbarOverflowOptions,
+} from "./toolbar/observeToolbarOverflow";

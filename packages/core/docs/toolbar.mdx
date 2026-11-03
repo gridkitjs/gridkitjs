@@ -1,0 +1,130 @@
+---
+title: "Toolbar"
+description: "ToolbarEntry and resolveToolbar: a toolbar written in the menu vocabulary — commands, dropdowns, a search box, spacers and custom slots — and the arithmetic that moves what does not fit into a More menu."
+---
+
+A toolbar is written in the same vocabulary as a [menu](/docs/core/commands#menus): a command id is a button, an inline item a button of its own, a submenu a dropdown button and `"separator"` a separator — plus three entries only a toolbar has. Core resolves the entries against the grid's state, so a button is disabled, pressed or gone exactly when its command says, and works out how many fit; a renderer draws the result and attaches @gridkitjs/dom's [toolbar behaviours](/docs/dom/overview#toolbar).
+
+```ts
+import type { ToolbarEntry } from "@gridkitjs/core";
+
+const toolbar: readonly ToolbarEntry<Order>[] = [
+  "search",
+  "separator",
+  "sort.clearAll",
+  "filter.clearAll",
+  {
+    type: "submenu",
+    id: "groups",
+    label: "Groups",
+    items: ["group.expandAll", "group.collapseAll", "group.clearAll"],
+  },
+  "spacer",
+  { type: "custom", id: "orders.status" },
+];
+```
+
+## Entries
+
+A `ToolbarEntry<Row>` is any `MenuEntry<Row>` or one of the toolbar's own:
+
+| Entry                                      | Drawn as                                                                                                                        |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `"filter.clearAll"`                        | A command's button. A checkable command is a toggle button, pressed while checked.                                              |
+| `{ type: "item", id, label, onSelect, … }` | A button of its own, with an inline item's fields; a toggle when it has `checked`.                                              |
+| `{ type: "submenu", id, label, items }`    | A dropdown button opening a menu of `items`.                                                                                    |
+| `"separator"`                              | A separator.                                                                                                                    |
+| `"search"`                                 | The search box, over the filter's global text entry — see [a search box](/docs/core/filtering#a-search-box).                    |
+| `"spacer"`                                 | The free space, pushing what follows it to the far end. Two spacers share it.                                                   |
+| `{ type: "custom", id }`                   | A `ToolbarCustomEntry`: a place the renderer fills with content of yours — in @gridkitjs/react, what `renderToolbarItem` draws. |
+
+Like `"separator"`, the strings `"search"` and `"spacer"` are the toolbar's own: a toolbar reads them as its entries, never as command ids.
+
+The built-ins meant for a toolbar are `sort.clearAll`, `group.clearAll`, `group.expandAll`, `group.collapseAll`, `column.autoFitAll` and `filter.clearAll` — see [built-in commands](/docs/core/commands#built-in-commands). The rest act on a column, a row or a group, which a toolbar has none of, so they never show in one.
+
+## The option
+
+A grid's `toolbar` option — `boolean | GridToolbarOptions<Row>` — says whether it has a toolbar and what it lists. `true` lists `defaultToolbar`; an object lists its `items` (the defaults when it leaves them out) and may name the toolbar for a screen reader with `label`, which is otherwise `messages.toolbarLabel`.
+
+| Field   | Type                           | Description                                      |
+| ------- | ------------------------------ | ------------------------------------------------ |
+| `items` | `readonly ToolbarEntry<Row>[]` | The entries, in order. Defaults to the defaults. |
+| `label` | `string`                       | The toolbar's accessible name.                   |
+
+`defaultToolbar` is the search box, a spacer and `filter.clearAll`: search on the left, "Clear filters" at the far end. `toolbarEntries(toolbar)` reads the option — no entries while it is off, else the defaults or its `items` — for `resolveToolbar` to resolve.
+
+## Resolving
+
+`resolveToolbar(entries, { commands, contextFor })` — a `ToolbarResolveOptions` — resolves a toolbar against the grid and returns the `ResolvedToolbarItem[]` to draw, by `resolveMenu`'s rules: hidden commands and items are left out, and so is an id naming no command, reported once per command map with a `console.error`; labels become strings and flags booleans; a dropdown whose items all hide is left out; and separators never lead, trail, double up — or sit beside a spacer, which already parts what is on either side of it.
+
+Each item resolves and runs in a context of its own, from `contextFor(target)`: its target is a `GridToolbarTarget`, `{ area: "toolbar", itemId }`, naming the item — or, for an item in a dropdown, the dropdown — so a command opening a panel can anchor it there.
+
+```ts
+import {
+  createCommandContext,
+  resolveCommands,
+  resolveToolbar,
+  toolbarEntries,
+} from "@gridkitjs/core";
+
+const commands = resolveCommands(options.commands);
+
+function draw() {
+  const items = resolveToolbar(toolbarEntries(options.toolbar), {
+    commands,
+    contextFor: (target) =>
+      createCommandContext({ controller, target, messages, host }),
+  });
+  render(items);
+}
+controller.subscribe(draw); // resolve again on every change
+```
+
+| Resolved item           | Fields                                                                                                                            |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `ResolvedToolbarButton` | `type: "button"`, `id`, `key`, `label`, `icon`, `shortcut`, `disabled`, `pressed` (`boolean \| undefined`, for a toggle), `run()` |
+| `ResolvedToolbarMenu`   | `type: "menu"`, `id`, `key`, `label`, `icon`, `items` — resolved menu entries, never empty                                        |
+| `ResolvedToolbarSearch` | `type: "search"`, `key`                                                                                                           |
+| `ResolvedToolbarSpacer` | `type: "spacer"`, `key`                                                                                                           |
+| `ResolvedMenuSeparator` | `type: "separator"`, `key`                                                                                                        |
+| `ResolvedToolbarCustom` | `type: "custom"`, `id`, `key`                                                                                                     |
+
+Every item has a `key`, unique among the toolbar's: an item's id, `"search"`, or `separator-<index>` and `spacer-<index>` from the entry's place in the list. A renderer writes it into the element's `data-gridkit-toolbar-item`, which @gridkitjs/dom's behaviours find entries by. `run()` runs a button against its context and says whether it ran, as a menu item's does.
+
+## Overflow
+
+When the toolbar is narrower than its items, the ones that do not fit go into a "More" menu button at its end. The search box and custom entries stay however narrow it gets — they have no menu item to become; `isPinnedToolbarItem(item)` says which entries those are.
+
+`fitToolbarItems({ widths, available, moreWidth, pinned })` — a `ToolbarFitInput` — decides how many fit, given each entry's width and whether it is pinned, the width they share and the More button's. It returns a count: the first `count` entries stay, with every pinned entry after them, and the rest overflow.
+
+- Pinned entries take their room first, wherever they are.
+- Room for More is kept only when something overflows. When everything fits, the count is every entry.
+- Entries are taken in order, and the first that does not fit ends the count — the toolbar keeps its order rather than filling the gap with a later, narrower entry. A spacer's width is only the space left over, so it counts as `0` and fits wherever the entries before it did.
+
+`splitToolbarItems(items, count)` splits a resolved toolbar there into a `ToolbarSplit`: `shown`, what stays, and `overflow`, the More menu's entries — each button an item, checked where it was pressed, each dropdown a submenu, spacers left out — with separators collapsed on both sides. The More menu's items run exactly as the buttons would have.
+
+```ts
+import {
+  fitToolbarItems,
+  isPinnedToolbarItem,
+  splitToolbarItems,
+} from "@gridkitjs/core";
+
+const count = fitToolbarItems({
+  widths: items.map((item) => (item.type === "spacer" ? 0 : widthOf(item.key))),
+  available: toolbarWidth,
+  moreWidth,
+  pinned: items.map(isPinnedToolbarItem),
+});
+const { shown, overflow } = splitToolbarItems(items, count);
+```
+
+@gridkitjs/dom's [`observeToolbarOverflow`](/docs/dom/overview#toolbar) does the measuring and calls `fitToolbarItems` for you.
+
+| Function                           | Type                             | Description                                                                           |
+| ---------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------- |
+| `toolbarEntries(toolbar)`          | `readonly ToolbarEntry<Row>[]`   | The entries the `toolbar` option lists: none while off, else the defaults or `items`. |
+| `resolveToolbar(entries, options)` | `readonly ResolvedToolbarItem[]` | The entries resolved against the grid, ready to draw.                                 |
+| `fitToolbarItems(input)`           | `number`                         | How many entries fit, from the start.                                                 |
+| `isPinnedToolbarItem(item)`        | `boolean`                        | Whether an entry stays however narrow the toolbar gets: search and custom entries.    |
+| `splitToolbarItems(items, count)`  | `ToolbarSplit`                   | What stays, and the More menu's entries.                                              |

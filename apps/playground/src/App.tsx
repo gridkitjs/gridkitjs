@@ -9,6 +9,7 @@ import { PaginatedGrid } from "./demos/PaginatedGrid";
 import { PropsTable } from "./demos/PropsTable";
 import { ReactiveToolbarGrid } from "./demos/ReactiveToolbarGrid";
 import { ResizableSelectableGrid } from "./demos/ResizableSelectableGrid";
+import { ToolbarGrid } from "./demos/ToolbarGrid";
 import { VirtualizedGrid } from "./demos/VirtualizedGrid";
 
 export default function App() {
@@ -101,6 +102,19 @@ export default function App() {
       </p>
       <div className="mt-2">
         <ContextMenuGrid />
+      </div>
+      <h2 className="mt-8 text-lg font-bold">
+        <code>toolbar</code>, the grid's own
+      </h2>
+      <p className="mt-2 text-sm text-gray-600">
+        Type in the search box to filter every column; "Clear filters" empties
+        it. "By region" is a toggle that groups the rows, "Groups" and "Orders"
+        are dropdowns — the second of the app's own actions, logged below — and
+        the count at the end is a custom entry. Tab to the toolbar and move with
+        the arrow keys; narrow the window to see items move into "More".
+      </p>
+      <div className="mt-2">
+        <ToolbarGrid />
       </div>
       <h2 className="mt-8 text-lg font-bold">
         <code>usePaginationState</code>/<code>useSelectionState</code>, an

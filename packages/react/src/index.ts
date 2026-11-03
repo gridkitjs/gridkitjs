@@ -47,6 +47,7 @@ export type {
   GridMessages,
   GridOptions,
   GridState,
+  GridToolbarOptions,
   MenuEntry,
   SerializedGridState,
   ResolvedRow,
@@ -59,6 +60,7 @@ export type {
   SelectedCellRef,
   SelectionMode,
   SelectionState,
+  ToolbarEntry,
 } from "@gridkitjs/core";
 
 // Re-exported for the same reason: saving `getState()` as JSON goes through it.

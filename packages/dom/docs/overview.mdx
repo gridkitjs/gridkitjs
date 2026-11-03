@@ -1,9 +1,9 @@
 ---
 title: "Overview"
-description: "Framework-free browser behaviours for GridKit renderers: gestures, focus, observers, virtualization, overlays and announcements."
+description: "Framework-free browser behaviours for GridKit renderers: gestures, focus, observers, virtualization, overlays, menus, toolbars and announcements."
 ---
 
-@gridkitjs/dom holds every browser behaviour a grid needs that is not drawing: pointer gestures, keyboard focus movement, the observers behind fit-to-width and infinite scroll, the row virtualizer's measuring, overlays and the menus shown in them, and the live region it reports changes through. @gridkitjs/core decides what the grid does and runs without a DOM; @gridkitjs/dom does what needs one, with no framework; a renderer such as @gridkitjs/react draws the markup and attaches these behaviours to it. A second renderer — for Angular, Vue or Svelte — reuses both unchanged.
+@gridkitjs/dom holds every browser behaviour a grid needs that is not drawing: pointer gestures, keyboard focus movement, the observers behind fit-to-width and infinite scroll, the row virtualizer's measuring, overlays and the menus shown in them, toolbars, and the live region it reports changes through. @gridkitjs/core decides what the grid does and runs without a DOM; @gridkitjs/dom does what needs one, with no framework; a renderer such as @gridkitjs/react draws the markup and attaches these behaviours to it. A second renderer — for Angular, Vue or Svelte — reuses both unchanged.
 
 You only need this package to write a renderer of your own. @gridkitjs/react depends on it already, so installing that is enough to use the grid.
 
@@ -430,4 +430,69 @@ function showMenu(
     menu.remove();
   }
 }
+```
+
+## Toolbar
+
+`attachToolbar(toolbar)` makes a `role="toolbar"` element the renderer has drawn one tab stop that the arrow keys move within, following the [WAI-ARIA toolbar pattern](https://www.w3.org/WAI/ARIA/apg/patterns/toolbar/), and returns the function that stops it. What the toolbar lists is @gridkitjs/core's: [`resolveToolbar`](/docs/core/toolbar#resolving) resolves a grid's toolbar entries to the items to draw.
+
+| Markup                      | Read as                                                                                                                                                                                                      |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `data-gridkit-toolbar-item` | An entry, holding the item's `key`. Its control is the entry itself when it can take focus, else the first element in it that can — a search box's input, a custom entry's button. Read afresh on every key. |
+| An entry with no control    | A separator or a spacer: the keys pass over it.                                                                                                                                                              |
+| `aria-disabled="true"`      | A disabled control: it still takes focus, so a screen reader finds it. Running it is the renderer's to refuse.                                                                                               |
+
+One control at a time has `tabindex="0"` — the focused one, or the first — and the rest `-1`, so <Kbd>Tab</Kbd> reaches the toolbar once and returns to the control last used. A control drawn later, such as a button whose command became visible, joins with `-1`, leaving the tab stop where it was. Leave `tabindex` to it.
+
+| Key                                          | Does                                                           |
+| -------------------------------------------- | -------------------------------------------------------------- |
+| <Kbd>ArrowRight</Kbd> / <Kbd>ArrowLeft</Kbd> | Focuses the next or previous control, wrapping round the ends. |
+| <Kbd>Home</Kbd> / <Kbd>End</Kbd>             | Focuses the first or last control.                             |
+
+A text field keeps the keys it needs: <Kbd>Home</Kbd> and <Kbd>End</Kbd> move its caret, and so do the arrows while there is text to move through. With the caret at the start, <Kbd>ArrowLeft</Kbd> moves on to the previous control; at the end, <Kbd>ArrowRight</Kbd> to the next — otherwise a search box holding the tab stop would leave no way to the controls after it. With text selected, or in a field that keeps its caret to itself, such as `type="email"`, the arrows stay with the field.
+
+```ts
+import { attachToolbar } from "@gridkitjs/dom";
+
+// <div role="toolbar" aria-label="Grid toolbar">
+//   <div data-gridkit-toolbar-item="search"><input type="search" … /></div>
+//   <div data-gridkit-toolbar-item="spacer-1"></div>
+//   <button data-gridkit-toolbar-item="filter.clearAll" aria-disabled="true">Clear filters</button>
+// </div>
+const detach = attachToolbar(toolbarElement);
+```
+
+### Overflow
+
+`observeToolbarOverflow(toolbar, { items, onChange })` measures how many of a toolbar's entries fit in it, and reports the count — what @gridkitjs/core's [`fitToolbarItems`](/docs/core/toolbar#overflow) works out from the widths — through `onChange`: once straight away, so a renderer calling it before paint draws the right entries from the first frame, and again whenever it changes. Draw the first `count` entries and every pinned one — or let [`splitToolbarItems`](/docs/core/toolbar#overflow) split them — and put the rest in a "More" menu button at the end. It returns `update(options)` and `detach()`.
+
+| Option     | Type                             | Description                                                                                        |
+| ---------- | -------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `items`    | `readonly ToolbarOverflowItem[]` | Every entry, drawn or in "More", in order: `{ type, key }`, as `resolveToolbar`'s items have them. |
+| `onChange` | `(count) => void`                | How many entries fit, from the start. Called straight away, then only when it changes.             |
+
+| Markup                      | Read as                                                                        |
+| --------------------------- | ------------------------------------------------------------------------------ |
+| `data-gridkit-toolbar-item` | An entry, whose value is its item's `key`.                                     |
+| `data-gridkit-toolbar-more` | The "More" button — an entry too, for `attachToolbar`, but not one of `items`. |
+
+An entry moved into "More" is no longer drawn, so its width is remembered by key from the last time it was. One never drawn yet counts as nothing: it is drawn, measured, and moved back out if it does not fit. The "More" button likewise counts as nothing until it is first drawn. A spacer counts as nothing too, since its width is only the room left over. The toolbar's padding and the `column-gap` between entries are allowed for, so a theme can space them however it likes.
+
+It measures again whenever the toolbar or an entry resizes, and whenever entries are drawn or taken away — those the count it reported lets in, or the "More" button — so the renderer only draws what it is told. When the items change, pass them to `update`.
+
+```ts
+import { resolveToolbar, splitToolbarItems } from "@gridkitjs/core";
+import { observeToolbarOverflow } from "@gridkitjs/dom";
+
+const overflow = observeToolbarOverflow(toolbarElement, {
+  items,
+  onChange: (count) => draw(splitToolbarItems(items, count)), // { shown, overflow }
+});
+
+// when the grid changes:
+items = resolveToolbar(entries, { commands, contextFor });
+overflow.update({
+  items,
+  onChange: (count) => draw(splitToolbarItems(items, count)),
+});
 ```

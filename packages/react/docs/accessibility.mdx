@@ -27,6 +27,8 @@ grouping](/docs/react/row-grouping).
 
 With [`contextMenu`](/docs/react/context-menu) on, <Kbd>Shift</Kbd>+<Kbd>F10</Kbd> or the <Kbd>ContextMenu</Kbd> key on a focused header, cell or group row opens its menu, the keyboard's way to a right-click. The menu follows the [WAI-ARIA menu pattern](https://www.w3.org/WAI/ARIA/apg/patterns/menubar/): the arrow keys, <Kbd>Home</Kbd> and <Kbd>End</Kbd> move between its items, typing a letter jumps to an item starting with it, <Kbd>Enter</Kbd>/<Kbd>Space</Kbd> runs one, and <Kbd>Escape</Kbd> or <Kbd>Tab</Kbd> closes it — focus goes back to where it was opened either way. A disabled item still takes focus, so it can be found.
 
+The [toolbar](/docs/react/toolbar) follows the [WAI-ARIA toolbar pattern](https://www.w3.org/WAI/ARIA/apg/patterns/toolbar/): it is one tab stop of its own, before the grid's, and <Kbd>ArrowLeft</Kbd>/<Kbd>ArrowRight</Kbd> move between its controls, wrapping round, with <Kbd>Home</Kbd>/<Kbd>End</Kbd> to the first and last. The search box keeps the keys that move its caret, and the arrows lead out of it at either end of its text. A dropdown — or "More" — opens its menu on <Kbd>Enter</Kbd>, <Kbd>Space</Kbd> or <Kbd>ArrowDown</Kbd>, and the menu works as the context menu's does. A disabled button still takes focus.
+
 A group header renders as one cell spanning every column, so it holds the tab
 stop as a single unit rather than N per-column cells: <Kbd>ArrowLeft</Kbd>/<Kbd>ArrowRight</Kbd> are a no-op on it, and <Kbd>Space</Kbd>/<Kbd>Enter</Kbd>
 expand or collapse it in place of selecting anything.
@@ -60,6 +62,8 @@ it's released.
 | `aria-level`                     | Group header rows             | 1-based nesting depth — 1 for a top-level group, 2 for one nested inside it, and so on.                                                                                                                                                                             |
 | `aria-label`                     | The context menu              | Names the menu: a header's after its column, "Name column menu"; a cell's "Row menu"; a group row's "Group menu" — the `headerMenuLabel`, `cellMenuLabel` and `groupMenuLabel` messages.                                                                            |
 | `aria-disabled` / `aria-checked` | Context menu items            | A disabled item, which stays focusable; and a checkable item's state — "Sort ascending" is checked while the column sorts ascending.                                                                                                                                |
+| `aria-label` / `aria-controls`   | The toolbar                   | Names the toolbar — "Grid toolbar", the `toolbarLabel` message, or its `label` — and points it at the grid it acts on.                                                                                                                                              |
+| `aria-disabled` / `aria-pressed` | Toolbar buttons               | A disabled button, which stays focusable; and a toggle's state. A dropdown carries `aria-haspopup="menu"` and `aria-expanded`.                                                                                                                                      |
 | `aria-posinset` / `aria-setsize` | Group header rows             | That group's 1-based position among, and count of, the group headers sharing its level and immediate parent.                                                                                                                                                        |
 
 A column header's `aria-keyshortcuts` names whichever of these apply, space-separated:
@@ -83,6 +87,7 @@ A `role="status" aria-live="polite"` region, outside the table itself, reports c
 - **Cell selection** — every time a selection lands on a cell. Unlike row and column selection, a cell selection is always exactly one cell, so there's no multi-item threshold to cross — the announcement fires on every commit instead, naming the column and row the selected cell is in.
 - **Group-by change** — adding, removing, or repositioning a level (via the header toggle, a header dropped on the bar, a dragged chip, or a chip's own `Ctrl+Arrow`) announces the column and, once two or more levels are stacked, its position ("key _n_ of _total_"); removing the last level announces that grouping was removed. Every path funnels through the same announcement, so a drag and a click read identically.
 - **Column visibility** — hiding or showing one column, from the context menu or the ref's `hideColumns`/`showColumns`, announces the column and which ("Name, column hidden").
+- **Search** — once a search typed into the toolbar's box applies, announces how many rows it found ("3 rows found").
 - **Group expand/collapse** — a single group toggle announces "Group expanded"/"Group collapsed"; `expandAllGroups()`/`collapseAllGroups()` announce the whole-tree result instead ("All groups expanded"/"All groups collapsed").
 
 Each announcement's wording is a `messages` key, so it can be translated — see [localization](/docs/react/localization).
@@ -94,5 +99,6 @@ Each announcement's wording is a `messages` key, so it can be translated — see
 - [Column resizing](/docs/react/column-resizing), [reordering](/docs/react/column-reordering), and [sorting](/docs/react/column-sorting), each in depth.
 - [Row grouping](/docs/react/row-grouping) for the `treegrid` role and group-by/expansion state, in depth.
 - [Context menu](/docs/react/context-menu) for the header, cell and group menus and their keys.
+- [Toolbar](/docs/react/toolbar) for the toolbar, its search box and its keys.
 - [Pagination](/docs/react/pagination) for how `aria-rowindex`/`aria-rowcount` behave once `paginated` is on.
 - [Aggregate functions](/docs/react/aggregate-functions) for `groupAggregateDisplay: "row"` and why its summary row is skipped by the arrow keys.
