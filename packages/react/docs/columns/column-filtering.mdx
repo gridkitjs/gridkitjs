@@ -1,11 +1,11 @@
 ---
 title: "Column filtering"
-description: "FilterState, the five entry kinds, defaultFilter and setFilter — the state and logic layer, ahead of any built-in filter UI."
+description: "FilterState, the five entry kinds, defaultFilter and setFilter — the filter every way of changing it writes, and how it matches."
 ---
 
-This page describes the filtering **engine** — the state shape and the functions that apply it. There is no header or toolbar filter UI yet; that's coming in a future release, built on exactly what's described here. Today, a grid's filter is seeded with `defaultFilter`, changed with `setFilter` from your own filter UI, or held entirely by you with the controlled `filter` prop.
+This page describes the filtering **engine** — the state shape and the functions that apply it. A grid's filter is seeded with `defaultFilter`, held entirely by you with the controlled `filter` prop, or changed — by the [toolbar](/docs/react/toolbar)'s search box, by the `filter.clearAll` command ("Clear filters", on the default toolbar or in a [menu](/docs/react/context-menu) that lists it), or by `setFilter` from your own filter UI. Each change fires `onFilterChange`. The grid draws no per-column filter editor of its own.
 
-Building that filter UI yourself? `@gridkitjs/core` has the headless model behind one — a column's filter shape, the cascaded list of its values with counts, and a draft reducer for a checklist or condition editor. See [filter state and the editor model](/docs/core/filtering).
+Building a filter editor of your own? `@gridkitjs/core` has the headless model behind one — a column's filter shape, the cascaded list of its values with counts, and a draft reducer for a checklist or condition editor. See [filter state and the editor model](/docs/core/filtering).
 
 ## The five ways to match
 
@@ -137,7 +137,7 @@ if (saved !== null) {
 
 ## Change the filter from your own UI
 
-A search box or filter bar outside the grid changes the filter through the grid's `ref`. `setFilter` replaces the whole filter, sends the grid back to its first page — a filter change can empty the page being shown — and fires `onFilterChange` once:
+A search box or filter bar outside the grid changes the filter through the grid's `ref` — for a search box in the grid itself, the toolbar has [one built in](/docs/react/toolbar#search). `setFilter` replaces the whole filter, sends the grid back to its first page — a filter change can empty the page being shown — and fires `onFilterChange` once:
 
 ```tsx
 const gridRef = useRef<DataGridApi<Row>>(null);

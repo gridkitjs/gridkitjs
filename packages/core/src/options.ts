@@ -303,8 +303,8 @@ export interface GridOptions<Row> {
    */
   filter?: FilterState<Row> | undefined;
   /**
-   * Called once when the filter changes — through `setFilter` for now, as
-   * the grid has no filter UI of its own yet.
+   * Called once when the filter changes — from the toolbar's search box, the
+   * `filter.clearAll` command, `setFilter` or a restored state.
    */
   onFilterChange?: ((event: FilterChangeEvent<Row>) => void) | undefined;
   /**
