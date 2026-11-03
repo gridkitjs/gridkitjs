@@ -343,33 +343,6 @@
   }
 
   /*
-   * `pointer-events: none` keeps the grab zone exactly the handle's 6px — the
-   * grip only says where to click.
-   */
-  .gridkit-data-grid .header-resize-grip {
-    position: absolute;
-    top: 50%;
-    right: 0;
-    transform: translateY(-50%);
-    color: var(--gridkit-fg-muted);
-    fill: currentColor;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  /*
-   * Unscoped by `no-hover-columns`: the grip is a resize affordance, not part
-   * of the hover styling a consumer can turn off.
-   */
-  .gridkit-data-grid .grid-header .header-cell:hover .header-resize-grip {
-    opacity: 1;
-  }
-
-  .gridkit-data-grid .header-cell.is-resizing .header-resize-grip {
-    opacity: 0;
-  }
-
-  /*
    * Docked to the header's own right edge, absolutely — like the resize
    * handle, and for the same reason: sitting in the label's normal flow, a
    * long label under `text-overflow: ellipsis` pushes the toggle out past
@@ -400,8 +373,7 @@
 
   /*
    * Hidden until the column has a direction or the header is hovered or
-   * focused — an unsorted, un-hovered header stays quiet, the same restraint
-   * `.header-resize-grip` uses.
+   * focused — an unsorted, un-hovered header stays quiet.
    */
   .gridkit-data-grid
     .header-sort-toggle:not(.is-sorted-asc):not(.is-sorted-desc) {
