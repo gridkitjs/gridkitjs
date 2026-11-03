@@ -7,6 +7,7 @@
     "state",
     "events",
     "context-menu",
+    "toolbar",
     "imperative-handle",
     "columns",
     "rows",

@@ -1,0 +1,261 @@
+import { useLayoutEffect, useRef, type ReactNode } from "react";
+import {
+  resolveToolbar,
+  toolbarEntries,
+  type GridMessages,
+  type GridOptions,
+  type ResolvedMenuEntry,
+  type ResolvedToolbarItem,
+  type ToolbarEntry,
+} from "@gridkitjs/core";
+import { attachToolbar } from "@gridkitjs/dom";
+import { ariaAttr } from "../ariaAttr";
+import type { GridCommandsApi } from "../commands/useGridCommands";
+import { MenuIcon } from "../menu/menuIcons";
+import type { DataGridController } from "../useGridController";
+import ToolbarMenuButton from "./ToolbarMenuButton";
+import ToolbarSearch from "./ToolbarSearch";
+
+interface GridToolbarProps<Row> {
+  toolbar: GridOptions<Row>["toolbar"];
+  /** Fills a custom entry, by its id. */
+  renderItem: ((id: string) => ReactNode) | undefined;
+  /** The id of the grid element the toolbar acts on. */
+  gridId: string;
+  controller: DataGridController<Row>;
+  commands: GridCommandsApi<Row>;
+  messages: GridMessages;
+  announce: (text: string) => void;
+}
+
+/** `run`, also telling `onCommand` through `report` whenever it runs. */
+function reporting(run: () => boolean, report: () => void): () => boolean {
+  return () => {
+    const ran = run();
+    if (ran) {
+      report();
+    }
+    return ran;
+  };
+}
+
+/** A menu's entries, each item reporting through `report` with its id when it runs. */
+function reportingEntries(
+  entries: readonly ResolvedMenuEntry[],
+  report: (commandId: string) => void,
+): readonly ResolvedMenuEntry[] {
+  return entries.map((entry) => {
+    switch (entry.type) {
+      case "item":
+        return {
+          ...entry,
+          run: reporting(entry.run, () => {
+            report(entry.id);
+          }),
+        };
+      case "submenu":
+        return { ...entry, items: reportingEntries(entry.items, report) };
+      default:
+        return entry;
+    }
+  });
+}
+
+/**
+ * A toolbar item whose `run` — or, for a dropdown, whose items' `run` —
+ * also reports to `onCommand` as asked from that item, wherever it ends up
+ * drawn: as itself, or in "More".
+ */
+function reportingItem(
+  item: ResolvedToolbarItem,
+  report: (commandId: string, itemId: string) => void,
+): ResolvedToolbarItem {
+  switch (item.type) {
+    case "button":
+      return {
+        ...item,
+        run: reporting(item.run, () => {
+          report(item.id, item.id);
+        }),
+      };
+    case "menu":
+      return {
+        ...item,
+        items: reportingEntries(item.items, (commandId) => {
+          report(commandId, item.id);
+        }),
+      };
+    default:
+      return item;
+  }
+}
+
+/**
+ * The grid's toolbar, when its `toolbar` option lists anything: the entries
+ * resolved by `@gridkitjs/core`'s `resolveToolbar` and drawn as a
+ * `role="toolbar"`, which `@gridkitjs/dom`'s `attachToolbar` makes one tab
+ * stop the arrow keys move within. Which item shows, is enabled, pressed or
+ * does what is core's; this draws them, and resolves them again on every
+ * render, so they follow the grid's state.
+ */
+export default function GridToolbar<Row>(props: GridToolbarProps<Row>) {
+  const entries = toolbarEntries(props.toolbar);
+  if (entries.length === 0) {
+    return null;
+  }
+  const label =
+    (typeof props.toolbar === "object" ? props.toolbar.label : undefined) ??
+    props.messages.toolbarLabel;
+  return <Toolbar {...props} entries={entries} label={label} />;
+}
+
+function Toolbar<Row>({
+  entries,
+  label,
+  renderItem,
+  gridId,
+  controller,
+  commands,
+  messages,
+  announce,
+}: GridToolbarProps<Row> & {
+  entries: readonly ToolbarEntry<Row>[];
+  label: string;
+}) {
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  /** Set when a menu closes, for the layout effect below. */
+  const menuClosed = useRef(false);
+
+  const items = resolveToolbar(entries, {
+    commands: commands.commands,
+    contextFor: commands.contextFor,
+  }).map((item) =>
+    reportingItem(item, (commandId, itemId) => {
+      commands.report(commandId, { area: "toolbar", itemId }, "toolbar");
+    }),
+  );
+
+  useLayoutEffect(() => {
+    const toolbar = toolbarRef.current;
+    return toolbar === null ? undefined : attachToolbar(toolbar);
+  }, []);
+
+  /**
+   * A menu returns focus to its button as it closes — but what it ran can
+   * take that button away, a dropdown whose items all hid, and focus then
+   * falls to the page. It comes back to the toolbar instead.
+   */
+  useLayoutEffect(() => {
+    if (!menuClosed.current) {
+      return;
+    }
+    menuClosed.current = false;
+    const toolbar = toolbarRef.current;
+    if (toolbar !== null && document.activeElement === document.body) {
+      (
+        toolbar.querySelector<HTMLElement>('[tabindex="0"]') ??
+        toolbar.querySelector<HTMLElement>("button, input")
+      )?.focus();
+    }
+  });
+
+  function onMenuClose(): void {
+    menuClosed.current = true;
+  }
+
+  function draw(item: ResolvedToolbarItem): ReactNode {
+    switch (item.type) {
+      case "button":
+        return (
+          <button
+            key={item.key}
+            type="button"
+            className="toolbar-button"
+            data-gridkit-toolbar-item={item.key}
+            {...ariaAttr(item.disabled, "aria-disabled", true)}
+            {...ariaAttr(
+              item.pressed !== undefined,
+              "aria-pressed",
+              item.pressed,
+            )}
+            {...ariaAttr(
+              item.shortcut !== undefined,
+              "aria-keyshortcuts",
+              item.shortcut,
+            )}
+            onClick={() => {
+              item.run();
+            }}
+          >
+            {item.icon !== undefined && (
+              <span className="toolbar-button-icon" aria-hidden="true">
+                <MenuIcon name={item.icon} />
+              </span>
+            )}
+            {item.label}
+          </button>
+        );
+      case "menu":
+        return (
+          <ToolbarMenuButton
+            key={item.key}
+            itemKey={item.key}
+            label={item.label}
+            icon={item.icon}
+            entries={item.items}
+            onMenuClose={onMenuClose}
+          />
+        );
+      case "search":
+        return (
+          <ToolbarSearch<Row>
+            key={item.key}
+            itemKey={item.key}
+            controller={controller}
+            messages={messages}
+            announce={announce}
+          />
+        );
+      case "separator":
+        return (
+          <div
+            key={item.key}
+            role="separator"
+            aria-orientation="vertical"
+            className="toolbar-separator"
+            data-gridkit-toolbar-item={item.key}
+          />
+        );
+      case "spacer":
+        return (
+          <div
+            key={item.key}
+            className="toolbar-spacer"
+            data-gridkit-toolbar-item={item.key}
+          />
+        );
+      case "custom":
+        return (
+          <div
+            key={item.key}
+            className="toolbar-custom"
+            data-gridkit-toolbar-item={item.key}
+          >
+            {renderItem?.(item.id)}
+          </div>
+        );
+    }
+  }
+
+  return (
+    <div
+      ref={toolbarRef}
+      role="toolbar"
+      aria-label={label}
+      aria-controls={gridId}
+      className="gridkit-toolbar"
+    >
+      {items.map(draw)}
+    </div>
+  );
+}

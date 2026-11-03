@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useId,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -63,6 +64,7 @@ import useGridCommands from "./commands/useGridCommands";
 import GridContextMenu from "./contextMenu/GridContextMenu";
 import useContextMenu from "./contextMenu/useContextMenu";
 import { isOwnEvent } from "./isOwnEvent";
+import GridToolbar from "./toolbar/GridToolbar";
 import useColumnDrag from "./useColumnDrag";
 import useColumnResize from "./useColumnResize";
 import useElementWidth from "./useElementWidth";
@@ -409,7 +411,8 @@ export interface InfiniteScrollConfig {
 /**
  * The props that name a React type, and so have no place in the
  * framework-free `GridOptions`: columns whose templates return `ReactNode`,
- * and the pager and infinite-scroll configs whose templates do too.
+ * the pager and infinite-scroll configs whose templates do too, and the
+ * toolbar's custom entries.
  */
 export interface ReactRenderSlots<Row> {
   columns?: readonly ColumnDefinition<Row>[] | undefined;
@@ -423,6 +426,8 @@ export interface ReactRenderSlots<Row> {
    * bound, so the mounted row count never grows with it either.
    */
   infiniteScroll?: InfiniteScrollConfig | undefined;
+  /** Draws the toolbar's custom entries — `{ type: "custom", id }` — by id. */
+  renderToolbarItem?: ((id: string) => ReactNode) | undefined;
 }
 
 /**
@@ -503,6 +508,8 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   const sentinelRef = useRef<HTMLTableRowElement>(null);
   const viewportWidth = useElementWidth(viewportRef, resizeMode === "fit");
   const subscribersRef = useRef(new Set<() => void>());
+  /** The grid element's id, for the toolbar's `aria-controls`. */
+  const gridId = useId();
   /** Reports a change no visual cue can carry to a screen reader. */
   const announce = useLiveAnnouncer(viewportRef);
   /** Every string the grid shows or announces, `messages` over the English defaults. */
@@ -935,6 +942,15 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
 
   return (
     <div className="gridkit-data-grid-viewport" ref={viewportRef}>
+      <GridToolbar<Row>
+        toolbar={props.toolbar}
+        renderItem={props.renderToolbarItem}
+        gridId={gridId}
+        controller={controller}
+        commands={commands}
+        messages={messages}
+        announce={announce}
+      />
       {showGroupByBar && (
         <GroupByBar<Row>
           columns={view.columns}
@@ -949,6 +965,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
         />
       )}
       <div
+        id={gridId}
         className="gridkit-data-grid-tables"
         /*
          * `role="grid"` sits on this wrapper rather than any one of the

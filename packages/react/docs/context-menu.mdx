@@ -195,7 +195,7 @@ const commands: readonly GridCommand<Order>[] = [
 
 A command of yours with a built-in's id replaces it in every menu that lists that id, the defaults included — a translated label, a privilege check, or different behaviour, without listing the menus again.
 
-`onCommand` is called after a command runs — and after an inline item runs, with that item's id — with `{ commandId, target, source }`: `source` is `"contextMenu"` for a menu and `"api"` for the ref's [`runCommand`](#from-the-ref). An item that did not run — a disabled one — is not reported. The change the command made reports through its own callback too, as it always does: `onColumnSortChange` for a sort.
+`onCommand` is called after a command runs — and after an inline item runs, with that item's id — with `{ commandId, target, source }`: `source` is `"contextMenu"` for a menu, `"toolbar"` for the [toolbar](/docs/react/toolbar) and `"api"` for the ref's [`runCommand`](#from-the-ref). An item that did not run — a disabled one — is not reported. The change the command made reports through its own callback too, as it always does: `onColumnSortChange` for a sort.
 
 ## Open state
 

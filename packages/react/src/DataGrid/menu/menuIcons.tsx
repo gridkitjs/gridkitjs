@@ -62,6 +62,15 @@ export function CheckIcon() {
   );
 }
 
+/** Marks a button that opens a menu below it. */
+export function ChevronDownIcon() {
+  return (
+    <Icon>
+      <path d="m6 9 6 6 6-6" />
+    </Icon>
+  );
+}
+
 /** Marks an item that opens a submenu. */
 export function ChevronRightIcon() {
   return (

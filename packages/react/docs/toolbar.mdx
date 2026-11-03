@@ -1,0 +1,188 @@
+---
+title: "Toolbar"
+description: "A toolbar above the grid — clear the filters or the sort, search every column, dropdowns of actions and content of your own — written in the same vocabulary as the context menu."
+---
+
+`toolbar` puts a toolbar above the grid: buttons for the grid's own commands — clear the filters, clear the sort, expand or collapse every group — a search box over every column, dropdown menus of actions, and content of your own. It is written in the same vocabulary as the [context menu](/docs/react/context-menu), so a command you register once shows in both. It is off by default, like every other GridKit feature.
+
+## Turning it on
+
+```ts
+<DataGrid columns={columns} dataSource={rows} toolbar />
+```
+
+`toolbar` alone shows the defaults, `defaultToolbar` from @gridkitjs/core: the search box on the left and "Clear filters" at the far end, with a spacer between them. "Clear filters" is disabled until something filters.
+
+The toolbar is the first thing inside the grid, above the group-by bar. It sticks to the grid's start edge, so it stays in view while a grid wider than its container scrolls sideways under it.
+
+## Choosing the items
+
+An object lists the items yourself, in order, and may name the toolbar for a screen reader — it is "Grid toolbar" otherwise:
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={rows}
+  sortableColumns
+  groupableColumns
+  toolbar={{
+    label: "Order actions",
+    items: [
+      "search",
+      "separator",
+      "sort.clearAll",
+      "filter.clearAll",
+      {
+        type: "submenu",
+        id: "groups",
+        label: "Groups",
+        items: ["group.expandAll", "group.collapseAll", "group.clearAll"],
+      },
+      "spacer",
+      { type: "custom", id: "rowCount" },
+    ],
+  }}
+/>
+```
+
+| Item                                       | Drawn as                                                                               |
+| ------------------------------------------ | -------------------------------------------------------------------------------------- |
+| A command id, `"filter.clearAll"`          | A button. A checkable command is a toggle button, pressed while it is checked.         |
+| `{ type: "item", id, label, onSelect, … }` | A button of your own; a toggle when it has `checked`.                                  |
+| `{ type: "submenu", id, label, items }`    | A dropdown button, opening a menu of `items`.                                          |
+| `"separator"`                              | A separator.                                                                           |
+| `"search"`                                 | The search box — see [search](#search).                                                |
+| `"spacer"`                                 | The free space, pushing what follows it to the far end.                                |
+| `{ type: "custom", id }`                   | Content of your own, drawn by `renderToolbarItem` — see [below](#content-of-your-own). |
+
+A button shows only where its command has something to act on, and is disabled while it cannot run, exactly as the command says: "Clear all sorting" is disabled until something is sorted, and "Expand all groups" is not there at all until the grid is grouped. Separators collapse when the items around them are hidden. The toolbar follows the grid's state as it changes, from the toolbar or anywhere else.
+
+The built-in commands meant for a toolbar:
+
+| Item                | Command             | Shown when                                  |
+| ------------------- | ------------------- | ------------------------------------------- |
+| Clear all sorting   | `sort.clearAll`     | Always; disabled until something is sorted. |
+| Clear filters       | `filter.clearAll`   | Always; disabled until something filters.   |
+| Ungroup all         | `group.clearAll`    | The grid is grouped.                        |
+| Expand all groups   | `group.expandAll`   | The grid is grouped.                        |
+| Collapse all groups | `group.collapseAll` | The grid is grouped.                        |
+| Autofit all columns | `column.autoFitAll` | Any column is resizable.                    |
+
+The rest act on a column, a row or a group, which a toolbar has none of, so they never show in one. See [built-in commands](/docs/core/commands#built-in-commands) for every command, and @gridkitjs/core's [toolbar model](/docs/core/toolbar) for the vocabulary in depth.
+
+### Items of your own
+
+An inline item is a button of your own; with `checked` it is a toggle button, drawn with `aria-pressed`. A submenu is a dropdown, whose items are a menu's — command ids, inline items, separators and submenus of their own. `onSelect` receives the [command context](/docs/core/commands#the-context): the grid's state, its rows and its actions.
+
+```ts
+const [compact, setCompact] = useState(false);
+
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  selectable={{ rows: "multiple" }}
+  toolbar={{
+    items: [
+      "search",
+      {
+        type: "item",
+        id: "view.compact",
+        label: "Compact",
+        checked: compact,
+        onSelect: () => setCompact((current) => !current),
+      },
+      {
+        type: "submenu",
+        id: "export",
+        label: "Export",
+        items: [
+          {
+            type: "item",
+            id: "export.visible",
+            label: "Rows shown",
+            onSelect: ({ view }) => exportOrders(view.rows),
+          },
+          {
+            type: "item",
+            id: "export.selected",
+            label: "Rows selected",
+            disabled: ({ state }) => state.rowSelection.length === 0,
+            onSelect: ({ selectedRows }) => exportOrders(selectedRows()),
+          },
+        ],
+      },
+    ],
+  }}
+/>;
+```
+
+An action offered in the toolbar and a menu both is better registered once as a [command of your own](/docs/react/context-menu#commands-of-your-own), through `commands`, and listed by its id in each.
+
+### Content of your own
+
+A custom entry, `{ type: "custom", id }`, holds whatever `renderToolbarItem` draws for its id — a status, a select, a button of your own. It sits in the toolbar's keyboard order: the arrow keys reach the first control in it.
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  toolbar={{ items: ["search", "spacer", { type: "custom", id: "rowCount" }] }}
+  renderToolbarItem={(id) =>
+    id === "rowCount" ? <span>{orders.length} orders</span> : null
+  }
+/>
+```
+
+## Search
+
+`"search"` is a search box over every column. What is typed applies once typing rests for a moment, or at once on <Kbd>Enter</Kbd>; <Kbd>Escape</Kbd> empties the box. Once the rows are filtered, a screen reader hears how many were found: "3 rows found".
+
+The box writes the filter's global text entry — `{ query: "%text%" }`, naming no column, a case-insensitive "contains" — through the grid's filter, so it fires `onFilterChange` and sends the grid back to its first page like any filter change, and leaves every column's own entry alone. It reads its text back from the filter, so anything else that changes the search changes the box: "Clear filters" empties it, and a restored layout or a controlled `filter` fills it.
+
+It matches what the global entry matches: every data column, hidden ones included, by its raw value — a date cell is not found by its formatted text. See [column filtering](/docs/react/column-filtering) and @gridkitjs/core's [search helpers](/docs/core/filtering#a-search-box).
+
+## Commands and `onCommand`
+
+A toolbar button runs its command against the target `{ area: "toolbar", itemId }` — the button, or the dropdown an item was chosen from. `onCommand` is called after it runs with `source: "toolbar"`:
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={rows}
+  toolbar
+  onCommand={({ commandId, target, source }) => {
+    // "filter.clearAll", { area: "toolbar", itemId: "filter.clearAll" }, "toolbar"
+    analytics.track(commandId, source);
+  }}
+/>
+```
+
+A disabled button runs nothing and reports nothing. The change a command made reports through its own callback too, as it always does: `onFilterChange` for "Clear filters".
+
+## Keyboard & pointer interactions
+
+The toolbar follows the [WAI-ARIA toolbar pattern](https://www.w3.org/WAI/ARIA/apg/patterns/toolbar/): it is one tab stop, and the arrow keys move within it.
+
+| Key or action                                                            | Does                                                                                           |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| <Kbd>Tab</Kbd> / <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd>                         | Into the toolbar, on the control used last, or out of it.                                      |
+| <Kbd>ArrowRight</Kbd> / <Kbd>ArrowLeft</Kbd>                             | The next or previous control, wrapping round the ends. Separators and spacers are passed over. |
+| <Kbd>Home</Kbd> / <Kbd>End</Kbd>                                         | The first or last control.                                                                     |
+| <Kbd>Enter</Kbd> / <Kbd>Space</Kbd>, or a click                          | Runs a button. A disabled one does nothing.                                                    |
+| <Kbd>Enter</Kbd>, <Kbd>Space</Kbd> or <Kbd>ArrowDown</Kbd> on a dropdown | Opens its menu, on its first item. A second click closes it.                                   |
+| In the search box: <Kbd>ArrowLeft</Kbd> / <Kbd>ArrowRight</Kbd>          | Move the caret; at the start or end of the text, move on to the previous or next control.      |
+| In the search box: <Kbd>Home</Kbd> / <Kbd>End</Kbd>                      | Move the caret.                                                                                |
+| In the search box: <Kbd>Enter</Kbd> / <Kbd>Escape</Kbd>                  | Searches at once / empties the box.                                                            |
+
+A dropdown's menu works as the context menu's does — see its [keys](/docs/react/context-menu#keyboard--pointer-interactions) — and closing it puts focus back on the dropdown. A disabled button still takes focus, so a screen reader finds it.
+
+## Props
+
+| Prop                | Type                                 | Default | Description                                                                                       |
+| ------------------- | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------------- |
+| `toolbar`           | `boolean \| GridToolbarOptions<Row>` |         | The toolbar. `true` shows the defaults; `{ items, label }` lists the items and names the toolbar. |
+| `renderToolbarItem` | `(id: string) => ReactNode`          |         | Draws a custom entry, `{ type: "custom", id }`, by its id.                                        |
+| `commands`          | `readonly GridCommand<Row>[]`        |         | Your own commands, for the toolbar and menus to list by id. One with a built-in's id replaces it. |
+| `onCommand`         | `(event: GridCommandEvent) => void`  |         | Called after a command or an inline item runs, with `{ commandId, target, source }`.              |
+
+The toolbar's name, the search box's name and placeholder, the "N rows found" announcement and every built-in button's label are messages — `toolbarLabel`, `searchLabel`, `searchPlaceholder`, `searchResults` — see [localization](/docs/react/localization). The theme's classes for it are listed under [toolbar](/docs/theme-tailwind/overview#toolbar).
