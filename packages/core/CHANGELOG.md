@@ -1,5 +1,177 @@
 # @gridkitjs/core
 
+## 0.12.0
+
+### Minor Changes
+
+- 183babc: The sorting, grouping, hiding and autofit built-in commands carry an `icon`
+  key — `sortAscending`, `sortDescending`, `group`, `hide` and `autoFit`, typed
+  as the new `BuiltInCommandIcon` — for a renderer to draw beside their labels.
+  An app command may use the same keys.
+- 183babc: The controller has `clearColumnSort(columnId)`, which takes one column out of
+  the sort and keeps the rest. Its `onColumnSortChange` names that column, where
+  a `setColumnSort` leaving it out names the first key that changed — the next
+  column, when it was the first key. The built-in `sort.clear` command uses it,
+  so clearing the first key of a multi-column sort reports the column cleared.
+- 22cf630: A column chooser model and the built-in `column.choose` command, which asks
+  the renderer to open the column chooser panel —
+  `host.openPanel("columnChooser", target)` — on the grid, a toolbar or a
+  header target. `resolveColumnChooser({ columns, visibility, search })` lists
+  every data column for a search, hidden ones included, with whether each is
+  shown and whether its checkbox is disabled (not `hideable`, or the last
+  column shown), the tri-state of a "Show all" checkbox over the hideable
+  columns the search lists, and which columns toggling it shows or hides —
+  never one that is not `hideable`, and never the last column shown.
+
+  `GridMessages` has new keys: `chooseColumns`, the command's label;
+  `columnChooserLabel`, `columnChooserSearchLabel`, `showAllColumns` and
+  `noMatchingColumns` for the chooser; and `columnsShown(count)` and
+  `columnsHidden(count)`, announced when one change shows or hides more than one
+  column.
+
+- 66c2815: `GridMessages` gains `columnsAutoFitted(count)` — "3 columns autofitted",
+  "1 column autofitted" — announced when one action autofits more than one
+  column.
+- 183babc: Three new grid options. `commands` registers the app's own commands for its
+  menus to list by id; one with a built-in's id replaces that built-in wherever
+  it is listed. `onCommand` is called after a command or an inline menu item
+  runs, with a `GridCommandEvent` — `{ commandId, target, source }`, `source`
+  being a `GridCommandSource`: `"contextMenu"`, `"toolbar"` or `"api"`.
+  `onContextMenuOpenChange` is called as the grid's context menu opens or
+  closes, with a `ContextMenuOpenChangeEvent` — `{ open, target }`.
+- 183babc: `contextMenu` has three more areas beside `header`: `cell`, a data cell's
+  menu, acting on its row and cell; `group`, a group header row's; and `body`,
+  the body's empty space. `defaultContextMenu` gives `cell` select all rows,
+  clear the selection, and expand or collapse every group; `group` expand or
+  collapse every group and stop grouping by its column; and `body` nothing, so
+  empty space keeps the browser's menu until it is given entries.
+  `GridContextMenuTarget` is a command target in one of the four areas.
+
+  `GridMessages` has three new keys naming these menus: `cellMenuLabel` ("Row
+  menu"), `groupMenuLabel` ("Group menu") and `bodyMenuLabel` ("Grid menu").
+
+- 183babc: A `contextMenu` grid option for the grid's own context menu on column
+  headers, off by default. `true` shows the defaults — `defaultContextMenu`:
+  sort ascending and descending, clear the sort, group by and stop grouping,
+  autofit the column or all of them, hide it, and choose the columns shown,
+  each where the column allows;
+  `{ header: entries }` lists a header's menu in the menu vocabulary, and
+  `{ header: [] }` leaves the browser's menu.
+
+  `buildKeyShortcuts` takes an optional `contextMenu` capability, which adds
+  `Shift+F10`. `GridMessages` has three new keys: `headerMenuLabel(columnName)`,
+  a header menu's accessible name, and `columnHidden(columnName)` and
+  `columnShown(columnName)`, announced when one column is hidden or shown.
+
+- 183babc: A `contextMenu` area takes a function as well as entries, asked each time its
+  menu opens with a `GridContextMenuRequest` — `{ target, defaults, context }`,
+  the target typed for the area — and returning the entries to show, or `null`
+  for the browser's menu there. It is how to add to an area's defaults, take
+  some out, reorder them, or vary the menu by column or row:
+
+  ```ts
+  contextMenu: {
+    cell: ({ target, defaults }) =>
+      target.columnId === "Id" ? null : ["orders.open", "separator", ...defaults],
+  }
+  ```
+
+  For a renderer of its own, `contextMenuEntries(contextMenu, context)` gives
+  the entries for the place `context.target` names, asking an area's function
+  if it has one, and `hasContextMenu(contextMenu, area)` says whether an area
+  opens a grid menu at all. `GridContextMenuEntries` is the type of an area's
+  option.
+
+- 1fdf433: `columnValueOptions` takes an optional `messages` in its query, the grid's own
+  partial `GridMessages`. A boolean option is then labelled `booleanTrue` /
+  `booleanFalse`, the same words its cells use, and `search` matches those
+  labels. Without it, booleans still read `"true"` / `"false"`.
+
+  ```ts
+  columnValueOptions(rows, dataColumns, filter, "Active", {
+    locale,
+    messages: { booleanTrue: "ja", booleanFalse: "nein" },
+  });
+  ```
+
+- 3758583: Grid commands: the one implementation behind a menu item, a toolbar button and
+  a renderer's API. `builtInCommands()` returns the grid's own — sort a column
+  ascending or descending, clear its sort or all sorting, group and ungroup,
+  expand or collapse every group, hide or autofit a column, select all rows,
+  clear the selection, clear filters — each deciding from a `GridCommandContext`
+  whether it shows and whether it can run, and changing the grid only through
+  the controller's actions. `resolveCommands(commands)` lays an app's own
+  commands over them, replacing a built-in of the same id; `createCommandContext`
+  builds the context for a header, cell, group, toolbar or grid target; and
+  `runCommand` runs a command only when it is visible and enabled.
+
+  `ColumnDefinition` takes `hideable` (default `true`), which the built-in
+  `column.hide` command honours; `hideColumns` still hides any column.
+  `GridMessages` has a new key for each built-in label — `sortAscending`,
+  `groupByColumn(columnName)`, `clearFilters` and the rest.
+
+- 3758583: A menu model every renderer draws its menus from. A menu is a list of
+  `MenuEntry`s — command ids, `"separator"`, inline items and submenus — and
+  `resolveMenu(entries, { commands, context })` turns it into what to draw:
+  hidden entries and unknown ids left out, labels resolved to strings, `checked`
+  set only on checkable items, separators never leading, trailing or doubled,
+  empty submenus dropped, and each item's `run()` bound to its context.
+
+  `nextMenuIndex` and `typeaheadIndex` are the pure halves of a menu's keyboard
+  handling: where an arrow, Home or End key moves focus, skipping separators and
+  wrapping, and which item a typed prefix picks.
+
+- 5f9a5da: `searchTextOf(filter)` and `setSearchText(filter, text)` read and write the
+  filter's global text entry as a search box shows it: `setSearchText` stores
+  `%text%` — contains `text`, in any column — or removes the entry for empty
+  text, leaving every column's entries alone; `searchTextOf` gives the text
+  back without its `%` anchors, so a box reading from the filter shows what was
+  typed.
+- 5f9a5da: `GridMessages` gains the toolbar's strings: `toolbarLabel` ("Grid toolbar"),
+  `searchLabel` ("Search"), `searchPlaceholder` ("Search…"), `moreToolbarItems`
+  ("More") and `searchResults(count)` ("3 rows found", "1 row found", "No rows
+  found"), announced when a search settles. A `messages` object that lists
+  every key needs these five added.
+- 5f9a5da: A toolbar model, written in the menu vocabulary. A `ToolbarEntry` is any
+  `MenuEntry` — a command id is a button, a checkable one a toggle, a submenu a
+  dropdown — plus `"search"`, `"spacer"` and `{ type: "custom", id }` for a
+  renderer's own content. `resolveToolbar(entries, { commands, contextFor })`
+  resolves them by `resolveMenu`'s rules, each item in a context targeting
+  `{ area: "toolbar", itemId }`, and separators also collapse beside a spacer.
+  `GridToolbarOptions`, `defaultToolbar` (search, spacer, `filter.clearAll`,
+  `column.choose`) and
+  `toolbarEntries(toolbar)` describe the `toolbar` grid option.
+
+  For a toolbar too narrow for its items, `fitToolbarItems` works out how many
+  fit — pinned entries (search and custom, see `isPinnedToolbarItem`) always
+  stay, and room for a "More" button is kept only when something overflows —
+  and `splitToolbarItems` splits the resolved items into what stays and the
+  "More" menu's entries.
+
+  A menu or toolbar entry naming no command is now reported as "the menu or
+  toolbar entry `id` names no command, so it is left out."
+
+- 5f9a5da: `GridOptions` gains `toolbar?: boolean | GridToolbarOptions<Row>`: a toolbar
+  above the grid, off by default. `true` lists `defaultToolbar` — the search
+  box, a spacer, "Clear filters" and "Choose columns" — and `{ items, label }` lists your own
+  entries and names the toolbar for a screen reader.
+
+### Patch Changes
+
+- 1fdf433: A checklist filter on a date column whose cells hold ISO strings now opens with
+  its values checked after a restore. `restoreState` revives a saved `in` list to
+  `Date`s, which still filtered correctly, but `initialFilterEditorDraft` showed
+  those values unchecked. Checklist values are now keyed the way the `in`
+  operator matches them, so on a date column a date string and the `Date` it
+  names count as the same value. `columnValueOptions` also merges strings that
+  spell the same date differently into one option, and returns the column's
+  `columnType`, which the draft uses for keying.
+- db2ba38: `goToPage`, `nextPage`, `previousPage` and `setPageSize` no longer fire
+  `onPaginationChange` or call subscribers when they leave the pagination as it
+  was — `nextPage()` on the last page, `previousPage()` on the first,
+  `goToPage()` to the page already shown. A controlled grid is no longer asked
+  for the page it already has.
+
 ## 0.11.0
 
 ### Minor Changes
