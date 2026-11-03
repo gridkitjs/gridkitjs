@@ -18,16 +18,16 @@ npm install @gridkitjs/theme-tailwind
 
 ## Semantic classes
 
-| Class                                                        | Element                | Description                                                                                                                      |
-| ------------------------------------------------------------ | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `.gridkit-data-grid`                                         | `<table>`              | The grid itself. Carries borders-horizontal/vertical/all and no-hover-rows/columns/cells state classes.                          |
-| `.grid-header`                                               | `<tr>`                 | The header row.                                                                                                                  |
-| `.header-cell`                                               | `<th>`                 | A header cell. States: is-resizing, is-dragging, is-drop-before, is-drop-after, is-wrapped.                                      |
-| `.grid-row`                                                  | `<tr>`                 | A body row.                                                                                                                      |
-| `.grid-cell`                                                 | `<td>`                 | A body cell. States: is-resizing, is-wrapped.                                                                                    |
-| `.header-resize-handle`                                      | `element`              | The draggable resize grip on a header cell's trailing edge.                                                                      |
-| `.selectable-rows / .selectable-columns / .selectable-cells` | `<table>`              | Present on the grid while the matching selectable member is enabled — what turns on the pointer cursor and text-selection guard. |
-| `.is-selected`                                               | `<tr> \| <th> \| <td>` | A selected row, header cell, or cell. A selected cell wins over its row and column.                                              |
+| Class                                                        | Element                | Description                                                                                                                                                                                                  |
+| ------------------------------------------------------------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `.gridkit-data-grid`                                         | `<table>`              | Each of the grid's tables — header, rows and footer — not the grid's root, which is `div.gridkit-data-grid-viewport`. Carries borders-horizontal/vertical/all and no-hover-rows/columns/cells state classes. |
+| `.grid-header`                                               | `<tr>`                 | The header row.                                                                                                                                                                                              |
+| `.header-cell`                                               | `<th>`                 | A header cell. States: is-resizing, is-dragging, is-drop-before, is-drop-after, is-wrapped.                                                                                                                  |
+| `.grid-row`                                                  | `<tr>`                 | A body row.                                                                                                                                                                                                  |
+| `.grid-cell`                                                 | `<td>`                 | A body cell. States: is-resizing, is-wrapped.                                                                                                                                                                |
+| `.header-resize-handle`                                      | `element`              | The draggable resize grip on a header cell's trailing edge.                                                                                                                                                  |
+| `.selectable-rows / .selectable-columns / .selectable-cells` | `<table>`              | Present on the grid while the matching selectable member is enabled — what turns on the pointer cursor and text-selection guard.                                                                             |
+| `.is-selected`                                               | `<tr> \| <th> \| <td>` | A selected row, header cell, or cell. A selected cell wins over its row and column.                                                                                                                          |
 
 ## Toolbar
 
