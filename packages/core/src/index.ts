@@ -148,6 +148,27 @@ export {
 } from "./menu/contextMenu";
 export type { MenuMove } from "./menu/navigation";
 export { nextMenuIndex, typeaheadIndex } from "./menu/navigation";
+export type {
+  GridToolbarTarget,
+  ResolvedToolbarButton,
+  ResolvedToolbarCustom,
+  ResolvedToolbarItem,
+  ResolvedToolbarMenu,
+  ResolvedToolbarSearch,
+  ResolvedToolbarSpacer,
+  ToolbarCustomEntry,
+  ToolbarEntry,
+} from "./toolbar/types";
+export type { GridToolbarOptions } from "./toolbar/options";
+export { defaultToolbar, toolbarEntries } from "./toolbar/options";
+export type { ToolbarResolveOptions } from "./toolbar/resolveToolbar";
+export { resolveToolbar } from "./toolbar/resolveToolbar";
+export type { ToolbarFitInput, ToolbarSplit } from "./toolbar/overflow";
+export {
+  fitToolbarItems,
+  isPinnedToolbarItem,
+  splitToolbarItems,
+} from "./toolbar/overflow";
 export { searchTextOf, setSearchText } from "./toolbar/search";
 export type { KeyShortcutCapabilities } from "./util/grid";
 export {

@@ -39,7 +39,7 @@ function reportUnknownId(commands: object, id: string): void {
   }
   reported.add(id);
   reportError(
-    `the menu entry \`${id}\` names no command, so it is left out of the menu.`,
+    `the menu or toolbar entry \`${id}\` names no command, so it is left out.`,
   );
 }
 
@@ -105,17 +105,26 @@ function inlineItem<Row>(
 
 /**
  * `entries` with no separator first, last, or next to another — what is
- * left once the items between two separators have all been dropped.
+ * left once the items between two separators have all been dropped. An
+ * entry `isEdge` picks out — a toolbar's spacer — already parts what is on
+ * either side of it, so a separator next to one goes too, as at the ends.
  */
-function collapseSeparators(
-  entries: readonly ResolvedMenuEntry[],
-): readonly ResolvedMenuEntry[] {
-  const collapsed: ResolvedMenuEntry[] = [];
+export function collapseSeparators<Entry extends { readonly type: string }>(
+  entries: readonly Entry[],
+  isEdge: (entry: Entry) => boolean = () => false,
+): readonly Entry[] {
+  const collapsed: Entry[] = [];
   for (const entry of entries) {
     const previous = collapsed.at(-1);
-    if (
-      entry.type !== "separator" ||
-      (previous !== undefined && previous.type !== "separator")
+    if (entry.type !== "separator") {
+      if (isEdge(entry) && previous?.type === "separator") {
+        collapsed.pop();
+      }
+      collapsed.push(entry);
+    } else if (
+      previous !== undefined &&
+      previous.type !== "separator" &&
+      !isEdge(previous)
     ) {
       collapsed.push(entry);
     }
@@ -124,6 +133,50 @@ function collapseSeparators(
     collapsed.pop();
   }
   return collapsed;
+}
+
+/**
+ * One entry resolved, `null` when it shows nothing — what `resolveMenu` does
+ * to each of its entries, and a toolbar to each it shares with menus.
+ * `index` is the entry's place among those it was listed with, which keys a
+ * separator.
+ */
+export function resolveMenuEntry<Row>(
+  entry: MenuEntry<Row>,
+  index: number,
+  options: MenuResolveOptions<Row>,
+): ResolvedMenuEntry | null {
+  const { commands, context } = options;
+  if (entry === "separator") {
+    return { type: "separator", key: `separator-${String(index)}` };
+  }
+  if (typeof entry === "string") {
+    const command = commands.get(entry);
+    if (command === undefined) {
+      reportUnknownId(commands, entry);
+      return null;
+    }
+    return commandItem(command, context);
+  }
+  return entry.type === "item"
+    ? inlineItem(entry, context)
+    : resolveSubmenu(entry, options);
+}
+
+function resolveSubmenu<Row>(
+  entry: MenuSubmenuEntry<Row>,
+  options: MenuResolveOptions<Row>,
+): ResolvedMenuSubmenu | null {
+  const items = resolveMenu(entry.items, options);
+  return items.length === 0
+    ? null
+    : {
+        type: "submenu",
+        id: entry.id,
+        label: evaluate(entry.label, options.context),
+        icon: entry.icon,
+        items,
+      };
 }
 
 /**
@@ -147,44 +200,9 @@ export function resolveMenu<Row>(
   entries: readonly MenuEntry<Row>[],
   options: MenuResolveOptions<Row>,
 ): readonly ResolvedMenuEntry[] {
-  const { commands, context } = options;
-
-  function resolveSubmenu(
-    entry: MenuSubmenuEntry<Row>,
-  ): ResolvedMenuSubmenu | null {
-    const items = resolveMenu(entry.items, options);
-    return items.length === 0
-      ? null
-      : {
-          type: "submenu",
-          id: entry.id,
-          label: evaluate(entry.label, context),
-          icon: entry.icon,
-          items,
-        };
-  }
-
-  function resolveEntry(
-    entry: MenuEntry<Row>,
-    index: number,
-  ): ResolvedMenuEntry | null {
-    if (entry === "separator") {
-      return { type: "separator", key: `separator-${String(index)}` };
-    }
-    if (typeof entry === "string") {
-      const command = commands.get(entry);
-      if (command === undefined) {
-        reportUnknownId(commands, entry);
-        return null;
-      }
-      return commandItem(command, context);
-    }
-    return entry.type === "item"
-      ? inlineItem(entry, context)
-      : resolveSubmenu(entry);
-  }
-
   return collapseSeparators(
-    entries.map(resolveEntry).filter((entry) => entry !== null),
+    entries
+      .map((entry, index) => resolveMenuEntry(entry, index, options))
+      .filter((entry) => entry !== null),
   );
 }

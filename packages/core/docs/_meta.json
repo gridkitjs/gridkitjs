@@ -4,6 +4,7 @@
     "view",
     "controller",
     "commands",
+    "toolbar",
     "filtering",
     "column-definitions",
     "resizing",
