@@ -711,6 +711,31 @@ test.describe("DataGrid toolbar overflow", () => {
     ).toBeFocused();
   });
 
+  test("an item relabelled while in More is measured again", async ({
+    mount,
+  }) => {
+    const relabelled = (clearFilters: string) => (
+      <DataGrid
+        columns={plainColumns}
+        dataSource={plainRows}
+        toolbar={{ items: ["search", "filter.clearAll"] }}
+        messages={{ clearFilters }}
+      />
+    );
+    const root = await mountGrid(
+      mount,
+      relabelled("Clear every filter set on any column of this grid"),
+      { width: 400 },
+    );
+    await expect(toolbarButton(root, "More")).toBeVisible();
+
+    // Short enough to fit now, though the width remembered for it is not.
+    await updateGrid(root, relabelled("Clear"), { width: 400 });
+
+    await expect(toolbarButton(root, "Clear")).toBeVisible();
+    await expect(toolbarButton(root, "More")).toHaveCount(0);
+  });
+
   test("More is a control the arrow keys reach", async ({ mount, page }) => {
     const root = await mountGrid(mount, <ToolbarGrid />, NARROW);
 
