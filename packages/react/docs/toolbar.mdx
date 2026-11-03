@@ -144,7 +144,7 @@ It matches what the global entry matches: every data column, hidden ones include
 
 ## When it is narrow
 
-The toolbar keeps its items on one row. When they do not all fit, the ones from the first that does not fit onwards move into a "More" menu button at the end — a button becomes a menu item, a toggle a checkable one, and a dropdown a submenu — and widening the toolbar brings them back out. They run from "More" exactly as they would have from their buttons, and report the same target to `onCommand`. The search box and custom entries never move: they stay however narrow the toolbar gets.
+The toolbar keeps its items on one row. When they do not all fit, the ones from the first that does not fit onwards move into a "More" menu button at the end — a button becomes a menu item, a toggle a checkable one, and a dropdown a submenu — and widening the toolbar brings them back out. They run from "More" exactly as they would have from their buttons, and report the same target to `onCommand`. The search box and custom entries never move: they stay however narrow the toolbar gets. The search box narrows with the toolbar, to half its width at most, and should they still not fit, "More" stays at the toolbar's end over what is cut off there, so it can always be reached.
 
 ## Commands and `onCommand`
 

@@ -796,6 +796,17 @@
     flex-shrink: 0;
   }
 
+  /*
+   * The search box and custom entries never move into "More", so together
+   * they can be wider than the toolbar. "More" then sticks to its end edge,
+   * over what is clipped there, rather than being clipped itself.
+   */
+  .gridkit-toolbar > .toolbar-more {
+    position: sticky;
+    /* Counted from the toolbar's padding edge, so its padding again. */
+    inset-inline-end: 0.5rem;
+  }
+
   /* A command, a dropdown, or "More". */
   .toolbar-button {
     display: inline-flex;
@@ -856,8 +867,14 @@
     margin-inline-end: -0.25rem;
   }
 
+  /*
+   * Narrower in a narrow toolbar, by the toolbar's width alone — never by
+   * what else is in it, which the overflow would measure as a width of its
+   * own — so it leaves room for "More" beside it.
+   */
   .toolbar-search {
     width: 12rem;
+    max-width: 50%;
     padding: 0.25rem 0.5rem;
     font: inherit;
     color: var(--gridkit-fg);
