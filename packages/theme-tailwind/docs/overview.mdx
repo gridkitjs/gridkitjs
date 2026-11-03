@@ -53,7 +53,7 @@ The grid's [context menu](/docs/react/context-menu) renders into `document.body`
 
 | Class                     | Element  | Description                                                                                                                                                                                 |
 | ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.gridkit-overlay`        | `<div>`  | The positioned box around every menu and submenu, `position: fixed` and above the grid. Carries the grid's `.gridkit-light`/`.gridkit-dark`.                                                |
+| `.gridkit-overlay`        | `<div>`  | The positioned box around every menu, submenu and panel, `position: fixed` and above the grid. Carries the grid's `.gridkit-light`/`.gridkit-dark`.                                         |
 | `.gridkit-menu`           | `<div>`  | A menu (`role="menu"`): its surface, border, shadow and padding.                                                                                                                            |
 | `.menu-item`              | `<div>`  | An item. Focused (`:focus`) when the keyboard or the pointer is on it; `[aria-disabled="true"]`, `[aria-checked="true"]` and `[aria-expanded="true"]` (its submenu is open) style the rest. |
 | `.menu-item-icon`         | `<span>` | The icon before the label — empty when the item has none, so labels line up; a checked item's check.                                                                                        |
@@ -62,7 +62,20 @@ The grid's [context menu](/docs/react/context-menu) renders into `document.body`
 | `.menu-submenu-indicator` | `<span>` | The chevron on an item that opens a submenu.                                                                                                                                                |
 | `.menu-separator`         | `<div>`  | A separator (`role="separator"`).                                                                                                                                                           |
 
-Because an overlay sits outside the grid, it takes its colours from the tokens on `:root` — or from `.gridkit-light`/`.gridkit-dark`, which the grid copies onto it from the nearest ancestor that has one (below). A token you override on some other wrapper around the grid does not reach its menus; override it on `:root`, or on `.gridkit-overlay` as well.
+Because an overlay sits outside the grid, it takes its colours from the tokens on `:root` — or from `.gridkit-light`/`.gridkit-dark`, which the grid copies onto it from the nearest ancestor that has one (below). A token you override on some other wrapper around the grid does not reach its menus or its column chooser; override it on `:root`, or on `.gridkit-overlay` as well.
+
+### Column chooser
+
+The [column chooser](/docs/react/columns/column-chooser) is an overlay too, in a `.gridkit-overlay` like a menu. Its checkboxes are native, so a disabled one is `:disabled` rather than an ARIA attribute.
+
+| Class                     | Element   | Description                                                                                           |
+| ------------------------- | --------- | ----------------------------------------------------------------------------------------------------- |
+| `.gridkit-column-chooser` | `<div>`   | The chooser (`role="dialog"`): a fixed width, its surface, border, shadow and padding.                |
+| `.column-chooser-search`  | `<input>` | The search box.                                                                                       |
+| `.column-chooser-option`  | `<label>` | A checkbox and its label — "Show all", or a column. Muted while its checkbox is disabled.             |
+| `.column-chooser-all`     | `<label>` | "Show all", set apart from the list below it. Also a `.column-chooser-option`.                        |
+| `.column-chooser-list`    | `<ul>`    | The columns, one `<li>` each. Scrolls inside itself past about ten, which does not close the chooser. |
+| `.column-chooser-empty`   | `<p>`     | "No matching columns", in place of the list when the search matches none.                             |
 
 ## Theme tokens
 
