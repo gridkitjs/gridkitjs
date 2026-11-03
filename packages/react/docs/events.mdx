@@ -33,9 +33,9 @@ Every interaction reports through a callback prop rather than a ref or an event 
 Neither fires for a group header or a group's summary row; a click there expands or collapses the group. `RowPointerEvent<Row>` carries no DOM event, so a handler reads the same payload whichever renderer drew the row:
 
 | Field      | Type                                             | Description                                                                            |
-| ---------- | ------------------------------------------------ | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| ---------- | ------------------------------------------------ | -------------------------------------------------------------------------------------- |
 | `row`      | `ResolvedRow<Row>`                               | The row clicked — its `rowId`, the `row` itself, and its position.                     |
-| `columnId` | `string                                          | null`                                                                                  | The column of the cell clicked, or `null` when the pointer was on no cell. |
+| `columnId` | `string \| null`                                 | The column of the cell clicked, or `null` when the pointer was on no cell.             |
 | `native`   | `{ ctrlKey, metaKey, shiftKey, altKey, button }` | The modifiers held and the button pressed, numbered as `MouseEvent.button` numbers it. |
 
 ```ts
