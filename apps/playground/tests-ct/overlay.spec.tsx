@@ -4,6 +4,8 @@
 import type { Locator, Page } from "@playwright/test";
 import type { MountResult } from "@playwright/experimental-ct-react";
 import { expect, test } from "./support/coverage";
+import GridOverlayHarness from "./support/GridOverlayHarness";
+import { mountGrid } from "./support/mountGrid";
 import OverlayHarness from "./support/OverlayHarness";
 
 /** Opens the panel from its anchor; it renders into `document.body`, outside `root`. */
@@ -199,5 +201,63 @@ test.describe("dismissal", () => {
 
     await expect(panel).toBeHidden();
     await expect(root.getByTestId("dismissed")).toHaveText("blur");
+  });
+});
+
+test.describe("inside a grid", () => {
+  /** Selects the first two rows, then opens the panel from the header. */
+  async function selectTwoRowsAndOpen(
+    root: MountResult,
+    page: Page,
+  ): Promise<{ rows: Locator; panel: Locator }> {
+    const rows = root.locator("tbody tr");
+    await rows.nth(0).locator("td").first().click();
+    await rows
+      .nth(1)
+      .locator("td")
+      .first()
+      .click({ modifiers: ["Control"] });
+    await expect(rows.nth(1)).toHaveAttribute("aria-selected", "true");
+
+    await root.getByRole("button", { name: "Open panel" }).click();
+    const panel = page.getByRole("dialog", { name: "Panel" });
+    await expect(panel.getByRole("textbox")).toBeFocused();
+    return { rows, panel };
+  }
+
+  test("Escape in a portalled panel closes it and leaves the selection alone", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <GridOverlayHarness />);
+    const { rows, panel } = await selectTwoRowsAndOpen(root, page);
+
+    await page.keyboard.press("Escape");
+
+    await expect(panel).toBeHidden();
+    await expect(rows.nth(0)).toHaveAttribute("aria-selected", "true");
+    await expect(rows.nth(1)).toHaveAttribute("aria-selected", "true");
+  });
+
+  test("Ctrl+A in a portalled panel's input selects its text, not the rows", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <GridOverlayHarness />);
+    const { rows, panel } = await selectTwoRowsAndOpen(root, page);
+    const input = panel.getByRole("textbox");
+    await input.evaluate((element: HTMLInputElement) => {
+      element.setSelectionRange(element.value.length, element.value.length);
+    });
+
+    await page.keyboard.press("Control+a");
+
+    await expect(rows.nth(2)).toHaveAttribute("aria-selected", "false");
+    expect(
+      await input.evaluate((element: HTMLInputElement) => [
+        element.selectionStart,
+        element.selectionEnd,
+      ]),
+    ).toEqual([0, "hello".length]);
   });
 });

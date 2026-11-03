@@ -12,6 +12,7 @@ import {
 import type { ResolvedColumn } from "../DataGrid";
 import { ariaAttr } from "../ariaAttr";
 import { classNames } from "../classNames";
+import { isOwnEvent } from "../isOwnEvent";
 import type { ColumnDragApi } from "../useColumnDrag";
 import type { ColumnResizeApi } from "../useColumnResize";
 import { HEADER_ROW, type GridNavigationApi } from "../useGridNavigation";
@@ -188,6 +189,7 @@ export default function GridHeader<Row>({
                 selection.selectColumn(entry.id, intentOf(event));
               }}
               onKeyDown={(event) => {
+                if (!isOwnEvent(event)) return;
                 const horizontal =
                   event.key === "ArrowLeft" || event.key === "ArrowRight";
                 const direction = event.key === "ArrowLeft" ? -1 : 1;
