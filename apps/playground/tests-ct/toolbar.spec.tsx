@@ -146,3 +146,82 @@ test.describe("attachToolbar", () => {
     await expect(control(root, "Added")).toBeFocused();
   });
 });
+
+/** Sets the toolbar's width directly, as a container resizing around it would. */
+async function resize(root: MountResult, width: number): Promise<void> {
+  await root
+    .getByRole("toolbar", { name: "Actions" })
+    .evaluate((toolbar: HTMLElement, value) => {
+      toolbar.style.width = `${String(value)}px`;
+    }, width);
+}
+
+test.describe("observeToolbarOverflow", () => {
+  // Every entry is a fixed width with an 8px gap and 5px of padding a side:
+  // 477px of entries, the search box (120) and the custom entry (60) pinned,
+  // and a 60px "More" button.
+
+  test("reports every entry fitting a toolbar wide enough", async ({
+    mount,
+  }) => {
+    const root = await mount(<ToolbarHarness />);
+
+    await expect(root.getByTestId("fit")).toHaveText("7");
+    await expect(control(root, "Export")).toBeVisible();
+    await expect(control(root, "More")).toHaveCount(0);
+  });
+
+  test("moves what does not fit into More, keeping the search box and custom entry", async ({
+    mount,
+  }) => {
+    const root = await mount(<ToolbarHarness />);
+    await resize(root, 410);
+
+    await expect(root.getByTestId("fit")).toHaveText("1");
+    await expect(control(root, "Bold")).toBeVisible();
+    await expect(control(root, "Delete")).toHaveCount(0);
+    await expect(control(root, "Export")).toHaveCount(0);
+    await expect(control(root, "Search")).toBeVisible();
+    await expect(control(root, "Status")).toBeVisible();
+    await expect(control(root, "More")).toBeVisible();
+  });
+
+  test("keeps only the pinned entries when nothing else fits", async ({
+    mount,
+  }) => {
+    const root = await mount(<ToolbarHarness />);
+    await resize(root, 300);
+
+    await expect(root.getByTestId("fit")).toHaveText("0");
+    await expect(control(root, "Bold")).toHaveCount(0);
+    await expect(control(root, "Search")).toBeVisible();
+    await expect(control(root, "Status")).toBeVisible();
+  });
+
+  test("widening brings back entries it measured before moving them out", async ({
+    mount,
+  }) => {
+    const root = await mount(<ToolbarHarness />);
+    await resize(root, 300);
+    await expect(root.getByTestId("fit")).toHaveText("0");
+
+    await resize(root, 410);
+    await expect(root.getByTestId("fit")).toHaveText("1");
+    await resize(root, 600);
+    await expect(root.getByTestId("fit")).toHaveText("7");
+    await expect(control(root, "Export")).toBeVisible();
+    await expect(control(root, "More")).toHaveCount(0);
+  });
+
+  test("counts an entry added to its items", async ({ mount }) => {
+    const root = await mount(<ToolbarHarness />);
+    await resize(root, 500);
+    await expect(root.getByTestId("fit")).toHaveText("7");
+
+    // An 80px button more: 565px of entries no longer fit in 498.
+    await control(root, "Add item").click();
+    await expect(root.getByTestId("fit")).toHaveText("2");
+    await expect(control(root, "Added")).toBeVisible();
+    await expect(control(root, "Delete")).toHaveCount(0);
+  });
+});
