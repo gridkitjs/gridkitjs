@@ -148,6 +148,7 @@ export {
 } from "./menu/contextMenu";
 export type { MenuMove } from "./menu/navigation";
 export { nextMenuIndex, typeaheadIndex } from "./menu/navigation";
+export { searchTextOf, setSearchText } from "./toolbar/search";
 export type { KeyShortcutCapabilities } from "./util/grid";
 export {
   accessDotted,

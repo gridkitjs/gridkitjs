@@ -1,6 +1,6 @@
 ---
 title: "Filter state and the editor model"
-description: "describeColumnFilter, columnValueOptions and filterEditorReducer: the headless model a column's filter editor is drawn over."
+description: "describeColumnFilter, columnValueOptions and filterEditorReducer: the headless model a column's filter editor is drawn over — and searchTextOf and setSearchText, a search box's."
 ---
 
 A grid's filter is one `FilterState` — entries ANDed together, described with every entry kind on [Column filtering](/docs/react/column-filtering). A filter editor, whether a list of conditions or an Excel-style checklist of values, is a UI over one column's part of that state. Core holds everything such an editor decides, so a renderer only draws it and every renderer's editor behaves the same:
@@ -89,3 +89,26 @@ A value or blanks action switches the draft to its checklist (`mode: "values"`);
 - One condition is stored as itself, two or more as one group with the draft's combinator; no conditions is no filter.
 
 What `draftToFilter` writes, `describeColumnFilter` reads back as the same shape. When nothing changes it returns `current` itself, and `setFilter` reports nothing for a filter equal to the one it has.
+
+## A search box
+
+A search box over every column is a UI over the filter's global text entry — the `{ query }` that names no column, matched against the raw value of every data column, hidden ones included. Two functions read and write it, so a box always shows what the filter holds — after a restored layout or `filter.clearAll`, too:
+
+| Function                      | Type               | Description                                                                                                                                                                             |
+| ----------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `searchTextOf(filter)`        | `string`           | The global text entry's query without its leading and trailing `%`, or `""` when there is none. A `%` inside the text stays.                                                            |
+| `setSearchText(filter, text)` | `FilterState<Row>` | `filter` with the global text entry set to `%text%` — contains `text` — or removed for `""`. Entries naming a column stay as they are; `filter` itself comes back when nothing changes. |
+
+```ts
+import { searchTextOf, setSearchText } from "@gridkitjs/core";
+
+input.value = searchTextOf(controller.getState().filter);
+
+input.addEventListener("input", () => {
+  controller.setFilter(
+    setSearchText(controller.getState().filter, input.value),
+  );
+});
+```
+
+`setSearchText` writes the text as typed, spaces and all: trimming would take a space from under the caret of a box that reads its text back.
