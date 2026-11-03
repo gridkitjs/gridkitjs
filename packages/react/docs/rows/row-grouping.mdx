@@ -61,7 +61,7 @@ onGroupExpansionChange?: (event: GroupExpansionEvent) => void;
 | `groupId`   | `string \| null`      | The group toggled, or `null` for `expandAllGroups()`/`collapseAllGroups()`, which touch every group in one call. |
 | `expansion` | `GroupExpansionState` | The full collapsed set after the change.                                                                         |
 
-There's no built-in "expand all" control — call `gridRef.current?.expandAllGroups()` or `collapseAllGroups()` from a button of your own. See [imperative handle](/docs/react/imperative-handle) for both, and for `getGroupBy()`/`getGroupExpansion()`/`getDisplayRows()`.
+"Expand all groups" and "Collapse all groups" — the `group.expandAll` and `group.collapseAll` commands — are in the default [context menu](/docs/react/context-menu#default-items) of a group row and, while the grid is grouped, of a cell; a [toolbar](/docs/react/toolbar) can list them too. From a button of your own, call `gridRef.current?.expandAllGroups()` or `collapseAllGroups()`. See [imperative handle](/docs/react/imperative-handle) for both, and for `getGroupBy()`/`getGroupExpansion()`/`getDisplayRows()`.
 
 ## Building a group-by UI outside the grid's own tree
 
@@ -89,7 +89,7 @@ function Sidebar({ gridRef }: { gridRef: RefObject<DataGridApi<Row> | null> }) {
 }
 ```
 
-`DataGridApi` has no per-group toggle action today — only `expandAllGroups`/`collapseAllGroups`, both included above. A custom UI needing to toggle a single group has no imperative action to call yet. A specific group's own computed aggregates are read off `getDisplayRows()`'s per-header `aggregates` field rather than a getter here — see [`useAggregateState`](/docs/react/aggregate-functions) for the grand-total equivalent.
+`useGroupByState` returns a `GroupByStateApi`, below. To toggle a single group, give the ref's `setGroupExpansion(expansion)` the collapsed set with that group's id added or removed — it replaces the set and fires `onGroupExpansionChange` with `groupId: null`; `setGroupBy(groupBy)` replaces the stack the same way. A specific group's own computed aggregates are read off `getDisplayRows()`'s per-header `aggregates` field rather than a getter here — see [`useAggregateState`](/docs/react/aggregate-functions) for the grand-total equivalent.
 
 | Field               | Type                  | Description                                    |
 | ------------------- | --------------------- | ---------------------------------------------- |
@@ -134,7 +134,7 @@ Before the grid mounts, both fields read as empty and the actions are no-ops. Se
 
 ## Scope
 
-Sorting groups by an aggregate value is still out of scope for this release. Rendering an aggregate in a group's header, though, is not: see [Aggregate functions](/docs/react/aggregate-functions) for the `aggregates` prop, which populates `ResolvedGroupRow.aggregates` (returned by `getDisplayRows()`) additively on top of everything described here.
+Groups sort by their own value, never by an aggregate. Rendering an aggregate in a group's header, though, is not: see [Aggregate functions](/docs/react/aggregate-functions) for the `aggregates` prop, which populates `ResolvedGroupRow.aggregates` (returned by `getDisplayRows()`) additively on top of everything described here.
 
 ## See also
 
