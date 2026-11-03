@@ -29,6 +29,24 @@ npm install @gridkitjs/theme-tailwind
 | `.selectable-rows / .selectable-columns / .selectable-cells` | `<table>`              | Present on the grid while the matching selectable member is enabled — what turns on the pointer cursor and text-selection guard. |
 | `.is-selected`                                               | `<tr> \| <th> \| <td>` | A selected row, header cell, or cell. A selected cell wins over its row and column.                                              |
 
+## Toolbar
+
+The grid's [toolbar](/docs/react/toolbar) is the first thing inside it, above the group-by bar. It sticks to the grid's start edge, so it stays in view while the tables scroll sideways, and keeps its entries on one row — what does not fit moves into "More". States are ARIA attributes, not classes.
+
+| Class                       | Element    | Description                                                                                                                                                                                  |
+| --------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.gridkit-toolbar`          | `<div>`    | The toolbar (`role="toolbar"`): its row, padding, surface and bottom border.                                                                                                                 |
+| `.toolbar-button`           | `<button>` | A command's button, a dropdown, or "More". `[aria-disabled="true"]` mutes it, `[aria-pressed="true"]` marks a toggle that is on, and `[aria-expanded="true"]` a dropdown whose menu is open. |
+| `.toolbar-button-icon`      | `<span>`   | The icon before a button's label; hidden when empty.                                                                                                                                         |
+| `.toolbar-button-indicator` | `<span>`   | The chevron after a dropdown's label.                                                                                                                                                        |
+| `.toolbar-more`             | `<button>` | The "More" button, holding the entries that do not fit. Also a `.toolbar-button`.                                                                                                            |
+| `.toolbar-search`           | `<input>`  | The search box.                                                                                                                                                                              |
+| `.toolbar-separator`        | `<div>`    | A separator (`role="separator"`).                                                                                                                                                            |
+| `.toolbar-spacer`           | `<div>`    | The free space, pushing what follows it to the far end.                                                                                                                                      |
+| `.toolbar-custom`           | `<div>`    | Holds what `renderToolbarItem` draws.                                                                                                                                                        |
+
+A dropdown's menu, and "More"'s, are [menus](#overlays-and-menus) like the context menu's.
+
 ## Overlays and menus
 
 The grid's [context menu](/docs/react/context-menu) renders into `document.body`, not inside the grid, so no scrolling ancestor clips it — its selectors are top-level rather than under `.gridkit-data-grid`. States are ARIA attributes, not classes.
