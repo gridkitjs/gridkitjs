@@ -1,5 +1,11 @@
 # @gridkitjs/theme-tailwind
 
+## 0.8.1
+
+### Patch Changes
+
+- 84c51ec: Dropped the `.header-resize-grip` rules; no component has rendered that element, so the stylesheet is smaller with nothing visible changed.
+
 ## 0.8.0
 
 ### Minor Changes
