@@ -92,6 +92,9 @@ Functions are called with numbers that count from one, and receive a column by i
 | `columnHidden`          | `(columnName) => string`                           | "Name, column hidden" — announced when one column is hidden, from the menu or the ref's `hideColumns`.              |
 | `columnShown`           | `(columnName) => string`                           | "Name, column shown" — announced when one column is shown.                                                          |
 | `headerMenuLabel`       | `(columnName) => string`                           | "Name column menu" — a column header's [context menu](/docs/react/context-menu)'s accessible name.                  |
+| `cellMenuLabel`         | `string`                                           | "Row menu" — a data cell's context menu's accessible name.                                                          |
+| `groupMenuLabel`        | `string`                                           | "Group menu" — a group row's context menu's accessible name.                                                        |
+| `bodyMenuLabel`         | `string`                                           | "Grid menu" — the accessible name of the context menu in the body's empty space.                                    |
 | `sortAscending`         | `string`                                           | "Sort ascending" — the label of the [built-in command](/docs/core/commands#built-in-commands) `sort.ascending`.     |
 | `sortDescending`        | `string`                                           | "Sort descending" — `sort.descending`.                                                                              |
 | `clearSort`             | `string`                                           | "Clear sort" — `sort.clear`.                                                                                        |

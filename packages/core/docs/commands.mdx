@@ -227,7 +227,16 @@ An empty result means there is nothing to show, so a renderer shows no grid menu
 
 ## Context menus
 
-A grid's `contextMenu` option — `boolean | GridContextMenuOptions<Row>` — says which context menus it shows, by area: `header`, a column header's menu. It is off by default, leaving the browser's menu. `true` shows each area's defaults; an object lists an area's entries in the menu vocabulary above, an area left out keeping its defaults and `[]` leaving the browser's menu there.
+A grid's `contextMenu` option — `boolean | GridContextMenuOptions<Row>` — says which context menus it shows, by area. It is off by default, leaving the browser's menu. `true` shows each area's defaults; an object lists an area's entries in the menu vocabulary above, an area left out keeping its defaults and `[]` leaving the browser's menu there.
+
+| Area     | Where                                                       | Target                                 |
+| -------- | ----------------------------------------------------------- | -------------------------------------- |
+| `header` | A column header.                                            | `{ area: "header", columnId }`         |
+| `cell`   | A data cell — a menu for its row and cell.                  | `{ area: "cell", rowId, columnId }`    |
+| `group`  | A group header row.                                         | `{ area: "group", groupId, columnId }` |
+| `body`   | The body's empty space, below the last row or with no rows. | `{ area: "body" }`                     |
+
+A `GridContextMenuTarget` is a command target in one of these areas.
 
 ```ts
 <DataGrid
@@ -236,11 +245,19 @@ A grid's `contextMenu` option — `boolean | GridContextMenuOptions<Row>` — sa
   sortableColumns
   contextMenu={{
     header: ["sort.ascending", "sort.descending", "separator", "column.hide"],
+    cell: ["selection.selectAllRows", "selection.clear"],
   }}
 />
 ```
 
-`defaultContextMenu` holds each area's defaults. A header's are `sort.ascending`, `sort.descending`, `sort.clear`, a separator, `group.add`, `group.remove`, a separator, `column.autoFit`, `column.autoFitAll`, a separator and `column.hide` — each hidden where its column cannot do it, and the separators collapsing around what is left.
+`defaultContextMenu` holds each area's defaults — each item hidden where it has nothing to act on, and the separators collapsing around what is left:
+
+| Area     | Defaults                                                                                                                                                                        |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `header` | `sort.ascending`, `sort.descending`, `sort.clear`, a separator, `group.add`, `group.remove`, a separator, `column.autoFit`, `column.autoFitAll`, a separator and `column.hide`. |
+| `cell`   | `selection.selectAllRows`, `selection.clear`, a separator, `group.expandAll` and `group.collapseAll`.                                                                           |
+| `group`  | `group.expandAll`, `group.collapseAll`, a separator and `group.remove` — which stops grouping by the row's column.                                                              |
+| `body`   | None: empty space keeps the browser's menu until the grid lists entries for it.                                                                                                 |
 
 `contextMenuEntries(contextMenu, area)` is what the option gives an area, for a renderer to resolve against a context on that area's target — `{ area: "header", columnId }` — and draw. No entries, or none left once resolved, means no grid menu there: the renderer leaves the browser's.
 

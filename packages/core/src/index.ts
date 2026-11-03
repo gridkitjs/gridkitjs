@@ -134,6 +134,7 @@ export { resolveMenu } from "./menu/resolveMenu";
 export type {
   GridContextMenuArea,
   GridContextMenuOptions,
+  GridContextMenuTarget,
 } from "./menu/contextMenu";
 export { contextMenuEntries, defaultContextMenu } from "./menu/contextMenu";
 export type { MenuMove } from "./menu/navigation";

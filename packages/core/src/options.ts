@@ -403,12 +403,13 @@ export interface GridOptions<Row> {
    */
   messages?: Partial<GridMessages> | undefined;
   /**
-   * The grid's own context menu, opened on a column header by a
-   * right-click, Shift+F10 or the ContextMenu key. Off by default, like
-   * every other feature, leaving the browser's menu. `true` shows each
-   * area's defaults — see `defaultContextMenu`; an object lists an area's
-   * entries, an area left out keeping its defaults and one given `[]`
-   * showing the browser's menu there.
+   * The grid's own context menu, opened on a column header, a data cell, a
+   * group row or the body's empty space by a right-click, Shift+F10 or the
+   * ContextMenu key. Off by default, like every other feature, leaving the
+   * browser's menu. `true` shows each area's defaults — see
+   * `defaultContextMenu`; an object lists an area's entries, an area left
+   * out keeping its defaults and one given `[]` showing the browser's menu
+   * there.
    */
   contextMenu?: boolean | GridContextMenuOptions<Row> | undefined;
 }

@@ -81,6 +81,12 @@ export interface GridMessages {
   columnShown: (columnName: string) => string;
   /** A column header's context menu's accessible name. */
   headerMenuLabel: (columnName: string) => string;
+  /** A data cell's context menu's accessible name — a menu for its row. */
+  cellMenuLabel: string;
+  /** A group header row's context menu's accessible name. */
+  groupMenuLabel: string;
+  /** The accessible name of the menu in the body's empty space. */
+  bodyMenuLabel: string;
   /** The built-in `sort.ascending` command's label. */
   sortAscending: string;
   sortDescending: string;
@@ -164,6 +170,9 @@ export const defaultMessages: GridMessages = {
   columnHidden: (columnName) => `${columnName}, column hidden`,
   columnShown: (columnName) => `${columnName}, column shown`,
   headerMenuLabel: (columnName) => `${columnName} column menu`,
+  cellMenuLabel: "Row menu",
+  groupMenuLabel: "Group menu",
+  bodyMenuLabel: "Grid menu",
   sortAscending: "Sort ascending",
   sortDescending: "Sort descending",
   clearSort: "Clear sort",
