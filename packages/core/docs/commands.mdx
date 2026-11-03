@@ -87,11 +87,11 @@ A context is a snapshot. A renderer builds one each time it resolves a menu or a
 
 A `GridCommandHost` holds what a command needs that only a renderer has. A caller with no renderer — a test, a script in Node — passes members that do nothing.
 
-| Member                      | Description                                                                                                    |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `autoFitColumns(columnIds)` | Sizes each column to fit its content, as double-clicking its resize handle does.                               |
-| `openPanel(kind, target)`   | Opens one of the grid's panels anchored to the target. `kind` is a `GridPanelKind`: `"columnChooser"` for now. |
-| `announce(text)`            | Reads `text` out through the grid's live region.                                                               |
+| Member                      | Description                                                                                                               |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `autoFitColumns(columnIds)` | Sizes each column to fit its content, as double-clicking its resize handle does.                                          |
+| `openPanel(kind, target)`   | Opens one of the grid's [panels](#panels) anchored to the target. `kind` is a `GridPanelKind`: `"columnChooser"` for now. |
+| `announce(text)`            | Reads `text` out through the grid's live region.                                                                          |
 
 ## Built-in commands
 
@@ -111,6 +111,7 @@ A `GridCommandHost` holds what a command needs that only a renderer has. A calle
 | `column.hide`             | header                     | the column is `hideable`                | another column is shown                   | `hideColumns([id])`                                           | `hideColumn`        |
 | `column.autoFit`          | header                     | the column is resizable                 | always                                    | `host.autoFitColumns([id])`                                   | `autoFitColumn`     |
 | `column.autoFitAll`       | grid, toolbar, header      | any shown column is resizable           | always                                    | `host.autoFitColumns(ids)` with every shown resizable column. | `autoFitAllColumns` |
+| `column.choose`           | grid, toolbar, header      | always                                  | always                                    | `host.openPanel("columnChooser", target)`                     | `chooseColumns`     |
 | `selection.selectAllRows` | grid, cell                 | `selectable.rows` is `"multiple"`       | there are rows                            | `selectAllRows()`                                             | `selectAllRows`     |
 | `selection.clear`         | grid, cell, header         | rows, columns or cells are selectable   | anything is selected                      | `clearSelection()`                                            | `clearSelection`    |
 | `filter.clearAll`         | grid, toolbar, header      | always                                  | anything filters                          | `setFilter([])`, which clears the search too.                 | `clearFilters`      |
@@ -120,6 +121,51 @@ A `GridCommandHost` holds what a command needs that only a renderer has. A calle
 The sorting, grouping, hiding and autofit built-ins carry an `icon` key — a `BuiltInCommandIcon`: `sortAscending` and `sortDescending` on the two sorts, `group` on `group.add` and `group.remove`, `hide` on `column.hide`, and `autoFit` on both autofits. @gridkitjs/react draws each as an icon of its own; a command of yours may use the same keys to look like the built-ins, and a renderer of your own maps them to its icons or leaves them out.
 
 The ids `filter.open`, `copy.cell`, `copy.row`, `copy.selection`, `export.csv`, `export.json`, `export.xlsx`, `export.pdf`, `print` and `layout.reset` are reserved for built-ins still to come.
+
+## Panels
+
+A panel is a small dialog a renderer opens beside where it was asked for — the column chooser now, a column's filter editor later. A command opens one through `host.openPanel(kind, target)`, passing its own target along, so the renderer can anchor it: below a header, beside a toolbar button, or at the grid's corner for `{ area: "grid" }`. The renderer holds which panel is open, one at a time; core holds what each one shows.
+
+### The column chooser
+
+`column.choose` opens the column chooser: a checkbox for every data column in column order, hidden ones included, a search box narrowing the list, and a "Show all" checkbox over what the search shows. `resolveColumnChooser({ columns, visibility, search })` — a `ColumnChooserInput` — works out what it draws, and what "Show all" does:
+
+```ts
+import { resolveColumnChooser } from "@gridkitjs/core";
+
+const { dataColumns } = controller.getView();
+const { columnVisibility } = controller.getState();
+const chooser = resolveColumnChooser({
+  columns: dataColumns,
+  visibility: columnVisibility,
+  search: "date",
+});
+
+for (const entry of chooser.entries) {
+  drawCheckbox(entry.label, entry.visible, entry.disabled, () =>
+    entry.visible
+      ? controller.hideColumns([entry.columnId])
+      : controller.showColumns([entry.columnId]),
+  );
+}
+const toggle = chooser.toggleAll;
+drawShowAll(chooser.selectAll, toggle === null, () => {
+  if (toggle?.visible === true) controller.showColumns(toggle.columnIds);
+  if (toggle?.visible === false) controller.hideColumns(toggle.columnIds);
+});
+```
+
+| Field       | Type                            | Description                                                                                                                                                              |
+| ----------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `entries`   | `readonly ColumnChooserEntry[]` | The columns whose header text contains `search`, ignoring case, in column order: `columnId`, `label` (the header text), `visible` and `disabled`.                        |
+| `selectAll` | `SelectAllState`                | "Show all"'s state — `"checked"`, `"unchecked"` or `"mixed"` — over the entries whose column is `hideable`: a column the user cannot hide is always on, and not counted. |
+| `toggleAll` | `ColumnChooserToggle \| null`   | What toggling "Show all" does — `{ visible, columnIds }`, the columns to show or to hide — or `null` when it can do nothing, for a disabled checkbox.                    |
+
+The rules every chooser keeps:
+
+- An entry is `disabled` — its checkbox cannot be unchecked — while its column shows and is either not `hideable` or the last column shown. A hidden column can always be shown, `hideable` or not.
+- "Show all" shows every hidden column the search lists once any is hidden, and hides those it lists once none is. It never touches a column that is not `hideable`, and never hides the last column shown: when that is all that would be left, the first of them stays.
+- Changes go through `showColumns` and `hideColumns`, so each reports through `onColumnVisibilityChange` like any other.
 
 ## App commands and overrides
 

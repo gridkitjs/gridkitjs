@@ -116,6 +116,7 @@ describe("builtInCommands", () => {
       "column.hide",
       "column.autoFit",
       "column.autoFitAll",
+      "column.choose",
       "selection.selectAllRows",
       "selection.clear",
       "filter.clearAll",
@@ -596,6 +597,42 @@ describe("column.autoFitAll", () => {
       "Region",
       "Amount",
     ]);
+  });
+});
+
+describe("column.choose", () => {
+  test("shows on the grid, the toolbar and any header, always enabled", () => {
+    const controller = create();
+    const command = builtIn("column.choose", controller, GRID);
+
+    expect(command.label()).toBe("Choose columns");
+    expect(command.visible()).toBe(true);
+    expect(command.enabled()).toBe(true);
+    expect(command.checked()).toBeUndefined();
+    expect(builtIn("column.choose", controller, TOOLBAR).visible()).toBe(true);
+    // Even on a column that cannot be hidden: the chooser shows the rest.
+    expect(builtIn("column.choose", controller, header("Id")).visible()).toBe(
+      true,
+    );
+    expect(
+      builtIn("column.choose", controller, cell("1", "Id")).visible(),
+    ).toBe(false);
+    expect(
+      builtIn("column.choose", controller, group("Region")).visible(),
+    ).toBe(false);
+  });
+
+  test("asks the host to open the column chooser where it was asked for", () => {
+    const controller = create();
+    for (const target of [GRID, TOOLBAR, header("Amount")]) {
+      const command = builtIn("column.choose", controller, target);
+
+      expect(command.run()).toBe(true);
+      expect(command.host.openPanel).toHaveBeenCalledExactlyOnceWith(
+        "columnChooser",
+        target,
+      );
+    }
   });
 });
 

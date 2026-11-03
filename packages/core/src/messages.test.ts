@@ -39,6 +39,8 @@ function rendered(messages: GridMessages): Record<keyof GridMessages, string> {
     cellSelected: messages.cellSelected("Name", 4),
     columnHidden: messages.columnHidden("Name"),
     columnShown: messages.columnShown("Name"),
+    columnsHidden: messages.columnsHidden(3),
+    columnsShown: messages.columnsShown(2),
     headerMenuLabel: messages.headerMenuLabel("Name"),
     cellMenuLabel: messages.cellMenuLabel,
     groupMenuLabel: messages.groupMenuLabel,
@@ -57,11 +59,16 @@ function rendered(messages: GridMessages): Record<keyof GridMessages, string> {
     selectAllRows: messages.selectAllRows,
     clearSelection: messages.clearSelection,
     clearFilters: messages.clearFilters,
+    chooseColumns: messages.chooseColumns,
     toolbarLabel: messages.toolbarLabel,
     searchLabel: messages.searchLabel,
     searchPlaceholder: messages.searchPlaceholder,
     moreToolbarItems: messages.moreToolbarItems,
     searchResults: messages.searchResults(3),
+    columnChooserLabel: messages.columnChooserLabel,
+    columnChooserSearchLabel: messages.columnChooserSearchLabel,
+    showAllColumns: messages.showAllColumns,
+    noMatchingColumns: messages.noMatchingColumns,
   };
 }
 
@@ -104,6 +111,8 @@ describe("defaultMessages", () => {
       cellSelected: "Name, row 4, selected",
       columnHidden: "Name, column hidden",
       columnShown: "Name, column shown",
+      columnsHidden: "3 columns hidden",
+      columnsShown: "2 columns shown",
       headerMenuLabel: "Name column menu",
       cellMenuLabel: "Row menu",
       groupMenuLabel: "Group menu",
@@ -122,11 +131,16 @@ describe("defaultMessages", () => {
       selectAllRows: "Select all rows",
       clearSelection: "Clear selection",
       clearFilters: "Clear filters",
+      chooseColumns: "Choose columns",
       toolbarLabel: "Grid toolbar",
       searchLabel: "Search",
       searchPlaceholder: "Search…",
       moreToolbarItems: "More",
       searchResults: "3 rows found",
+      columnChooserLabel: "Columns",
+      columnChooserSearchLabel: "Search columns",
+      showAllColumns: "Show all",
+      noMatchingColumns: "No matching columns",
     });
   });
 
@@ -152,6 +166,12 @@ describe("defaultMessages", () => {
     expect(defaultMessages.searchResults(0)).toBe("No rows found");
     expect(defaultMessages.searchResults(1)).toBe("1 row found");
     expect(defaultMessages.searchResults(12)).toBe("12 rows found");
+  });
+
+  test("counts columns shown or hidden as one or many", () => {
+    expect(defaultMessages.columnsShown(1)).toBe("1 column shown");
+    expect(defaultMessages.columnsHidden(1)).toBe("1 column hidden");
+    expect(defaultMessages.columnsHidden(4)).toBe("4 columns hidden");
   });
 });
 

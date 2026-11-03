@@ -21,6 +21,7 @@ export type BuiltInCommandId =
   | "column.hide"
   | "column.autoFit"
   | "column.autoFitAll"
+  | "column.choose"
   | "selection.selectAllRows"
   | "selection.clear"
   | "filter.clearAll";
@@ -190,7 +191,8 @@ function sortCommand<Row>(direction: SortDirection): GridCommand<Row> {
 
 /**
  * The grid's own commands, one per action its menus and toolbar offer —
- * sorting, grouping, hiding and fitting columns, selecting and clearing.
+ * sorting, grouping, hiding, fitting and choosing columns, selecting and
+ * clearing.
  * Labels come from `messages`, so they follow the grid's language.
  *
  * A function rather than a constant so each comes typed for the caller's
@@ -301,6 +303,17 @@ export function builtInCommands<Row>(): readonly GridCommand<Row>[] {
         resizableColumnIds(context).length > 0,
       execute: (context) => {
         context.host.autoFitColumns(resizableColumnIds(context));
+      },
+    },
+    // The target goes along, so the renderer opens the chooser where it was
+    // asked for: beside the toolbar button, below the header, or at the
+    // grid's corner for a call from nowhere in particular.
+    {
+      id: "column.choose",
+      label: ({ messages }) => messages.chooseColumns,
+      isVisible: (context) => isOn(context, ["grid", "toolbar", "header"]),
+      execute: ({ host, target }) => {
+        host.openPanel("columnChooser", target);
       },
     },
     {

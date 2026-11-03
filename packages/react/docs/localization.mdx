@@ -61,59 +61,66 @@ Define each set once, outside the component, as you would `columns`. A `messages
 
 Functions are called with numbers that count from one, and receive a column by its accessible name — its `header`, or its label.
 
-| Key                     | Type                                               | Default                                                                                                             |
-| ----------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `pagerLabel`            | `string`                                           | "Pagination" — the pager's accessible name.                                                                         |
-| `previousPage`          | `string`                                           | "Previous"                                                                                                          |
-| `nextPage`              | `string`                                           | "Next"                                                                                                              |
-| `pageSizeLabel`         | `string`                                           | "Rows per page"                                                                                                     |
-| `pageButtonLabel`       | `(page) => string`                                 | "Page 3" — a numbered pager button's accessible name.                                                               |
-| `pageStatus`            | `(page, pageCount) => string`                      | "Page 2 of 5" — the compact pager's status, and announced on a page change. `page` is `0` while there are no pages. |
-| `loadingMore`           | `string`                                           | "Loading more…" — the [infinite scroll](/docs/react/infinite-scroll) loading row.                                   |
-| `booleanTrue`           | `string`                                           | "true" — a boolean cell without a template or `valueFormatter`.                                                     |
-| `booleanFalse`          | `string`                                           | "false"                                                                                                             |
-| `blankGroupValue`       | `string`                                           | "(blank)" — a group header for missing values.                                                                      |
-| `groupByBarLabel`       | `string`                                           | "Grouped by" — the group-by bar's accessible name.                                                                  |
-| `groupByBarPlaceholder` | `string`                                           | "Drag a column here to group by it"                                                                                 |
-| `groupByChipLabel`      | `(columnName, level, levelCount) => string`        | "Region, level 2 of 3", or "Region" alone with one level.                                                           |
-| `removeGroupBy`         | `(columnName) => string`                           | "Stop grouping by Region"                                                                                           |
-| `columnResized`         | `(columnName, width) => string`                    | "Name, 120 pixels wide" — announced when a resize ends.                                                             |
-| `columnMoved`           | `(columnName, position, columnCount) => string`    | "Name, column 2 of 4"                                                                                               |
-| `columnSorted`          | `(columnName, direction, key, keyCount) => string` | "Name sorted descending, key 1 of 2", or without the key in a one-column sort. `direction` is `"asc"` or `"desc"`.  |
-| `sortCleared`           | `(columnName) => string`                           | "Name, sort cleared"                                                                                                |
-| `groupedBy`             | `(columnName, level, levelCount) => string`        | "Grouped by Region, level 1 of 2", or without the level with one.                                                   |
-| `groupingRemoved`       | `(columnName) => string`                           | "Region, grouping removed"                                                                                          |
-| `groupExpanded`         | `string`                                           | "Group expanded"                                                                                                    |
-| `groupCollapsed`        | `string`                                           | "Group collapsed"                                                                                                   |
-| `allGroupsExpanded`     | `string`                                           | "All groups expanded"                                                                                               |
-| `allGroupsCollapsed`    | `string`                                           | "All groups collapsed"                                                                                              |
-| `selectedCount`         | `(count, target) => string`                        | "3 rows selected", "1 column selected", "No rows selected". `target` is `"rows"` or `"columns"`.                    |
-| `cellSelected`          | `(columnName, rowNumber) => string`                | "Name, row 4, selected"                                                                                             |
-| `columnHidden`          | `(columnName) => string`                           | "Name, column hidden" — announced when one column is hidden, from the menu or the ref's `hideColumns`.              |
-| `columnShown`           | `(columnName) => string`                           | "Name, column shown" — announced when one column is shown.                                                          |
-| `headerMenuLabel`       | `(columnName) => string`                           | "Name column menu" — a column header's [context menu](/docs/react/context-menu)'s accessible name.                  |
-| `cellMenuLabel`         | `string`                                           | "Row menu" — a data cell's context menu's accessible name.                                                          |
-| `groupMenuLabel`        | `string`                                           | "Group menu" — a group row's context menu's accessible name.                                                        |
-| `bodyMenuLabel`         | `string`                                           | "Grid menu" — the accessible name of the context menu in the body's empty space.                                    |
-| `sortAscending`         | `string`                                           | "Sort ascending" — the label of the [built-in command](/docs/core/commands#built-in-commands) `sort.ascending`.     |
-| `sortDescending`        | `string`                                           | "Sort descending" — `sort.descending`.                                                                              |
-| `clearSort`             | `string`                                           | "Clear sort" — `sort.clear`.                                                                                        |
-| `clearAllSorting`       | `string`                                           | "Clear all sorting" — `sort.clearAll`.                                                                              |
-| `groupByColumn`         | `(columnName) => string`                           | "Group by Region" — `group.add`. `group.remove` reads `removeGroupBy`.                                              |
-| `ungroupAll`            | `string`                                           | "Ungroup all" — `group.clearAll`.                                                                                   |
-| `expandAllGroups`       | `string`                                           | "Expand all groups" — `group.expandAll`.                                                                            |
-| `collapseAllGroups`     | `string`                                           | "Collapse all groups" — `group.collapseAll`.                                                                        |
-| `hideColumn`            | `string`                                           | "Hide column" — `column.hide`.                                                                                      |
-| `autoFitColumn`         | `string`                                           | "Autofit column" — `column.autoFit`.                                                                                |
-| `autoFitAllColumns`     | `string`                                           | "Autofit all columns" — `column.autoFitAll`.                                                                        |
-| `selectAllRows`         | `string`                                           | "Select all rows" — `selection.selectAllRows`.                                                                      |
-| `clearSelection`        | `string`                                           | "Clear selection" — `selection.clear`.                                                                              |
-| `clearFilters`          | `string`                                           | "Clear filters" — `filter.clearAll`.                                                                                |
-| `toolbarLabel`          | `string`                                           | "Grid toolbar" — the toolbar's accessible name, unless its `label` gives one.                                       |
-| `searchLabel`           | `string`                                           | "Search" — the toolbar's search box's accessible name.                                                              |
-| `searchPlaceholder`     | `string`                                           | "Search…" — shown in the empty search box.                                                                          |
-| `moreToolbarItems`      | `string`                                           | "More" — the toolbar button holding the items that do not fit.                                                      |
-| `searchResults`         | `(count) => string`                                | "3 rows found", "1 row found", "No rows found" — announced when a search settles.                                   |
+| Key                        | Type                                               | Default                                                                                                             |
+| -------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `pagerLabel`               | `string`                                           | "Pagination" — the pager's accessible name.                                                                         |
+| `previousPage`             | `string`                                           | "Previous"                                                                                                          |
+| `nextPage`                 | `string`                                           | "Next"                                                                                                              |
+| `pageSizeLabel`            | `string`                                           | "Rows per page"                                                                                                     |
+| `pageButtonLabel`          | `(page) => string`                                 | "Page 3" — a numbered pager button's accessible name.                                                               |
+| `pageStatus`               | `(page, pageCount) => string`                      | "Page 2 of 5" — the compact pager's status, and announced on a page change. `page` is `0` while there are no pages. |
+| `loadingMore`              | `string`                                           | "Loading more…" — the [infinite scroll](/docs/react/infinite-scroll) loading row.                                   |
+| `booleanTrue`              | `string`                                           | "true" — a boolean cell without a template or `valueFormatter`.                                                     |
+| `booleanFalse`             | `string`                                           | "false"                                                                                                             |
+| `blankGroupValue`          | `string`                                           | "(blank)" — a group header for missing values.                                                                      |
+| `groupByBarLabel`          | `string`                                           | "Grouped by" — the group-by bar's accessible name.                                                                  |
+| `groupByBarPlaceholder`    | `string`                                           | "Drag a column here to group by it"                                                                                 |
+| `groupByChipLabel`         | `(columnName, level, levelCount) => string`        | "Region, level 2 of 3", or "Region" alone with one level.                                                           |
+| `removeGroupBy`            | `(columnName) => string`                           | "Stop grouping by Region"                                                                                           |
+| `columnResized`            | `(columnName, width) => string`                    | "Name, 120 pixels wide" — announced when a resize ends.                                                             |
+| `columnMoved`              | `(columnName, position, columnCount) => string`    | "Name, column 2 of 4"                                                                                               |
+| `columnSorted`             | `(columnName, direction, key, keyCount) => string` | "Name sorted descending, key 1 of 2", or without the key in a one-column sort. `direction` is `"asc"` or `"desc"`.  |
+| `sortCleared`              | `(columnName) => string`                           | "Name, sort cleared"                                                                                                |
+| `groupedBy`                | `(columnName, level, levelCount) => string`        | "Grouped by Region, level 1 of 2", or without the level with one.                                                   |
+| `groupingRemoved`          | `(columnName) => string`                           | "Region, grouping removed"                                                                                          |
+| `groupExpanded`            | `string`                                           | "Group expanded"                                                                                                    |
+| `groupCollapsed`           | `string`                                           | "Group collapsed"                                                                                                   |
+| `allGroupsExpanded`        | `string`                                           | "All groups expanded"                                                                                               |
+| `allGroupsCollapsed`       | `string`                                           | "All groups collapsed"                                                                                              |
+| `selectedCount`            | `(count, target) => string`                        | "3 rows selected", "1 column selected", "No rows selected". `target` is `"rows"` or `"columns"`.                    |
+| `cellSelected`             | `(columnName, rowNumber) => string`                | "Name, row 4, selected"                                                                                             |
+| `columnHidden`             | `(columnName) => string`                           | "Name, column hidden" — announced when one column is hidden, from the menu or the ref's `hideColumns`.              |
+| `columnShown`              | `(columnName) => string`                           | "Name, column shown" — announced when one column is shown.                                                          |
+| `columnsHidden`            | `(count) => string`                                | "3 columns hidden", "1 column hidden" — announced when one change hides more than one column, as "Show all" does.   |
+| `columnsShown`             | `(count) => string`                                | "3 columns shown", "1 column shown" — announced when one change shows more than one column.                         |
+| `headerMenuLabel`          | `(columnName) => string`                           | "Name column menu" — a column header's [context menu](/docs/react/context-menu)'s accessible name.                  |
+| `cellMenuLabel`            | `string`                                           | "Row menu" — a data cell's context menu's accessible name.                                                          |
+| `groupMenuLabel`           | `string`                                           | "Group menu" — a group row's context menu's accessible name.                                                        |
+| `bodyMenuLabel`            | `string`                                           | "Grid menu" — the accessible name of the context menu in the body's empty space.                                    |
+| `sortAscending`            | `string`                                           | "Sort ascending" — the label of the [built-in command](/docs/core/commands#built-in-commands) `sort.ascending`.     |
+| `sortDescending`           | `string`                                           | "Sort descending" — `sort.descending`.                                                                              |
+| `clearSort`                | `string`                                           | "Clear sort" — `sort.clear`.                                                                                        |
+| `clearAllSorting`          | `string`                                           | "Clear all sorting" — `sort.clearAll`.                                                                              |
+| `groupByColumn`            | `(columnName) => string`                           | "Group by Region" — `group.add`. `group.remove` reads `removeGroupBy`.                                              |
+| `ungroupAll`               | `string`                                           | "Ungroup all" — `group.clearAll`.                                                                                   |
+| `expandAllGroups`          | `string`                                           | "Expand all groups" — `group.expandAll`.                                                                            |
+| `collapseAllGroups`        | `string`                                           | "Collapse all groups" — `group.collapseAll`.                                                                        |
+| `hideColumn`               | `string`                                           | "Hide column" — `column.hide`.                                                                                      |
+| `autoFitColumn`            | `string`                                           | "Autofit column" — `column.autoFit`.                                                                                |
+| `autoFitAllColumns`        | `string`                                           | "Autofit all columns" — `column.autoFitAll`.                                                                        |
+| `selectAllRows`            | `string`                                           | "Select all rows" — `selection.selectAllRows`.                                                                      |
+| `clearSelection`           | `string`                                           | "Clear selection" — `selection.clear`.                                                                              |
+| `clearFilters`             | `string`                                           | "Clear filters" — `filter.clearAll`.                                                                                |
+| `chooseColumns`            | `string`                                           | "Choose columns" — `column.choose`, which opens the [column chooser](/docs/react/columns/column-chooser).           |
+| `toolbarLabel`             | `string`                                           | "Grid toolbar" — the toolbar's accessible name, unless its `label` gives one.                                       |
+| `searchLabel`              | `string`                                           | "Search" — the toolbar's search box's accessible name.                                                              |
+| `searchPlaceholder`        | `string`                                           | "Search…" — shown in the empty search box.                                                                          |
+| `moreToolbarItems`         | `string`                                           | "More" — the toolbar button holding the items that do not fit.                                                      |
+| `searchResults`            | `(count) => string`                                | "3 rows found", "1 row found", "No rows found" — announced when a search settles.                                   |
+| `columnChooserLabel`       | `string`                                           | "Columns" — the column chooser's accessible name.                                                                   |
+| `columnChooserSearchLabel` | `string`                                           | "Search columns" — the column chooser's search box's accessible name.                                               |
+| `showAllColumns`           | `string`                                           | "Show all" — the column chooser's checkbox over every column its search lists.                                      |
+| `noMatchingColumns`        | `string`                                           | "No matching columns" — shown when the chooser's search matches no column.                                          |
 
 ## What messages don't cover
 
