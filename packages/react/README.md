@@ -1,7 +1,9 @@
 # @gridkitjs/react
 
 React data-grid components built on
-[`@gridkitjs/core`](https://www.npmjs.com/package/@gridkitjs/core).
+[`@gridkitjs/core`](https://www.npmjs.com/package/@gridkitjs/core) for the
+grid's logic and [`@gridkitjs/dom`](https://www.npmjs.com/package/@gridkitjs/dom)
+for its browser behaviours. Both are installed with it.
 
 > **Early development.** The API is still moving and may break between minor
 > versions.
@@ -57,6 +59,14 @@ Give `getRowId` alongside it for data that sorts, filters or pages.
 The grid is an ARIA grid: one tab stop, with the arrow keys moving cell to cell
 within it, `Ctrl+Arrow` reordering a column and `Alt+Arrow` resizing one. Name
 it with `label`, or a screen reader announces only "grid".
+
+`contextMenu` gives headers, cells and group rows a menu of their own — sort,
+group, autofit, hide and choose columns, select and clear, expand and collapse
+— and `toolbar` puts a toolbar above the grid, with a search box, "Clear
+filters" and "Choose columns" by default. Both list built-in commands by id,
+and `commands` adds your own beside them; the column chooser shows and hides
+columns from either. `messages` translates every string the grid shows or
+announces, and `locale` formats dates and numbers.
 
 Requires React 19.
 

@@ -1,8 +1,10 @@
 # @gridkitjs/core
 
-Framework-agnostic data-grid logic — column resolution, alignment and sizing.
-Plain TypeScript, no DOM required, so it is reusable from any framework
-adapter.
+Framework-agnostic data-grid logic — column resolution, alignment and sizing;
+the view pipeline that filters, sorts, groups, aggregates and pages rows; the
+grid controller that holds a grid's state; and the models behind its commands,
+menus, context menu, toolbar, column chooser and filter editors. Plain
+TypeScript, no DOM required, so it is reusable from any framework adapter.
 
 > **Early development.** The API is still moving and may break between minor
 > versions.
