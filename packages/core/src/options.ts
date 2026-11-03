@@ -34,6 +34,7 @@ import type {
   SelectionState,
 } from "./types";
 import type { GridMessages } from "./messages";
+import type { GridContextMenuOptions } from "./menu/contextMenu";
 import type { FormatLocale } from "./util/format";
 
 /** Which cell borders a grid draws. */
@@ -395,11 +396,21 @@ export interface GridOptions<Row> {
   /**
    * The grid's own strings, replacing its English key by key — the pager's
    * buttons, the group-by bar, the loading row, boolean and blank values,
-   * the built-in commands' labels, and every live-region announcement. Keys
+   * the built-in commands' labels, the menus' names, and every live-region
+   * announcement. Keys
    * left out keep their default.
    * Formatting is `locale`'s, not this.
    */
   messages?: Partial<GridMessages> | undefined;
+  /**
+   * The grid's own context menu, opened on a column header by a
+   * right-click, Shift+F10 or the ContextMenu key. Off by default, like
+   * every other feature, leaving the browser's menu. `true` shows each
+   * area's defaults — see `defaultContextMenu`; an object lists an area's
+   * entries, an area left out keeping its defaults and one given `[]`
+   * showing the browser's menu there.
+   */
+  contextMenu?: boolean | GridContextMenuOptions<Row> | undefined;
 }
 
 /**

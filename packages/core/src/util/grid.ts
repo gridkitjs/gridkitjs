@@ -171,6 +171,8 @@ export interface KeyShortcutCapabilities {
   resizable: boolean;
   sortable: boolean;
   groupable: boolean;
+  /** Whether the header opens the grid's context menu. Defaults to `false`. */
+  contextMenu?: boolean | undefined;
 }
 
 /**
@@ -191,6 +193,8 @@ export function buildKeyShortcuts(
     // Down rather than reusing Up: it reads as "drill into groups", and Up is
     // already sort's own mnemonic on the same header.
     capabilities.groupable ? "Alt+ArrowDown" : "",
+    // The ContextMenu key needs no mention: it says what it does on its face.
+    capabilities.contextMenu === true ? "Shift+F10" : "",
   ]
     .filter(Boolean)
     .join(" ");
