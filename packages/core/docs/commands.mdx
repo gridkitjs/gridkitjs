@@ -164,6 +164,28 @@ A command with the id `"separator"` is left out with a `console.error` — a men
 | `createCommandContext(input)`  | `GridCommandContext<Row>`               | The context for one target, over the controller as it is now.                            |
 | `runCommand(command, context)` | `boolean`                               | Runs the command when visible and enabled, and says whether it did.                      |
 
+### On a grid
+
+A grid takes its app commands through the `commands` option, which a renderer passes to `resolveCommands` — so the grid's menus list them by id, and a built-in's id replaced there is replaced in every menu:
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  commands={[exportSelected, hideColumn]}
+  contextMenu={{ cell: ["orders.exportSelected", "separator", "selection.clear"] }}
+  onCommand={({ commandId, target, source }) => track(commandId, source)}
+/>
+```
+
+`onCommand` is called after a command runs, with a `GridCommandEvent` — and after an inline menu item runs, with that item's id. A hidden or disabled one, which does not run, is not reported.
+
+| Field       | Type                                  | Description                                                                       |
+| ----------- | ------------------------------------- | --------------------------------------------------------------------------------- |
+| `commandId` | `string`                              | The command's id, or the inline item's.                                           |
+| `target`    | `GridCommandTarget`                   | Where it was asked for — `{ area: "grid" }` for a call through the API with none. |
+| `source`    | `"contextMenu" \| "toolbar" \| "api"` | A `GridCommandSource`: a context menu, the toolbar, or a renderer's API.          |
+
 ## Menus
 
 A menu is a list of `MenuEntry<Row>`s, the one vocabulary every grid menu and toolbar is written in:
@@ -311,6 +333,8 @@ if (entries.length > 0) {
   showMenu(entries);
 }
 ```
+
+`onContextMenuOpenChange` is called as a grid's context menu opens and closes, with a `ContextMenuOpenChangeEvent` — `{ open, target }`, where the menu opened or where the one closing had. A menu opened in place of another reports that one closing first. The open state itself is the renderer's: no option holds it.
 
 @gridkitjs/react draws them and opens them for you — see its [context menu](/docs/react/context-menu).
 

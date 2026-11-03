@@ -33,8 +33,12 @@ import type {
   SelectableConfig,
   SelectionState,
 } from "./types";
+import type { GridCommand, GridCommandEvent } from "./commands/types";
 import type { GridMessages } from "./messages";
-import type { GridContextMenuOptions } from "./menu/contextMenu";
+import type {
+  ContextMenuOpenChangeEvent,
+  GridContextMenuOptions,
+} from "./menu/contextMenu";
 import type { FormatLocale } from "./util/format";
 
 /** Which cell borders a grid draws. */
@@ -412,6 +416,27 @@ export interface GridOptions<Row> {
    * there.
    */
   contextMenu?: boolean | GridContextMenuOptions<Row> | undefined;
+  /**
+   * Called when the grid's context menu opens or closes, with where. A menu
+   * opened in place of another reports that one closing first. The open
+   * state is the renderer's to keep, so no option holds it.
+   */
+  onContextMenuOpenChange?:
+    ((event: ContextMenuOpenChangeEvent) => void) | undefined;
+  /**
+   * The app's own commands, for its menus to list by id. One with a
+   * built-in's id replaces it wherever that id is listed — a translated,
+   * privilege-gated or differently behaving "Hide column" — see
+   * `resolveCommands`.
+   */
+  commands?: readonly GridCommand<Row>[] | undefined;
+  /**
+   * Called after a command or an inline menu item runs — chosen from a menu,
+   * or run through a renderer's API — saying which, where it was asked for
+   * and from where. One that did not run, being hidden or disabled, is not
+   * reported.
+   */
+  onCommand?: ((event: GridCommandEvent) => void) | undefined;
 }
 
 /**

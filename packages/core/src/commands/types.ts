@@ -27,6 +27,18 @@ export type GridCommandTarget =
   /** A renderer's API, with no particular place. */
   | { readonly area: "grid" };
 
+/** Where a command was run from: a context menu, the toolbar, or a renderer's API. */
+export type GridCommandSource = "contextMenu" | "toolbar" | "api";
+
+/** What `onCommand` is told of a command, or an inline menu item, that ran. */
+export interface GridCommandEvent {
+  /** The command's id, or the inline item's. */
+  readonly commandId: string;
+  /** Where it was asked for. */
+  readonly target: GridCommandTarget;
+  readonly source: GridCommandSource;
+}
+
 /**
  * The panels a command can ask a renderer to open. A union so the filter UI
  * can add its own kind through the same door.

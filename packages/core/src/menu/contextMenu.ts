@@ -14,6 +14,13 @@ export type GridContextMenuTarget<
   Area extends GridContextMenuArea = GridContextMenuArea,
 > = Extract<GridCommandTarget, { readonly area: Area }>;
 
+/** What `onContextMenuOpenChange` is told as a context menu opens or closes. */
+export interface ContextMenuOpenChangeEvent {
+  readonly open: boolean;
+  /** Where the menu opened, or where the one closing had. */
+  readonly target: GridContextMenuTarget;
+}
+
 /** What a function given for an area is asked, each time its menu opens. */
 export interface GridContextMenuRequest<
   Row,

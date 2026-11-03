@@ -108,7 +108,9 @@ export type {
   GridCommand,
   GridCommandActions,
   GridCommandContext,
+  GridCommandEvent,
   GridCommandHost,
+  GridCommandSource,
   GridCommandTarget,
   GridPanelKind,
 } from "./commands/types";
@@ -132,6 +134,7 @@ export type {
 export type { MenuResolveOptions } from "./menu/resolveMenu";
 export { resolveMenu } from "./menu/resolveMenu";
 export type {
+  ContextMenuOpenChangeEvent,
   GridContextMenuArea,
   GridContextMenuEntries,
   GridContextMenuOptions,
