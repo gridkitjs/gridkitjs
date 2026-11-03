@@ -276,6 +276,23 @@
   }
 
   /*
+   * A header, cell or group row that opens the grid's context menu — its
+   * `aria-keyshortcuts` names Shift+F10 then — takes a long-press for that
+   * menu, so iOS must not show its own callout, or start selecting the text
+   * under the finger, on the same press.
+   */
+  .gridkit-data-grid [aria-keyshortcuts~="Shift+F10"] {
+    -webkit-touch-callout: none;
+  }
+
+  @media (pointer: coarse) {
+    .gridkit-data-grid [aria-keyshortcuts~="Shift+F10"] {
+      -webkit-user-select: none;
+      user-select: none;
+    }
+  }
+
+  /*
    * The header trailing the pointer. It sits on the body rather than in the
    * table, so it restates what a header cell gets from its place in the grid.
    *

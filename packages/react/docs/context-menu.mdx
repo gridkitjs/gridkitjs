@@ -274,7 +274,7 @@ A cell or header template with a menu of its own keeps it: a `contextmenu` event
 | <Kbd>Escape</Kbd>                                        | Closes the menu — a submenu alone, back to its item — and goes no further: the grid's selection stays.    |
 | <Kbd>Tab</Kbd> / <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd>         | Closes every menu.                                                                                        |
 
-Moving the pointer over an item focuses it, and resting it on a submenu item opens that submenu. A disabled item still takes focus, so a screen reader finds it. While an area opens a menu, the `aria-keyshortcuts` of its headers, cells or group rows lists `Shift+F10`.
+Moving the pointer over an item focuses it, and resting it on a submenu item opens that submenu. A disabled item still takes focus, so a screen reader finds it. While an area opens a menu, the `aria-keyshortcuts` of its headers, cells or group rows lists `Shift+F10`. The [theme](/docs/theme-tailwind/overview) keys off that to give the long-press to the menu alone: on those headers, cells and group rows iOS shows no callout of its own, and a touch screen does not start selecting their text.
 
 ## Props
 
