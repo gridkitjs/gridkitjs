@@ -9,7 +9,6 @@ import {
   type Ref,
 } from "react";
 import {
-  isColumnVisible,
   moveColumnBefore,
   resolveColumnHeaderText,
   resolveMessages,
@@ -22,11 +21,8 @@ import {
   type AggregateState,
   type Borders,
   type ColumnOrderState,
-  type ColumnResizeEvent,
   type ColumnSizingState,
-  type ColumnSortEvent,
   type ColumnSortState,
-  type ColumnVisibilityEvent,
   type ColumnVisibilityState,
   type DisplayRow,
   type FilterState,
@@ -35,12 +31,9 @@ import {
   type GridOptions,
   type GridState,
   type GroupByBarVisibility,
-  type GroupByEvent,
   type GroupByState,
-  type GroupExpansionEvent,
   type GroupExpansionState,
   type HoverableConfig,
-  type PaginationChangeEvent,
   type PaginationState,
   type ResizeMode,
   type ResolvedRow,
@@ -54,7 +47,6 @@ import {
   type ColumnSelectionChangeEvent as CoreColumnSelectionChangeEvent,
   type ColumnsSelectEvent as CoreColumnsSelectEvent,
   type SelectionCallbacks as CoreSelectionCallbacks,
-  type SelectionDiffEvent,
   type SerializedGridState,
 } from "@gridkitjs/core";
 import type { ColumnDropTarget } from "@gridkitjs/dom";
@@ -64,6 +56,7 @@ import GridBody from "./components/GridBody";
 import GridFooter from "./components/GridFooter";
 import GridPager from "./components/GridPager";
 import GroupByBar from "./components/GroupByBar";
+import { announcedCallbacks } from "./announcedCallbacks";
 import { ariaAttr } from "./ariaAttr";
 import { classNames } from "./classNames";
 import useGridCommands from "./commands/useGridCommands";
@@ -477,19 +470,12 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     selectable,
     resizeMode = "fit",
     columnSizeDefaults,
-    onColumnResize,
-    onColumnVisibilityChange,
     sortableColumns = false,
-    onColumnSortChange,
     groupableColumns = false,
     groupToggleIconColumns = true,
     groupByBarVisibility = "auto",
-    onGroupByChange,
-    onGroupExpansionChange,
     paginated = false,
     pager,
-    onPaginationChange,
-    onCellSelectionChange,
     infiniteScroll,
     aggregates = NO_AGGREGATES as AggregateState<Row>,
     groupAggregateDisplay = "inline",
@@ -528,19 +514,18 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   /**
    * Every slice of grid state, and everything the grid draws, comes from
    * here. The change callbacks go in wrapped, so each change is announced
-   * where the controller reports it — see `announce`.
+   * where the controller reports it — see `announcedCallbacks`.
    */
   const { controller, state, view } = useGridController<Row>({
     ...props,
     viewportWidth,
-    onColumnResize: handleColumnResize,
-    onColumnVisibilityChange: handleColumnVisibilityChange,
-    onColumnSortChange: handleColumnSortChange,
-    onGroupByChange: handleGroupByChange,
-    onGroupExpansionChange: handleGroupExpansionChange,
-    onPaginationChange: handlePaginationChange,
-    onCellSelectionChange: handleCellSelectionChange,
-    onSelectionDiff: handleSelectionDiff,
+    ...announcedCallbacks({
+      callbacks: props,
+      announce,
+      messages,
+      columnName,
+      columnOf,
+    }),
   });
 
   /**
@@ -590,31 +575,16 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     config: infiniteScroll,
   });
 
-  /** What a column is called in an announcement — see `resolveColumnHeaderText`. */
-  function columnName(columnId: string): string {
-    const entry = view.dataColumns.find(
-      (candidate) => candidate.id === columnId,
-    );
-    return entry === undefined
-      ? columnId
-      : resolveColumnHeaderText(entry.column);
+  /** A column's definition by id, hidden ones included. */
+  function columnOf(columnId: string): ColumnDefinition<Row> | undefined {
+    return view.dataColumns.find((candidate) => candidate.id === columnId)
+      ?.column;
   }
 
-  /**
-   * Announced only once the drag ends: the controller reports the continuous
-   * `"move"` phase as well, and a live region given every frame of a drag
-   * says nothing an assistive technology can keep up with.
-   */
-  function handleColumnResize(event: ColumnResizeEvent): void {
-    onColumnResize?.(event);
-    if (event.phase === "end") {
-      announce(
-        messages.columnResized(
-          columnName(event.columnId),
-          Math.round(event.width),
-        ),
-      );
-    }
+  /** What a column is called in an announcement — see `resolveColumnHeaderText`. */
+  function columnName(columnId: string): string {
+    const column = columnOf(columnId);
+    return column === undefined ? columnId : resolveColumnHeaderText(column);
   }
 
   const resize = useColumnResize<Row>({
@@ -634,127 +604,6 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     announce,
     resize,
   });
-
-  /** Wrapped the same way `handleColumnResize` is, naming a column shown or hidden alone. */
-  function handleColumnVisibilityChange(event: ColumnVisibilityEvent): void {
-    onColumnVisibilityChange?.(event);
-    const [columnId] = event.columnIds;
-    const entry = view.dataColumns.find(
-      (candidate) => candidate.id === columnId,
-    );
-    if (event.columnIds.length !== 1 || entry === undefined) return;
-    announce(
-      isColumnVisible(entry.column, event.visibility)
-        ? messages.columnShown(columnName(entry.id))
-        : messages.columnHidden(columnName(entry.id)),
-    );
-  }
-
-  /** Wrapped the same way `handleColumnResize` is, for its own announcement. */
-  function handleGroupByChange(event: GroupByEvent): void {
-    onGroupByChange?.(event);
-    const entry = event.groupBy.find(
-      (candidate) => candidate.columnId === event.columnId,
-    );
-    if (entry === undefined) {
-      announce(messages.groupingRemoved(columnName(event.columnId)));
-      return;
-    }
-    announce(
-      messages.groupedBy(
-        columnName(event.columnId),
-        event.groupBy.indexOf(entry) + 1,
-        event.groupBy.length,
-      ),
-    );
-  }
-
-  /**
-   * `groupId: null` marks `expandAll`/`collapseAll`, which touch every group
-   * in one call rather than one at a time — announced as a single summary
-   * instead of naming a group that doesn't apply.
-   */
-  function handleGroupExpansionChange(event: GroupExpansionEvent): void {
-    onGroupExpansionChange?.(event);
-    if (event.groupId === null) {
-      announce(
-        event.expansion.length === 0
-          ? messages.allGroupsExpanded
-          : messages.allGroupsCollapsed,
-      );
-      return;
-    }
-    announce(
-      event.expansion.includes(event.groupId)
-        ? messages.groupCollapsed
-        : messages.groupExpanded,
-    );
-  }
-
-  /**
-   * Wrapped the same way `handleColumnResize` is, so a toggle, a stack, or a
-   * clear back to "none" each get their own announcement.
-   */
-  function handleColumnSortChange(event: ColumnSortEvent): void {
-    onColumnSortChange?.(event);
-    const entry = event.sort.find(
-      (candidate) => candidate.columnId === event.columnId,
-    );
-    if (entry === undefined) {
-      announce(messages.sortCleared(columnName(event.columnId)));
-      return;
-    }
-    announce(
-      messages.columnSorted(
-        columnName(event.columnId),
-        entry.direction,
-        event.sort.indexOf(entry) + 1,
-        event.sort.length,
-      ),
-    );
-  }
-
-  /** Wrapped the same way `handleColumnSortChange` is, for its own announcement. */
-  function handlePaginationChange(event: PaginationChangeEvent): void {
-    onPaginationChange?.(event);
-    announce(
-      messages.pageStatus(event.pagination.pageIndex + 1, event.pageCount),
-    );
-  }
-
-  /**
-   * Announced only for a change touching more than one row or column. A
-   * single selection is already carried by the focused member's own
-   * `aria-selected`, and repeating it here would talk over that. Counted by
-   * id, so rows the change touched off screen — on another page, in a
-   * collapsed group — count too.
-   */
-  function handleSelectionDiff(event: SelectionDiffEvent): void {
-    if (event.added.length + event.removed.length > 1) {
-      announce(messages.selectedCount(event.selection.length, event.target));
-    }
-  }
-
-  /**
-   * Unlike rows and columns, a cell selection is always exactly one cell —
-   * there is no multi-cell range — so it never crosses the count's >1
-   * threshold and the focused cell's own `aria-selected` is the only
-   * feedback a screen-reader user would otherwise get. Announced on every
-   * change that lands on a cell instead.
-   */
-  function handleCellSelectionChange(
-    event: CellSelectionChangeEvent<Row>,
-  ): void {
-    onCellSelectionChange?.(event);
-    if (event.selected !== null) {
-      announce(
-        messages.cellSelected(
-          columnName(event.selected.columnId),
-          event.selected.rowIndex + 1,
-        ),
-      );
-    }
-  }
 
   const nav = useGridNavigation({
     headerTableRef,
