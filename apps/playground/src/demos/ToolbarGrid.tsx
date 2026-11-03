@@ -8,10 +8,12 @@ interface Row {
   Region: string;
   Units: number;
   Amount: number;
+  Notes: string;
 }
 
 const customers = ["Acme", "Globex", "Initech", "Umbrella", "Hooli", "Stark"];
 const regions = ["North", "South", "East", "West"];
+const notes = ["Rush", "Gift wrap", "", "Call first"];
 
 const rows: Row[] = Array.from({ length: 24 }, (_unused, index) => ({
   Id: index + 1,
@@ -19,19 +21,22 @@ const rows: Row[] = Array.from({ length: 24 }, (_unused, index) => ({
   Region: regions[(index * 3) % regions.length] ?? "North",
   Units: 1 + ((index * 7) % 20),
   Amount: 120 + ((index * 53) % 880),
+  Notes: notes[index % notes.length] ?? "",
 }));
 
 const columns: readonly ColumnDefinition<Row>[] = [
-  { field: "Id", width: 70 },
+  { field: "Id", width: 70, hideable: false },
   { field: "Customer", width: 140 },
   { field: "Region", width: 110 },
   { field: "Units", width: 90, type: "number" },
   { field: "Amount", width: 130, type: "currency" },
+  { field: "Notes", width: 140, hidden: true },
 ];
 
 /**
- * The grid's own toolbar: the search box, "Clear all sorting" and "Clear
- * filters", a "By region" toggle that groups the rows, a "Groups" dropdown
+ * The grid's own toolbar: the search box, "Clear all sorting", "Clear
+ * filters" and "Choose columns" — where Id cannot be unchecked and Notes,
+ * hidden to start with, can be shown — a "By region" toggle that groups the rows, a "Groups" dropdown
  * of the built-in group commands, an "Orders" dropdown of the app's own
  * actions — logged below — and, at the far end, a custom entry counting the
  * rows selected. Narrow the window to see items move into "More".
@@ -49,6 +54,7 @@ export function ToolbarGrid() {
     "separator",
     "sort.clearAll",
     "filter.clearAll",
+    "column.choose",
     "separator",
     {
       type: "item",
