@@ -10,6 +10,9 @@ import ContextMenuGrid from "./support/ContextMenuGrid";
 import ContextMenuTriggerHarness from "./support/ContextMenuTriggerHarness";
 import { mountGrid, updateGrid } from "./support/mountGrid";
 
+/** DataGrid's space between a menu or panel and what it opens below. */
+const ANCHOR_GAP = 4;
+
 interface Row {
   id: string;
   name: string;
@@ -208,6 +211,20 @@ test.describe("trigger", () => {
 });
 
 test.describe("header menu", () => {
+  test("Autofit all columns announces once, for every column it fitted", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, grid());
+    const status = root.locator('[role="status"]');
+
+    await item(await openOn(root, page, "Name"), "Autofit column").click();
+    await expect(status).toHaveText(/^Name, \d+ pixels wide$/);
+
+    await item(await openOn(root, page, "Name"), "Autofit all columns").click();
+    await expect(status).toHaveText("3 columns autofitted");
+  });
+
   test("opens on a right-click with the default items, named after its column", async ({
     mount,
     page,
@@ -260,7 +277,7 @@ test.describe("header menu", () => {
       const cellBox = await score.boundingBox();
       const menuBox = await overlay.boundingBox();
       expect(menuBox?.y).toBeCloseTo(
-        (cellBox?.y ?? 0) + (cellBox?.height ?? 0),
+        (cellBox?.y ?? 0) + (cellBox?.height ?? 0) + ANCHOR_GAP,
         0,
       );
       expect(menuBox?.x).toBeCloseTo(cellBox?.x ?? 0, 0);
@@ -695,7 +712,7 @@ test.describe("cell menu", () => {
       const cellBox = await cell.boundingBox();
       const menuBox = await page.locator(".gridkit-overlay").boundingBox();
       expect(menuBox?.y).toBeCloseTo(
-        (cellBox?.y ?? 0) + (cellBox?.height ?? 0),
+        (cellBox?.y ?? 0) + (cellBox?.height ?? 0) + ANCHOR_GAP,
         0,
       );
       expect(menuBox?.x).toBeCloseTo(cellBox?.x ?? 0, 0);

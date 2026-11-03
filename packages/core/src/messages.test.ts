@@ -41,6 +41,7 @@ function rendered(messages: GridMessages): Record<keyof GridMessages, string> {
     columnShown: messages.columnShown("Name"),
     columnsHidden: messages.columnsHidden(3),
     columnsShown: messages.columnsShown(2),
+    columnsAutoFitted: messages.columnsAutoFitted(4),
     headerMenuLabel: messages.headerMenuLabel("Name"),
     cellMenuLabel: messages.cellMenuLabel,
     groupMenuLabel: messages.groupMenuLabel,
@@ -113,6 +114,7 @@ describe("defaultMessages", () => {
       columnShown: "Name, column shown",
       columnsHidden: "3 columns hidden",
       columnsShown: "2 columns shown",
+      columnsAutoFitted: "4 columns autofitted",
       headerMenuLabel: "Name column menu",
       cellMenuLabel: "Row menu",
       groupMenuLabel: "Group menu",
@@ -172,6 +174,11 @@ describe("defaultMessages", () => {
     expect(defaultMessages.columnsShown(1)).toBe("1 column shown");
     expect(defaultMessages.columnsHidden(1)).toBe("1 column hidden");
     expect(defaultMessages.columnsHidden(4)).toBe("4 columns hidden");
+  });
+
+  test("counts columns autofitted as one or many", () => {
+    expect(defaultMessages.columnsAutoFitted(1)).toBe("1 column autofitted");
+    expect(defaultMessages.columnsAutoFitted(3)).toBe("3 columns autofitted");
   });
 });
 

@@ -144,7 +144,7 @@ It matches what the global entry matches: every data column, hidden ones include
 
 ## When it is narrow
 
-The toolbar keeps its items on one row. When they do not all fit, the ones from the first that does not fit onwards move into a "More" menu button at the end — a button becomes a menu item, a toggle a checkable one, and a dropdown a submenu — and widening the toolbar brings them back out. They run from "More" exactly as they would have from their buttons, and report the same target to `onCommand`. The search box and custom entries never move: they stay however narrow the toolbar gets.
+The toolbar keeps its items on one row. When they do not all fit, the ones from the first that does not fit onwards move into a "More" menu button at the end — a button becomes a menu item, a toggle a checkable one, and a dropdown a submenu — and widening the toolbar brings them back out. They run from "More" exactly as they would have from their buttons, and report the same target to `onCommand`. The search box and custom entries never move: they stay however narrow the toolbar gets. The search box narrows with the toolbar, to half its width at most, and should they still not fit, "More" stays at the toolbar's end over what is cut off there, so it can always be reached.
 
 ## Commands and `onCommand`
 
@@ -175,6 +175,7 @@ The toolbar follows the [WAI-ARIA toolbar pattern](https://www.w3.org/WAI/ARIA/a
 | <Kbd>Home</Kbd> / <Kbd>End</Kbd>                                                   | The first or last control.                                                                     |
 | <Kbd>Enter</Kbd> / <Kbd>Space</Kbd>, or a click                                    | Runs a button. A disabled one does nothing.                                                    |
 | <Kbd>Enter</Kbd>, <Kbd>Space</Kbd> or <Kbd>ArrowDown</Kbd> on a dropdown or "More" | Opens its menu, on its first item. A second click closes it.                                   |
+| <Kbd>ArrowUp</Kbd> on a dropdown or "More"                                         | Opens its menu, on its last item.                                                              |
 | In the search box: <Kbd>ArrowLeft</Kbd> / <Kbd>ArrowRight</Kbd>                    | Move the caret; at the start or end of the text, move on to the previous or next control.      |
 | In the search box: <Kbd>Home</Kbd> / <Kbd>End</Kbd>                                | Move the caret.                                                                                |
 | In the search box: <Kbd>Enter</Kbd> / <Kbd>Escape</Kbd>                            | Searches at once / empties the box.                                                            |

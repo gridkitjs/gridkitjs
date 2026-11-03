@@ -5,7 +5,7 @@ import type {
   GridPanelKind,
 } from "@gridkitjs/core";
 import ColumnChooser from "../columnChooser/ColumnChooser";
-import Overlay from "../overlay/Overlay";
+import Overlay, { ANCHOR_GAP } from "../overlay/Overlay";
 import type { DataGridController } from "../useGridController";
 import type { GridPanelsApi } from "./useGridPanels";
 
@@ -57,7 +57,10 @@ export default function GridPanels<Row>({
       key={panel.key}
       anchor={panel.anchor}
       placement={panel.placement}
+      gap={panel.anchor instanceof Element ? ANCHOR_GAP : 0}
       returnFocusTo={panel.returnFocusTo}
+      // A column the chooser hides can scroll the grid back under it.
+      ignoreScrollAfterInput
       themeClassName={panel.themeClassName}
       onDismiss={close}
     >

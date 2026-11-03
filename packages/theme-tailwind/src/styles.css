@@ -276,6 +276,23 @@
   }
 
   /*
+   * A header, cell or group row that opens the grid's context menu — its
+   * `aria-keyshortcuts` names Shift+F10 then — takes a long-press for that
+   * menu, so iOS must not show its own callout, or start selecting the text
+   * under the finger, on the same press.
+   */
+  .gridkit-data-grid [aria-keyshortcuts~="Shift+F10"] {
+    -webkit-touch-callout: none;
+  }
+
+  @media (pointer: coarse) {
+    .gridkit-data-grid [aria-keyshortcuts~="Shift+F10"] {
+      -webkit-user-select: none;
+      user-select: none;
+    }
+  }
+
+  /*
    * The header trailing the pointer. It sits on the body rather than in the
    * table, so it restates what a header cell gets from its place in the grid.
    *
@@ -779,6 +796,17 @@
     flex-shrink: 0;
   }
 
+  /*
+   * The search box and custom entries never move into "More", so together
+   * they can be wider than the toolbar. "More" then sticks to its end edge,
+   * over what is clipped there, rather than being clipped itself.
+   */
+  .gridkit-toolbar > .toolbar-more {
+    position: sticky;
+    /* Counted from the toolbar's padding edge, so its padding again. */
+    inset-inline-end: 0.5rem;
+  }
+
   /* A command, a dropdown, or "More". */
   .toolbar-button {
     display: inline-flex;
@@ -839,8 +867,14 @@
     margin-inline-end: -0.25rem;
   }
 
+  /*
+   * Narrower in a narrow toolbar, by the toolbar's width alone — never by
+   * what else is in it, which the overflow would measure as a width of its
+   * own — so it leaves room for "More" beside it.
+   */
   .toolbar-search {
     width: 12rem;
+    max-width: 50%;
     padding: 0.25rem 0.5rem;
     font: inherit;
     color: var(--gridkit-fg);

@@ -23,12 +23,18 @@ export interface ContextMenuPlace {
   readonly target: GridContextMenuTarget;
   /** The cell that has focus while it is open; `null` in the body's empty space. */
   readonly cell: TargetCell | null;
-  /** What it goes beside when asked for without a point: the cell, or the body's corner. */
+  /**
+   * What it goes beside when asked for without a point: the cell — or, for a
+   * cell scrolled out of the grid's view, the nearest point on that view's
+   * edge — or the body's corner.
+   */
   readonly anchor: OverlayAnchor;
 }
 
 /** The parts of the grid, as drawn now, that a place is found among. */
 export interface GridParts<Row> {
+  /** The grid's root, which scrolls sideways. */
+  readonly root: HTMLElement | null;
   readonly headerTable: HTMLTableElement | null;
   readonly bodyTable: HTMLTableElement | null;
   /** The body's scrolling region, whose empty space is the `body` area. */
@@ -58,12 +64,65 @@ function bodyCell(
   return element === undefined ? null : { element, rowIndex, columnIndex };
 }
 
-/** A cell's place, anchored to the cell itself. */
+/** The part of the viewport where `element` can be seen: its grid's scrolled view. */
+function viewOf(element: Element, parts: GridParts<unknown>): DOMRect | null {
+  const root = parts.root?.getBoundingClientRect();
+  if (root === undefined) {
+    return null;
+  }
+  const body =
+    parts.body?.contains(element) === true
+      ? parts.body.getBoundingClientRect()
+      : root;
+  const left = Math.max(root.left, body.left);
+  const top = Math.max(root.top, body.top);
+  return new DOMRect(
+    left,
+    top,
+    Math.max(0, Math.min(root.right, body.right) - left),
+    Math.max(0, Math.min(root.bottom, body.bottom) - top),
+  );
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+/**
+ * A cell's place, anchored to the cell itself while any of it is in the
+ * grid's view (a group row's cell can be wider than the view). One scrolled
+ * wholly out of it — the ref can ask for any cell drawn — is
+ * anchored to the point of the view nearest its bottom-left corner instead,
+ * so the menu opens at the grid's edge rather than off in the page, over
+ * whatever the grid's scrolling hides it under.
+ */
 function onCell(
   target: GridContextMenuTarget,
   cell: TargetCell | null,
+  parts: GridParts<unknown>,
 ): ContextMenuPlace | null {
-  return cell === null ? null : { target, cell, anchor: cell.element };
+  if (cell === null) {
+    return null;
+  }
+  const box = cell.element.getBoundingClientRect();
+  const view = viewOf(cell.element, parts);
+  if (
+    view === null ||
+    (box.right > view.left &&
+      box.left < view.right &&
+      box.bottom > view.top &&
+      box.top < view.bottom)
+  ) {
+    return { target, cell, anchor: cell.element };
+  }
+  return {
+    target,
+    cell,
+    anchor: {
+      x: clamp(box.left, view.left, view.right),
+      y: clamp(box.bottom, view.top, view.bottom),
+    },
+  };
 }
 
 /** The body's empty space, anchored to its top-left corner. */
@@ -89,6 +148,7 @@ function headerPlaceAt<Row>(
   return onCell(
     { area: "header", columnId },
     headerCell(parts, cell.cellIndex),
+    parts,
   );
 }
 
@@ -117,6 +177,7 @@ function bodyPlaceAt<Row>(
       ? onCell(
           { area: "group", groupId: entry.groupId, columnId: entry.columnId },
           cell,
+          parts,
         )
       : null;
   }
@@ -130,6 +191,7 @@ function bodyPlaceAt<Row>(
       ? onCell(
           { area: "cell", rowId: entry.rowId, columnId: position.columnId },
           cell,
+          parts,
         )
       : null;
   }
@@ -161,7 +223,11 @@ export function placeOf<Row>(
     parts.columns.findIndex((column) => column.id === columnId);
   switch (target.area) {
     case "header":
-      return onCell(target, headerCell(parts, columnIndexOf(target.columnId)));
+      return onCell(
+        target,
+        headerCell(parts, columnIndexOf(target.columnId)),
+        parts,
+      );
     case "cell": {
       const rowIndex = parts.pageRows.findIndex(
         (entry) => !("kind" in entry) && entry.rowId === target.rowId,
@@ -169,6 +235,7 @@ export function placeOf<Row>(
       return onCell(
         target,
         bodyCell(parts, rowIndex, columnIndexOf(target.columnId)),
+        parts,
       );
     }
     case "group": {
@@ -178,7 +245,7 @@ export function placeOf<Row>(
           entry.kind === "group" &&
           entry.groupId === target.groupId,
       );
-      return onCell(target, bodyCell(parts, rowIndex, 0));
+      return onCell(target, bodyCell(parts, rowIndex, 0), parts);
     }
     case "body":
       return parts.body === null ? null : onBody(parts.body);

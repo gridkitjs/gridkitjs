@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { ResolvedMenuEntry } from "@gridkitjs/core";
+import type { AttachedMenu } from "@gridkitjs/dom";
 import { ariaAttr } from "../ariaAttr";
 import { classNames } from "../classNames";
 import GridMenu from "../menu/GridMenu";
 import { ChevronDownIcon, MenuIcon } from "../menu/menuIcons";
-import Overlay, { overlayThemeClassName } from "../overlay/Overlay";
+import Overlay, { ANCHOR_GAP, overlayThemeClassName } from "../overlay/Overlay";
 
 interface ToolbarMenuButtonProps {
   /** Its `data-gridkit-toolbar-item`. */
@@ -23,14 +24,16 @@ interface ToolbarMenuButtonProps {
 interface OpenMenu {
   readonly anchor: HTMLElement;
   readonly themeClassName: string;
+  /** The item it opens on: the first, or the last when ArrowUp opened it. */
+  readonly focusItem: number;
 }
 
 /**
  * A toolbar button opening a menu below it, following the WAI-ARIA menu
  * button pattern: a click, Enter, Space or ArrowDown opens the menu with
- * focus on its first item, and a second click closes it. Closing the menu
- * returns focus to the button. What the items do, and whether each runs,
- * is in their `run`.
+ * focus on its first item, ArrowUp on its last, and a second click closes
+ * it. Closing the menu returns focus to the button. What the items do, and
+ * whether each runs, is in their `run`.
  */
 export default function ToolbarMenuButton({
   itemKey,
@@ -41,9 +44,24 @@ export default function ToolbarMenuButton({
   onMenuClose,
 }: ToolbarMenuButtonProps) {
   const [menu, setMenu] = useState<OpenMenu | null>(null);
+  const menuBehaviourRef = useRef<AttachedMenu | null>(null);
 
-  function open(button: HTMLElement): void {
-    setMenu({ anchor: button, themeClassName: overlayThemeClassName(button) });
+  // As the menu opens, after the overlay — a child, whose layout effect runs
+  // first — has focused the first item.
+  useLayoutEffect(() => {
+    if (menu !== null && menu.focusItem > 0) {
+      menuBehaviourRef.current?.focusItem(menu.focusItem);
+    }
+  }, [menu]);
+
+  function open(button: HTMLElement, onLast = false): void {
+    setMenu({
+      anchor: button,
+      themeClassName: overlayThemeClassName(button),
+      focusItem: onLast
+        ? entries.filter((entry) => entry.type !== "separator").length - 1
+        : 0,
+    });
   }
 
   function close(): void {
@@ -68,9 +86,12 @@ export default function ToolbarMenuButton({
           }
         }}
         onKeyDown={(event) => {
-          if (event.key === "ArrowDown" && menu === null) {
+          if (
+            (event.key === "ArrowDown" || event.key === "ArrowUp") &&
+            menu === null
+          ) {
             event.preventDefault();
-            open(event.currentTarget);
+            open(event.currentTarget, event.key === "ArrowUp");
           }
         }}
       >
@@ -88,6 +109,7 @@ export default function ToolbarMenuButton({
         <Overlay
           anchor={menu.anchor}
           placement="bottom-start"
+          gap={ANCHOR_GAP}
           returnFocusTo={menu.anchor}
           themeClassName={menu.themeClassName}
           onDismiss={close}
@@ -96,6 +118,7 @@ export default function ToolbarMenuButton({
             entries={entries}
             label={label}
             themeClassName={menu.themeClassName}
+            behaviourRef={menuBehaviourRef}
             onRun={(item) => {
               item.run();
               close();

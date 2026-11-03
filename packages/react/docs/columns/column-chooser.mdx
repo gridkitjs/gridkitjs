@@ -55,13 +55,13 @@ The chooser does not reorder columns; drag a header for that — see [column reo
 
 The chooser is a dialog of native controls, so it works as a form does.
 
-| Key or action                                    | Does                                                                         |
-| ------------------------------------------------ | ---------------------------------------------------------------------------- |
-| Opening it                                       | Focus goes to the search box.                                                |
-| <Kbd>Tab</Kbd> / <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd> | The next or previous control — the search box, "Show all", then each column. |
-| <Kbd>Space</Kbd>, or a click                     | Toggles the checkbox. A disabled one does nothing.                           |
-| <Kbd>Escape</Kbd>                                | Closes it, giving focus back to where it was opened from.                    |
-| A click outside it, a scroll or a resize         | Closes it.                                                                   |
+| Key or action                                    | Does                                                                                                               |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| Opening it                                       | Focus goes to the search box.                                                                                      |
+| <Kbd>Tab</Kbd> / <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd> | The next or previous control — the search box, "Show all", then each column.                                       |
+| <Kbd>Space</Kbd>, or a click                     | Toggles the checkbox. A disabled one does nothing.                                                                 |
+| <Kbd>Escape</Kbd>                                | Closes it, giving focus back to where it was opened from.                                                          |
+| A click outside it, a scroll or a resize         | Closes it — but not the scroll its own change causes, a grid scrolled to its end scrolling back as a column hides. |
 
 <Kbd>Escape</Kbd> closes only the chooser: it never reaches the grid, so the
 selection stays.

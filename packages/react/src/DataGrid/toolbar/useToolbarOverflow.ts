@@ -9,8 +9,9 @@ import { observeToolbarOverflow, type ToolbarOverflow } from "@gridkitjs/dom";
  *
  * Attached once, so the widths it remembers for items moved into "More"
  * survive, and told of new items only when the toolbar's layout — each
- * item's kind and key — changes: the items are resolved afresh on every
- * render, and a changed label resizes its own entry, which it observes.
+ * item's kind, key and label — changes, rather than on every render, which
+ * resolves the items afresh. A label matters for an item in "More", whose
+ * remembered width it makes stale.
  */
 export default function useToolbarOverflow(
   toolbarRef: RefObject<HTMLElement | null>,
@@ -19,7 +20,13 @@ export default function useToolbarOverflow(
   const [fit, setFit] = useState(items.length);
   const overflow = useRef<ToolbarOverflow | null>(null);
   const measuredLayout = useRef("");
-  const layout = JSON.stringify(items.map((item) => [item.type, item.key]));
+  const layout = JSON.stringify(
+    items.map((item) => [
+      item.type,
+      item.key,
+      "label" in item ? item.label : null,
+    ]),
+  );
 
   useLayoutEffect(() => {
     const toolbar = toolbarRef.current;

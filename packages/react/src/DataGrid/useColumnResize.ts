@@ -27,7 +27,8 @@ export interface ColumnResizeApi<Row> {
     entry: ResolvedColumn<Row>,
     event: ReactPointerEvent<HTMLElement>,
   ) => void;
-  sizeToContent: (entry: ResolvedColumn<Row>) => void;
+  /** Sizes a column to its content, and says whether it could: not without cells. */
+  sizeToContent: (entry: ResolvedColumn<Row>) => boolean;
   nudge: (entry: ResolvedColumn<Row>, delta: number) => void;
 }
 
@@ -97,15 +98,15 @@ export default function useColumnResize<Row>({
     }
   }
 
-  function sizeToContent(entry: ResolvedColumn<Row>): void {
+  function sizeToContent(entry: ResolvedColumn<Row>): boolean {
     const table = tableRef.current;
     if (table === null) {
-      return;
+      return false;
     }
 
     const measured = measureColumnContent(table, entry.id);
     if (measured === null) {
-      return;
+      return false;
     }
 
     controller.resizeColumn(
@@ -116,6 +117,7 @@ export default function useColumnResize<Row>({
       ),
       "end",
     );
+    return true;
   }
 
   function nudge(entry: ResolvedColumn<Row>, delta: number): void {

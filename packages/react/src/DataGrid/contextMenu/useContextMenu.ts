@@ -121,6 +121,7 @@ export default function useContextMenu<Row>({
   function parts(): GridParts<Row> {
     const { columns, pageRows } = controller.getView();
     return {
+      root: rootRef.current,
       headerTable: headerTableRef.current,
       bodyTable: bodyTableRef.current,
       body: bodyScrollRef.current,

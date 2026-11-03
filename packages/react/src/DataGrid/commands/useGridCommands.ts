@@ -72,11 +72,17 @@ export default function useGridCommands<Row>({
   const host: GridCommandHost = {
     autoFitColumns: (columnIds) => {
       const { columns } = controller.getView();
+      let fitted = 0;
       for (const columnId of columnIds) {
         const entry = columns.find((candidate) => candidate.id === columnId);
-        if (entry !== undefined) {
-          resize.sizeToContent(entry);
+        if (entry !== undefined && resize.sizeToContent(entry)) {
+          fitted += 1;
         }
+      }
+      // Each resize announced itself, and the live region keeps only the
+      // last; one message for them all replaces it before anything is read.
+      if (fitted > 1) {
+        announce(messages.columnsAutoFitted(fitted));
       }
     },
     openPanel,

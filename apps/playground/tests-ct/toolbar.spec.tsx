@@ -509,6 +509,24 @@ test.describe("DataGrid toolbar", () => {
     await expect(menu).toHaveCount(0);
   });
 
+  test("ArrowUp opens a dropdown on its last item", async ({ mount, page }) => {
+    const root = await mountGrid(mount, <ToolbarGrid />, WIDE);
+    const actions = toolbarButton(root, "Actions");
+    const menu = page.getByRole("menu", { name: "Actions" });
+
+    await actions.focus();
+    await page.keyboard.press("ArrowUp");
+    await expect(menu.getByRole("menuitem", { name: "Refresh" })).toBeFocused();
+    await expect(
+      menu.getByRole("menuitem", { name: "Refresh" }),
+    ).toHaveAttribute("tabindex", "0");
+
+    await page.keyboard.press("ArrowDown");
+    await expect(menu.getByRole("menuitem", { name: "Export" })).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(actions).toBeFocused();
+  });
+
   test("focus comes back to the toolbar when a menu takes its own button away", async ({
     mount,
     page,
@@ -665,6 +683,59 @@ test.describe("DataGrid toolbar overflow", () => {
     await expect(toolbarButton(root, "Actions")).toHaveCount(0);
   });
 
+  test("More stays inside the toolbar when the pinned entries alone are wider", async ({
+    mount,
+    page,
+  }) => {
+    // The search box and "status: roomy" never move, and with every other
+    // entry in More they still overflow 200px.
+    const root = await mountGrid(mount, <ToolbarGrid />, { width: 200 });
+    const toolbar = gridToolbar(root);
+    const more = toolbarButton(root, "More");
+
+    const [bar, button] = await Promise.all([
+      toolbar.boundingBox(),
+      more.boundingBox(),
+    ]);
+    expect(button).not.toBeNull();
+    expect(bar).not.toBeNull();
+    if (button === null || bar === null) return;
+    expect(button.x + button.width).toBeLessThanOrEqual(bar.x + bar.width);
+    expect(button.x).toBeGreaterThanOrEqual(bar.x);
+
+    await more.click();
+    await expect(
+      page
+        .getByRole("menu", { name: "More" })
+        .getByRole("menuitem", { name: "Clear all sorting" }),
+    ).toBeFocused();
+  });
+
+  test("an item relabelled while in More is measured again", async ({
+    mount,
+  }) => {
+    const relabelled = (clearFilters: string) => (
+      <DataGrid
+        columns={plainColumns}
+        dataSource={plainRows}
+        toolbar={{ items: ["search", "filter.clearAll"] }}
+        messages={{ clearFilters }}
+      />
+    );
+    const root = await mountGrid(
+      mount,
+      relabelled("Clear every filter set on any column of this grid"),
+      { width: 400 },
+    );
+    await expect(toolbarButton(root, "More")).toBeVisible();
+
+    // Short enough to fit now, though the width remembered for it is not.
+    await updateGrid(root, relabelled("Clear"), { width: 400 });
+
+    await expect(toolbarButton(root, "Clear")).toBeVisible();
+    await expect(toolbarButton(root, "More")).toHaveCount(0);
+  });
+
   test("More is a control the arrow keys reach", async ({ mount, page }) => {
     const root = await mountGrid(mount, <ToolbarGrid />, NARROW);
 
@@ -676,6 +747,18 @@ test.describe("DataGrid toolbar overflow", () => {
       page
         .getByRole("menu", { name: "More" })
         .getByRole("menuitem", { name: "Clear filters" }),
+    ).toBeFocused();
+  });
+
+  test("ArrowUp opens More on its last item", async ({ mount, page }) => {
+    const root = await mountGrid(mount, <ToolbarGrid />, NARROW);
+
+    await toolbarButton(root, "More").focus();
+    await page.keyboard.press("ArrowUp");
+    await expect(
+      page
+        .getByRole("menu", { name: "More" })
+        .getByRole("menuitem", { name: "Actions" }),
     ).toBeFocused();
   });
 });
