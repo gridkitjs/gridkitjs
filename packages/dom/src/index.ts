@@ -11,6 +11,12 @@ export {
   type GroupRowTarget,
 } from "./bodyTargets";
 export {
+  attachContextMenuTrigger,
+  type ContextMenuRequest,
+  type ContextMenuSource,
+  type ContextMenuTriggerOptions,
+} from "./contextMenu/attachContextMenuTrigger";
+export {
   measureColumnContent,
   startColumnResizeGesture,
   type ColumnResizeGestureHandlers,
