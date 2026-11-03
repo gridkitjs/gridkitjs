@@ -5,7 +5,8 @@ import type { ContextMenuApi } from "./useContextMenu";
 /**
  * The open context menu, if any — beside the point it was asked for at, or
  * below its cell when asked for by a key — returning focus to that cell when
- * it closes. Rendered after the grid's tables, as every grid overlay is, so
+ * it closes, or, from the body's empty space, to wherever focus was before.
+ * Rendered after the grid's tables, as every grid overlay is, so
  * the keys pressed in it reach no header or body handler on their way up
  * React's tree.
  */
@@ -22,7 +23,7 @@ export default function GridContextMenu({
     <Overlay
       key={menu.key}
       anchor={menu.anchor}
-      returnFocusTo={menu.cell}
+      returnFocusTo={menu.cell ?? undefined}
       themeClassName={menu.themeClassName}
       onDismiss={close}
     >

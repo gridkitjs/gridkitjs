@@ -880,6 +880,8 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   const contextMenu = useContextMenu({
     rootRef: viewportRef,
     headerTableRef,
+    bodyTableRef,
+    bodyScrollRef,
     contextMenu: props.contextMenu,
     controller,
     commands,
@@ -1136,7 +1138,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
             groupBy={state.groupBy}
             groupableColumns={groupableColumns}
             groupToggleIconColumns={groupToggleIconColumns}
-            headerMenu={contextMenu.headerMenu}
+            headerMenu={contextMenu.opens("header")}
             nav={nav}
             selection={selection}
           />
@@ -1178,6 +1180,8 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
               onRowClick={onRowClick}
               onRowDoubleClick={onRowDoubleClick}
               messages={messages}
+              cellMenu={contextMenu.opens("cell")}
+              groupMenu={contextMenu.opens("group")}
             />
           </table>
         </div>

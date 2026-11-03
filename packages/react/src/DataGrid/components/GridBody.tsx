@@ -67,6 +67,9 @@ interface GridBodyProps<Row> {
   onRowClick: GridOptions<Row>["onRowClick"];
   onRowDoubleClick: GridOptions<Row>["onRowDoubleClick"];
   messages: GridMessages;
+  /** Whether a data cell, or a group row, opens the grid's context menu — for their `aria-keyshortcuts`. */
+  cellMenu: boolean;
+  groupMenu: boolean;
 }
 
 interface GroupAriaMeta {
@@ -130,6 +133,8 @@ export default function GridBody<Row>({
   onRowClick,
   onRowDoubleClick,
   messages,
+  cellMenu,
+  groupMenu,
 }: GridBodyProps<Row>) {
   const { selectedCell, rowMode, cellMode, toggleOnClick } = selection;
   const ariaMeta = useMemo(() => groupAriaMeta(rows), [rows]);
@@ -337,6 +342,7 @@ export default function GridBody<Row>({
               }
               rowsSelectable={rowMode !== false}
               cellsSelectable={cellMode !== false}
+              contextMenu={cellMenu}
               locale={locale}
               cellMessages={cellMessages}
               rowClassName={rowProps.className}
@@ -393,6 +399,7 @@ export default function GridBody<Row>({
             // row, whether it holds the tab stop depends on `rowIndex`
             // alone.
             focused={nav.focus.rowIndex === entry.rowIndex}
+            contextMenu={groupMenu}
           />
         );
       })}

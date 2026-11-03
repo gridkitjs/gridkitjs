@@ -34,6 +34,8 @@ interface GridGroupRowProps<Row> {
   setsize: number;
   /** Whether this row currently holds the grid's single tab stop. */
   focused: boolean;
+  /** Whether this row opens the grid's context menu, which its `aria-keyshortcuts` says. */
+  contextMenu: boolean;
   /** Active aggregates — empty when none are active, in which case no subtotal renders. */
   aggregates: AggregateState<Row>;
   /** This group's own computed results, keyed the same way `aggregates` resolves each spec's key. */
@@ -80,6 +82,7 @@ function GridGroupRowComponent<Row>({
   posinset,
   setsize,
   focused,
+  contextMenu,
   aggregates,
   results,
   definitions,
@@ -113,7 +116,9 @@ function GridGroupRowComponent<Row>({
         role="gridcell"
         colSpan={columnCount}
         tabIndex={focused ? 0 : -1}
-        aria-keyshortcuts="Space Enter"
+        aria-keyshortcuts={
+          contextMenu ? "Space Enter Shift+F10" : "Space Enter"
+        }
         className="grid-group-cell"
       >
         {/*

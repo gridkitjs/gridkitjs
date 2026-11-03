@@ -51,16 +51,34 @@ function headerMenu(page: Page, columnName: string): Locator {
   return page.getByRole("menu", { name: `${columnName} column menu` });
 }
 
+/** Right-clicks `target` and waits for the menu named `name`, focused on its first item. */
+async function openMenuOn(
+  page: Page,
+  target: Locator,
+  name: string,
+): Promise<Locator> {
+  await target.click({ button: "right" });
+  const menu = page.getByRole("menu", { name });
+  await expect(menu.locator("[data-gridkit-menu-item]").first()).toBeFocused();
+  return menu;
+}
+
 /** Right-clicks a header and waits for its menu, focused on its first item. */
-async function openOn(
+function openOn(
   root: MountResult,
   page: Page,
   columnName: string,
 ): Promise<Locator> {
-  await header(root, columnName).click({ button: "right" });
-  const menu = headerMenu(page, columnName);
-  await expect(menu.locator("[data-gridkit-menu-item]").first()).toBeFocused();
-  return menu;
+  return openMenuOn(
+    page,
+    header(root, columnName),
+    `${columnName} column menu`,
+  );
+}
+
+/** The body cell in row `row`, column `column`, both counted from zero among those drawn. */
+function bodyCell(root: MountResult, row: number, column: number): Locator {
+  return root.locator("tbody tr").nth(row).locator("td").nth(column);
 }
 
 /** The item named `name`, whichever menu item role it has. */
@@ -538,6 +556,271 @@ test.describe("header menu", () => {
     const body = await recordContextMenu(page);
 
     await header(root, "Name").click({ button: "right" });
+
+    await expect(body).toHaveAttribute("data-prevented", "false");
+    await expect(page.getByRole("menu")).toHaveCount(0);
+  });
+});
+
+interface TeamRow {
+  id: string;
+  name: string;
+  team: string;
+}
+
+const teamRows: TeamRow[] = [
+  { id: "t-1", name: "Ada", team: "Red" },
+  { id: "t-2", name: "Ben", team: "Blue" },
+  { id: "t-3", name: "Cleo", team: "Red" },
+];
+
+const teamColumns: readonly ColumnDefinition<TeamRow>[] = [
+  { field: "name", header: "Name", width: 160 },
+  { field: "team", header: "Team", width: 120, groupable: true },
+];
+
+/** A grid of people grouped by team, with the default menus; `props` override. */
+function teamGrid(props: Partial<DataGridProps<TeamRow>> = {}) {
+  return (
+    <DataGrid
+      columns={teamColumns}
+      dataSource={teamRows}
+      label="Teams"
+      defaultGroupBy={[{ columnId: "team" }]}
+      contextMenu
+      {...props}
+    />
+  );
+}
+
+test.describe("cell menu", () => {
+  test("opens its row's menu, replacing a selection the row is not in", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      grid({ selectable: { rows: "multiple" } }),
+    );
+    const selectedRows = root.locator('tbody tr[aria-selected="true"]');
+    await bodyCell(root, 0, 1).click();
+    await bodyCell(root, 1, 1).click({ modifiers: ["ControlOrMeta"] });
+    await expect(selectedRows).toHaveCount(2);
+
+    const menu = await openMenuOn(page, bodyCell(root, 2, 1), "Row menu");
+
+    await expect(menu.locator("[data-gridkit-menu-item]")).toHaveText([
+      "Select all rows",
+      "Clear selection",
+    ]);
+    await expect(selectedRows).toHaveCount(1);
+    await expect(root.locator("tbody tr").nth(2)).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await page.keyboard.press("Escape");
+    await expect(menu).toHaveCount(0);
+    await expect(bodyCell(root, 2, 1)).toBeFocused();
+    await expect(selectedRows).toHaveCount(1);
+  });
+
+  test("keeps a selection the row is in, for the menu to act on", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      grid({ selectable: { rows: "multiple" } }),
+    );
+    const selectedRows = root.locator('tbody tr[aria-selected="true"]');
+    await bodyCell(root, 0, 1).click();
+    await bodyCell(root, 1, 1).click({ modifiers: ["ControlOrMeta"] });
+
+    const menu = await openMenuOn(page, bodyCell(root, 1, 2), "Row menu");
+    await expect(selectedRows).toHaveCount(2);
+
+    await item(menu, "Clear selection").click();
+    await expect(selectedRows).toHaveCount(0);
+    await expect(root.locator('[role="status"]')).toHaveText(
+      "No rows selected",
+    );
+  });
+
+  test("selects the cell it opens on, where cells are selectable", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      grid({ selectable: { rows: "multiple", cells: "single" } }),
+    );
+
+    const menu = await openMenuOn(page, bodyCell(root, 1, 2), "Row menu");
+    await item(menu, "Select all rows").click();
+
+    await expect(bodyCell(root, 1, 2)).toHaveAttribute("aria-selected", "true");
+    await expect(root.locator('tbody tr[aria-selected="true"]')).toHaveCount(3);
+    await expect(bodyCell(root, 1, 2)).toBeFocused();
+  });
+
+  for (const key of ["Shift+F10", "ContextMenu"]) {
+    test(`${key} opens it below the focused cell`, async ({ mount, page }) => {
+      const root = await mountGrid(
+        mount,
+        grid({ selectable: { rows: "multiple" } }),
+      );
+      const cell = bodyCell(root, 1, 1);
+      await cell.click();
+
+      await cell.press(key);
+
+      const menu = page.getByRole("menu", { name: "Row menu" });
+      await expect(item(menu, "Select all rows")).toBeFocused();
+      const cellBox = await cell.boundingBox();
+      const menuBox = await page.locator(".gridkit-overlay").boundingBox();
+      expect(menuBox?.y).toBeCloseTo(
+        (cellBox?.y ?? 0) + (cellBox?.height ?? 0),
+        0,
+      );
+      expect(menuBox?.x).toBeCloseTo(cellBox?.x ?? 0, 0);
+    });
+  }
+
+  test("a cell lists Shift+F10 among its shortcuts while it opens a menu", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      grid({ selectable: { cells: "single" } }),
+    );
+
+    await expect(bodyCell(root, 0, 0)).toHaveAttribute(
+      "aria-keyshortcuts",
+      "Space Enter Shift+F10",
+    );
+  });
+
+  test("a cell whose menu resolves to nothing leaves the browser's", async ({
+    mount,
+    page,
+  }) => {
+    // Nothing to select and nothing grouped: every default is hidden.
+    const root = await mountGrid(mount, grid({ contextMenu: { header: [] } }));
+    const body = await recordContextMenu(page);
+
+    await bodyCell(root, 0, 1).click({ button: "right" });
+
+    await expect(body).toHaveAttribute("data-prevented", "false");
+    await expect(page.getByRole("menu")).toHaveCount(0);
+  });
+
+  test("without contextMenu a cell lists no menu shortcut", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(mount, grid({ contextMenu: undefined }));
+
+    await expect(bodyCell(root, 0, 1)).not.toHaveAttribute("aria-keyshortcuts");
+  });
+});
+
+test.describe("group menu", () => {
+  test("expands and collapses every group, and stops grouping by its column", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, teamGrid());
+    const status = root.locator('[role="status"]');
+    const groupRow = root.locator("tr[data-gridkit-group]").first();
+
+    let menu = await openMenuOn(page, groupRow, "Group menu");
+    await expect(menu.locator("[data-gridkit-menu-item]")).toHaveText([
+      "Expand all groups",
+      "Collapse all groups",
+      "Stop grouping by Team",
+    ]);
+    await item(menu, "Collapse all groups").click();
+    await expect(status).toHaveText("All groups collapsed");
+    await expect(root.locator('tr[aria-expanded="false"]')).toHaveCount(2);
+    await expect(groupRow.locator("td")).toBeFocused();
+
+    menu = await openMenuOn(page, groupRow, "Group menu");
+    await item(menu, "Expand all groups").click();
+    await expect(status).toHaveText("All groups expanded");
+
+    menu = await openMenuOn(page, groupRow, "Group menu");
+    await item(menu, "Stop grouping by Team").click();
+    await expect(root.getByRole("grid")).toBeVisible();
+    await expect(status).toHaveText("Team, grouping removed");
+  });
+
+  test("a grouped grid's cell menu expands and collapses too", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, teamGrid());
+    const row = root.locator("tbody tr:not([data-gridkit-group])").first();
+
+    const menu = await openMenuOn(page, row.locator("td").first(), "Row menu");
+
+    await expect(menu.locator("[data-gridkit-menu-item]")).toHaveText([
+      "Expand all groups",
+      "Collapse all groups",
+    ]);
+  });
+
+  test("Shift+F10 on a focused group row opens its menu", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, teamGrid());
+    const groupCell = root.locator("tr[data-gridkit-group] td").first();
+    await expect(groupCell).toHaveAttribute(
+      "aria-keyshortcuts",
+      "Space Enter Shift+F10",
+    );
+
+    await groupCell.focus();
+    await groupCell.press("Shift+F10");
+
+    await expect(
+      item(page.getByRole("menu", { name: "Group menu" }), "Expand all groups"),
+    ).toBeFocused();
+  });
+});
+
+test.describe("body menu", () => {
+  test("the body's empty space keeps the browser's menu by default", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      grid({ selectable: { rows: "multiple" }, height: 300 }),
+    );
+    const body = await recordContextMenu(page);
+
+    await root
+      .locator(".gridkit-data-grid-body")
+      .click({ button: "right", position: { x: 20, y: 280 } });
+
+    await expect(body).toHaveAttribute("data-prevented", "false");
+    await expect(page.getByRole("menu")).toHaveCount(0);
+  });
+
+  test("the footer keeps the browser's menu", async ({ mount, page }) => {
+    const root = await mountGrid(
+      mount,
+      grid({
+        selectable: { rows: "multiple" },
+        aggregates: [{ columnId: "score", fn: "sum" }],
+      }),
+    );
+    const body = await recordContextMenu(page);
+
+    await root
+      .locator(".gridkit-data-grid-footer td")
+      .first()
+      .click({ button: "right" });
 
     await expect(body).toHaveAttribute("data-prevented", "false");
     await expect(page.getByRole("menu")).toHaveCount(0);
