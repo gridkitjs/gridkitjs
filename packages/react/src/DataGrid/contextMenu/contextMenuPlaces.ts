@@ -89,8 +89,9 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 /**
- * A cell's place, anchored to the cell itself while it is in the grid's
- * view. One scrolled out of it — the ref can ask for any cell drawn — is
+ * A cell's place, anchored to the cell itself while any of it is in the
+ * grid's view (a group row's cell can be wider than the view). One scrolled
+ * wholly out of it — the ref can ask for any cell drawn — is
  * anchored to the point of the view nearest its bottom-left corner instead,
  * so the menu opens at the grid's edge rather than off in the page, over
  * whatever the grid's scrolling hides it under.
@@ -107,10 +108,10 @@ function onCell(
   const view = viewOf(cell.element, parts);
   if (
     view === null ||
-    (box.left >= view.left &&
-      box.right <= view.right &&
-      box.top >= view.top &&
-      box.bottom <= view.bottom)
+    (box.right > view.left &&
+      box.left < view.right &&
+      box.bottom > view.top &&
+      box.top < view.bottom)
   ) {
     return { target, cell, anchor: cell.element };
   }
