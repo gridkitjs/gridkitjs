@@ -92,7 +92,7 @@ describe("resolveMenu: commands", () => {
       type: "item",
       id: "sort.ascending",
       label: "Sort ascending",
-      icon: undefined,
+      icon: "sortAscending",
       shortcut: undefined,
       disabled: false,
       checked: true,

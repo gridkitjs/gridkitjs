@@ -114,7 +114,10 @@ export type {
 } from "./commands/types";
 export type { GridCommandContextInput } from "./commands/context";
 export { createCommandContext } from "./commands/context";
-export type { BuiltInCommandId } from "./commands/builtInCommands";
+export type {
+  BuiltInCommandIcon,
+  BuiltInCommandId,
+} from "./commands/builtInCommands";
 export { builtInCommands } from "./commands/builtInCommands";
 export { resolveCommands, runCommand } from "./commands/registry";
 export type {

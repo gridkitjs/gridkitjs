@@ -117,6 +117,8 @@ A `GridCommandHost` holds what a command needs that only a renderer has. A calle
 
 "Sortable" is the column's `sortable`, else the grid's `sortableColumns`; "groupable" the same with `groupable` and `groupableColumns`; "resizable" is the column as rendered, after `resizableColumns`. [`hideable`](/docs/core/column-definitions#column-definition-shape) defaults to `true` and, like `sortable`, gates only the user's ways to do it: `hideColumns` still hides a column that is not hideable.
 
+The sorting, grouping, hiding and autofit built-ins carry an `icon` key — a `BuiltInCommandIcon`: `sortAscending` and `sortDescending` on the two sorts, `group` on `group.add` and `group.remove`, `hide` on `column.hide`, and `autoFit` on both autofits. @gridkitjs/react draws each as an icon of its own; a command of yours may use the same keys to look like the built-ins, and a renderer of your own maps them to its icons or leaves them out.
+
 The ids `filter.open`, `copy.cell`, `copy.row`, `copy.selection`, `export.csv`, `export.json`, `export.xlsx`, `export.pdf`, `print` and `layout.reset` are reserved for built-ins still to come.
 
 ## App commands and overrides

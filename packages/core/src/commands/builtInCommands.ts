@@ -25,6 +25,13 @@ export type BuiltInCommandId =
   | "selection.clear"
   | "filter.clearAll";
 
+/**
+ * The icon keys the built-ins carry, which a renderer draws as icons of its
+ * own. An app command may use them too, to look like the built-ins.
+ */
+export type BuiltInCommandIcon =
+  "sortAscending" | "sortDescending" | "group" | "hide" | "autoFit";
+
 type Area = GridCommandTarget["area"];
 type Column<Row> = DataColumn<Row, unknown>;
 type Context<Row> = GridCommandContext<Row>;
@@ -120,6 +127,7 @@ function columnName<Row>(context: Context<Row>): string {
 interface ColumnCommandSpec<Row> {
   readonly id: BuiltInCommandId;
   readonly label: (context: Context<Row>) => string;
+  readonly icon?: BuiltInCommandIcon;
   /** The column the command acts on, or `null` where there is none — which hides it. */
   readonly find: (context: Context<Row>) => Column<Row> | null;
   readonly isEnabled?: (column: Column<Row>, context: Context<Row>) => boolean;
@@ -135,6 +143,7 @@ interface ColumnCommandSpec<Row> {
 function columnCommand<Row>({
   id,
   label,
+  icon,
   find,
   isEnabled,
   isChecked,
@@ -151,6 +160,7 @@ function columnCommand<Row>({
   return {
     id,
     label,
+    icon,
     isVisible: (context) => find(context) !== null,
     isEnabled: isEnabled === undefined ? undefined : test(isEnabled),
     isChecked: isChecked === undefined ? undefined : test(isChecked),
@@ -168,6 +178,7 @@ function sortCommand<Row>(direction: SortDirection): GridCommand<Row> {
     id: direction === "asc" ? "sort.ascending" : "sort.descending",
     label: ({ messages }) =>
       direction === "asc" ? messages.sortAscending : messages.sortDescending,
+    icon: direction === "asc" ? "sortAscending" : "sortDescending",
     find: sortableColumn,
     isChecked: (column, { state }) =>
       sortDirectionFor(state.columnSort, column.id) === direction,
@@ -213,6 +224,7 @@ export function builtInCommands<Row>(): readonly GridCommand<Row>[] {
     columnCommand({
       id: "group.add",
       label: (context) => context.messages.groupByColumn(columnName(context)),
+      icon: "group",
       find: groupableColumn,
       execute: (column, { actions }) => {
         actions.toggleGroupBy(column.id);
@@ -223,6 +235,7 @@ export function builtInCommands<Row>(): readonly GridCommand<Row>[] {
     columnCommand({
       id: "group.remove",
       label: (context) => context.messages.removeGroupBy(columnName(context)),
+      icon: "group",
       find: groupedColumn,
       execute: (column, { actions }) => {
         actions.toggleGroupBy(column.id);
@@ -260,6 +273,7 @@ export function builtInCommands<Row>(): readonly GridCommand<Row>[] {
     columnCommand({
       id: "column.hide",
       label: ({ messages }) => messages.hideColumn,
+      icon: "hide",
       find: hideableColumn,
       // The last column shown stays: a grid with none has no header left to
       // bring one back from.
@@ -272,6 +286,7 @@ export function builtInCommands<Row>(): readonly GridCommand<Row>[] {
     columnCommand({
       id: "column.autoFit",
       label: ({ messages }) => messages.autoFitColumn,
+      icon: "autoFit",
       find: resizableColumn,
       execute: (column, { host }) => {
         host.autoFitColumns([column.id]);
@@ -280,6 +295,7 @@ export function builtInCommands<Row>(): readonly GridCommand<Row>[] {
     {
       id: "column.autoFitAll",
       label: ({ messages }) => messages.autoFitAllColumns,
+      icon: "autoFit",
       isVisible: (context) =>
         isOn(context, ["grid", "toolbar", "header"]) &&
         resizableColumnIds(context).length > 0,
