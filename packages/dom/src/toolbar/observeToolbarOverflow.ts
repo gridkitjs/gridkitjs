@@ -4,8 +4,15 @@ import {
   type ResolvedToolbarItem,
 } from "@gridkitjs/core";
 
-/** A toolbar entry as the overflow reads it: its kind, and the key its element carries. */
-export type ToolbarOverflowItem = Pick<ResolvedToolbarItem, "type" | "key">;
+/**
+ * A toolbar entry as the overflow reads it: its kind, the key its element
+ * carries and, for a button or a dropdown, its label — a change to which,
+ * while the entry is in "More" and not drawn, makes the width remembered for
+ * it stale.
+ */
+export type ToolbarOverflowItem = Pick<ResolvedToolbarItem, "type" | "key"> & {
+  readonly label?: string | undefined;
+};
 
 export interface ToolbarOverflowOptions {
   /**
@@ -59,7 +66,8 @@ function outerWidth(element: HTMLElement): number {
  * item's `key`, and the "More" button by `data-gridkit-toolbar-more`. An
  * entry moved into "More" is no longer drawn, so each width is remembered
  * by key from the last time it was; one never drawn yet counts as nothing,
- * which lets it be drawn, measured, and moved back out if it does not fit.
+ * which lets it be drawn, measured, and moved back out if it does not fit —
+ * as one whose label changed while it was not drawn counts again.
  * A spacer counts as nothing too: its width is only the room left over. The
  * toolbar's padding and the `column-gap` between entries are allowed for.
  *
@@ -139,6 +147,17 @@ export function observeToolbarOverflow(
 
   return {
     update(next) {
+      // An entry whose label changed while it was in "More" is forgotten, so
+      // it counts as never drawn: drawn, measured afresh, and moved back out
+      // if it no longer fits. One drawn is measured again straight away.
+      const labels = new Map(
+        current.items.map((item) => [item.key, item.label]),
+      );
+      for (const item of next.items) {
+        if (labels.has(item.key) && labels.get(item.key) !== item.label) {
+          widths.delete(item.key);
+        }
+      }
       current = next;
       measure();
     },

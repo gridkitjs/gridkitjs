@@ -469,17 +469,17 @@ const detach = attachToolbar(toolbarElement);
 
 `observeToolbarOverflow(toolbar, { items, onChange })` measures how many of a toolbar's entries fit in it, and reports the count — what @gridkitjs/core's [`fitToolbarItems`](/docs/core/toolbar#overflow) works out from the widths — through `onChange`: once straight away, so a renderer calling it before paint draws the right entries from the first frame, and again whenever it changes. Draw the first `count` entries and every pinned one — or let [`splitToolbarItems`](/docs/core/toolbar#overflow) split them — and put the rest in a "More" menu button at the end. It returns `update(options)` and `detach()`.
 
-| Option     | Type                             | Description                                                                                        |
-| ---------- | -------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `items`    | `readonly ToolbarOverflowItem[]` | Every entry, drawn or in "More", in order: `{ type, key }`, as `resolveToolbar`'s items have them. |
-| `onChange` | `(count) => void`                | How many entries fit, from the start. Called straight away, then only when it changes.             |
+| Option     | Type                             | Description                                                                                                |
+| ---------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `items`    | `readonly ToolbarOverflowItem[]` | Every entry, drawn or in "More", in order: `{ type, key, label? }`, as `resolveToolbar`'s items have them. |
+| `onChange` | `(count) => void`                | How many entries fit, from the start. Called straight away, then only when it changes.                     |
 
 | Markup                      | Read as                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------ |
 | `data-gridkit-toolbar-item` | An entry, whose value is its item's `key`.                                     |
 | `data-gridkit-toolbar-more` | The "More" button — an entry too, for `attachToolbar`, but not one of `items`. |
 
-An entry moved into "More" is no longer drawn, so its width is remembered by key from the last time it was. One never drawn yet counts as nothing: it is drawn, measured, and moved back out if it does not fit. The "More" button likewise counts as nothing until it is first drawn. A spacer counts as nothing too, since its width is only the room left over. The toolbar's padding and the `column-gap` between entries are allowed for, so a theme can space them however it likes.
+An entry moved into "More" is no longer drawn, so its width is remembered by key from the last time it was. One never drawn yet counts as nothing: it is drawn, measured, and moved back out if it does not fit. So does one whose `label` changed, as `update` finds it, while it was in "More": its remembered width is for the old label. The "More" button likewise counts as nothing until it is first drawn. A spacer counts as nothing too, since its width is only the room left over. The toolbar's padding and the `column-gap` between entries are allowed for, so a theme can space them however it likes.
 
 It measures again whenever the toolbar or an entry resizes, and whenever entries are drawn or taken away — those the count it reported lets in, or the "More" button — so the renderer only draws what it is told. When the items change, pass them to `update`.
 
