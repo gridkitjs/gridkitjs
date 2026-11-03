@@ -189,12 +189,13 @@ A user looking at page 7 of a result that filtering, sorting, or regrouping just
 
 ## Props
 
-| Prop                 | Type                                     | Default                          | Description                                           |
-| -------------------- | ---------------------------------------- | -------------------------------- | ----------------------------------------------------- |
-| `paginated`          | `boolean`                                | `false`                          | Whether the grid's rows are split into pages.         |
-| `defaultPagination`  | `PaginationState`                        | `{ pageIndex: 0, pageSize: 25 }` | The page and page size to start on. Uncontrolled.     |
-| `pager`              | `PagerConfig`                            |                                  | Presentation options for the built-in pager.          |
-| `onPaginationChange` | `(event: PaginationChangeEvent) => void` |                                  | Once when the user changes the page or the page size. |
+| Prop                 | Type                                     | Default                          | Description                                                                                                                                             |
+| -------------------- | ---------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `paginated`          | `boolean`                                | `false`                          | Whether the grid's rows are split into pages.                                                                                                           |
+| `defaultPagination`  | `PaginationState`                        | `{ pageIndex: 0, pageSize: 25 }` | The page and page size to start on. Uncontrolled.                                                                                                       |
+| `pagination`         | `PaginationState`                        |                                  | The page and page size, controlled — changed only through `onPaginationChange`, and never reset by the grid. See [controlled state](/docs/react/state). |
+| `pager`              | `PagerConfig`                            |                                  | Presentation options for the built-in pager.                                                                                                            |
+| `onPaginationChange` | `(event: PaginationChangeEvent) => void` |                                  | Once when the user changes the page or the page size.                                                                                                   |
 
 `PaginationState` is `{ pageIndex: number; pageSize: number }` (`pageIndex` 0-based). `PaginationChangeEvent` is `{ pagination: PaginationState; pageCount: number }` — the state to persist, plus the page count it produces, so a consumer doesn't have to recompute it. `PagerConfig` is `{ sizeOptions?: readonly number[]; variant?: "compact" | "numbered"; boundaryCount?: number; siblingCount?: number; template?: (context: PagerTemplateContext) => ReactNode }`.
 

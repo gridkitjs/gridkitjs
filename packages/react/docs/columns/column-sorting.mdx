@@ -22,12 +22,13 @@ sortableColumns turns on a clickable sort toggle in every header, unless a colum
 
 ## Props
 
-| Prop                 | Type                                 | Default | Description                                                                                |
-| -------------------- | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------ |
-| `sortableColumns`    | `boolean`                            | `false` | Whether columns can be sorted by clicking their header toggle.                             |
-| `defaultColumnSort`  | `readonly { columnId, direction }[]` |         | The sort to start with, in priority order. Uncontrolled.                                   |
-| `onColumnSortChange` | `(event: ColumnSortEvent) => void`   |         | Called once when the user changes the sort — a toggle, a stack, or a clear back to "none". |
-| `column.sortable`    | `boolean`                            |         | Per-column override of sortableColumns.                                                    |
+| Prop                 | Type                                 | Default | Description                                                                                                                                                                                       |
+| -------------------- | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sortableColumns`    | `boolean`                            | `false` | Whether columns can be sorted by clicking their header toggle.                                                                                                                                    |
+| `defaultColumnSort`  | `readonly { columnId, direction }[]` |         | The sort to start with, in priority order. Uncontrolled.                                                                                                                                          |
+| `columnSort`         | `ColumnSortState`                    |         | The sort, controlled: a header click, the ref's `setColumnSort` or a sort command asks for a change through `onColumnSortChange` instead of making it. See [controlled state](/docs/react/state). |
+| `onColumnSortChange` | `(event: ColumnSortEvent) => void`   |         | Called once when the user changes the sort — a toggle, a stack, or a clear back to "none".                                                                                                        |
+| `column.sortable`    | `boolean`                            |         | Per-column override of sortableColumns.                                                                                                                                                           |
 
 ## Keyboard & pointer interactions
 
