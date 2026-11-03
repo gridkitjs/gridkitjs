@@ -1,4 +1,5 @@
 import { AggregatedGrid } from "./demos/AggregatedGrid";
+import { ContextMenuGrid } from "./demos/ContextMenuGrid";
 import { CustomPagerGrid } from "./demos/CustomPagerGrid";
 import { FilteredGrid } from "./demos/FilteredGrid";
 import { GroupedGrid } from "./demos/GroupedGrid";
@@ -86,6 +87,20 @@ export default function App() {
       </p>
       <div className="mt-2">
         <AggregatedGrid />
+      </div>
+      <h2 className="mt-8 text-lg font-bold">
+        <code>contextMenu</code>, shaped per place
+      </h2>
+      <p className="mt-2 text-sm text-gray-600">
+        Right-click a row — or focus a cell and press <code>Shift+F10</code> —
+        for its actions, logged below, ahead of the default items. A header's
+        menu adds an <code>Aggregate</code> submenu of checkable Sum, Average,
+        Min, Max and Count, applied to the column clicked or, when it is
+        selected, every selected column; <code>Ctrl+Click</code> headers to
+        select several first.
+      </p>
+      <div className="mt-2">
+        <ContextMenuGrid />
       </div>
       <h2 className="mt-8 text-lg font-bold">
         <code>usePaginationState</code>/<code>useSelectionState</code>, an
