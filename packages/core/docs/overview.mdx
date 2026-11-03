@@ -15,7 +15,7 @@ description: "Framework-agnostic grid logic: columns, sizing, ordering, selectio
 
 ### Messages
 
-`GridMessages` is every string a grid shows or announces of its own — the pager, the group-by bar, the loading row, boolean and blank values, the built-in commands' labels, the menus' names, and the live-region announcements. `defaultMessages` holds the English a grid speaks unless told otherwise, and `resolveMessages(messages)` lays a partial `messages` option over it, returning `defaultMessages` itself when given none. A message naming something is a function — `pageStatus: (page, pageCount) => string` — so a translation puts the name where its grammar wants it. See [localization](/docs/react/localization) for every key.
+`GridMessages` is every string a grid shows or announces of its own — the pager, the group-by bar, the loading row, boolean and blank values, the built-in commands' labels, the menus' names, the toolbar's name, search box and "More" button, the column chooser's name, search box and "Show all", and the live-region announcements. `defaultMessages` holds the English a grid speaks unless told otherwise, and `resolveMessages(messages)` lays a partial `messages` option over it, returning `defaultMessages` itself when given none. A message naming something is a function — `pageStatus: (page, pageCount) => string` — so a translation puts the name where its grammar wants it. See [localization](/docs/react/localization) for every key.
 
 ## The controller
 
