@@ -144,7 +144,7 @@ Set `height` to bound the row area to a fixed size, independently scrollable, wh
 <DataGrid columns={columns} dataSource={rows} height={400} />
 ```
 
-Under the hood, the header, the rows, and (when `aggregates` is active) the grand-total footer each render as their own `<table>` — `.gridkit-data-grid-header`, `.gridkit-data-grid-body` (the one `height` applies to), and `.gridkit-data-grid-footer` — rather than sharing one. That's what keeps the header and footer out of the region that scrolls: they're never inside it to begin with, so there's nothing to pin in place with `position: sticky`. A consumer who wants a divider or shadow at the seam adds their own CSS targeting one of those classes directly, for example:
+Under the hood, the header, the rows, and (when `aggregates` is active) the grand-total footer each render as their own `<table>` rather than sharing one. All three carry `.gridkit-data-grid`; the header adds `.gridkit-data-grid-header`, the footer `.gridkit-data-grid-footer`, and the rows' table sits inside `div.gridkit-data-grid-body`, the scroll container `height` applies to. That's what keeps the header and footer out of the region that scrolls: they're never inside it to begin with, so there's nothing to pin in place with `position: sticky`. A consumer who wants a divider or shadow at the seam adds their own CSS targeting one of those classes directly, for example:
 
 ```css
 .gridkit-data-grid-header {
