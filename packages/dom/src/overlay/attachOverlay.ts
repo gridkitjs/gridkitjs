@@ -102,7 +102,8 @@ function initialFocusTarget(
  * `data-gridkit-placement` (`"top-start"` once flipped above, say) for a
  * stylesheet to point an arrow by. Whenever the panel's size changes — a list
  * that shrinks under a search — it is placed again beside the anchor, so a
- * panel flipped above its anchor keeps its bottom edge there. Focus moves
+ * panel flipped above its anchor keeps its bottom edge there — or beside
+ * where the anchor was, once it has left the page. Focus moves
  * where `initialFocus` says.
  *
  * Nothing that happens on or in the anchor dismisses the overlay, so a button
@@ -192,6 +193,21 @@ export function attachOverlay(
     onDismiss("blur");
   }
 
+  // An anchor taken out of the page has no box to read — the header of a
+  // column the panel itself just hid — so the panel goes on being placed
+  // beside where it last was, rather than in the viewport's corner.
+  let lastAnchorBox: OverlayRect | null = null;
+  function anchorBox(): OverlayRect {
+    if (
+      lastAnchorBox === null ||
+      !(anchor instanceof Element) ||
+      anchor.isConnected
+    ) {
+      lastAnchorBox = anchorRect(anchor);
+    }
+    return lastAnchorBox;
+  }
+
   // Measured fixed at the viewport's top-left corner, shrink-wrapped and with
   // the whole viewport to grow into — in normal flow a block panel would
   // report the full width of the page — and from that corner every time, so
@@ -201,7 +217,7 @@ export function attachOverlay(
     panel.style.left = "0px";
     const { width, height } = panel.getBoundingClientRect();
     const position = placeOverlay(
-      anchorRect(anchor),
+      anchorBox(),
       { width, height },
       {
         width: document.documentElement.clientWidth,

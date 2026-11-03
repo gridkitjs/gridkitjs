@@ -40,7 +40,8 @@ export interface OverlayHarnessProps {
  * menu it came from. The child's open state lives here rather than in the
  * panel, so closing the panel leaves the child to the overlay stack to close.
  * A page-level Escape listener counts the Escapes that reach the page.
- * "Shrink" halves the panel's height, for its re-placement.
+ * "Shrink" halves the panel's height, for its re-placement, and "Drop anchor"
+ * takes the anchor out of the page while the panel stays open.
  */
 export default function OverlayHarness({
   anchorStyle,
@@ -55,6 +56,7 @@ export default function OverlayHarness({
   const childRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [panelHeight, setPanelHeight] = useState(120);
+  const [anchorDropped, setAnchorDropped] = useState(false);
   const [childOpen, setChildOpen] = useState(false);
   const [dismissed, setDismissed] = useState<OverlayDismissReason | null>(null);
   const [childDismissed, setChildDismissed] =
@@ -109,16 +111,18 @@ export default function OverlayHarness({
   return (
     // Clear of every place the panel opens, so nothing here sits under it.
     <div style={{ paddingLeft: 400 }}>
-      <button
-        ref={anchorRef}
-        type="button"
-        style={{ position: "fixed", top: 20, left: 20, ...anchorStyle }}
-        onClick={() => {
-          setOpen((current) => !current);
-        }}
-      >
-        Anchor
-      </button>
+      {!anchorDropped && (
+        <button
+          ref={anchorRef}
+          type="button"
+          style={{ position: "fixed", top: 20, left: 20, ...anchorStyle }}
+          onClick={() => {
+            setOpen((current) => !current);
+          }}
+        >
+          Anchor
+        </button>
+      )}
       <button type="button">Elsewhere</button>
       <div data-testid="scroller" style={{ height: 40, overflow: "auto" }}>
         <div style={{ height: 400 }} />
@@ -157,6 +161,14 @@ export default function OverlayHarness({
               }}
             >
               Shrink
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAnchorDropped(true);
+              }}
+            >
+              Drop anchor
             </button>
           </div>,
           document.body,

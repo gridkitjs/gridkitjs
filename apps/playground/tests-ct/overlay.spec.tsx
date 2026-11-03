@@ -93,6 +93,29 @@ test.describe("placement", () => {
     expect(after.y + after.height).toBeCloseTo(anchor.y - 4, 0);
   });
 
+  test("an anchor taken out of the page leaves the panel placed where it last was", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(
+      <OverlayHarness anchorStyle={{ top: "auto", bottom: 10 }} gap={4} />,
+    );
+    const panel = await openPanel(root, page);
+    const anchor = await boxOf(root.getByRole("button", { name: "Anchor" }));
+    const before = await boxOf(panel);
+
+    await panel.getByRole("button", { name: "Drop anchor" }).click();
+    await expect(root.getByRole("button", { name: "Anchor" })).toHaveCount(0);
+    await panel.getByRole("button", { name: "Shrink" }).click();
+
+    await expect
+      .poll(async () => (await boxOf(panel)).y)
+      .toBeGreaterThan(before.y);
+    const after = await boxOf(panel);
+    expect(after.x).toBe(before.x);
+    expect(after.y + after.height).toBeCloseTo(anchor.y - 4, 0);
+  });
+
   test("opens beside a point rather than its anchor", async ({
     mount,
     page,
