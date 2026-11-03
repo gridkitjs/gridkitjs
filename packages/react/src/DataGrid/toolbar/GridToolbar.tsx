@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import {
   resolveToolbar,
+  splitToolbarItems,
   toolbarEntries,
   type GridMessages,
   type GridOptions,
@@ -15,6 +16,7 @@ import { MenuIcon } from "../menu/menuIcons";
 import type { DataGridController } from "../useGridController";
 import ToolbarMenuButton from "./ToolbarMenuButton";
 import ToolbarSearch from "./ToolbarSearch";
+import useToolbarOverflow from "./useToolbarOverflow";
 
 interface GridToolbarProps<Row> {
   toolbar: GridOptions<Row>["toolbar"];
@@ -97,6 +99,11 @@ function reportingItem(
  * stop the arrow keys move within. Which item shows, is enabled, pressed or
  * does what is core's; this draws them, and resolves them again on every
  * render, so they follow the grid's state.
+ *
+ * What does not fit moves into a "More" menu at the end, as
+ * `@gridkitjs/dom`'s `observeToolbarOverflow` measures it and core's
+ * `splitToolbarItems` turns it into menu entries: a toggle a checkable item,
+ * a dropdown a submenu. The search box and custom entries always stay.
  */
 export default function GridToolbar<Row>(props: GridToolbarProps<Row>) {
   const entries = toolbarEntries(props.toolbar);
@@ -134,6 +141,8 @@ function Toolbar<Row>({
       commands.report(commandId, { area: "toolbar", itemId }, "toolbar");
     }),
   );
+  const fit = useToolbarOverflow(toolbarRef, items);
+  const { shown, overflow } = splitToolbarItems(items, fit);
 
   useLayoutEffect(() => {
     const toolbar = toolbarRef.current;
@@ -255,7 +264,16 @@ function Toolbar<Row>({
       aria-controls={gridId}
       className="gridkit-toolbar"
     >
-      {items.map(draw)}
+      {shown.map(draw)}
+      {overflow.length > 0 && (
+        <ToolbarMenuButton
+          itemKey="more"
+          label={messages.moreToolbarItems}
+          entries={overflow}
+          more
+          onMenuClose={onMenuClose}
+        />
+      )}
     </div>
   );
 }

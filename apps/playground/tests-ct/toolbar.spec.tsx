@@ -6,7 +6,7 @@ import type { MountResult } from "@playwright/experimental-ct-react";
 import type { ColumnDefinition } from "@gridkitjs/core";
 import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
-import { mountGrid } from "./support/mountGrid";
+import { mountGrid, updateGrid } from "./support/mountGrid";
 import ToolbarGrid from "./support/ToolbarGrid";
 import ToolbarHarness from "./support/ToolbarHarness";
 
@@ -582,5 +582,99 @@ test.describe("DataGrid toolbar", () => {
       viewport.boundingBox(),
     ]);
     expect(toolbarBox?.x).toBe(viewportBox?.x);
+  });
+});
+
+test.describe("DataGrid toolbar overflow", () => {
+  // At 520px the search box, the separator, "Clear all sorting" and the
+  // custom entry fit beside "More"; "Clear filters", "Compact" and
+  // "Actions" do not.
+  const NARROW = { width: 520 };
+
+  test("moves what does not fit into More, keeping the search box and custom entry", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <ToolbarGrid />, NARROW);
+    const more = toolbarButton(root, "More");
+
+    await expect(more).toHaveClass(/toolbar-more/);
+    expect(await entryKeys(gridToolbar(root))).toEqual([
+      "search",
+      "separator-1",
+      "sort.clearAll",
+      "status",
+      "more",
+    ]);
+
+    await more.click();
+    const menu = page.getByRole("menu", { name: "More" });
+    await expect(
+      menu.getByRole("menuitem", { name: "Clear filters" }),
+    ).toHaveAttribute("aria-disabled", "true");
+    await expect(
+      menu.getByRole("menuitemcheckbox", { name: "Compact" }),
+    ).toHaveAttribute("aria-checked", "false");
+    await expect(
+      menu.getByRole("menuitem", { name: "Actions" }),
+    ).toHaveAttribute("aria-haspopup", "menu");
+  });
+
+  test("an item in More runs as its button would, and reports from where it was", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <ToolbarGrid />, NARROW);
+    const more = toolbarButton(root, "More");
+    const menu = page.getByRole("menu", { name: "More" });
+
+    await more.click();
+    await menu.getByRole("menuitemcheckbox", { name: "Compact" }).click();
+    await expect(menu).toHaveCount(0);
+    await expect(more).toBeFocused();
+    await expect(toolbarButton(root, "status: compact")).toBeVisible();
+
+    await more.click();
+    await expect(
+      menu.getByRole("menuitemcheckbox", { name: "Compact" }),
+    ).toHaveAttribute("aria-checked", "true");
+    await menu.getByRole("menuitem", { name: "Actions" }).press("ArrowRight");
+    await page
+      .getByRole("menu", { name: "Actions" })
+      .getByRole("menuitem", { name: "Export" })
+      .click();
+    await expect(root.getByTestId("log")).toHaveText("export 3");
+    await expect(root.getByTestId("commands")).toHaveText(
+      'toolbar view.compact {"area":"toolbar","itemId":"view.compact"}; ' +
+        'toolbar actions.export {"area":"toolbar","itemId":"actions"}',
+    );
+  });
+
+  test("widening brings the items back out of More", async ({ mount }) => {
+    const root = await mountGrid(mount, <ToolbarGrid />, NARROW);
+    await expect(toolbarButton(root, "More")).toBeVisible();
+
+    await updateGrid(root, <ToolbarGrid />, WIDE);
+    await expect(toolbarButton(root, "More")).toHaveCount(0);
+    await expect(toolbarButton(root, "Actions")).toBeVisible();
+    await expect(toolbarButton(root, "Compact")).toBeVisible();
+
+    await updateGrid(root, <ToolbarGrid />, NARROW);
+    await expect(toolbarButton(root, "More")).toBeVisible();
+    await expect(toolbarButton(root, "Actions")).toHaveCount(0);
+  });
+
+  test("More is a control the arrow keys reach", async ({ mount, page }) => {
+    const root = await mountGrid(mount, <ToolbarGrid />, NARROW);
+
+    await toolbarButton(root, "Clear all sorting").focus();
+    await page.keyboard.press("End");
+    await expect(toolbarButton(root, "More")).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(
+      page
+        .getByRole("menu", { name: "More" })
+        .getByRole("menuitem", { name: "Clear filters" }),
+    ).toBeFocused();
   });
 });
