@@ -218,7 +218,7 @@ export interface GridOptions<Row> {
   /**
    * Called as the user resizes a column. Fires continuously with
    * `phase: "move"` and once on release with `phase: "end"` — the latter being
-   * the one to persist. Auto-fit does not call it; it reports user intent only.
+   * the one to persist. Auto-fitting a column calls it once, with "end".
    */
   onColumnResize?: ((event: ColumnResizeEvent) => void) | undefined;
   /**
