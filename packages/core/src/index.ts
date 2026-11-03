@@ -133,10 +133,16 @@ export type { MenuResolveOptions } from "./menu/resolveMenu";
 export { resolveMenu } from "./menu/resolveMenu";
 export type {
   GridContextMenuArea,
+  GridContextMenuEntries,
   GridContextMenuOptions,
+  GridContextMenuRequest,
   GridContextMenuTarget,
 } from "./menu/contextMenu";
-export { contextMenuEntries, defaultContextMenu } from "./menu/contextMenu";
+export {
+  contextMenuEntries,
+  defaultContextMenu,
+  hasContextMenu,
+} from "./menu/contextMenu";
 export type { MenuMove } from "./menu/navigation";
 export { nextMenuIndex, typeaheadIndex } from "./menu/navigation";
 export type { KeyShortcutCapabilities } from "./util/grid";

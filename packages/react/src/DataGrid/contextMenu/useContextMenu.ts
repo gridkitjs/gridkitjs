@@ -8,6 +8,7 @@ import {
 import { flushSync } from "react-dom";
 import {
   contextMenuEntries,
+  hasContextMenu,
   HEADER_ROW,
   isSameCell,
   resolveMenu,
@@ -280,24 +281,29 @@ export default function useContextMenu<Row>({
     element.focus({ preventScroll: true });
   }
 
+  /** The menu `target` has, over the grid as it is now. */
+  function resolveFor(
+    target: GridContextMenuTarget,
+  ): readonly ResolvedMenuEntry[] {
+    const context = commands.contextFor(target);
+    return resolveMenu(contextMenuEntries(contextMenu, context), {
+      commands: commands.commands,
+      context,
+    });
+  }
+
   function handleRequest({ target, point }: ContextMenuRequest): boolean {
     const found = headerTarget(target) ?? bodyTarget(target);
     if (found === null) {
       return false;
     }
-    const entries = contextMenuEntries(contextMenu, found.target.area);
-    const resolve = () =>
-      resolveMenu(entries, {
-        commands: commands.commands,
-        context: commands.contextFor(found.target),
-      });
-    let resolved = resolve();
+    let resolved = resolveFor(found.target);
     if (resolved.length === 0) {
       return false;
     }
     // Resolved again against the selection the menu now acts on.
     if (selectTarget(found.target)) {
-      resolved = resolve();
+      resolved = resolveFor(found.target);
     }
     if (found.cell !== null) {
       focusCell(found.cell);
@@ -357,7 +363,7 @@ export default function useContextMenu<Row>({
 
   return {
     menu,
-    opens: (area) => contextMenuEntries(contextMenu, area).length > 0,
+    opens: (area) => hasContextMenu(contextMenu, area),
     run: (item) => {
       item.run();
       close();

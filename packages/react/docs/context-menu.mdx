@@ -86,6 +86,78 @@ An object lists an area's menu yourself, in the menu vocabulary of [@gridkitjs/c
 
 `[]` turns an area's menu off and leaves the browser's there — `{ header: [] }` keeps the menu on rows and group rows alone. `defaultContextMenu`, exported from @gridkitjs/core, holds each area's defaults, to build on.
 
+### Items of your own
+
+Beside command ids, a menu holds items written into it — `{ type: "item", id, label, onSelect }` — and submenus — `{ type: "submenu", id, label, items }`. An item with `checked` is a checkable one, drawn as a `menuitemcheckbox`; `hidden`, `disabled` and `checked` each take a boolean or a function of the context. `onSelect` receives the [command context](/docs/core/commands#the-context): the grid's state, its actions, the target, and the `row` and `column` a cell's menu opened on.
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  getRowId={(order) => order.id}
+  selectable={{ rows: "multiple" }}
+  contextMenu={{
+    cell: [
+      {
+        type: "item",
+        id: "orders.open",
+        label: "Open order",
+        onSelect: ({ row }) => openOrder(row?.row),
+      },
+      {
+        type: "submenu",
+        id: "orders.mark",
+        label: "Mark as",
+        items: [
+          { type: "item", id: "orders.markPaid", label: "Paid", onSelect: markPaid },
+          { type: "item", id: "orders.markSent", label: "Sent", onSelect: markSent },
+        ],
+      },
+      "separator",
+      "selection.clear",
+    ],
+  }}
+/>
+```
+
+### Working the items out each time
+
+An area also takes a function, asked each time its menu opens with a `GridContextMenuRequest` — `{ target, defaults, context }`: where the menu opens, the area's default entries, and the grid as the menu sees it. It returns the entries to show, or `null` (or `[]`) for the browser's menu there. That is how to add to the defaults, take some out, reorder them, or vary the menu by column or row:
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  sortableColumns
+  contextMenu={{
+    // "Hide column" first, no autofit, and a "Pin column" of your own.
+    header: ({ target, defaults }) => [
+      "column.hide",
+      "separator",
+      ...defaults.filter(
+        (entry) =>
+          entry !== "column.hide" &&
+          entry !== "column.autoFit" &&
+          entry !== "column.autoFitAll",
+      ),
+      "separator",
+      {
+        type: "item",
+        id: "pin",
+        label: "Pin column",
+        checked: pinned.includes(target.columnId),
+        onSelect: () => togglePin(target.columnId),
+      },
+    ],
+    // No grid menu on the Id column.
+    cell: ({ target, defaults }) =>
+      target.columnId === "Id" ? null : defaults,
+  }}
+/>
+```
+
+`target` is typed for the area — a header's carries `columnId`, a cell's `rowId` and `columnId`, a group row's `groupId` and `columnId`. A function is asked again once the menu has selected the row or column it opened on, so what it reads of the selection is what the menu acts on.
+
 ## What opening it does
 
 - **Focus** moves to the header, cell or group row first, so closing the menu — by choosing an item, <Kbd>Escape</Kbd>, <Kbd>Tab</Kbd> or a click outside — puts focus back on it. When the item hid that column, focus goes to the header now in its place. A menu opened in the body's empty space leaves focus where it was.
@@ -114,8 +186,8 @@ Moving the pointer over an item focuses it. A disabled item still takes focus, s
 
 ## Props
 
-| Prop          | Type                                     | Default | Description                                                                                                                                 |
-| ------------- | ---------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `contextMenu` | `boolean \| GridContextMenuOptions<Row>` |         | The grid's own context menu. `true` shows the defaults; `{ header, cell, group, body }` lists an area's menu, `[]` for the browser's there. |
+| Prop          | Type                                     | Default | Description                                                                                                                                                                                  |
+| ------------- | ---------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `contextMenu` | `boolean \| GridContextMenuOptions<Row>` |         | The grid's own context menu. `true` shows the defaults; `{ header, cell, group, body }` gives an area's entries, or a function of its request — `[]` or `null` for the browser's menu there. |
 
 Each menu's accessible name is a message — `headerMenuLabel`, "Name column menu"; `cellMenuLabel`, "Row menu"; `groupMenuLabel`, "Group menu"; `bodyMenuLabel`, "Grid menu" — and every item's label a message too; see [localization](/docs/react/localization).

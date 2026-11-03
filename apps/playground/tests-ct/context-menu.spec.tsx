@@ -6,6 +6,7 @@ import type { MountResult } from "@playwright/experimental-ct-react";
 import type { ColumnDefinition } from "@gridkitjs/core";
 import { DataGrid, type DataGridProps } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
+import ContextMenuGrid from "./support/ContextMenuGrid";
 import ContextMenuTriggerHarness from "./support/ContextMenuTriggerHarness";
 import { mountGrid } from "./support/mountGrid";
 
@@ -824,5 +825,202 @@ test.describe("body menu", () => {
 
     await expect(body).toHaveAttribute("data-prevented", "false");
     await expect(page.getByRole("menu")).toHaveCount(0);
+  });
+});
+
+test.describe("menus worked out per request", () => {
+  test("an area's function adds to, removes from and reorders its defaults", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <ContextMenuGrid />);
+
+    const menu = await openOn(root, page, "Name");
+
+    await expect(menu.locator("[data-gridkit-menu-item]")).toHaveText([
+      "Hide column",
+      "Sort ascending",
+      "Sort descending",
+      "Clear sort",
+      "View",
+      "Pin column",
+    ]);
+    await expect(menu.getByRole("separator")).toHaveCount(2);
+  });
+
+  test("an inline item runs in the context of the row it opened on", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <ContextMenuGrid />);
+
+    const menu = await openMenuOn(page, bodyCell(root, 1, 1), "Row menu");
+    await expect(menu.locator("[data-gridkit-menu-item]")).toHaveText([
+      "Open row",
+    ]);
+    await item(menu, "Open row").click();
+
+    await expect(root.getByTestId("log")).toHaveText("open Alice");
+    await expect(bodyCell(root, 1, 1)).toBeFocused();
+  });
+
+  test("a function giving null, or an area given [], leaves the browser's menu", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ContextMenuGrid defaultGroupBy={[{ columnId: "name" }]} />,
+    );
+    const body = await recordContextMenu(page);
+
+    await root
+      .locator("tbody tr:not([data-gridkit-group])")
+      .first()
+      .locator("td")
+      .first()
+      .click({ button: "right" });
+    await expect(body).toHaveAttribute("data-prevented", "false");
+
+    await root
+      .locator("tr[data-gridkit-group]")
+      .first()
+      .click({ button: "right" });
+    await expect(body).toHaveAttribute("data-prevented", "false");
+    await expect(page.getByRole("menu")).toHaveCount(0);
+    await expect(
+      root.locator("tr[data-gridkit-group] td").first(),
+    ).toHaveAttribute("aria-keyshortcuts", "Space Enter");
+  });
+
+  test("the body's empty space opens the menu it is given, at the pointer", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <ContextMenuGrid height={300} />);
+    const body = root.locator(".gridkit-data-grid-body");
+
+    await body.click({ button: "right", position: { x: 20, y: 280 } });
+
+    const menu = page.getByRole("menu", { name: "Grid menu" });
+    await expect(item(menu, "Refresh")).toBeFocused();
+    const bodyBox = await body.boundingBox();
+    const menuBox = await page.locator(".gridkit-overlay").boundingBox();
+    expect(menuBox?.x).toBeCloseTo((bodyBox?.x ?? 0) + 20, 0);
+    // Flipped above the point if it does not fit below.
+    expect(
+      [menuBox?.y, (menuBox?.y ?? 0) + (menuBox?.height ?? 0)].some(
+        (edge) => Math.abs((edge ?? 0) - ((bodyBox?.y ?? 0) + 280)) < 1,
+      ),
+    ).toBe(true);
+    await item(menu, "Refresh").click();
+
+    await expect(menu).toHaveCount(0);
+    await expect(root.getByTestId("log")).toHaveText("refresh");
+  });
+
+  test("a submenu opens from the keyboard and closes back to its item", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <ContextMenuGrid />);
+    const menu = await openOn(root, page, "Name");
+    const view = item(menu, "View");
+    const submenu = page.getByRole("menu", { name: "View" });
+
+    await page.keyboard.press("End");
+    await page.keyboard.press("ArrowUp");
+    await expect(view).toBeFocused();
+    await expect(view).toHaveAttribute("aria-haspopup", "menu");
+    await expect(view).toHaveAttribute("aria-expanded", "false");
+
+    await page.keyboard.press("ArrowRight");
+    await expect(item(submenu, "Compact rows")).toBeFocused();
+    await expect(view).toHaveAttribute("aria-expanded", "true");
+
+    await page.keyboard.press("ArrowLeft");
+    await expect(submenu).toHaveCount(0);
+    await expect(view).toBeFocused();
+
+    await page.keyboard.press("Enter");
+    await expect(item(submenu, "Compact rows")).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(submenu).toHaveCount(0);
+    await expect(menu).toBeVisible();
+    await expect(view).toBeFocused();
+  });
+
+  test("a submenu opens when the pointer rests on its item, and closes when it moves on", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <ContextMenuGrid />);
+    const menu = await openOn(root, page, "Name");
+    const view = item(menu, "View");
+    const submenu = page.getByRole("menu", { name: "View" });
+
+    await view.hover();
+    await expect(item(submenu, "Compact rows")).toBeVisible();
+    // Opened by the pointer, it leaves focus on its item ...
+    await expect(view).toBeFocused();
+    // ... until the keyboard asks to go in.
+    await page.keyboard.press("ArrowRight");
+    await expect(item(submenu, "Compact rows")).toBeFocused();
+
+    await item(menu, "Pin column").hover();
+    await expect(submenu).toHaveCount(0);
+    await expect(item(menu, "Pin column")).toBeFocused();
+  });
+
+  test("a checkable item in a submenu toggles, closing every menu", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <ContextMenuGrid />);
+    let menu = await openOn(root, page, "Name");
+    const submenu = page.getByRole("menu", { name: "View" });
+
+    await item(menu, "View").click();
+    const compact = item(submenu, "Compact rows");
+    await expect(compact).toHaveAttribute("role", "menuitemcheckbox");
+    await expect(compact).toHaveAttribute("aria-checked", "false");
+    await compact.click();
+    await expect(page.getByRole("menu")).toHaveCount(0);
+    await expect(header(root, "Name")).toBeFocused();
+
+    menu = await openOn(root, page, "Name");
+    await item(menu, "View").click();
+    await expect(item(submenu, "Compact rows")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(item(submenu, "Wrap text")).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+  });
+
+  test("a checkable item follows the column it opened on", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <ContextMenuGrid />);
+
+    let menu = await openOn(root, page, "Name");
+    await page.keyboard.press("End");
+    await page.keyboard.press("Space");
+    await expect(menu).toHaveCount(0);
+
+    menu = await openOn(root, page, "Name");
+    await expect(item(menu, "Pin column")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await page.keyboard.press("Escape");
+    menu = await openOn(root, page, "Score");
+    await expect(item(menu, "Pin column")).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
   });
 });

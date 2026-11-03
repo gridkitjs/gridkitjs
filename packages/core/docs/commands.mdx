@@ -227,7 +227,7 @@ An empty result means there is nothing to show, so a renderer shows no grid menu
 
 ## Context menus
 
-A grid's `contextMenu` option — `boolean | GridContextMenuOptions<Row>` — says which context menus it shows, by area. It is off by default, leaving the browser's menu. `true` shows each area's defaults; an object lists an area's entries in the menu vocabulary above, an area left out keeping its defaults and `[]` leaving the browser's menu there.
+A grid's `contextMenu` option — `boolean | GridContextMenuOptions<Row>` — says which context menus it shows, by area. It is off by default, leaving the browser's menu. `true` shows each area's defaults; an object gives an area's entries in the menu vocabulary above — or a function working them out, below — an area left out keeping its defaults and `[]` leaving the browser's menu there.
 
 | Area     | Where                                                       | Target                                 |
 | -------- | ----------------------------------------------------------- | -------------------------------------- |
@@ -259,15 +259,53 @@ A `GridContextMenuTarget` is a command target in one of these areas.
 | `group`  | `group.expandAll`, `group.collapseAll`, a separator and `group.remove` — which stops grouping by the row's column.                                                              |
 | `body`   | None: empty space keeps the browser's menu until the grid lists entries for it.                                                                                                 |
 
-`contextMenuEntries(contextMenu, area)` is what the option gives an area, for a renderer to resolve against a context on that area's target — `{ area: "header", columnId }` — and draw. No entries, or none left once resolved, means no grid menu there: the renderer leaves the browser's.
+An area takes a `GridContextMenuEntries<Row, Area>`: its entries, or a function asked each time its menu opens with a `GridContextMenuRequest<Row, Area>` and returning the entries to show — or `null`, like `[]`, for no grid menu there.
+
+| Field      | Type                          | Description                                                                                    |
+| ---------- | ----------------------------- | ---------------------------------------------------------------------------------------------- |
+| `target`   | `GridContextMenuTarget<Area>` | Where the menu opens, typed for the area: a header's carries `columnId`, a cell's `rowId` too. |
+| `defaults` | `readonly MenuEntry<Row>[]`   | The area's defaults, to keep, trim, reorder or add to.                                         |
+| `context`  | `GridCommandContext<Row>`     | The grid as the menu sees it — the context its items resolve and run in.                       |
 
 ```ts
-import { contextMenuEntries, resolveMenu } from "@gridkitjs/core";
+contextMenu={{
+  cell: ({ target, defaults, context }) =>
+    target.columnId === "Id"
+      ? null
+      : [
+          { type: "item", id: "orders.open", label: "Open", onSelect: ({ row }) => open(row) },
+          "separator",
+          ...defaults,
+        ],
+}}
+```
 
-const entries = resolveMenu(contextMenuEntries(options.contextMenu, "header"), {
-  commands,
-  context, // createCommandContext on { area: "header", columnId }
+For a renderer of your own, two functions read the option:
+
+| Function                                   | Type                        | Description                                                                                                                                                                                             |
+| ------------------------------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `contextMenuEntries(contextMenu, context)` | `readonly MenuEntry<Row>[]` | The entries the option gives the place `context.target` names — asking the area's function, if it has one — for `resolveMenu` to resolve in the same context. None for a target outside the four areas. |
+| `hasContextMenu(contextMenu, area)`        | `boolean`                   | Whether the option opens a grid menu on `area` at all: it is on, and the area has entries or a function rather than `[]`. For an `aria-keyshortcuts` that lists `Shift+F10`.                            |
+
+No entries, or none left once resolved, means no grid menu there: the renderer leaves the browser's.
+
+```ts
+import {
+  contextMenuEntries,
+  createCommandContext,
+  resolveMenu,
+} from "@gridkitjs/core";
+
+const context = createCommandContext({
+  controller,
+  target: { area: "header", columnId },
+  messages,
+  host,
 });
+const entries = resolveMenu(
+  contextMenuEntries(controller.getOptions().contextMenu, context),
+  { commands, context },
+);
 if (entries.length > 0) {
   event.preventDefault();
   showMenu(entries);

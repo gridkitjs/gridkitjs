@@ -7,8 +7,7 @@ headers, off by default. `true` shows the defaults — `defaultContextMenu`:
 sort ascending and descending, clear the sort, group by and stop grouping,
 autofit the column or all of them, and hide it, each where the column allows;
 `{ header: entries }` lists a header's menu in the menu vocabulary, and
-`{ header: [] }` leaves the browser's menu. `contextMenuEntries(contextMenu,
-area)` is what the option gives an area, for a renderer to resolve.
+`{ header: [] }` leaves the browser's menu.
 
 `buildKeyShortcuts` takes an optional `contextMenu` capability, which adds
 `Shift+F10`. `GridMessages` has three new keys: `headerMenuLabel(columnName)`,
