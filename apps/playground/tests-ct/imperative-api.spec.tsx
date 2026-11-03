@@ -659,6 +659,45 @@ test.describe("context menu", () => {
     await expect(groupCell).toBeFocused();
   });
 
+  test("openContextMenu on a cell scrolled out of view opens at the edge of the grid's view", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={columns}
+        dataSource={buildRows(30)}
+        label="Open a menu out of view"
+        height={120}
+        selectable={{ rows: "multiple" }}
+        contextMenu
+        contextMenuTarget={{ area: "cell", rowId: "row-25", columnId: "name" }}
+      />,
+    );
+
+    await root.getByRole("button", { name: "open-context-menu" }).click();
+
+    await expect(
+      page
+        .getByRole("menu", { name: "Row menu" })
+        .locator("[data-gridkit-menu-item]")
+        .first(),
+    ).toBeFocused();
+    const [body, cell, menu] = await Promise.all([
+      root.locator(".gridkit-data-grid-body").boundingBox(),
+      root
+        .locator('tbody tr[data-gridkit-row-index="25"] td')
+        .nth(1)
+        .boundingBox(),
+      page.locator(".gridkit-overlay").boundingBox(),
+    ]);
+    // Below the body's bottom edge, not below the cell far under it.
+    expect(cell?.y).toBeGreaterThan((body?.y ?? 0) + (body?.height ?? 0));
+    expect(menu?.y).toBeCloseTo((body?.y ?? 0) + (body?.height ?? 0), 0);
+    expect(menu?.x).toBeCloseTo(cell?.x ?? 0, 0);
+  });
+
   test("openContextMenu opens nothing for a row not on screen, or without contextMenu", async ({
     mount,
     page,
