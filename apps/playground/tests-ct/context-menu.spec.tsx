@@ -1024,3 +1024,65 @@ test.describe("menus worked out per request", () => {
     );
   });
 });
+
+test.describe("app commands", () => {
+  test("a command of the app's replaces a built-in of the same id", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <ContextMenuGrid withCommands />);
+
+    const menu = await openOn(root, page, "Name");
+    await expect(item(menu, "Hide column")).toHaveCount(0);
+    await item(menu, "Hide, as an admin").click();
+
+    await expect(root.getByTestId("log")).toHaveText("hide name");
+    await expect(header(root, "Name")).toHaveCount(0);
+    await expect(root.locator('[role="status"]')).toHaveText(
+      "Name, column hidden",
+    );
+  });
+
+  test("a menu lists an app command by id, and onCommand hears what ran", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <ContextMenuGrid withCommands />);
+    const heard = root.getByTestId("commands");
+
+    let menu = await openMenuOn(page, bodyCell(root, 1, 1), "Row menu");
+    await item(menu, "Flag row").click();
+    await expect(root.getByTestId("log")).toHaveText("flag Alice");
+    await expect(heard).toHaveText(
+      'contextMenu row.flag {"area":"cell","rowId":"row-a","columnId":"name"}',
+    );
+
+    menu = await openOn(root, page, "Score");
+    await item(menu, "Sort descending").click();
+    await expect(heard).toContainText(
+      'contextMenu sort.descending {"area":"header","columnId":"score"}',
+    );
+
+    menu = await openMenuOn(page, bodyCell(root, 0, 2), "Row menu");
+    await item(menu, "Open row").click();
+    await expect(heard).toContainText(
+      'contextMenu row.open {"area":"cell","rowId":"row-c","columnId":"score"}',
+    );
+  });
+
+  test("onCommand does not hear an item that did not run", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <ContextMenuGrid />);
+
+    const menu = await openOn(root, page, "Name");
+    const clear = item(menu, "Clear sort");
+    await expect(clear).toHaveAttribute("aria-disabled", "true");
+    await clear.click({ force: true });
+    await page.keyboard.press("Escape");
+
+    await expect(menu).toHaveCount(0);
+    await expect(root.getByTestId("commands")).toHaveText("");
+  });
+});

@@ -599,7 +599,14 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     controller,
     columnSizeDefaults,
   });
-  const commands = useGridCommands({ controller, messages, announce, resize });
+  const commands = useGridCommands({
+    controller,
+    commands: props.commands,
+    onCommand: props.onCommand,
+    messages,
+    announce,
+    resize,
+  });
 
   /** Wrapped the same way `handleColumnResize` is, naming a column shown or hidden alone. */
   function handleColumnVisibilityChange(event: ColumnVisibilityEvent): void {

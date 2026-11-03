@@ -47,6 +47,12 @@ Neither fires for a group header or a group's summary row; a click there expands
 />
 ```
 
+## Commands and the context menu
+
+| Prop        | Type                                | Description                                                                                                                                                                                                           |
+| ----------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `onCommand` | `(event: GridCommandEvent) => void` | Fires after a command or an inline menu item runs from a menu, with `{ commandId, target, source }`. One that did not run is not reported. See [commands of your own](/docs/react/context-menu#commands-of-your-own). |
+
 ## Selection
 
 | Prop                                                                                                | Type                                        | Description                                                                                                                               |

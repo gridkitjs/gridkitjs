@@ -1,5 +1,9 @@
 import { useState } from "react";
-import type { ColumnDefinition, GridContextMenuOptions } from "@gridkitjs/core";
+import type {
+  ColumnDefinition,
+  GridCommand,
+  GridContextMenuOptions,
+} from "@gridkitjs/core";
 import { DataGrid, type DataGridProps } from "@gridkitjs/react";
 
 interface Row {
@@ -20,16 +24,29 @@ const columns: readonly ColumnDefinition<Row>[] = [
   { field: "score", header: "Score", width: 100, type: "number" },
 ];
 
-export type ContextMenuGridProps = Omit<
+export interface ContextMenuGridProps extends Omit<
   DataGridProps<Row>,
-  "columns" | "dataSource" | "getRowId" | "contextMenu" | "ref"
->;
+  | "columns"
+  | "dataSource"
+  | "getRowId"
+  | "contextMenu"
+  | "commands"
+  | "onCommand"
+  | "ref"
+> {
+  /**
+   * Registers the app's commands: "Flag row", listed in the cell menu after
+   * "Open row", and a `column.hide` of its own, "Hide, as an admin".
+   */
+  readonly withCommands?: boolean;
+}
 
 /**
  * A grid whose context menus are worked out by functions and hold inline
  * items, a submenu and checkable items — none of which a spec can pass,
  * since a function from a spec never reaches the browser. What the items do
- * is written to `log`, where a spec can read it:
+ * is written to `log`, and every command `onCommand` hears to `commands`,
+ * where a spec can read them:
  *
  * - The header menu puts "Hide column" first, drops both autofits and adds a
  *   "View" submenu of checkable "Compact rows" and "Wrap text", then a
@@ -38,8 +55,12 @@ export type ContextMenuGridProps = Omit<
  *   column no grid menu at all.
  * - The group row menu is off; the body's empty space has a "Refresh" item.
  */
-export default function ContextMenuGrid(props: ContextMenuGridProps) {
+export default function ContextMenuGrid({
+  withCommands = false,
+  ...props
+}: ContextMenuGridProps) {
   const [log, setLog] = useState<readonly string[]>([]);
+  const [heard, setHeard] = useState<readonly string[]>([]);
   const [compact, setCompact] = useState(false);
   const [wrap, setWrap] = useState(false);
   const [pinned, setPinned] = useState<readonly string[]>([]);
@@ -47,6 +68,28 @@ export default function ContextMenuGrid(props: ContextMenuGridProps) {
   function note(entry: string): void {
     setLog((current) => [...current, entry]);
   }
+
+  const commands: readonly GridCommand<Row>[] = [
+    {
+      id: "row.flag",
+      label: "Flag row",
+      isVisible: ({ target }) => target.area === "cell",
+      execute: ({ row }) => {
+        note(`flag ${row?.row.name ?? "nothing"}`);
+      },
+    },
+    {
+      id: "column.hide",
+      label: "Hide, as an admin",
+      isVisible: ({ target }) => target.area === "header",
+      execute: ({ column, actions }) => {
+        if (column !== null) {
+          note(`hide ${column.id}`);
+          actions.hideColumns([column.id]);
+        }
+      },
+    },
+  ];
 
   const contextMenu: GridContextMenuOptions<Row> = {
     header: ({ target, defaults }) => [
@@ -110,6 +153,7 @@ export default function ContextMenuGrid(props: ContextMenuGridProps) {
                 note(`open ${row?.row.name ?? "nothing"}`);
               },
             },
+            ...(withCommands ? ["row.flag"] : []),
             "separator",
             ...defaults,
           ],
@@ -137,8 +181,16 @@ export default function ContextMenuGrid(props: ContextMenuGridProps) {
         dataSource={rows}
         getRowId={(row) => row.id}
         contextMenu={contextMenu}
+        commands={withCommands ? commands : undefined}
+        onCommand={({ commandId, target, source }) => {
+          setHeard((current) => [
+            ...current,
+            `${source} ${commandId} ${JSON.stringify(target)}`,
+          ]);
+        }}
       />
       <output data-testid="log">{log.join("; ")}</output>
+      <output data-testid="commands">{heard.join("; ")}</output>
     </div>
   );
 }

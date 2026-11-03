@@ -73,7 +73,7 @@ export interface ContextMenuApi {
   menu: OpenContextMenu | null;
   /** Whether `area` opens a menu — for the `aria-keyshortcuts` of its cells. */
   opens: (area: GridContextMenuArea) => boolean;
-  /** Runs the item the user chose, then closes the menu. */
+  /** Runs the item the user chose, reporting it if it ran, then closes the menu. */
   run: (item: ResolvedMenuItem) => void;
   close: () => void;
 }
@@ -365,7 +365,9 @@ export default function useContextMenu<Row>({
     menu,
     opens: (area) => hasContextMenu(contextMenu, area),
     run: (item) => {
-      item.run();
+      if (item.run() && menu !== null) {
+        commands.report(item.id, menu.target, "contextMenu");
+      }
       close();
     },
     close,
