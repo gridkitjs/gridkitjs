@@ -48,6 +48,15 @@ export interface OverlayOptions extends OverlayPlacementOptions {
    * had focus when it attached; `null` leaves focus alone.
    */
   readonly returnFocusTo?: HTMLElement | null | undefined;
+  /**
+   * Whether a scroll outside the panel just after input inside it — an
+   * `input` or `change` event, in the two animation frames that follow it —
+   * leaves it open. A panel whose controls change the page under it opts
+   * in: a column chooser hiding a column narrows the grid it opened from,
+   * and the browser scrolls that grid back within its narrower content.
+   * Defaults to `false`, where every scroll outside the panel dismisses it.
+   */
+  readonly ignoreScrollAfterInput?: boolean | undefined;
 }
 
 /** Everything focusable by script, so a menu's `tabindex="-1"` items count. */
@@ -169,10 +178,26 @@ export function attachOverlay(
     }
   }
 
+  // Set from input in the panel until two frames have passed: the scroll an
+  // input causes is dispatched by the frame after its layout, which may
+  // itself wait for the next frame.
+  let settlingFrame: number | null = null;
+  function onInput(): void {
+    if (settlingFrame !== null) {
+      cancelAnimationFrame(settlingFrame);
+    }
+    settlingFrame = requestAnimationFrame(() => {
+      settlingFrame = requestAnimationFrame(() => {
+        settlingFrame = null;
+      });
+    });
+  }
+
   // The overlay is placed in viewport coordinates, so any scroll that moves
-  // its anchor leaves it behind — except a scroll inside the panel itself.
+  // its anchor leaves it behind — except a scroll inside the panel itself,
+  // or one the panel's own input caused, when it asks for that.
   function onScroll(event: Event): void {
-    if (!inside(event.target)) {
+    if (!inside(event.target) && settlingFrame === null) {
       onDismiss("scroll");
     }
   }
@@ -247,6 +272,10 @@ export function attachOverlay(
   window.addEventListener("resize", onResize);
   window.addEventListener("blur", onWindowBlur);
   panel.addEventListener("focusout", onFocusOut);
+  if (options.ignoreScrollAfterInput === true) {
+    panel.addEventListener("input", onInput);
+    panel.addEventListener("change", onInput);
+  }
 
   let attached = true;
   function detach(): void {
@@ -266,6 +295,11 @@ export function attachOverlay(
     window.removeEventListener("resize", onResize);
     window.removeEventListener("blur", onWindowBlur);
     panel.removeEventListener("focusout", onFocusOut);
+    panel.removeEventListener("input", onInput);
+    panel.removeEventListener("change", onInput);
+    if (settlingFrame !== null) {
+      cancelAnimationFrame(settlingFrame);
+    }
 
     if (returnFocusTo !== null && focusInside) {
       returnFocusTo.focus({ preventScroll: true });

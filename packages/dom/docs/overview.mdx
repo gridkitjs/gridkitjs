@@ -240,14 +240,15 @@ const detach = attachOverlay(headerCell, menuElement, {
 });
 ```
 
-| Option          | Type                                                        | Description                                                                                                    |
-| --------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `placement`     | `"bottom-start"`, `"top-end"`, `"right-start"` and the rest | Where the panel would rather open. Defaults to `"bottom-start"`.                                               |
-| `gap`           | `number`                                                    | Pixels between the anchor and the panel. Defaults to `0`.                                                      |
-| `offset`        | `number`                                                    | Pixels to shift the panel along the anchor's edge (below). Defaults to `0`.                                    |
-| `onDismiss`     | `(reason) => void`                                          | Called with the reason the overlay asks to close (below); the caller closes the panel, or not.                 |
-| `initialFocus`  | `"first"`, `"panel"`, `"none"` or an `HTMLElement`          | Where focus goes on attaching (below). Defaults to `"first"`.                                                  |
-| `returnFocusTo` | `HTMLElement \| null`                                       | Where focus goes on detach. Defaults to the element focused when the overlay attached; `null` leaves it alone. |
+| Option                   | Type                                                        | Description                                                                                                    |
+| ------------------------ | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `placement`              | `"bottom-start"`, `"top-end"`, `"right-start"` and the rest | Where the panel would rather open. Defaults to `"bottom-start"`.                                               |
+| `gap`                    | `number`                                                    | Pixels between the anchor and the panel. Defaults to `0`.                                                      |
+| `offset`                 | `number`                                                    | Pixels to shift the panel along the anchor's edge (below). Defaults to `0`.                                    |
+| `onDismiss`              | `(reason) => void`                                          | Called with the reason the overlay asks to close (below); the caller closes the panel, or not.                 |
+| `initialFocus`           | `"first"`, `"panel"`, `"none"` or an `HTMLElement`          | Where focus goes on attaching (below). Defaults to `"first"`.                                                  |
+| `returnFocusTo`          | `HTMLElement \| null`                                       | Where focus goes on detach. Defaults to the element focused when the overlay attached; `null` leaves it alone. |
+| `ignoreScrollAfterInput` | `boolean`                                                   | Whether a scroll just after input in the panel leaves it open (below). Defaults to `false`.                    |
 
 The panel is positioned `fixed` and opens on the preferred side unless only the opposite side has room for it, lines up with the preferred edge of the anchor unless only the other edge keeps it on screen, and is pushed back inside the viewport if it still overflows. The placement it ends up with is written to `data-gridkit-placement`. Whenever the panel's own size changes — a list that shrinks under a search, content that loads in — it is placed again from the anchor's current box and the same preferred placement, so a panel flipped above its anchor keeps its bottom edge against it. An anchor taken out of the page while the panel is open — the header of a column the panel just hid — leaves it placed beside where that anchor last was.
 
@@ -257,14 +258,16 @@ Focus moves to the panel's first focusable element (`"first"`), or to the panel 
 
 It asks to close with one of these reasons. Nothing on the anchor counts, so a button that toggles the panel closes it with its own click.
 
-| Reason      | When                                                                                                                  |
-| ----------- | --------------------------------------------------------------------------------------------------------------------- |
-| `"escape"`  | <Kbd>Escape</Kbd> was pressed while it was the topmost overlay.                                                       |
-| `"outside"` | A pointer went down outside it and outside every overlay above it.                                                    |
-| `"scroll"`  | Something outside it scrolled — it is placed in viewport coordinates, so the anchor would move away from it.          |
-| `"resize"`  | The window resized.                                                                                                   |
-| `"blur"`    | The window lost focus, or focus moved somewhere outside it and outside every overlay above it.                        |
-| `"parent"`  | The overlay it was opened above detached. It is detached straight after, whatever the caller does with the dismissal. |
+| Reason      | When                                                                                                                                                                                                                         |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `"escape"`  | <Kbd>Escape</Kbd> was pressed while it was the topmost overlay.                                                                                                                                                              |
+| `"outside"` | A pointer went down outside it and outside every overlay above it.                                                                                                                                                           |
+| `"scroll"`  | Something outside it scrolled — it is placed in viewport coordinates, so the anchor would move away from it. With `ignoreScrollAfterInput`, not in the two animation frames after an `input` or `change` event in the panel. |
+| `"resize"`  | The window resized.                                                                                                                                                                                                          |
+| `"blur"`    | The window lost focus, or focus moved somewhere outside it and outside every overlay above it.                                                                                                                               |
+| `"parent"`  | The overlay it was opened above detached. It is detached straight after, whatever the caller does with the dismissal.                                                                                                        |
+
+A panel whose controls change the page under it passes `ignoreScrollAfterInput`, so that what its own controls cause does not close it: a column chooser hiding a column narrows a grid scrolled to its end, and the browser scrolls that grid back within its narrower content. A scroll the user makes outside the panel still closes it.
 
 Detaching returns focus only while focus is still in the panel, in an overlay above it, or nowhere — after a click on another control, focus stays there.
 
