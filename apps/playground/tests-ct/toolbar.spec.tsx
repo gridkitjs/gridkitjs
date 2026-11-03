@@ -509,6 +509,24 @@ test.describe("DataGrid toolbar", () => {
     await expect(menu).toHaveCount(0);
   });
 
+  test("ArrowUp opens a dropdown on its last item", async ({ mount, page }) => {
+    const root = await mountGrid(mount, <ToolbarGrid />, WIDE);
+    const actions = toolbarButton(root, "Actions");
+    const menu = page.getByRole("menu", { name: "Actions" });
+
+    await actions.focus();
+    await page.keyboard.press("ArrowUp");
+    await expect(menu.getByRole("menuitem", { name: "Refresh" })).toBeFocused();
+    await expect(
+      menu.getByRole("menuitem", { name: "Refresh" }),
+    ).toHaveAttribute("tabindex", "0");
+
+    await page.keyboard.press("ArrowDown");
+    await expect(menu.getByRole("menuitem", { name: "Export" })).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(actions).toBeFocused();
+  });
+
   test("focus comes back to the toolbar when a menu takes its own button away", async ({
     mount,
     page,
@@ -704,6 +722,18 @@ test.describe("DataGrid toolbar overflow", () => {
       page
         .getByRole("menu", { name: "More" })
         .getByRole("menuitem", { name: "Clear filters" }),
+    ).toBeFocused();
+  });
+
+  test("ArrowUp opens More on its last item", async ({ mount, page }) => {
+    const root = await mountGrid(mount, <ToolbarGrid />, NARROW);
+
+    await toolbarButton(root, "More").focus();
+    await page.keyboard.press("ArrowUp");
+    await expect(
+      page
+        .getByRole("menu", { name: "More" })
+        .getByRole("menuitem", { name: "Actions" }),
     ).toBeFocused();
   });
 });
