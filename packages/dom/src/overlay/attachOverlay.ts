@@ -14,6 +14,12 @@ import {
 export type OverlayAnchor =
   Element | { readonly x: number; readonly y: number };
 
+/**
+ * Where focus goes when an overlay attaches: its first focusable descendant,
+ * the panel itself, nowhere — focus stays where it was — or a given element.
+ */
+export type OverlayInitialFocus = "first" | "panel" | "none" | HTMLElement;
+
 /** Why an overlay asked to close. */
 export type OverlayDismissReason =
   "escape" | "outside" | "scroll" | "resize" | "blur" | "parent";
@@ -28,6 +34,15 @@ export interface OverlayOptions extends OverlayPlacementOptions {
    * `"parent"`, which detaches it regardless.
    */
   readonly onDismiss: (reason: OverlayDismissReason) => void;
+  /**
+   * Where focus goes on attaching. Defaults to `"first"`: a menu focuses its
+   * first item. A panel whose first control is not where the user starts — a
+   * filter editor's operator picker before its value box — passes that
+   * element, or `"panel"` to land on the panel itself; `"none"` leaves focus
+   * where it was, as a suggestion list does while typing goes on in the
+   * field that opened it.
+   */
+  readonly initialFocus?: OverlayInitialFocus | undefined;
   /**
    * Where focus goes when the overlay detaches. Defaults to the element that
    * had focus when it attached; `null` leaves focus alone.
@@ -48,6 +63,34 @@ function anchorRect(anchor: OverlayAnchor): OverlayRect {
 }
 
 /**
+ * The element `initialFocus` names, or `null` for none. The panel stands in
+ * for a first focusable descendant it does not have, given `tabindex="-1"`
+ * when it has no `tabindex` of its own so that it can take focus.
+ */
+function initialFocusTarget(
+  panel: HTMLElement,
+  initialFocus: OverlayInitialFocus,
+): HTMLElement | null {
+  if (initialFocus === "none") {
+    return null;
+  }
+  if (initialFocus instanceof HTMLElement) {
+    return initialFocus;
+  }
+  const first =
+    initialFocus === "first"
+      ? panel.querySelector<HTMLElement>(FOCUSABLE)
+      : null;
+  if (first !== null) {
+    return first;
+  }
+  if (!panel.hasAttribute("tabindex")) {
+    panel.tabIndex = -1;
+  }
+  return panel;
+}
+
+/**
  * Shows `panel` as an overlay beside `anchor` — a menu, a popover, a filter
  * editor — and returns the function that ends it. The caller renders the
  * panel, usually as a child of `document.body` so no scrolling ancestor clips
@@ -57,9 +100,10 @@ function anchorRect(anchor: OverlayAnchor): OverlayRect {
  * The panel is positioned `fixed`, at the place `placeOverlay` picks from the
  * anchor's and the panel's measured boxes, and carries that placement in
  * `data-gridkit-placement` (`"top-start"` once flipped above, say) for a
- * stylesheet to point an arrow by. Focus moves to the panel's first focusable
- * descendant, or to the panel itself — given `tabindex="-1"` if it has no
- * `tabindex` — when there is none.
+ * stylesheet to point an arrow by. Whenever the panel's size changes — a list
+ * that shrinks under a search — it is placed again beside the anchor, so a
+ * panel flipped above its anchor keeps its bottom edge there. Focus moves
+ * where `initialFocus` says.
  *
  * Nothing that happens on or in the anchor dismisses the overlay, so a button
  * that toggles it can close it with its own click rather than having the
@@ -148,33 +192,39 @@ export function attachOverlay(
     onDismiss("blur");
   }
 
-  // Shrink-wrapped before it is measured: in normal flow a block panel
-  // would report the full width of the page.
+  // Measured fixed at the viewport's top-left corner, shrink-wrapped and with
+  // the whole viewport to grow into — in normal flow a block panel would
+  // report the full width of the page — and from that corner every time, so
+  // placing it again measures it the way the first placing did.
+  function place(): void {
+    panel.style.top = "0px";
+    panel.style.left = "0px";
+    const { width, height } = panel.getBoundingClientRect();
+    const position = placeOverlay(
+      anchorRect(anchor),
+      { width, height },
+      {
+        width: document.documentElement.clientWidth,
+        height: document.documentElement.clientHeight,
+      },
+      options,
+    );
+    panel.style.top = `${String(position.top)}px`;
+    panel.style.left = `${String(position.left)}px`;
+    panel.setAttribute("data-gridkit-placement", position.placement);
+  }
+
   panel.style.position = "fixed";
-  panel.style.top = "0px";
-  panel.style.left = "0px";
-  const { width, height } = panel.getBoundingClientRect();
-  const position = placeOverlay(
-    anchorRect(anchor),
-    { width, height },
-    {
-      width: document.documentElement.clientWidth,
-      height: document.documentElement.clientHeight,
-    },
-    options,
-  );
-  panel.style.top = `${String(position.top)}px`;
-  panel.style.left = `${String(position.left)}px`;
-  panel.setAttribute("data-gridkit-placement", position.placement);
+  place();
+  const resizeObserver = new ResizeObserver(place);
+  resizeObserver.observe(panel);
 
   // On the stack before focus moves in, so the overlay below sees the focus
   // leaving it land inside an overlay above it rather than outside.
   pushOverlay(stacked);
-  const first = panel.querySelector<HTMLElement>(FOCUSABLE);
-  if (first === null && !panel.hasAttribute("tabindex")) {
-    panel.tabIndex = -1;
-  }
-  (first ?? panel).focus({ preventScroll: true });
+  initialFocusTarget(panel, options.initialFocus ?? "first")?.focus({
+    preventScroll: true,
+  });
 
   document.addEventListener("pointerdown", onPointerDown, true);
   window.addEventListener("scroll", onScroll, { capture: true, passive: true });
@@ -194,6 +244,7 @@ export function attachOverlay(
     const focusInside =
       active === null || active === document.body || inside(active);
     removeOverlay(stacked);
+    resizeObserver.disconnect();
     document.removeEventListener("pointerdown", onPointerDown, true);
     window.removeEventListener("scroll", onScroll, { capture: true });
     window.removeEventListener("resize", onResize);

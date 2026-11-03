@@ -28,6 +28,14 @@ export interface OverlayPlacementOptions {
   readonly placement?: OverlayPlacement | undefined;
   /** Space between the anchor and the overlay, in pixels. Defaults to `0`. */
   readonly gap?: number | undefined;
+  /**
+   * Pixels to shift the overlay along the anchor's edge — down beside a
+   * `left`/`right` side, right beside `top`/`bottom`; negative goes the other
+   * way. A submenu opened `right-start` takes its own top padding, negated,
+   * so its first item lines up with the item that opened it. The overlay is
+   * still kept on screen. Defaults to `0`.
+   */
+  readonly offset?: number | undefined;
 }
 
 /** Where an overlay goes: its top-left corner, and the placement it ended up with. */
@@ -144,6 +152,7 @@ export function placeOverlay(
     options.placement ?? "bottom-start"
   ).split("-") as [OverlaySide, OverlayAlign];
   const gap = options.gap ?? 0;
+  const offset = options.offset ?? 0;
   const vertical = isVertical(preferredSide);
 
   const side = chooseSide(
@@ -153,8 +162,9 @@ export function placeOverlay(
     viewport,
   );
 
-  // The axis the overlay runs along beside the anchor.
-  const anchorStart = vertical ? anchor.left : anchor.top;
+  // The axis the overlay runs along beside the anchor, shifted by the offset
+  // before an edge is chosen, so the shifted overlay is what has to fit.
+  const anchorStart = (vertical ? anchor.left : anchor.top) + offset;
   const anchorEnd = anchorStart + (vertical ? anchor.width : anchor.height);
   const extent = vertical ? panel.width : panel.height;
   const room = vertical ? viewport.width : viewport.height;

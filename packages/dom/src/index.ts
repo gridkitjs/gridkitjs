@@ -47,6 +47,7 @@ export {
   attachOverlay,
   type OverlayAnchor,
   type OverlayDismissReason,
+  type OverlayInitialFocus,
   type OverlayOptions,
 } from "./overlay/attachOverlay";
 export {

@@ -92,6 +92,53 @@ describe("placeOverlay", () => {
     });
   });
 
+  it("shifts the overlay down along a side by the offset", () => {
+    expect(
+      placeOverlay(button(50, 40), panel, viewport, {
+        placement: "right-start",
+        offset: -8,
+      }),
+    ).toEqual({ top: 32, left: 150, placement: "right-start" });
+  });
+
+  it("shifts the overlay right along the top or bottom by the offset", () => {
+    expect(
+      placeOverlay(button(50, 40), panel, viewport, { offset: 10 }),
+    ).toEqual({ top: 60, left: 60, placement: "bottom-start" });
+    expect(
+      placeOverlay(button(300, 40), panel, viewport, {
+        placement: "bottom-end",
+        offset: 10,
+      }),
+    ).toEqual({ top: 60, left: 210, placement: "bottom-end" });
+  });
+
+  it("keeps the offset when a side placement flips to the other side", () => {
+    expect(
+      placeOverlay(button(650, 40), panel, viewport, {
+        placement: "right-start",
+        offset: -8,
+      }),
+    ).toEqual({ top: 32, left: 450, placement: "left-start" });
+  });
+
+  it("chooses the edge for the shifted overlay", () => {
+    // Lined up with the anchor's left edge it would just fit; shifted 20px
+    // right it would not, so it lines up with the right edge instead.
+    expect(
+      placeOverlay(button(600, 40), panel, viewport, { offset: 20 }),
+    ).toEqual({ top: 60, left: 520, placement: "bottom-end" });
+  });
+
+  it("still keeps an offset overlay on screen", () => {
+    expect(
+      placeOverlay(button(50, 4), panel, viewport, {
+        placement: "right-start",
+        offset: -8,
+      }),
+    ).toEqual({ top: 0, left: 150, placement: "right-start" });
+  });
+
   it("pins an overlay bigger than the viewport to its top-left corner", () => {
     const huge = { width: 1000, height: 700 };
     expect(placeOverlay(button(50, 40), huge, viewport)).toMatchObject({

@@ -244,10 +244,16 @@ const detach = attachOverlay(headerCell, menuElement, {
 | --------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `placement`     | `"bottom-start"`, `"top-end"`, `"right-start"` and the rest | Where the panel would rather open. Defaults to `"bottom-start"`.                                               |
 | `gap`           | `number`                                                    | Pixels between the anchor and the panel. Defaults to `0`.                                                      |
+| `offset`        | `number`                                                    | Pixels to shift the panel along the anchor's edge (below). Defaults to `0`.                                    |
 | `onDismiss`     | `(reason) => void`                                          | Called with the reason the overlay asks to close (below); the caller closes the panel, or not.                 |
+| `initialFocus`  | `"first"`, `"panel"`, `"none"` or an `HTMLElement`          | Where focus goes on attaching (below). Defaults to `"first"`.                                                  |
 | `returnFocusTo` | `HTMLElement \| null`                                       | Where focus goes on detach. Defaults to the element focused when the overlay attached; `null` leaves it alone. |
 
-The panel is positioned `fixed` and opens on the preferred side unless only the opposite side has room for it, lines up with the preferred edge of the anchor unless only the other edge keeps it on screen, and is pushed back inside the viewport if it still overflows. The placement it ends up with is written to `data-gridkit-placement`. Focus moves to the panel's first focusable element, or to the panel itself.
+The panel is positioned `fixed` and opens on the preferred side unless only the opposite side has room for it, lines up with the preferred edge of the anchor unless only the other edge keeps it on screen, and is pushed back inside the viewport if it still overflows. The placement it ends up with is written to `data-gridkit-placement`. Whenever the panel's own size changes — a list that shrinks under a search, content that loads in — it is placed again from the anchor's current box and the same preferred placement, so a panel flipped above its anchor keeps its bottom edge against it.
+
+`offset` moves the panel along the edge it lines up with: down beside a `left` or `right` side, right beside `top` or `bottom`; a negative offset goes the other way. A submenu opened `right-start` passes its own top padding, negated, so its first item lines up with the item that opened it. The edge is chosen for the shifted panel, and it is still kept on screen.
+
+Focus moves to the panel's first focusable element (`"first"`), or to the panel itself when it has none; `"panel"` focuses the panel itself, given `tabindex="-1"` when it has no `tabindex`; `"none"` leaves focus where it was, for a popup the user keeps typing past; an element focuses that element — a filter editor's value box rather than the operator picker before it, say.
 
 It asks to close with one of these reasons. Nothing on the anchor counts, so a button that toggles the panel closes it with its own click.
 
@@ -276,4 +282,4 @@ Overlays stack in the order they attach, so a submenu opened from a menu, or a p
 - An overlay counts everything inside the overlays above it as inside itself: a click or a focus move into a submenu keeps its menu open, while a click elsewhere in the menu closes only the submenu, and a click outside both closes both.
 - Detaching an overlay first dismisses every overlay still above it with `"parent"` and detaches it, topmost first, so a submenu never outlives its menu.
 
-`placeOverlay(anchorRect, panelSize, viewport, { placement, gap })` is the placement on its own: pure arithmetic over boxes, returning `{ top, left, placement }`, for a renderer that positions its own panels.
+`placeOverlay(anchorRect, panelSize, viewport, { placement, gap, offset })` is the placement on its own: pure arithmetic over boxes, returning `{ top, left, placement }`, for a renderer that positions its own panels.

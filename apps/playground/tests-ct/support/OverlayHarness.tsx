@@ -19,6 +19,11 @@ export interface OverlayHarnessProps {
   gap?: number | undefined;
   /** Opens beside this point, in viewport coordinates, instead of beside the anchor. */
   point?: { x: number; y: number } | undefined;
+  /**
+   * The panel's `initialFocus`. An element cannot come from a spec, so
+   * `"open-child"` stands for passing the panel's "Open child" button.
+   */
+  initialFocus?: "first" | "panel" | "none" | "open-child" | undefined;
 }
 
 /**
@@ -35,18 +40,21 @@ export interface OverlayHarnessProps {
  * menu it came from. The child's open state lives here rather than in the
  * panel, so closing the panel leaves the child to the overlay stack to close.
  * A page-level Escape listener counts the Escapes that reach the page.
+ * "Shrink" halves the panel's height, for its re-placement.
  */
 export default function OverlayHarness({
   anchorStyle,
   placement,
   gap,
   point,
+  initialFocus,
 }: OverlayHarnessProps) {
   const anchorRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const childAnchorRef = useRef<HTMLButtonElement>(null);
   const childRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const [panelHeight, setPanelHeight] = useState(120);
   const [childOpen, setChildOpen] = useState(false);
   const [dismissed, setDismissed] = useState<OverlayDismissReason | null>(null);
   const [childDismissed, setChildDismissed] =
@@ -68,18 +76,20 @@ export default function OverlayHarness({
   useLayoutEffect(() => {
     const anchor = anchorRef.current;
     const panel = panelRef.current;
-    if (!open || anchor === null || panel === null) {
+    const childAnchor = childAnchorRef.current;
+    if (!open || anchor === null || panel === null || childAnchor === null) {
       return undefined;
     }
     return attachOverlay(point ?? anchor, panel, {
       placement,
       gap,
+      initialFocus: initialFocus === "open-child" ? childAnchor : initialFocus,
       onDismiss: (reason) => {
         setDismissed(reason);
         setOpen(false);
       },
     });
-  }, [open, point, placement, gap]);
+  }, [open, point, placement, gap, initialFocus]);
 
   useLayoutEffect(() => {
     const anchor = childAnchorRef.current;
@@ -122,7 +132,7 @@ export default function OverlayHarness({
             ref={panelRef}
             role="dialog"
             aria-label="Panel"
-            style={{ width: 200, height: 120, background: "white" }}
+            style={{ width: 200, height: panelHeight, background: "white" }}
           >
             <button type="button">First</button>
             <div
@@ -139,6 +149,14 @@ export default function OverlayHarness({
               }}
             >
               Open child
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setPanelHeight(60);
+              }}
+            >
+              Shrink
             </button>
           </div>,
           document.body,

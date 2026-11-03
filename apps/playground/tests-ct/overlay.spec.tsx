@@ -70,6 +70,25 @@ test.describe("placement", () => {
     await expect(panel).toHaveAttribute("data-gridkit-placement", "bottom-end");
   });
 
+  test("a panel flipped above its anchor keeps its bottom edge there as it shrinks", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(
+      <OverlayHarness anchorStyle={{ top: "auto", bottom: 10 }} gap={4} />,
+    );
+    const panel = await openPanel(root, page);
+    const anchor = await boxOf(root.getByRole("button", { name: "Anchor" }));
+    const before = await boxOf(panel);
+
+    await panel.getByRole("button", { name: "Shrink" }).click();
+
+    await expect.poll(async () => (await boxOf(panel)).height).toBe(60);
+    const after = await boxOf(panel);
+    expect(after.y).toBeGreaterThan(before.y);
+    expect(after.y + after.height).toBeCloseTo(anchor.y - 4, 0);
+  });
+
   test("opens beside a point rather than its anchor", async ({
     mount,
     page,
@@ -97,6 +116,49 @@ test.describe("focus", () => {
     await expect(panel).toBeHidden();
     await expect(root.getByTestId("dismissed")).toHaveText("escape");
     await expect(root.getByRole("button", { name: "Anchor" })).toBeFocused();
+  });
+
+  test('initialFocus "first" focuses the first focusable element', async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<OverlayHarness initialFocus="first" />);
+    const panel = await openPanel(root, page);
+
+    await expect(panel.getByRole("button", { name: "First" })).toBeFocused();
+  });
+
+  test('initialFocus "panel" focuses the panel itself', async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<OverlayHarness initialFocus="panel" />);
+    const panel = await openPanel(root, page);
+
+    await expect(panel).toBeFocused();
+    await expect(panel).toHaveAttribute("tabindex", "-1");
+  });
+
+  test('initialFocus "none" leaves focus where it was', async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<OverlayHarness initialFocus="none" />);
+    await openPanel(root, page);
+
+    await expect(root.getByRole("button", { name: "Anchor" })).toBeFocused();
+  });
+
+  test("initialFocus given an element focuses that element", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<OverlayHarness initialFocus="open-child" />);
+    const panel = await openPanel(root, page);
+
+    await expect(
+      panel.getByRole("button", { name: "Open child" }),
+    ).toBeFocused();
   });
 
   test("a click on the anchor closes it without a dismissal", async ({
