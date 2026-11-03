@@ -204,6 +204,104 @@ test.describe("dismissal", () => {
   });
 });
 
+test.describe("stacking", () => {
+  /** Opens the panel, then the child panel above it. */
+  async function openChild(root: MountResult, page: Page) {
+    const panel = await openPanel(root, page);
+    await panel.getByRole("button", { name: "Open child" }).click();
+    const child = page.getByRole("dialog", { name: "Child" });
+    await expect(
+      child.getByRole("button", { name: "Child item" }),
+    ).toBeFocused();
+    return { panel, child };
+  }
+
+  test("an Escape an overlay takes never reaches the page", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<OverlayHarness />);
+    const escapes = root.getByTestId("page-escapes");
+    await root.getByRole("button", { name: "Elsewhere" }).focus();
+    await page.keyboard.press("Escape");
+    await expect(escapes).toHaveText("1");
+
+    const panel = await openPanel(root, page);
+    await page.keyboard.press("Escape");
+
+    await expect(panel).toBeHidden();
+    await expect(escapes).toHaveText("1");
+    await page.keyboard.press("Escape");
+    await expect(escapes).toHaveText("2");
+  });
+
+  test("Escape closes only the topmost overlay, returning focus to what opened it", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<OverlayHarness />);
+    const { panel, child } = await openChild(root, page);
+
+    await page.keyboard.press("Escape");
+
+    await expect(child).toBeHidden();
+    await expect(panel).toBeVisible();
+    await expect(root.getByTestId("child-dismissed")).toHaveText("escape");
+    await expect(root.getByTestId("dismissed")).toHaveText("none");
+    await expect(
+      panel.getByRole("button", { name: "Open child" }),
+    ).toBeFocused();
+
+    await page.keyboard.press("Escape");
+
+    await expect(panel).toBeHidden();
+    await expect(root.getByTestId("dismissed")).toHaveText("escape");
+    await expect(root.getByRole("button", { name: "Anchor" })).toBeFocused();
+  });
+
+  test("a click inside the child keeps both open", async ({ mount, page }) => {
+    const root = await mount(<OverlayHarness />);
+    const { panel, child } = await openChild(root, page);
+
+    await child.getByRole("button", { name: "Child item" }).click();
+
+    await expect(child).toBeVisible();
+    await expect(panel).toBeVisible();
+    await expect(root.getByTestId("child-dismissed")).toHaveText("none");
+    await expect(root.getByTestId("dismissed")).toHaveText("none");
+  });
+
+  test("a click in the panel outside the child closes only the child", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<OverlayHarness />);
+    const { panel, child } = await openChild(root, page);
+
+    await panel.getByRole("button", { name: "First" }).click();
+
+    await expect(child).toBeHidden();
+    await expect(panel).toBeVisible();
+    await expect(root.getByTestId("child-dismissed")).toHaveText("outside");
+    await expect(root.getByTestId("dismissed")).toHaveText("none");
+  });
+
+  test("closing the panel closes the child above it", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<OverlayHarness />);
+    const { panel, child } = await openChild(root, page);
+
+    await child.getByRole("button", { name: "Close panel" }).click();
+
+    await expect(panel).toBeHidden();
+    await expect(child).toBeHidden();
+    await expect(root.getByTestId("child-dismissed")).toHaveText("parent");
+    await expect(root.getByTestId("dismissed")).toHaveText("none");
+  });
+});
+
 test.describe("inside a grid", () => {
   /** Selects the first two rows, then opens the panel from the header. */
   async function selectTwoRowsAndOpen(

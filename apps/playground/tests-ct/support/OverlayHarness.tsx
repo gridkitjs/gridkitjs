@@ -1,4 +1,10 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { createPortal } from "react-dom";
 import {
   attachOverlay,
@@ -23,7 +29,12 @@ export interface OverlayHarnessProps {
  * it lives here and writes the reason where a spec can read it.
  *
  * "Elsewhere" is a control outside the overlay to click or focus, and the
- * scroller is a scrolling element outside it.
+ * scroller is a scrolling element outside it. "Open child" in the panel opens
+ * a second overlay above the first, the way a submenu opens from a menu, and
+ * "Close panel" in the child closes the panel, as a submenu item closes the
+ * menu it came from. The child's open state lives here rather than in the
+ * panel, so closing the panel leaves the child to the overlay stack to close.
+ * A page-level Escape listener counts the Escapes that reach the page.
  */
 export default function OverlayHarness({
   anchorStyle,
@@ -33,8 +44,26 @@ export default function OverlayHarness({
 }: OverlayHarnessProps) {
   const anchorRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const childAnchorRef = useRef<HTMLButtonElement>(null);
+  const childRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const [childOpen, setChildOpen] = useState(false);
   const [dismissed, setDismissed] = useState<OverlayDismissReason | null>(null);
+  const [childDismissed, setChildDismissed] =
+    useState<OverlayDismissReason | null>(null);
+  const [pageEscapes, setPageEscapes] = useState(0);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent): void {
+      if (event.key === "Escape") {
+        setPageEscapes((count) => count + 1);
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, []);
 
   useLayoutEffect(() => {
     const anchor = anchorRef.current;
@@ -51,6 +80,21 @@ export default function OverlayHarness({
       },
     });
   }, [open, point, placement, gap]);
+
+  useLayoutEffect(() => {
+    const anchor = childAnchorRef.current;
+    const child = childRef.current;
+    if (!childOpen || anchor === null || child === null) {
+      return undefined;
+    }
+    return attachOverlay(anchor, child, {
+      placement: "right-start",
+      onDismiss: (reason) => {
+        setChildDismissed(reason);
+        setChildOpen(false);
+      },
+    });
+  }, [childOpen]);
 
   return (
     // Clear of every place the panel opens, so nothing here sits under it.
@@ -70,6 +114,8 @@ export default function OverlayHarness({
         <div style={{ height: 400 }} />
       </div>
       <output data-testid="dismissed">{dismissed ?? "none"}</output>
+      <output data-testid="child-dismissed">{childDismissed ?? "none"}</output>
+      <output data-testid="page-escapes">{pageEscapes}</output>
       {open &&
         createPortal(
           <div
@@ -85,6 +131,35 @@ export default function OverlayHarness({
             >
               <div style={{ height: 400 }} />
             </div>
+            <button
+              ref={childAnchorRef}
+              type="button"
+              onClick={() => {
+                setChildOpen(true);
+              }}
+            >
+              Open child
+            </button>
+          </div>,
+          document.body,
+        )}
+      {childOpen &&
+        createPortal(
+          <div
+            ref={childRef}
+            role="dialog"
+            aria-label="Child"
+            style={{ width: 150, height: 60, background: "white" }}
+          >
+            <button type="button">Child item</button>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+              }}
+            >
+              Close panel
+            </button>
           </div>,
           document.body,
         )}

@@ -1,4 +1,10 @@
 import {
+  isInsideOverlayAbove,
+  pushOverlay,
+  removeOverlay,
+  type StackedOverlay,
+} from "./overlayStack";
+import {
   placeOverlay,
   type OverlayPlacementOptions,
   type OverlayRect,
@@ -10,14 +16,16 @@ export type OverlayAnchor =
 
 /** Why an overlay asked to close. */
 export type OverlayDismissReason =
-  "escape" | "outside" | "scroll" | "resize" | "blur";
+  "escape" | "outside" | "scroll" | "resize" | "blur" | "parent";
 
 export interface OverlayOptions extends OverlayPlacementOptions {
   /**
-   * The overlay asks to close: Escape was pressed, a pointer went down
-   * outside it, something outside it scrolled, the window resized or lost
-   * focus, or focus moved outside it. The caller closes it — removes the
-   * panel and detaches — or keeps it open by doing nothing.
+   * The overlay asks to close: Escape was pressed while it was the topmost
+   * overlay, a pointer went down outside it, something outside it scrolled,
+   * the window resized or lost focus, focus moved outside it, or the overlay
+   * it was opened above detached. The caller closes it — removes the panel
+   * and detaches — or keeps it open by doing nothing, except after
+   * `"parent"`, which detaches it regardless.
    */
   readonly onDismiss: (reason: OverlayDismissReason) => void;
   /**
@@ -57,9 +65,17 @@ function anchorRect(anchor: OverlayAnchor): OverlayRect {
  * that toggles it can close it with its own click rather than having the
  * overlay close and the click reopen it.
  *
+ * Overlays stack in the order they attach. Escape belongs to the topmost
+ * alone, which takes it: it closes a submenu without closing the menu under
+ * it, and nothing else on the page — a grid that clears its selection on
+ * Escape — hears it. An overlay counts everything in the overlays above it
+ * as inside itself, so a click in a submenu keeps its menu open while a click
+ * elsewhere in the menu closes only the submenu.
+ *
  * Detaching removes every listener and returns focus, but only when focus is
- * still in the panel or nowhere — a click that dismissed it by landing on
- * another control leaves focus on that control.
+ * still in the panel, in an overlay above it, or nowhere — a click that
+ * dismissed it by landing on another control leaves focus on that control.
+ * Any overlay still above it is dismissed with `"parent"` and detached first.
  */
 export function attachOverlay(
   anchor: OverlayAnchor,
@@ -74,18 +90,32 @@ export function attachOverlay(
         : null
       : options.returnFocusTo;
 
-  function belongs(target: EventTarget | null): boolean {
+  const stacked: StackedOverlay = {
+    panel,
+    onEscape: () => {
+      onDismiss("escape");
+    },
+    onParentDetached: () => {
+      onDismiss("parent");
+      detach();
+    },
+  };
+
+  /** In the panel, or in an overlay opened above it. */
+  function inside(target: EventTarget | null): boolean {
     return (
       target instanceof Node &&
-      (panel.contains(target) ||
-        (anchor instanceof Element && anchor.contains(target)))
+      (panel.contains(target) || isInsideOverlayAbove(stacked, target))
     );
   }
 
-  function onKeyDown(event: KeyboardEvent): void {
-    if (event.key === "Escape") {
-      onDismiss("escape");
-    }
+  function belongs(target: EventTarget | null): boolean {
+    return (
+      inside(target) ||
+      (anchor instanceof Element &&
+        target instanceof Node &&
+        anchor.contains(target))
+    );
   }
 
   function onPointerDown(event: PointerEvent): void {
@@ -97,7 +127,7 @@ export function attachOverlay(
   // The overlay is placed in viewport coordinates, so any scroll that moves
   // its anchor leaves it behind — except a scroll inside the panel itself.
   function onScroll(event: Event): void {
-    if (!(event.target instanceof Node && panel.contains(event.target))) {
+    if (!inside(event.target)) {
       onDismiss("scroll");
     }
   }
@@ -137,13 +167,15 @@ export function attachOverlay(
   panel.style.left = `${String(position.left)}px`;
   panel.setAttribute("data-gridkit-placement", position.placement);
 
+  // On the stack before focus moves in, so the overlay below sees the focus
+  // leaving it land inside an overlay above it rather than outside.
+  pushOverlay(stacked);
   const first = panel.querySelector<HTMLElement>(FOCUSABLE);
   if (first === null && !panel.hasAttribute("tabindex")) {
     panel.tabIndex = -1;
   }
   (first ?? panel).focus({ preventScroll: true });
 
-  document.addEventListener("keydown", onKeyDown, true);
   document.addEventListener("pointerdown", onPointerDown, true);
   window.addEventListener("scroll", onScroll, { capture: true, passive: true });
   window.addEventListener("resize", onResize);
@@ -151,24 +183,26 @@ export function attachOverlay(
   panel.addEventListener("focusout", onFocusOut);
 
   let attached = true;
-  return () => {
+  function detach(): void {
     if (!attached) {
       return;
     }
     attached = false;
-    document.removeEventListener("keydown", onKeyDown, true);
+    // Read before the overlays above close and hand focus back to wherever
+    // they took it from, which may already have left the page with this panel.
+    const active = document.activeElement;
+    const focusInside =
+      active === null || active === document.body || inside(active);
+    removeOverlay(stacked);
     document.removeEventListener("pointerdown", onPointerDown, true);
     window.removeEventListener("scroll", onScroll, { capture: true });
     window.removeEventListener("resize", onResize);
     window.removeEventListener("blur", onWindowBlur);
     panel.removeEventListener("focusout", onFocusOut);
 
-    const active = document.activeElement;
-    if (
-      returnFocusTo !== null &&
-      (active === null || active === document.body || panel.contains(active))
-    ) {
+    if (returnFocusTo !== null && focusInside) {
       returnFocusTo.focus({ preventScroll: true });
     }
-  };
+  }
+  return detach;
 }
