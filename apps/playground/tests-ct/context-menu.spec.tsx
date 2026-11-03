@@ -8,7 +8,7 @@ import { DataGrid, type DataGridProps } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import ContextMenuGrid from "./support/ContextMenuGrid";
 import ContextMenuTriggerHarness from "./support/ContextMenuTriggerHarness";
-import { mountGrid } from "./support/mountGrid";
+import { mountGrid, updateGrid } from "./support/mountGrid";
 
 interface Row {
   id: string;
@@ -1085,4 +1085,157 @@ test.describe("app commands", () => {
     await expect(menu).toHaveCount(0);
     await expect(root.getByTestId("commands")).toHaveText("");
   });
+});
+
+/** A touch pointer event's fields at `point` — what a finger on a touch screen fires. */
+function touchAt(point: { x: number; y: number }) {
+  return {
+    pointerType: "touch",
+    pointerId: 7,
+    isPrimary: true,
+    clientX: point.x,
+    clientY: point.y,
+    bubbles: true,
+    cancelable: true,
+  };
+}
+
+/** Puts a finger down just inside `target`, and says where. */
+async function touchDown(target: Locator): Promise<{ x: number; y: number }> {
+  const box = await target.boundingBox();
+  const point = { x: (box?.x ?? 0) + 10, y: (box?.y ?? 0) + 10 };
+  await target.dispatchEvent("pointerdown", touchAt(point));
+  return point;
+}
+
+/** Lifts the finger at `point`, with the click a browser fires for it. */
+async function touchUp(
+  target: Locator,
+  point: { x: number; y: number },
+): Promise<void> {
+  await target.dispatchEvent("pointerup", touchAt(point));
+  await target.dispatchEvent("click", { bubbles: true, cancelable: true });
+}
+
+/** Waits `ms` in the page, past a long-press's delay. */
+async function waitInPage(page: Page, ms: number): Promise<void> {
+  await page.evaluate(
+    (delay) =>
+      new Promise<void>((resolve) => {
+        setTimeout(resolve, delay);
+      }),
+    ms,
+  );
+}
+
+test.describe("long-press", () => {
+  test("a touch held still asks once, at its point, and the click its lifting brings is taken", async ({
+    mount,
+  }) => {
+    const root = await mount(<ContextMenuTriggerHarness />);
+    const cell = root.getByRole("button", { name: "Cell" });
+    const requests = root.getByTestId("requests");
+
+    const point = await touchDown(cell);
+    await expect(requests).toHaveText("pointer on cell at a point");
+    // What a browser that turns a held touch into a menu of its own fires.
+    await cell.dispatchEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+    });
+    await touchUp(cell, point);
+
+    await expect(requests).toHaveText("pointer on cell at a point");
+    await expect(root.getByTestId("prevented")).toHaveText("contextmenu true");
+    await expect(root.getByTestId("cell-clicks")).toHaveText("0");
+
+    // A tap after it is a click again.
+    await touchDown(cell);
+    await touchUp(cell, point);
+    await expect(root.getByTestId("cell-clicks")).toHaveText("1");
+  });
+
+  test("a touch that moves or lifts before the delay, or a mouse held down, asks nothing", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<ContextMenuTriggerHarness />);
+    const cell = root.getByRole("button", { name: "Cell" });
+
+    const point = await touchDown(cell);
+    await cell.dispatchEvent(
+      "pointermove",
+      touchAt({ x: point.x + 30, y: point.y }),
+    );
+    await waitInPage(page, 700);
+
+    await touchDown(cell);
+    await cell.dispatchEvent("pointerup", touchAt(point));
+    await waitInPage(page, 700);
+
+    await cell.dispatchEvent("pointerdown", {
+      ...touchAt(point),
+      pointerType: "mouse",
+    });
+    await waitInPage(page, 700);
+
+    await expect(root.getByTestId("requests")).toHaveText("");
+  });
+
+  test("a long-press that opens no menu leaves the click alone", async ({
+    mount,
+  }) => {
+    const root = await mount(<ContextMenuTriggerHarness opens={false} />);
+    const cell = root.getByRole("button", { name: "Cell" });
+
+    const point = await touchDown(cell);
+    await expect(root.getByTestId("requests")).toHaveText(
+      "pointer on cell at a point",
+    );
+    await touchUp(cell, point);
+
+    await expect(root.getByTestId("cell-clicks")).toHaveText("1");
+  });
+
+  test("a long-press on a cell opens its row's menu at the touch, and lifting it changes nothing", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      grid({ selectable: { rows: "multiple", toggleOnClick: true } }),
+    );
+    const cell = bodyCell(root, 1, 1);
+    const row = root.locator("tbody tr").nth(1);
+
+    const point = await touchDown(cell);
+
+    const menu = page.getByRole("menu", { name: "Row menu" });
+    await expect(item(menu, "Select all rows")).toBeFocused();
+    const box = await page.locator(".gridkit-overlay").boundingBox();
+    expect(box?.x).toBeCloseTo(point.x, 0);
+    expect(box?.y).toBeCloseTo(point.y, 0);
+    await expect(row).toHaveAttribute("aria-selected", "true");
+
+    // A click reaching the row would toggle it off again.
+    await touchUp(cell, point);
+    await expect(row).toHaveAttribute("aria-selected", "true");
+    await expect(item(menu, "Select all rows")).toBeFocused();
+  });
+});
+
+test("turning contextMenu off detaches the trigger, leaving the browser's menu", async ({
+  mount,
+  page,
+}) => {
+  const root = await mountGrid(mount, grid());
+  await openOn(root, page, "Name");
+  await page.keyboard.press("Escape");
+
+  await updateGrid(root, grid({ contextMenu: false }));
+  const body = await recordContextMenu(page);
+  await header(root, "Name").click({ button: "right" });
+
+  await expect(body).toHaveAttribute("data-prevented", "false");
+  await expect(page.getByRole("menu")).toHaveCount(0);
 });

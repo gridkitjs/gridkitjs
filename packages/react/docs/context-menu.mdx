@@ -1,9 +1,9 @@
 ---
 title: "Context menu"
-description: "The grid's own menu on headers, rows and group rows — sort, group, select, autofit and hide — opened by a right-click, Shift+F10 or the ContextMenu key."
+description: "The grid's own menu on headers, rows and group rows — sort, group, select, autofit and hide — opened by a right-click, a long-press, Shift+F10 or the ContextMenu key."
 ---
 
-`contextMenu` gives the grid a menu of its own in place of the browser's. A right-click on a column header, a data cell or a group row — or <Kbd>Shift</Kbd>+<Kbd>F10</Kbd> or the <Kbd>ContextMenu</Kbd> key on a focused one — opens a menu of what can be done there: sort the column, group by it, size it to its content, hide it; select every row or clear the selection; expand or collapse every group. It is off by default, like every other GridKit feature: without `contextMenu`, a right-click shows the browser's menu.
+`contextMenu` gives the grid a menu of its own in place of the browser's. A right-click or a touch long-press on a column header, a data cell or a group row — or <Kbd>Shift</Kbd>+<Kbd>F10</Kbd> or the <Kbd>ContextMenu</Kbd> key on a focused one — opens a menu of what can be done there: sort the column, group by it, size it to its content, hide it; select every row or clear the selection; expand or collapse every group. It is off by default, like every other GridKit feature: without `contextMenu`, a right-click shows the browser's menu.
 
 ## Turning it on
 
@@ -250,7 +250,7 @@ Each is safe to call from an effect: opening a menu renders nothing synchronousl
 
 - **Focus** moves to the header, cell or group row first, so closing the menu — by choosing an item, <Kbd>Escape</Kbd>, <Kbd>Tab</Kbd> or a click outside — puts focus back on it. When the item hid that column, focus goes to the header now in its place. A menu opened in the body's empty space leaves focus where it was.
 - **Selection** follows the menu, kind by kind, as a click would: opening it on a column, row or cell that is not selected selects it alone, where that kind is selectable; opening it on one already in the selection keeps the selection as it is, so the menu acts on everything selected. A cell's row and the cell itself each follow their own `selectable` mode.
-- **Placement** is at the pointer for a right-click, and below the header, cell or group row for a key.
+- **Placement** is at the pointer for a right-click or a long-press, and below the header, cell or group row for a key.
 - **Changes** report and announce exactly as the user's own gesture would: "Sort ascending" fires `onColumnSortChange` and says "Name sorted ascending", "Hide column" fires `onColumnVisibilityChange` and says "Name, column hidden", "Collapse all groups" says "All groups collapsed".
 
 The menu renders into `document.body`, so no scrolling ancestor clips it, and takes the grid's `.gridkit-light`/`.gridkit-dark` palette with it — see the [theme](/docs/theme-tailwind/overview#overlays-and-menus) for its classes.
@@ -259,18 +259,19 @@ A cell or header template with a menu of its own keeps it: a `contextmenu` event
 
 ## Keyboard & pointer interactions
 
-| Key or action                                            | Does                                                                                                   |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Right-click a header, cell or group row                  | Opens its menu at the pointer.                                                                         |
-| <Kbd>Shift</Kbd>+<Kbd>F10</Kbd> / <Kbd>ContextMenu</Kbd> | On a focused header, cell or group row, opens its menu below it.                                       |
-| <Kbd>ArrowDown</Kbd> / <Kbd>ArrowUp</Kbd>                | The next or previous item, wrapping round the ends.                                                    |
-| <Kbd>Home</Kbd> / <Kbd>End</Kbd>                         | The first or last item.                                                                                |
-| <Kbd>Enter</Kbd> / <Kbd>Space</Kbd>, or a click          | Runs the item and closes every menu; on a submenu item, opens it. A disabled item does nothing.        |
-| <Kbd>ArrowRight</Kbd>                                    | On a submenu item, opens it and focuses its first item.                                                |
-| <Kbd>ArrowLeft</Kbd>                                     | In a submenu, closes it and focuses the item that opened it.                                           |
-| A printable character                                    | Moves to the next item whose label starts with what was typed.                                         |
-| <Kbd>Escape</Kbd>                                        | Closes the menu — a submenu alone, back to its item — and goes no further: the grid's selection stays. |
-| <Kbd>Tab</Kbd> / <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd>         | Closes every menu.                                                                                     |
+| Key or action                                            | Does                                                                                                      |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Right-click a header, cell or group row                  | Opens its menu at the pointer.                                                                            |
+| Touch and hold a header, cell or group row               | Opens its menu at the touch after half a second, if the finger stays put. Lifting it then clicks nothing. |
+| <Kbd>Shift</Kbd>+<Kbd>F10</Kbd> / <Kbd>ContextMenu</Kbd> | On a focused header, cell or group row, opens its menu below it.                                          |
+| <Kbd>ArrowDown</Kbd> / <Kbd>ArrowUp</Kbd>                | The next or previous item, wrapping round the ends.                                                       |
+| <Kbd>Home</Kbd> / <Kbd>End</Kbd>                         | The first or last item.                                                                                   |
+| <Kbd>Enter</Kbd> / <Kbd>Space</Kbd>, or a click          | Runs the item and closes every menu; on a submenu item, opens it. A disabled item does nothing.           |
+| <Kbd>ArrowRight</Kbd>                                    | On a submenu item, opens it and focuses its first item.                                                   |
+| <Kbd>ArrowLeft</Kbd>                                     | In a submenu, closes it and focuses the item that opened it.                                              |
+| A printable character                                    | Moves to the next item whose label starts with what was typed.                                            |
+| <Kbd>Escape</Kbd>                                        | Closes the menu — a submenu alone, back to its item — and goes no further: the grid's selection stays.    |
+| <Kbd>Tab</Kbd> / <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd>         | Closes every menu.                                                                                        |
 
 Moving the pointer over an item focuses it, and resting it on a submenu item opens that submenu. A disabled item still takes focus, so a screen reader finds it. While an area opens a menu, the `aria-keyshortcuts` of its headers, cells or group rows lists `Shift+F10`.
 

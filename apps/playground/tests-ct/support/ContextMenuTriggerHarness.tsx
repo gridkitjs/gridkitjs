@@ -10,9 +10,10 @@ interface ContextMenuTriggerHarnessProps {
  * `attachContextMenuTrigger` on a root holding a focusable "Cell" and a
  * "Template" that handles `contextmenu` itself, as a cell template with a
  * menu of its own would; an "Outside" button sits beyond the root. What the
- * trigger reports, and whether each `contextmenu` and key press reached the
- * window prevented, is written where a spec can read it — the callbacks are
- * answered here, which a function passed from a spec cannot do.
+ * trigger reports, whether each `contextmenu` and key press reached the
+ * window prevented, and how many clicks reached "Cell" is written where a
+ * spec can read it — the callbacks are answered here, which a function
+ * passed from a spec cannot do.
  */
 export default function ContextMenuTriggerHarness({
   opens = true,
@@ -21,6 +22,7 @@ export default function ContextMenuTriggerHarness({
   const [requests, setRequests] = useState<string[]>([]);
   const [prevented, setPrevented] = useState<string[]>([]);
   const [templateMenus, setTemplateMenus] = useState(0);
+  const [cellClicks, setCellClicks] = useState(0);
 
   useLayoutEffect(() => {
     const root = rootRef.current;
@@ -57,7 +59,13 @@ export default function ContextMenuTriggerHarness({
   return (
     <div>
       <div ref={rootRef}>
-        <button type="button" id="cell">
+        <button
+          type="button"
+          id="cell"
+          onClick={() => {
+            setCellClicks((count) => count + 1);
+          }}
+        >
           Cell
         </button>
         <span
@@ -76,6 +84,7 @@ export default function ContextMenuTriggerHarness({
       <output data-testid="requests">{requests.join("; ")}</output>
       <output data-testid="prevented">{prevented.join("; ")}</output>
       <output data-testid="template-menus">{templateMenus}</output>
+      <output data-testid="cell-clicks">{cellClicks}</output>
     </div>
   );
 }
