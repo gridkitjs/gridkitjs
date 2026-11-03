@@ -1,5 +1,12 @@
 # @gridkitjs/core
 
+## 0.12.1
+
+### Patch Changes
+
+- 0cf56d4: The `onColumnResize` doc comment no longer claims auto-fit skips it: fitting a column to its content calls it once, with `phase: "end"`.
+- 0cf56d4: The `onFilterChange` doc comment names every way the filter changes — the toolbar's search box, `filter.clearAll`, `setFilter` and a restored state — in place of a note that the grid had no filter UI.
+
 ## 0.12.0
 
 ### Minor Changes

@@ -1,5 +1,16 @@
 # @gridkitjs/react
 
+## 0.11.1
+
+### Patch Changes
+
+- 0cf56d4: The `expandAllGroups` doc comment no longer says the grid has no control for it: it does what the `group.expandAll` command does.
+- 0cf56d4: The `useFilterState` doc comment no longer says the grid has no filter UI of its own: it sees the toolbar's search box too.
+- Updated dependencies [0cf56d4]
+- Updated dependencies [0cf56d4]
+  - @gridkitjs/core@0.12.1
+  - @gridkitjs/dom@0.2.1
+
 ## 0.11.0
 
 ### Minor Changes
