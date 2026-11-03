@@ -1,5 +1,37 @@
 # @gridkitjs/theme-tailwind
 
+## 0.8.0
+
+### Minor Changes
+
+- 22cf630: Styles for the grid's column chooser, in both palettes: `.gridkit-column-chooser`,
+  the panel; `.column-chooser-search`; `.column-chooser-option`, a checkbox and
+  its label, muted while disabled; `.column-chooser-all`, the "Show all"
+  checkbox set apart from the list; `.column-chooser-list`, which scrolls inside
+  itself past about ten columns; and `.column-chooser-empty`. Like the menus, the
+  chooser renders into `document.body`, so these selectors are top-level.
+- 183babc: Styles for the grid's menus, in both palettes: `.gridkit-overlay`, the box a
+  menu opens in, above the grid; `.gridkit-menu` and its items (`.menu-item`,
+  with `.menu-item-icon`, `.menu-item-label`, `.menu-item-shortcut` and
+  `.menu-submenu-indicator`), focused, disabled, checked and expanded through
+  their ARIA attributes; and `.menu-separator`. Overlays render into
+  `document.body`, so these selectors are top-level.
+- 5f9a5da: Styles for the grid's toolbar, in both palettes: `.gridkit-toolbar`, sticky
+  to the grid's start edge so it stays in view while the tables scroll
+  sideways; `.toolbar-button` (with `.toolbar-button-icon` and
+  `.toolbar-button-indicator`), disabled, pressed and expanded through their
+  ARIA attributes; `.toolbar-more`, `.toolbar-search`, `.toolbar-separator`,
+  `.toolbar-spacer` and `.toolbar-custom`.
+
+### Patch Changes
+
+- 66c2815: A long-press on a header, cell or group row that opens the grid's context menu
+  no longer also brings up iOS's own callout, or starts selecting the text under
+  the finger on a touch screen.
+- 66c2815: The toolbar's "More" button can no longer be cut off: the search box narrows to
+  at most half a narrow toolbar's width, and when the search box and custom
+  entries alone are still wider than the toolbar, "More" sticks to its end edge.
+
 ## 0.7.0
 
 ### Minor Changes

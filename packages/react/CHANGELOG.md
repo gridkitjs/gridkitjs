@@ -1,5 +1,168 @@
 # @gridkitjs/react
 
+## 0.11.0
+
+### Minor Changes
+
+- 22cf630: `DataGrid` has a column chooser: a dialog listing every data column, hidden
+  ones included, with a checkbox each, a search box and a tri-state "Show all"
+  over what the search lists. Each change applies at once through `showColumns`
+  and `hideColumns`; a column with `hideable: false` and the last column shown
+  cannot be unchecked. It opens from the toolbar's new "Choose columns" button —
+  `toolbar` alone now lists it after "Clear filters" — and from the header
+  context menu's new last item, below the header, and from the ref's new
+  `openColumnChooser()` at the grid's top-end corner. Escape or a click outside
+  closes it, giving focus back to where it opened from.
+
+  Hiding or showing several columns in one change — "Show all", or
+  `hideColumns` given a list — now announces how many: "3 columns hidden".
+
+- 183babc: `DataGrid`'s `contextMenu` takes a function for an area, asked each time its
+  menu opens with the place it opens on, the area's defaults and the grid's
+  state — to add items, drop or reorder defaults, or give one column or row no
+  grid menu (`null`). Inline items, submenus and checkable items in a context
+  menu work as in any grid menu: a submenu opens with ArrowRight, Enter or the
+  pointer resting on its item, and a checkable item is a `menuitemcheckbox`.
+- 183babc: `DataGrid` takes `onContextMenuOpenChange`, called as its context menu opens
+  or closes with `{ open, target }`, and `DataGridApi` has four new members:
+
+  - `openContextMenu(target, anchor?)` opens the menu a header, cell, group row
+    or the body's empty space has, as a right-click there would — selecting and
+    focusing the cell first — beside a point or an element, or else below the
+    cell. It returns whether it opened.
+  - `closeContextMenu()` closes it.
+  - `runCommand(commandId, target?)` runs a built-in or app command on a
+    target, `{ area: "grid" }` by default, when it is visible and enabled there,
+    firing `onCommand` with `source: "api"`, and returns whether it ran.
+  - `autoFitColumns(columnIds?)` sizes the columns given, or every column
+    shown, to their content.
+
+  `openContextMenu` renders nothing synchronously, so it is safe to call from an
+  effect. `GridCommandTarget`, `GridContextMenuTarget` and
+  `ContextMenuOpenChangeEvent` are re-exported from `@gridkitjs/core`.
+
+- 5f9a5da: `DataGrid` takes a `toolbar` prop: a toolbar above the grid, sticky to its
+  start edge, written in the context menu's vocabulary. `toolbar` alone shows a
+  search box, "Clear filters" and "Choose columns"; `toolbar={{ items, label }}` lists command
+  buttons (a checkable one is a toggle), inline items, dropdowns opening a menu,
+  separators, a spacer, the search box and custom entries, which the new
+  `renderToolbarItem(id)` prop draws. Buttons follow the grid's state —
+  disabled or hidden as their commands say — and fire `onCommand` with
+  `source: "toolbar"` and the target `{ area: "toolbar", itemId }`.
+
+  The search box writes the filter's global text entry once typing rests, or at
+  once on Enter, empties on Escape, reads its text back from the filter, and
+  announces how many rows it found. The toolbar is one tab stop the arrow keys
+  move within, following the WAI-ARIA toolbar pattern. Off by default.
+
+  The grid element now carries an `id`, which the toolbar's `aria-controls`
+  names. `GridToolbarOptions` and `ToolbarEntry` are re-exported from
+  `@gridkitjs/core`.
+
+- 183babc: `DataGrid` takes `commands`, the app's own commands for its menus to list by
+  id — one with a built-in's id replaces that built-in in every menu listing
+  it, the defaults included — and `onCommand`, called after a command or an
+  inline menu item runs from a context menu with `{ commandId, target, source }`.
+  An item that did not run, being disabled, is not reported. `GridCommand`,
+  `GridCommandEvent` and `GridContextMenuRequest` are re-exported from
+  `@gridkitjs/core`.
+- 183babc: `DataGrid` takes a `contextMenu` prop: the grid's own menu on a column header,
+  opened by a right-click, Shift+F10 or the ContextMenu key, in place of the
+  browser's. `contextMenu` alone shows the defaults — sort ascending or
+  descending, clear the sort, group by the column or stop, autofit it or every
+  column, hide it, choose the columns shown — each only where the column allows
+  it; `contextMenu={{
+header: [...] }}` lists the items. Opening it moves focus to the header, which
+  gets focus back when the menu closes, and under `selectable.columns` selects
+  the column first unless it is selected already. Off by default.
+
+  While a header opens a menu, its `aria-keyshortcuts` lists `Shift+F10`.
+
+  Hiding or showing one column — from the menu, or through the ref's
+  `hideColumns` and `showColumns` — is now announced in the live region:
+  "Name, column hidden".
+
+  `GridContextMenuOptions` and `MenuEntry` are re-exported from
+  `@gridkitjs/core`.
+
+- 183babc: `contextMenu` now opens on data cells and group rows as well as headers.
+  A cell's menu ("Row menu") selects every row or clears the selection, and in a
+  grouped grid expands or collapses every group; a group row's ("Group menu")
+  expands or collapses every group and stops grouping by its column. Opening
+  one on a row or cell that is not selected selects it first, where rows or
+  cells are selectable — opening it inside the selection keeps the selection —
+  and focus moves to the cell, which gets it back when the menu closes. List an
+  area's items with `contextMenu={{ cell: [...], group: [...] }}`, or `[]` for
+  the browser's menu there. The body's empty space opens a menu once
+  `contextMenu.body` lists one; a group's summary row, the footer and the pager
+  keep the browser's menu.
+
+  While cells or group rows open a menu, their `aria-keyshortcuts` lists
+  `Shift+F10`.
+
+- 66c2815: ArrowUp on a toolbar dropdown or "More" opens its menu with focus on the last
+  item, as the WAI-ARIA menu button pattern has it; ArrowDown, Enter and Space
+  still open it on the first.
+- 5f9a5da: A toolbar too narrow for its items moves the ones that do not fit into a
+  "More" menu button at its end — a button becomes a menu item, a toggle a
+  checkable one, a dropdown a submenu — and brings them back as it widens. They
+  run and report to `onCommand` exactly as their buttons would. The search box
+  and custom entries always stay.
+
+### Patch Changes
+
+- 66c2815: "Autofit all columns", and the ref's `autoFitColumns` when it fits more than
+  one column, announce once for the whole operation — "3 columns autofitted",
+  the new `columnsAutoFitted` message — rather than a resize per column, of which
+  a screen reader heard only the last.
+- 66c2815: Hiding a column from the column chooser in a grid scrolled sideways to its end
+  no longer closes the chooser when the grid scrolls back within its narrower
+  columns.
+- 66c2815: A context menu opened through the ref's `openContextMenu` on a cell the grid has
+  scrolled out of view opens at the edge of the grid's view nearest that cell,
+  rather than beside the hidden cell, possibly off the page.
+- 4193f42: Keys pressed in content a template portals out of the grid — a popover or
+  menu rendered into `document.body` — no longer reach the grid's own key
+  handling. React bubbles a portal's events through the component tree, so
+  Escape in such a panel used to clear the grid's selection, Ctrl+A in its text
+  box selected every row instead of the text, and the arrow keys moved the
+  grid's focus.
+- 66c2815: A menu or panel opened below an element — a toolbar dropdown's menu, the column
+  chooser, a context menu opened from the keyboard — now leaves a 4px gap below
+  it instead of sitting flush against its border. Menus opened at the pointer,
+  and submenus, are placed as before.
+- 66c2815: A toolbar button relabelled while it is in "More" — a changed `messages` entry,
+  say — is measured again, so it comes back out of "More" once its new label fits.
+- Updated dependencies [183babc]
+- Updated dependencies [183babc]
+- Updated dependencies [22cf630]
+- Updated dependencies [66c2815]
+- Updated dependencies [183babc]
+- Updated dependencies [183babc]
+- Updated dependencies [183babc]
+- Updated dependencies [183babc]
+- Updated dependencies [183babc]
+- Updated dependencies [183babc]
+- Updated dependencies [1fdf433]
+- Updated dependencies [1fdf433]
+- Updated dependencies [3758583]
+- Updated dependencies [3758583]
+- Updated dependencies [3758583]
+- Updated dependencies [22cf630]
+- Updated dependencies [4193f42]
+- Updated dependencies [66c2815]
+- Updated dependencies [4193f42]
+- Updated dependencies [db2ba38]
+- Updated dependencies [5f9a5da]
+- Updated dependencies [5f9a5da]
+- Updated dependencies [5f9a5da]
+- Updated dependencies [5f9a5da]
+- Updated dependencies [5f9a5da]
+- Updated dependencies [66c2815]
+- Updated dependencies [5f9a5da]
+  - @gridkitjs/core@0.12.0
+  - @gridkitjs/dom@0.2.0
+
 ## 0.10.0
 
 ### Minor Changes
