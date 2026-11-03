@@ -37,6 +37,20 @@ function rendered(messages: GridMessages): Record<keyof GridMessages, string> {
     allGroupsCollapsed: messages.allGroupsCollapsed,
     selectedCount: messages.selectedCount(3, "rows"),
     cellSelected: messages.cellSelected("Name", 4),
+    sortAscending: messages.sortAscending,
+    sortDescending: messages.sortDescending,
+    clearSort: messages.clearSort,
+    clearAllSorting: messages.clearAllSorting,
+    groupByColumn: messages.groupByColumn("Region"),
+    ungroupAll: messages.ungroupAll,
+    expandAllGroups: messages.expandAllGroups,
+    collapseAllGroups: messages.collapseAllGroups,
+    hideColumn: messages.hideColumn,
+    autoFitColumn: messages.autoFitColumn,
+    autoFitAllColumns: messages.autoFitAllColumns,
+    selectAllRows: messages.selectAllRows,
+    clearSelection: messages.clearSelection,
+    clearFilters: messages.clearFilters,
   };
 }
 
@@ -77,6 +91,20 @@ describe("defaultMessages", () => {
       allGroupsCollapsed: "All groups collapsed",
       selectedCount: "3 rows selected",
       cellSelected: "Name, row 4, selected",
+      sortAscending: "Sort ascending",
+      sortDescending: "Sort descending",
+      clearSort: "Clear sort",
+      clearAllSorting: "Clear all sorting",
+      groupByColumn: "Group by Region",
+      ungroupAll: "Ungroup all",
+      expandAllGroups: "Expand all groups",
+      collapseAllGroups: "Collapse all groups",
+      hideColumn: "Hide column",
+      autoFitColumn: "Autofit column",
+      autoFitAllColumns: "Autofit all columns",
+      selectAllRows: "Select all rows",
+      clearSelection: "Clear selection",
+      clearFilters: "Clear filters",
     });
   });
 

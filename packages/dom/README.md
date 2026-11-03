@@ -2,8 +2,8 @@
 
 The browser behaviours a GridKit renderer needs, as framework-free
 TypeScript: pointer gestures, keyboard focus movement, the observers behind
-fit-to-width and infinite scroll, the row virtualizer's measuring, overlays,
-and a live-region announcer. Built on
+fit-to-width and infinite scroll, the row virtualizer's measuring, overlays
+and the menus shown in them, and a live-region announcer. Built on
 [`@gridkitjs/core`](https://www.npmjs.com/package/@gridkitjs/core) and used by
 [`@gridkitjs/react`](https://www.npmjs.com/package/@gridkitjs/react).
 
@@ -47,6 +47,7 @@ announcer.destroy();
 | `createGridFocus`          | Keeps the grid's single tab stop and moves the browser's focus with the keys. |
 | `bodyCellFrom` and others  | Resolve a delegated body event to the cell, row or group header it addresses. |
 | `attachOverlay`            | Positions a panel beside an anchor or point, and reports when to dismiss it.  |
+| `attachMenu`               | Moves a menu's focus by key, typeahead and pointer, and reports choices.      |
 
 Full documentation: [github.com/blagojablazhevski/gridkit](https://github.com/blagojablazhevski/gridkit#readme)
 

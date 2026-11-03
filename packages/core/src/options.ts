@@ -395,7 +395,8 @@ export interface GridOptions<Row> {
   /**
    * The grid's own strings, replacing its English key by key — the pager's
    * buttons, the group-by bar, the loading row, boolean and blank values,
-   * and every live-region announcement. Keys left out keep their default.
+   * the built-in commands' labels, and every live-region announcement. Keys
+   * left out keep their default.
    * Formatting is `locale`'s, not this.
    */
   messages?: Partial<GridMessages> | undefined;

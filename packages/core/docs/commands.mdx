@@ -1,0 +1,248 @@
+---
+title: "Commands and menus"
+description: "GridCommand: the one implementation behind a menu item, a toolbar button and the API — the built-in set, app commands and overrides, the context they run in, and the menu model resolveMenu draws from."
+---
+
+A command is the one implementation behind a menu item, a toolbar button and a renderer's `runCommand` — "Sort ascending", "Hide column", "Clear filters". Whether it shows and whether it can run are predicates over a context, a snapshot of the grid taken where it was asked for, and it changes the grid only through the [controller](/docs/core/controller)'s actions, so a change made from a menu reports through the same callback as the user's own gesture would.
+
+```ts
+import {
+  createCommandContext,
+  createGridController,
+  defaultMessages,
+  resolveCommands,
+  runCommand,
+} from "@gridkitjs/core";
+
+const controller = createGridController<Order>({
+  dataSource: orders,
+  columns,
+  sortableColumns: true,
+});
+const commands = resolveCommands<Order>(undefined);
+
+const context = createCommandContext({
+  controller,
+  target: { area: "header", columnId: "Amount" },
+  messages: defaultMessages,
+  host: { autoFitColumns() {}, openPanel() {}, announce() {} },
+});
+
+const sortAscending = commands.get("sort.ascending");
+if (sortAscending !== undefined) {
+  runCommand(sortAscending, context); // true — the grid now sorts by Amount
+}
+```
+
+## Commands
+
+A `GridCommand<Row>`:
+
+| Field       | Type                            | Description                                                                                                                 |
+| ----------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `id`        | `string`                        | `"sort.ascending"` for a built-in, or any id of your own. Never `"separator"`, which a menu reads as one.                   |
+| `label`     | `string \| (context) => string` | What a menu item or toolbar button reads.                                                                                   |
+| `icon`      | `string`                        | A key the renderer maps to an icon of its own. A key it does not know draws nothing.                                        |
+| `shortcut`  | `string`                        | A key-combination hint in `aria-keyshortcuts` syntax, such as `"Alt+ArrowUp"` — shown, not bound.                           |
+| `isVisible` | `(context) => boolean`          | Whether the command shows here at all. Defaults to always.                                                                  |
+| `isEnabled` | `(context) => boolean`          | Whether it can run. A disabled command still shows, so a user can see what is not possible. Defaults to always.             |
+| `isChecked` | `(context) => boolean`          | Present for a checkable command — a checkbox item in a menu, a toggle button in a toolbar — and says whether it is checked. |
+| `execute`   | `(context) => void`             | What it does.                                                                                                               |
+
+The predicates are asked whenever a menu or toolbar is resolved, so a command follows the grid's state without being told about it.
+
+## Targets
+
+A `GridCommandTarget` says where a command was asked for. A built-in reads the column, row or group it acts on from here.
+
+| Target                                 | Where                                       |
+| -------------------------------------- | ------------------------------------------- |
+| `{ area: "header", columnId }`         | A column header.                            |
+| `{ area: "cell", rowId, columnId }`    | A data cell.                                |
+| `{ area: "group", groupId, columnId }` | A group header row.                         |
+| `{ area: "body" }`                     | Empty body space, or a grid with no rows.   |
+| `{ area: "toolbar", itemId }`          | A toolbar item.                             |
+| `{ area: "grid" }`                     | A renderer's API, with no particular place. |
+
+## The context
+
+`createCommandContext({ controller, target, messages, host })` — a `GridCommandContextInput` — builds the `GridCommandContext<Row>` every predicate and `execute` receive, from the controller's state, view and options as they are now. `messages` is the grid's messages already laid over the defaults, as [`resolveMessages`](/docs/core/overview#messages) returns them. The controller may be of any node type, so a renderer's `GridController<Row, ReactNode>` serves as it is.
+
+| Field          | Type                                | Description                                                                                                                                                                                                    |
+| -------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `target`       | `GridCommandTarget`                 | Where the command was asked for.                                                                                                                                                                               |
+| `state`        | `GridState<Row>`                    | Every slice of state.                                                                                                                                                                                          |
+| `view`         | `GridView<Row, unknown>`            | What the user is looking at.                                                                                                                                                                                   |
+| `options`      | `GridOptions<Row>`                  | The grid's options.                                                                                                                                                                                            |
+| `messages`     | `GridMessages`                      | The grid's strings, which every built-in label reads.                                                                                                                                                          |
+| `actions`      | `GridCommandActions<Row>`           | Every action of the controller — all of it but `getOptions`, `setOptions`, `subscribe`, `getState` and `getView`. The only way a command changes the grid.                                                     |
+| `host`         | `GridCommandHost`                   | What only the renderer can do — see below.                                                                                                                                                                     |
+| `row`          | `ResolvedRow<Row> \| null`          | The row a cell target is on; `null` on any other target, or for a row the filter hides.                                                                                                                        |
+| `column`       | `DataColumn<Row, unknown> \| null`  | The column a header, cell or group target names, hidden or not; `null` on any other target.                                                                                                                    |
+| `selectedRows` | `() => readonly ResolvedRow<Row>[]` | The selected rows that pass the filter, in the order they are shown, across every page and collapsed group. Worked out on first call and remembered: it walks every filtered row, and most commands never ask. |
+
+A context is a snapshot. A renderer builds one each time it resolves a menu or a toolbar, so its commands see the state the user sees.
+
+### The host
+
+A `GridCommandHost` holds what a command needs that only a renderer has. A caller with no renderer — a test, a script in Node — passes members that do nothing.
+
+| Member                      | Description                                                                                                    |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `autoFitColumns(columnIds)` | Sizes each column to fit its content, as double-clicking its resize handle does.                               |
+| `openPanel(kind, target)`   | Opens one of the grid's panels anchored to the target. `kind` is a `GridPanelKind`: `"columnChooser"` for now. |
+| `announce(text)`            | Reads `text` out through the grid's live region.                                                               |
+
+## Built-in commands
+
+`builtInCommands<Row>()` returns the grid's own commands. Each acts on a column, a row, a group or the whole grid, and is hidden on a target that has none of what it needs — so any id can be listed in any menu without checks. Their labels come from [`messages`](/docs/react/localization#every-key), and their ids form the `BuiltInCommandId` type.
+
+| Id                        | Shown for                  | Visible when                            | Enabled when                              | Does                                                          | Label               |
+| ------------------------- | -------------------------- | --------------------------------------- | ----------------------------------------- | ------------------------------------------------------------- | ------------------- |
+| `sort.ascending`          | header                     | the column is sortable                  | always; checked while it sorts ascending  | Sorts by this column alone, ascending.                        | `sortAscending`     |
+| `sort.descending`         | header                     | the column is sortable                  | always; checked while it sorts descending | Sorts by this column alone, descending.                       | `sortDescending`    |
+| `sort.clear`              | header                     | the column is sortable                  | the column is sorted                      | Takes the column out of the sort, keeping the rest.           | `clearSort`         |
+| `sort.clearAll`           | grid, toolbar, header      | always                                  | anything is sorted                        | `setColumnSort([])`                                           | `clearAllSorting`   |
+| `group.add`               | header                     | the column is groupable and not grouped | always                                    | `toggleGroupBy`, adding it to the end of the grouping.        | `groupByColumn`     |
+| `group.remove`            | header, group              | the column is grouped                   | always                                    | `toggleGroupBy`, taking it out of the grouping.               | `removeGroupBy`     |
+| `group.clearAll`          | grid, toolbar              | anything is grouped                     | always                                    | `setGroupBy([])`                                              | `ungroupAll`        |
+| `group.expandAll`         | grid, toolbar, group, cell | anything is grouped                     | always                                    | `expandAllGroups()`                                           | `expandAllGroups`   |
+| `group.collapseAll`       | grid, toolbar, group, cell | anything is grouped                     | always                                    | `collapseAllGroups()`                                         | `collapseAllGroups` |
+| `column.hide`             | header                     | the column is `hideable`                | another column is shown                   | `hideColumns([id])`                                           | `hideColumn`        |
+| `column.autoFit`          | header                     | the column is resizable                 | always                                    | `host.autoFitColumns([id])`                                   | `autoFitColumn`     |
+| `column.autoFitAll`       | grid, toolbar, header      | any shown column is resizable           | always                                    | `host.autoFitColumns(ids)` with every shown resizable column. | `autoFitAllColumns` |
+| `selection.selectAllRows` | grid, cell                 | `selectable.rows` is `"multiple"`       | there are rows                            | `selectAllRows()`                                             | `selectAllRows`     |
+| `selection.clear`         | grid, cell, header         | rows, columns or cells are selectable   | anything is selected                      | `clearSelection()`                                            | `clearSelection`    |
+| `filter.clearAll`         | grid, toolbar, header      | always                                  | anything filters                          | `setFilter([])`, which clears the search too.                 | `clearFilters`      |
+
+"Sortable" is the column's `sortable`, else the grid's `sortableColumns`; "groupable" the same with `groupable` and `groupableColumns`; "resizable" is the column as rendered, after `resizableColumns`. [`hideable`](/docs/core/column-definitions#column-definition-shape) defaults to `true` and, like `sortable`, gates only the user's ways to do it: `hideColumns` still hides a column that is not hideable.
+
+The ids `filter.open`, `copy.cell`, `copy.row`, `copy.selection`, `export.csv`, `export.json`, `export.xlsx`, `export.pdf`, `print` and `layout.reset` are reserved for built-ins still to come.
+
+## App commands and overrides
+
+`resolveCommands(commands)` returns every command a grid knows, keyed by id: the built-ins, then yours. A command of yours with a built-in's id replaces it, so every menu and toolbar listing that id gets your version — translated, gated by a privilege, or doing something else entirely — without being changed itself.
+
+```ts
+import { resolveCommands, type GridCommand } from "@gridkitjs/core";
+
+const exportSelected: GridCommand<Order> = {
+  id: "orders.exportSelected",
+  label: "Export selected",
+  isEnabled: (context) => context.selectedRows().length > 0,
+  execute: (context) => {
+    exportOrders(context.selectedRows().map((entry) => entry.row));
+  },
+};
+
+// Replaces the built-in: only an administrator may hide columns.
+const hideColumn: GridCommand<Order> = {
+  id: "column.hide",
+  label: ({ messages }) => messages.hideColumn,
+  isVisible: ({ target, column }) =>
+    target.area === "header" && column !== null && user.isAdmin,
+  execute: ({ column, actions }) => {
+    if (column !== null) {
+      actions.hideColumns([column.id]);
+    }
+  },
+};
+
+const commands = resolveCommands([exportSelected, hideColumn]);
+```
+
+A command with the id `"separator"` is left out with a `console.error` — a menu reads that string as a separator.
+
+`runCommand(command, context)` runs a command only when it is visible and enabled on the context's target, and returns whether it ran — so a renderer reports only a command that did something, and a call through the API cannot run one the grid's state no longer allows.
+
+| Function                       | Type                                    | Description                                                                              |
+| ------------------------------ | --------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `builtInCommands()`            | `readonly GridCommand<Row>[]`           | The grid's own commands, typed for your `Row`. Two calls build equal ones.               |
+| `resolveCommands(commands)`    | `ReadonlyMap<string, GridCommand<Row>>` | The built-ins, then `commands`, keyed by id — yours replacing a built-in of the same id. |
+| `createCommandContext(input)`  | `GridCommandContext<Row>`               | The context for one target, over the controller as it is now.                            |
+| `runCommand(command, context)` | `boolean`                               | Runs the command when visible and enabled, and says whether it did.                      |
+
+## Menus
+
+A menu is a list of `MenuEntry<Row>`s, the one vocabulary every grid menu and toolbar is written in:
+
+| Entry                                      | Description                                                                                                            |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `"sort.ascending"`                         | A command id — a built-in's or one of yours. Typed as `BuiltInCommandId` or any string, so the built-ins autocomplete. |
+| `"separator"`                              | A separator.                                                                                                           |
+| `{ type: "item", id, label, onSelect, … }` | A `MenuItemEntry`: an item written into this menu alone rather than registered as a command.                           |
+| `{ type: "submenu", id, label, items }`    | A `MenuSubmenuEntry`: an item that opens a menu of its own.                                                            |
+
+An inline item has a command's fields under the names a menu reads naturally: `label`, `icon` and `shortcut`; `hidden`, `disabled` and `checked`, each a boolean or a function of the context, with `checked` present only on a checkable item; and `onSelect(context)` in place of `execute`. A submenu has a `label`, an optional `icon` and its `items`.
+
+```ts
+import { resolveMenu, type MenuEntry } from "@gridkitjs/core";
+
+const headerMenu: readonly MenuEntry<Order>[] = [
+  "sort.ascending",
+  "sort.descending",
+  "sort.clear",
+  "separator",
+  {
+    type: "submenu",
+    id: "grouping",
+    label: "Grouping",
+    items: ["group.add", "group.remove", "group.clearAll"],
+  },
+  "separator",
+  {
+    type: "item",
+    id: "orders.pin",
+    label: "Pin column",
+    checked: ({ column }) => column !== null && pinned.has(column.id),
+    onSelect: ({ column }) => {
+      if (column !== null) {
+        togglePin(column.id);
+      }
+    },
+  },
+];
+
+const entries = resolveMenu(headerMenu, { commands, context });
+```
+
+`resolveMenu(entries, { commands, context })` — a `MenuResolveOptions` — resolves a menu against the grid as the context sees it, and returns the `ResolvedMenuEntry[]` a renderer draws:
+
+- A command id becomes its command's item. A hidden command or inline item is left out, and so is an id naming no command, reported once per command map with a `console.error`.
+- Labels become strings and flags booleans; `checked` stays `undefined` for an item that is not checkable.
+- A submenu is resolved the same way, and left out when nothing in it shows.
+- Separators never lead, trail or sit next to another, however the items around them came and went.
+
+An empty result means there is nothing to show, so a renderer shows no grid menu there.
+
+| Resolved entry          | Fields                                                                                                                |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `ResolvedMenuItem`      | `type: "item"`, `id`, `label`, `icon`, `shortcut`, `disabled`, `checked` (`boolean \| undefined`), `run()`            |
+| `ResolvedMenuSubmenu`   | `type: "submenu"`, `id`, `label`, `icon`, `items` — never empty                                                       |
+| `ResolvedMenuSeparator` | `type: "separator"`, `key` — the separator's place among the entries it came from, unique among its menu's separators |
+
+`run()` runs an item against the context its menu was resolved in — a command through `runCommand`, so only while it is visible and enabled; an inline item unless it is disabled — and returns whether it ran.
+
+## Keyboard
+
+Grid menus follow the [WAI-ARIA menu pattern](https://www.w3.org/WAI/ARIA/apg/patterns/menubar/). A disabled item stays focusable, so a screen reader can find it, and does nothing when activated; a checkable item is a `menuitemcheckbox` with `aria-checked`.
+
+| Key                                              | Does                                                                                         |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| <Kbd>ArrowDown</Kbd> / <Kbd>ArrowUp</Kbd>        | The next or previous item, wrapping round the ends and skipping separators.                  |
+| <Kbd>Home</Kbd> / <Kbd>End</Kbd>                 | The first or last item.                                                                      |
+| <Kbd>Enter</Kbd> / <Kbd>Space</Kbd>              | Runs the item and closes every menu; on a submenu item, opens it and focuses its first item. |
+| <Kbd>ArrowRight</Kbd>                            | On a submenu item, opens it and focuses its first item.                                      |
+| <Kbd>ArrowLeft</Kbd>                             | In a submenu, closes it and focuses the item that opened it.                                 |
+| <Kbd>Escape</Kbd>                                | Closes the current menu only; focus goes back one level.                                     |
+| <Kbd>Tab</Kbd> / <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd> | Closes every menu; focus returns to where the menu was opened from.                          |
+| A printable character                            | Typeahead: the next item whose label starts with what was typed.                             |
+
+Hovering over an item moves focus to it, and hovering over a submenu item opens it after a short delay.
+
+The two decisions those keys need are pure, and live here; the behaviour that holds a menu's focus — @gridkitjs/dom's [`attachMenu`](/docs/dom/overview#menu) — calls them:
+
+| Function                              | Type     | Description                                                                                                                                                                                                                                                                                                              |
+| ------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `nextMenuIndex(entries, from, move)`  | `number` | The item focus moves to from index `from`, `-1` for none. `move` is a `MenuMove`: `"next"`, `"previous"`, `"first"` or `"last"`. Skips separators, wraps round the ends and counts disabled items; `-1` when there is no item.                                                                                           |
+| `typeaheadIndex(labels, from, query)` | `number` | The item `query` picks, matched case-insensitively against the start of each label, wrapping. One letter, or one letter typed again and again, searches from the item after `from`, so repeating it steps through every item it starts; a longer query keeps the focused item while it still matches. `-1` for no match. |

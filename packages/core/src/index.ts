@@ -1,8 +1,9 @@
 // Framework-agnostic grid logic: the grid's options and controller, column
 // inference, sizing, ordering, selection, sorting, the filtering engine,
 // grouping, aggregates, paging, the composed view, value formatting,
-// virtualization math and keyboard navigation. Kept free of React and the DOM
-// so it is testable in Node and reusable from any renderer.
+// virtualization math, keyboard navigation, and the commands and menu model
+// every menu and toolbar is drawn from. Kept free of React and the DOM so it
+// is testable in Node and reusable from any renderer.
 export type {
   AggregateFn,
   AggregateResults,
@@ -103,6 +104,32 @@ export type {
   SelectionDiffEvent,
 } from "./controller/gridController";
 export { createGridController } from "./controller/createGridController";
+export type {
+  GridCommand,
+  GridCommandActions,
+  GridCommandContext,
+  GridCommandHost,
+  GridCommandTarget,
+  GridPanelKind,
+} from "./commands/types";
+export type { GridCommandContextInput } from "./commands/context";
+export { createCommandContext } from "./commands/context";
+export type { BuiltInCommandId } from "./commands/builtInCommands";
+export { builtInCommands } from "./commands/builtInCommands";
+export { resolveCommands, runCommand } from "./commands/registry";
+export type {
+  MenuEntry,
+  MenuItemEntry,
+  MenuSubmenuEntry,
+  ResolvedMenuEntry,
+  ResolvedMenuItem,
+  ResolvedMenuSeparator,
+  ResolvedMenuSubmenu,
+} from "./menu/types";
+export type { MenuResolveOptions } from "./menu/resolveMenu";
+export { resolveMenu } from "./menu/resolveMenu";
+export type { MenuMove } from "./menu/navigation";
+export { nextMenuIndex, typeaheadIndex } from "./menu/navigation";
 export type { KeyShortcutCapabilities } from "./util/grid";
 export {
   accessDotted,
