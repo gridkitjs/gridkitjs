@@ -9,6 +9,7 @@ import {
   type Ref,
 } from "react";
 import {
+  isColumnVisible,
   moveColumnBefore,
   resolveColumnHeaderText,
   resolveMessages,
@@ -25,6 +26,7 @@ import {
   type ColumnSizingState,
   type ColumnSortEvent,
   type ColumnSortState,
+  type ColumnVisibilityEvent,
   type ColumnVisibilityState,
   type DisplayRow,
   type FilterState,
@@ -62,6 +64,9 @@ import GridPager from "./components/GridPager";
 import GroupByBar from "./components/GroupByBar";
 import { ariaAttr } from "./ariaAttr";
 import { classNames } from "./classNames";
+import useGridCommands from "./commands/useGridCommands";
+import GridContextMenu from "./contextMenu/GridContextMenu";
+import useContextMenu from "./contextMenu/useContextMenu";
 import { isOwnEvent } from "./isOwnEvent";
 import useColumnDrag from "./useColumnDrag";
 import useColumnResize from "./useColumnResize";
@@ -446,6 +451,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     resizeMode = "fit",
     columnSizeDefaults,
     onColumnResize,
+    onColumnVisibilityChange,
     sortableColumns = false,
     onColumnSortChange,
     groupableColumns = false,
@@ -501,6 +507,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     ...props,
     viewportWidth,
     onColumnResize: handleColumnResize,
+    onColumnVisibilityChange: handleColumnVisibilityChange,
     onColumnSortChange: handleColumnSortChange,
     onGroupByChange: handleGroupByChange,
     onGroupExpansionChange: handleGroupExpansionChange,
@@ -592,6 +599,22 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     controller,
     columnSizeDefaults,
   });
+  const commands = useGridCommands({ controller, messages, announce, resize });
+
+  /** Wrapped the same way `handleColumnResize` is, naming a column shown or hidden alone. */
+  function handleColumnVisibilityChange(event: ColumnVisibilityEvent): void {
+    onColumnVisibilityChange?.(event);
+    const [columnId] = event.columnIds;
+    const entry = view.dataColumns.find(
+      (candidate) => candidate.id === columnId,
+    );
+    if (event.columnIds.length !== 1 || entry === undefined) return;
+    announce(
+      isColumnVisible(entry.column, event.visibility)
+        ? messages.columnShown(columnName(entry.id))
+        : messages.columnHidden(columnName(entry.id)),
+    );
+  }
 
   /** Wrapped the same way `handleColumnResize` is, for its own announcement. */
   function handleGroupByChange(event: GroupByEvent): void {
@@ -854,6 +877,18 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   const multiselectable =
     selection.rowMode === "multiple" || selection.columnMode === "multiple";
 
+  const contextMenu = useContextMenu({
+    rootRef: viewportRef,
+    headerTableRef,
+    contextMenu: props.contextMenu,
+    controller,
+    commands,
+    nav,
+    selection,
+    messages,
+    columnName,
+  });
+
   /**
    * Tells `subscribe`'s listeners once a render has drawn a change: to the
    * controller's state or view — whether an action or a prop made it — or to
@@ -935,12 +970,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     setColumnSelection: controller.setColumnSelection,
     setCellSelection: controller.setCellSelection,
     autoFitColumn: (columnId) => {
-      const entry = controller
-        .getView()
-        .columns.find((candidate) => candidate.id === columnId);
-      if (entry !== undefined) {
-        resize.sizeToContent(entry);
-      }
+      commands.host.autoFitColumns([columnId]);
     },
     scrollToRow: (rowId, options) => {
       // `pageRows`, not `displayRows`: a data row's DOM position is its place
@@ -1106,6 +1136,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
             groupBy={state.groupBy}
             groupableColumns={groupableColumns}
             groupToggleIconColumns={groupToggleIconColumns}
+            headerMenu={contextMenu.headerMenu}
             nav={nav}
             selection={selection}
           />
@@ -1170,6 +1201,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
           </table>
         )}
       </div>
+      <GridContextMenu contextMenu={contextMenu} />
       {paginated &&
         (pager?.template ? (
           pager.template(pagerContext)

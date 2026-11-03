@@ -1,0 +1,85 @@
+---
+title: "Context menu"
+description: "The grid's own menu on a column header — sort, group, autofit and hide — opened by a right-click, Shift+F10 or the ContextMenu key."
+---
+
+`contextMenu` gives the grid a menu of its own on its column headers, in place of the browser's. A right-click on a header, or <Kbd>Shift</Kbd>+<Kbd>F10</Kbd> or the <Kbd>ContextMenu</Kbd> key on a focused one, opens a menu of what that column can do — sort it, group by it, size it to its content, hide it. It is off by default, like every other GridKit feature: without `contextMenu`, a right-click shows the browser's menu.
+
+## Turning it on
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={rows}
+  sortableColumns
+  resizableColumns
+  groupableColumns
+  contextMenu
+/>
+```
+
+`contextMenu` alone shows the default menu. Each item is a [built-in command](/docs/core/commands#built-in-commands) and shows only where its column allows it, so a column that cannot sort has no sort items and a grid without `resizableColumns` no autofit:
+
+| Item                      | Command             | Shown when                                                                                   |
+| ------------------------- | ------------------- | -------------------------------------------------------------------------------------------- |
+| Sort ascending            | `sort.ascending`    | The column is sortable. Checked while it sorts ascending.                                    |
+| Sort descending           | `sort.descending`   | The column is sortable. Checked while it sorts descending.                                   |
+| Clear sort                | `sort.clear`        | The column is sortable; disabled until it is sorted. Leaves the rest of a multi-column sort. |
+| Group by _column_         | `group.add`         | The column is groupable and not grouped.                                                     |
+| Stop grouping by _column_ | `group.remove`      | The column is grouped.                                                                       |
+| Autofit column            | `column.autoFit`    | The column is resizable.                                                                     |
+| Autofit all columns       | `column.autoFitAll` | Any column is resizable.                                                                     |
+| Hide column               | `column.hide`       | The column's `hideable` is not `false`; disabled for the last column shown.                  |
+
+Separators fall between the sort, grouping, sizing and hiding items, and collapse when the items around them are hidden. A header whose menu would be empty shows the browser's menu instead.
+
+## Choosing the items
+
+An object lists a header's menu yourself, in the menu vocabulary of [@gridkitjs/core](/docs/core/commands#menus) — command ids and `"separator"`:
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={rows}
+  sortableColumns
+  contextMenu={{
+    header: ["sort.ascending", "sort.descending", "separator", "column.hide"],
+  }}
+/>
+```
+
+`{ header: [] }` turns the header menu off and leaves the browser's. `defaultContextMenu.header`, exported from @gridkitjs/core, is the default list, to build on.
+
+## What opening it does
+
+- **Focus** moves to the header first, so closing the menu — by choosing an item, <Kbd>Escape</Kbd>, <Kbd>Tab</Kbd> or a click outside — puts focus back on it. When the item hid that column, focus goes to the header now in its place.
+- **Selection** follows the menu under `selectable.columns`: opening it on a column that is not selected selects that column alone, as a click would; opening it on a column already in the selection keeps the selection as it is.
+- **Placement** is at the pointer for a right-click, and below the header for a key.
+- **Changes** report and announce exactly as the user's own gesture would: "Sort ascending" fires `onColumnSortChange` and says "Name sorted ascending", "Hide column" fires `onColumnVisibilityChange` and says "Name, column hidden".
+
+The menu renders into `document.body`, so no scrolling ancestor clips it, and takes the grid's `.gridkit-light`/`.gridkit-dark` palette with it — see the [theme](/docs/theme-tailwind/overview#overlays-and-menus) for its classes.
+
+A header template with a menu of its own keeps it: a `contextmenu` event the template's `onContextMenu` already prevented is left to it.
+
+## Keyboard & pointer interactions
+
+| Key or action                                            | Does                                                              |
+| -------------------------------------------------------- | ----------------------------------------------------------------- |
+| Right-click a header                                     | Opens its menu at the pointer.                                    |
+| <Kbd>Shift</Kbd>+<Kbd>F10</Kbd> / <Kbd>ContextMenu</Kbd> | On a focused header, opens its menu below it.                     |
+| <Kbd>ArrowDown</Kbd> / <Kbd>ArrowUp</Kbd>                | The next or previous item, wrapping round the ends.               |
+| <Kbd>Home</Kbd> / <Kbd>End</Kbd>                         | The first or last item.                                           |
+| <Kbd>Enter</Kbd> / <Kbd>Space</Kbd>, or a click          | Runs the item and closes the menu. A disabled item does nothing.  |
+| A printable character                                    | Moves to the next item whose label starts with what was typed.    |
+| <Kbd>Escape</Kbd>                                        | Closes the menu, and goes no further: the grid's selection stays. |
+| <Kbd>Tab</Kbd> / <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd>         | Closes the menu.                                                  |
+
+Moving the pointer over an item focuses it. A disabled item still takes focus, so a screen reader finds it. While a header opens a menu, its `aria-keyshortcuts` lists `Shift+F10`.
+
+## Props
+
+| Prop          | Type                                     | Default | Description                                                                                                         |
+| ------------- | ---------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------- |
+| `contextMenu` | `boolean \| GridContextMenuOptions<Row>` |         | The grid's own context menu. `true` shows the defaults; `{ header }` lists a header's menu, `[]` for the browser's. |
+
+The menu's accessible name is the `headerMenuLabel` message — "Name column menu" — and every item's label a message too; see [localization](/docs/react/localization).

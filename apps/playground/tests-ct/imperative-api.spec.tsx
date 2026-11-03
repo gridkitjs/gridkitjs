@@ -288,6 +288,25 @@ test.describe("column visibility", () => {
     expect(events).toHaveLength(2);
   });
 
+  test("hiding or showing one column announces it", async ({ mount }) => {
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={wideColumns}
+        dataSource={wideRows}
+        label="Visibility announcements"
+        visibilityColumnIds={["name"]}
+      />,
+    );
+    const status = root.locator('[role="status"]');
+
+    await root.getByRole("button", { name: "hide-columns" }).click();
+    await expect(status).toHaveText("name, column hidden");
+
+    await root.getByRole("button", { name: "show-columns" }).click();
+    await expect(status).toHaveText("name, column shown");
+  });
+
   test("a column hidden by its definition stays a data column and can be shown", async ({
     mount,
   }) => {

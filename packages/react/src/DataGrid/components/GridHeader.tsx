@@ -33,6 +33,8 @@ interface GridHeaderProps<Row> {
   groupBy: GroupByState;
   groupableColumns: boolean;
   groupToggleIconColumns: boolean;
+  /** Whether a header opens the grid's context menu, which its `aria-keyshortcuts` says. */
+  headerMenu: boolean;
   nav: GridNavigationApi;
   selection: GridSelectionApi;
 }
@@ -47,6 +49,7 @@ export default function GridHeader<Row>({
   groupBy,
   groupableColumns,
   groupToggleIconColumns,
+  headerMenu,
   nav,
   selection,
 }: GridHeaderProps<Row>) {
@@ -94,6 +97,7 @@ export default function GridHeader<Row>({
             resizable: entry.resizable,
             sortable,
             groupable,
+            contextMenu: headerMenu,
           });
 
           return (

@@ -1,0 +1,38 @@
+import GridMenu from "../menu/GridMenu";
+import Overlay from "../overlay/Overlay";
+import type { ContextMenuApi } from "./useContextMenu";
+
+/**
+ * The open context menu, if any — beside the point it was asked for at, or
+ * below its cell when asked for by a key — returning focus to that cell when
+ * it closes. Rendered after the grid's tables, as every grid overlay is, so
+ * the keys pressed in it reach no header or body handler on their way up
+ * React's tree.
+ */
+export default function GridContextMenu({
+  contextMenu,
+}: {
+  contextMenu: ContextMenuApi;
+}) {
+  const { menu, run, close } = contextMenu;
+  if (menu === null) {
+    return null;
+  }
+  return (
+    <Overlay
+      key={menu.key}
+      anchor={menu.anchor}
+      returnFocusTo={menu.cell}
+      themeClassName={menu.themeClassName}
+      onDismiss={close}
+    >
+      <GridMenu
+        entries={menu.entries}
+        label={menu.label}
+        themeClassName={menu.themeClassName}
+        onRun={run}
+        onClose={close}
+      />
+    </Overlay>
+  );
+}
