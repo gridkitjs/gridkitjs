@@ -69,7 +69,7 @@ Tailwind config:
 | `--gridkit-line`            | Borders                                                                  |
 | `--gridkit-hover-line`      | Cell hover outline, resize edge                                          |
 | `--gridkit-fg`              | Text                                                                     |
-| `--gridkit-fg-muted`        | Secondary text, resize grip                                              |
+| `--gridkit-fg-muted`        | Secondary text and icons                                                 |
 | `--gridkit-accent`          | Focus rings, drop indicators, and the active sort, group and check marks |
 | `--gridkit-selected`        | Selected row, column or cell                                             |
 | `--gridkit-selected-strong` | A selected row or cell also hovered                                      |
