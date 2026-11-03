@@ -53,4 +53,4 @@ function SortIndicator({ gridRef }: { gridRef: RefObject<DataGridApi<Row> | null
 }
 ```
 
-Read-only: `DataGridApi` has no sort-mutating action — sort stays uncontrolled via `defaultColumnSort`/the grid's own header toggle. Before the grid mounts, it reads as an empty array. See [imperative handle](/docs/react/imperative-handle) for `getColumnSort`/`subscribe`, and [row grouping](/docs/react/row-grouping) for `useGroupByState`'s equivalent.
+`useColumnSortState` only reads. To change the sort from code, call the ref's `setColumnSort(sort)`, which replaces it and fires `onColumnSortChange`, or run a sort command — `runCommand("sort.ascending", { area: "header", columnId })`, likewise `"sort.descending"` and `"sort.clear"`, or `"sort.clearAll"` with no target — as the [context menu](/docs/react/context-menu#default-items) does; to hold the sort yourself, pass the controlled `columnSort` prop. Before the grid mounts, the hook reads as an empty array. See [imperative handle](/docs/react/imperative-handle) for `getColumnSort`/`subscribe`, and [row grouping](/docs/react/row-grouping) for `useGroupByState`'s equivalent.
