@@ -85,7 +85,7 @@ Every getter reads the grid's state at the moment it is called, so a read straig
 | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `focusCell(rowIndex, columnIndex)`   | Moves the grid's tab stop, and the browser's focus, to a cell.                                                                                                    |
 | `clearSelection()`                   | Clears row, column, and cell selection together — the same as pressing <Kbd>Escape</Kbd>.                                                                         |
-| `selectAllRows()`                    | Selects every row — the same as <Kbd>Ctrl</Kbd>+<Kbd>A</Kbd>.                                                                                                     |
+| `selectAllRows()`                    | Selects every data row on the current page, under `selectable.rows: "multiple"` only — the same as <Kbd>Ctrl</Kbd>+<Kbd>A</Kbd>.                                  |
 | `selectRows(rowIds, intent?)`        | Selects rows by id within `selectable.rows`: `"replace"` (the default) or `"toggle"`. Fires the row callbacks once, or not at all when nothing changed.           |
 | `expandAllGroups()`                  | Expands every group at once, as the `group.expandAll` command ("Expand all groups") does.                                                                         |
 | `collapseAllGroups()`                | Collapses every group currently shown at once.                                                                                                                    |
