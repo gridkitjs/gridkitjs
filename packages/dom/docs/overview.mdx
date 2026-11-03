@@ -1,9 +1,9 @@
 ---
 title: "Overview"
-description: "Framework-free browser behaviours for GridKit renderers: gestures, focus, observers, virtualization, overlays and announcements."
+description: "Framework-free browser behaviours for GridKit renderers: gestures, focus, observers, virtualization, overlays, menus, toolbars and announcements."
 ---
 
-@gridkitjs/dom holds every browser behaviour a grid needs that is not drawing: pointer gestures, keyboard focus movement, the observers behind fit-to-width and infinite scroll, the row virtualizer's measuring, overlays and the menus shown in them, and the live region it reports changes through. @gridkitjs/core decides what the grid does and runs without a DOM; @gridkitjs/dom does what needs one, with no framework; a renderer such as @gridkitjs/react draws the markup and attaches these behaviours to it. A second renderer — for Angular, Vue or Svelte — reuses both unchanged.
+@gridkitjs/dom holds every browser behaviour a grid needs that is not drawing: pointer gestures, keyboard focus movement, the observers behind fit-to-width and infinite scroll, the row virtualizer's measuring, overlays and the menus shown in them, toolbars, and the live region it reports changes through. @gridkitjs/core decides what the grid does and runs without a DOM; @gridkitjs/dom does what needs one, with no framework; a renderer such as @gridkitjs/react draws the markup and attaches these behaviours to it. A second renderer — for Angular, Vue or Svelte — reuses both unchanged.
 
 You only need this package to write a renderer of your own. @gridkitjs/react depends on it already, so installing that is enough to use the grid.
 
@@ -430,4 +430,34 @@ function showMenu(
     menu.remove();
   }
 }
+```
+
+## Toolbar
+
+`attachToolbar(toolbar)` makes a `role="toolbar"` element the renderer has drawn one tab stop that the arrow keys move within, following the [WAI-ARIA toolbar pattern](https://www.w3.org/WAI/ARIA/apg/patterns/toolbar/), and returns the function that stops it. What the toolbar lists is @gridkitjs/core's: [`resolveToolbar`](/docs/core/toolbar#resolving) resolves a grid's toolbar entries to the items to draw.
+
+| Markup                      | Read as                                                                                                                                                                                                      |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `data-gridkit-toolbar-item` | An entry, holding the item's `key`. Its control is the entry itself when it can take focus, else the first element in it that can — a search box's input, a custom entry's button. Read afresh on every key. |
+| An entry with no control    | A separator or a spacer: the keys pass over it.                                                                                                                                                              |
+| `aria-disabled="true"`      | A disabled control: it still takes focus, so a screen reader finds it. Running it is the renderer's to refuse.                                                                                               |
+
+One control at a time has `tabindex="0"` — the focused one, or the first — and the rest `-1`, so <Kbd>Tab</Kbd> reaches the toolbar once and returns to the control last used. A control drawn later, such as a button whose command became visible, joins with `-1`, leaving the tab stop where it was. Leave `tabindex` to it.
+
+| Key                                          | Does                                                           |
+| -------------------------------------------- | -------------------------------------------------------------- |
+| <Kbd>ArrowRight</Kbd> / <Kbd>ArrowLeft</Kbd> | Focuses the next or previous control, wrapping round the ends. |
+| <Kbd>Home</Kbd> / <Kbd>End</Kbd>             | Focuses the first or last control.                             |
+
+A text field keeps the keys it needs: <Kbd>Home</Kbd> and <Kbd>End</Kbd> move its caret, and so do the arrows while there is text to move through. With the caret at the start, <Kbd>ArrowLeft</Kbd> moves on to the previous control; at the end, <Kbd>ArrowRight</Kbd> to the next — otherwise a search box holding the tab stop would leave no way to the controls after it. With text selected, or in a field that keeps its caret to itself, such as `type="email"`, the arrows stay with the field.
+
+```ts
+import { attachToolbar } from "@gridkitjs/dom";
+
+// <div role="toolbar" aria-label="Grid toolbar">
+//   <div data-gridkit-toolbar-item="search"><input type="search" … /></div>
+//   <div data-gridkit-toolbar-item="spacer-1"></div>
+//   <button data-gridkit-toolbar-item="filter.clearAll" aria-disabled="true">Clear filters</button>
+// </div>
+const detach = attachToolbar(toolbarElement);
 ```

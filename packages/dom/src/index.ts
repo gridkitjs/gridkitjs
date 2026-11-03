@@ -74,6 +74,7 @@ export {
   type OverlaySize,
 } from "./overlay/placeOverlay";
 export type { PointerPress } from "./pointerGesture";
+export { attachToolbar } from "./toolbar/attachToolbar";
 export {
   createRowVirtualizer,
   type RowVirtualizer,
