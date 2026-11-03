@@ -3,7 +3,7 @@ title: "Column sorting"
 description: "Clicking a header's sort toggle with sortableColumns, and stacking with Shift-click."
 ---
 
-sortableColumns turns on a clickable sort toggle in every header, unless a column sets its own sortable to override the grid. A plain click sorts by that column alone, cycling ascending, descending, and off; Shift-click adds or updates the column in a priority-ordered stack instead of replacing it — sort by `Id` ascending, then by `Application.Name` descending as a tiebreaker.
+sortableColumns turns on a clickable sort toggle in every header, unless a column sets its own sortable to override the grid. A plain click sorts by that column alone, cycling ascending, descending, and off; <Kbd>Shift</Kbd>+click adds or updates the column in a priority-ordered stack instead of replacing it — sort by `Id` ascending, then by `Application.Name` descending as a tiebreaker.
 
 ## Click to sort, Shift-click to stack
 
@@ -33,8 +33,9 @@ sortableColumns turns on a clickable sort toggle in every header, unless a colum
 ## Keyboard & pointer interactions
 
 - Click a header's sort toggle to cycle it through ascending, descending, and off.
-- Shift-click a toggle to add or update that column in the sort's stack instead of replacing it.
-- With a header focused, <Kbd>Alt</Kbd>+<Kbd>ArrowUp</Kbd> cycles its sort the same way a click does; <Kbd>Alt</Kbd>+<Kbd>Shift</Kbd>+<Kbd>ArrowUp</Kbd> stacks it the same way a Shift-click does.
+- <Kbd>Shift</Kbd>+click a toggle to add or update that column in the sort's
+  stack instead of replacing it.
+- With a header focused, <Kbd>Alt</Kbd>+<Kbd>ArrowUp</Kbd> cycles its sort the same way a click does; <Kbd>Alt</Kbd>+<Kbd>Shift</Kbd>+<Kbd>ArrowUp</Kbd> stacks it the same way a <Kbd>Shift</Kbd>+click does.
 
 ## Reading sort state outside the grid's own tree
 
