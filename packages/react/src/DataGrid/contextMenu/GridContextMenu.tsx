@@ -1,5 +1,5 @@
 import GridMenu from "../menu/GridMenu";
-import Overlay from "../overlay/Overlay";
+import Overlay, { ANCHOR_GAP } from "../overlay/Overlay";
 import type { ContextMenuApi } from "./useContextMenu";
 
 /**
@@ -23,6 +23,7 @@ export default function GridContextMenu({
     <Overlay
       key={menu.key}
       anchor={menu.anchor}
+      gap={menu.anchor instanceof Element ? ANCHOR_GAP : 0}
       returnFocusTo={menu.cell ?? undefined}
       themeClassName={menu.themeClassName}
       onDismiss={close}

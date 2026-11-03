@@ -16,6 +16,9 @@ import { expect, test } from "./support/coverage";
 import { mountGrid, updateGrid } from "./support/mountGrid";
 import ImperativeApiGrid from "./support/ImperativeApiGrid";
 
+/** DataGrid's space between a menu or panel and what it opens below. */
+const ANCHOR_GAP = 4;
+
 interface Row {
   id: string;
   name: string;
@@ -649,7 +652,7 @@ test.describe("context menu", () => {
     const cellBox = await groupCell.boundingBox();
     const menuBox = await page.locator(".gridkit-overlay").boundingBox();
     expect(menuBox?.y).toBeCloseTo(
-      (cellBox?.y ?? 0) + (cellBox?.height ?? 0),
+      (cellBox?.y ?? 0) + (cellBox?.height ?? 0) + ANCHOR_GAP,
       0,
     );
     await page.keyboard.press("Escape");

@@ -5,7 +5,7 @@ import { ariaAttr } from "../ariaAttr";
 import { classNames } from "../classNames";
 import GridMenu from "../menu/GridMenu";
 import { ChevronDownIcon, MenuIcon } from "../menu/menuIcons";
-import Overlay, { overlayThemeClassName } from "../overlay/Overlay";
+import Overlay, { ANCHOR_GAP, overlayThemeClassName } from "../overlay/Overlay";
 
 interface ToolbarMenuButtonProps {
   /** Its `data-gridkit-toolbar-item`. */
@@ -109,6 +109,7 @@ export default function ToolbarMenuButton({
         <Overlay
           anchor={menu.anchor}
           placement="bottom-start"
+          gap={ANCHOR_GAP}
           returnFocusTo={menu.anchor}
           themeClassName={menu.themeClassName}
           onDismiss={close}

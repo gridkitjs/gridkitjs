@@ -251,7 +251,7 @@ Each is safe to call from an effect: opening a menu renders nothing synchronousl
 
 - **Focus** moves to the header, cell or group row first, so closing the menu — by choosing an item, <Kbd>Escape</Kbd>, <Kbd>Tab</Kbd> or a click outside — puts focus back on it. When the item hid that column, focus goes to the header now in its place. A menu opened in the body's empty space leaves focus where it was.
 - **Selection** follows the menu, kind by kind, as a click would: opening it on a column, row or cell that is not selected selects it alone, where that kind is selectable; opening it on one already in the selection keeps the selection as it is, so the menu acts on everything selected. A cell's row and the cell itself each follow their own `selectable` mode.
-- **Placement** is at the pointer for a right-click or a long-press, and below the header, cell or group row for a key.
+- **Placement** is at the pointer for a right-click or a long-press, and 4 pixels below the header, cell or group row for a key — the same gap a toolbar dropdown's menu and the column chooser leave below what they open from.
 - **Changes** report and announce exactly as the user's own gesture would: "Sort ascending" fires `onColumnSortChange` and says "Name sorted ascending", "Hide column" fires `onColumnVisibilityChange` and says "Name, column hidden", "Collapse all groups" says "All groups collapsed".
 
 The menu renders into `document.body`, so no scrolling ancestor clips it, and takes the grid's `.gridkit-light`/`.gridkit-dark` palette with it — see the [theme](/docs/theme-tailwind/overview#overlays-and-menus) for its classes.

@@ -8,6 +8,9 @@ import { DataGrid, type DataGridProps } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
 
+/** DataGrid's space between a menu or panel and what it opens below. */
+const ANCHOR_GAP = 4;
+
 interface Row {
   id: string;
   name: string;
@@ -101,7 +104,7 @@ test.describe("column chooser", () => {
       boxOf(chooser),
     ]);
     expect(panel.x + panel.width).toBeCloseTo(button.x + button.width, 0);
-    expect(panel.y).toBeCloseTo(button.y + button.height, 0);
+    expect(panel.y).toBeCloseTo(button.y + button.height + ANCHOR_GAP, 0);
     await expect(chooser).toHaveClass("gridkit-column-chooser");
 
     await expect(chooser.locator(".column-chooser-list li")).toHaveText([
@@ -309,7 +312,7 @@ test.describe("column chooser", () => {
       boxOf(chooser),
     ]);
     expect(panel.x).toBeCloseTo(cell.x, 0);
-    expect(panel.y).toBeCloseTo(cell.y + cell.height, 0);
+    expect(panel.y).toBeCloseTo(cell.y + cell.height + ANCHOR_GAP, 0);
 
     await page.keyboard.press("Escape");
 
@@ -365,7 +368,7 @@ test.describe("column chooser", () => {
       chooser.getByRole("searchbox", { name: "Search columns" }),
     ).toBeFocused();
     const [button, panel] = await Promise.all([boxOf(more), boxOf(chooser)]);
-    expect(panel.y).toBeCloseTo(button.y + button.height, 0);
+    expect(panel.y).toBeCloseTo(button.y + button.height + ANCHOR_GAP, 0);
 
     await page.keyboard.press("Escape");
 

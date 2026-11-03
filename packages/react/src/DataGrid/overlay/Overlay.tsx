@@ -32,6 +32,14 @@ interface OverlayProps {
 }
 
 /**
+ * The space between a menu or panel and the element it opens below — a
+ * toolbar button, a header — so its shadow does not run into that element's
+ * border. Nothing opened at a point, or beside its own menu, as a submenu is,
+ * takes it.
+ */
+export const ANCHOR_GAP = 4;
+
+/**
  * The palette class an overlay opened from `element` copies:
  * `gridkit-light` or `gridkit-dark`, from the nearest ancestor carrying one,
  * or none to follow the page. An overlay renders into `document.body`, out of
