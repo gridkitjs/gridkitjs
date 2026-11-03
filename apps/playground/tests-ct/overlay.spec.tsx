@@ -83,9 +83,13 @@ test.describe("placement", () => {
 
     await panel.getByRole("button", { name: "Shrink" }).click();
 
-    await expect.poll(async () => (await boxOf(panel)).height).toBe(60);
+    // The new height lands at once; the panel is placed again only when its
+    // ResizeObserver reports, a frame later.
+    await expect
+      .poll(async () => (await boxOf(panel)).y)
+      .toBeGreaterThan(before.y);
     const after = await boxOf(panel);
-    expect(after.y).toBeGreaterThan(before.y);
+    expect(after.height).toBe(60);
     expect(after.y + after.height).toBeCloseTo(anchor.y - 4, 0);
   });
 
