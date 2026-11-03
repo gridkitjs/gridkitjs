@@ -16,14 +16,7 @@ One cell holds the grid's tab stop at a time — <Kbd>Tab</Kbd> reaches the grid
 | <Kbd>Ctrl</Kbd>+<Kbd>Home</Kbd> / <Kbd>Ctrl</Kbd>+<Kbd>End</Kbd>                         | The first / last cell of the whole grid.          |
 | <Kbd>PageUp</Kbd> / <Kbd>PageDown</Kbd>                                                  | Up or down by however many rows fit the viewport. |
 
-<Kbd>Alt</Kbd>+<Kbd>ArrowLeft</Kbd>/<Kbd>ArrowRight</Kbd> and <Kbd>Ctrl</Kbd>+
-<Kbd>ArrowLeft</Kbd>/<Kbd>ArrowRight</Kbd> are reserved for column resize and
-column reorder respectively, not plain navigation — a focused header claims them
-first. See [column resizing](/docs/react/column-resizing) and [column
-reordering](/docs/react/column-reordering) for what they do there.
-<Kbd>Alt</Kbd>+<Kbd>ArrowDown</Kbd> is likewise reserved on a groupable header,
-for adding or removing it from the group-by stack — see [row
-grouping](/docs/react/row-grouping).
+On a focused header, <Kbd>Alt</Kbd>+<Kbd>ArrowLeft</Kbd> / <Kbd>Alt</Kbd>+<Kbd>ArrowRight</Kbd> and <Kbd>Ctrl</Kbd>+<Kbd>ArrowLeft</Kbd> / <Kbd>Ctrl</Kbd>+<Kbd>ArrowRight</Kbd> resize and reorder its column rather than move focus — see [column resizing](/docs/react/column-resizing) and [column reordering](/docs/react/column-reordering) for what they do there. <Kbd>Alt</Kbd>+<Kbd>ArrowDown</Kbd> is likewise reserved on a groupable header, for adding or removing it from the group-by stack — see [row grouping](/docs/react/row-grouping).
 
 With [`contextMenu`](/docs/react/context-menu) on, <Kbd>Shift</Kbd>+<Kbd>F10</Kbd> or the <Kbd>ContextMenu</Kbd> key on a focused header, cell or group row opens its menu, the keyboard's way to a right-click. The menu follows the [WAI-ARIA menu pattern](https://www.w3.org/WAI/ARIA/apg/patterns/menubar/): the arrow keys, <Kbd>Home</Kbd> and <Kbd>End</Kbd> move between its items, typing a letter jumps to an item starting with it, <Kbd>Enter</Kbd>/<Kbd>Space</Kbd> runs one, and <Kbd>Escape</Kbd> or <Kbd>Tab</Kbd> closes it — focus goes back to where it was opened either way. A disabled item still takes focus, so it can be found.
 
@@ -31,22 +24,11 @@ The [toolbar](/docs/react/toolbar) follows the [WAI-ARIA toolbar pattern](https:
 
 The [column chooser](/docs/react/column-chooser) is a dialog (`role="dialog"`, named "Columns") of native controls: focus starts in its search box, <Kbd>Tab</Kbd> moves through "Show all" and a checkbox per column, <Kbd>Space</Kbd> toggles one, and <Kbd>Escape</Kbd> closes it, giving focus back to where it was opened from. "Show all" is a tri-state checkbox, mixed while only some of the columns its search lists show.
 
-A group header renders as one cell spanning every column, so it holds the tab
-stop as a single unit rather than N per-column cells: <Kbd>ArrowLeft</Kbd>/<Kbd>ArrowRight</Kbd> are a no-op on it, and <Kbd>Space</Kbd>/<Kbd>Enter</Kbd>
-expand or collapse it in place of selecting anything.
+A group header renders as one cell spanning every column, so it holds the tab stop as a single unit rather than N per-column cells: <Kbd>ArrowLeft</Kbd>/<Kbd>ArrowRight</Kbd> are a no-op on it, and <Kbd>Space</Kbd>/<Kbd>Enter</Kbd> expand or collapse it in place of selecting anything.
 
 Under `groupAggregateDisplay: "row"` (see [aggregate functions](/docs/react/aggregate-functions)), a group's own summary row is presentational rather than an addressable stop: <Kbd>ArrowUp</Kbd>/<Kbd>ArrowDown</Kbd>/<Kbd>PageUp</Kbd>/<Kbd>PageDown</Kbd>/<Kbd>Ctrl</Kbd>+<Kbd>End</Kbd> step straight over it, landing on the nearest row that isn't one. It still occupies a real position for `aria-rowindex`/`aria-rowcount` — see below — only the tab stop skips it.
 
-The group-by bar sits outside the grid's own table and its single-roving-tab-stop
-model entirely — there's no shared position for a chip to keep in sync the way a
-cell has, so each chip (and its own remove button) is simply, always its own tab
-stop, in plain DOM order. Drag a chip to reorder the stack, or focus one and press
-
-<Kbd>Ctrl</Kbd>+<Kbd>ArrowLeft</Kbd> / <Kbd>Ctrl</Kbd>+<Kbd>ArrowRight</Kbd> —
-the same modifier and semantics a column header's own reorder shortcut uses. A
-groupable header whose column sets `groupByDraggable` can also be dragged
-straight into the bar, landing at whichever position among the existing chips
-it's released.
+The group-by bar sits outside the grid's own table and its single-roving-tab-stop model entirely — there's no shared position for a chip to keep in sync the way a cell has, so each chip (and its own remove button) is simply, always its own tab stop, in plain DOM order. Drag a chip to reorder the stack, or focus one and press <Kbd>Ctrl</Kbd>+<Kbd>ArrowLeft</Kbd> / <Kbd>Ctrl</Kbd>+<Kbd>ArrowRight</Kbd> — the same modifier and semantics a column header's own reorder shortcut uses. A groupable header whose column sets `groupByDraggable` can also be dragged straight into the bar, landing at whichever position among the existing chips it's released.
 
 ## ARIA attributes
 
