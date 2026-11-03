@@ -62,17 +62,17 @@ Tailwind config:
 }
 ```
 
-| Token                       | What it colours                     |
-| --------------------------- | ----------------------------------- |
-| `--gridkit-surface`         | Header background                   |
-| `--gridkit-surface-muted`   | Hover background                    |
-| `--gridkit-line`            | Borders                             |
-| `--gridkit-hover-line`      | Cell hover outline, resize edge     |
-| `--gridkit-fg`              | Text                                |
-| `--gridkit-fg-muted`        | Secondary text, resize grip         |
-| `--gridkit-accent`          | Accent, drop indicator, focus ring  |
-| `--gridkit-selected`        | Selected row, column or cell        |
-| `--gridkit-selected-strong` | A selected row or cell also hovered |
+| Token                       | What it colours                                                          |
+| --------------------------- | ------------------------------------------------------------------------ |
+| `--gridkit-surface`         | Header background                                                        |
+| `--gridkit-surface-muted`   | Hover background                                                         |
+| `--gridkit-line`            | Borders                                                                  |
+| `--gridkit-hover-line`      | Cell hover outline, resize edge                                          |
+| `--gridkit-fg`              | Text                                                                     |
+| `--gridkit-fg-muted`        | Secondary text and icons                                                 |
+| `--gridkit-accent`          | Focus rings, drop indicators, and the active sort, group and check marks |
+| `--gridkit-selected`        | Selected row, column or cell                                             |
+| `--gridkit-selected-strong` | A selected row or cell also hovered                                      |
 
 Redefine them inside `@variant dark { }` (or under `.gridkit-dark`) to change
 the dark palette too:
@@ -95,17 +95,29 @@ highlight under the pointer.
 
 The grid marks its own state, so a consumer's CSS can reach it too:
 
-| Class                                                         | On                                                  |
-| ------------------------------------------------------------- | --------------------------------------------------- |
-| `is-selected`                                                 | A selected `grid-row`, `header-cell` or `grid-cell` |
-| `is-resizing` / `is-dragging`                                 | The column being resized or dragged                 |
-| `is-drop-before` / `is-drop-after`                            | Where a dragged column would land                   |
-| `is-reorderable` / `is-wrapped`                               | A header that drags; a cell that wraps              |
-| `selectable-rows` / `selectable-columns` / `selectable-cells` | On the grid, per `selectable`                       |
-| `no-hover-rows` / `no-hover-columns` / `no-hover-cells`       | On the grid, per `hoverable`                        |
+| Class                                                         | On                                                                                            |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `is-selected`                                                 | A selected `grid-row`, `header-cell` or `grid-cell`                                           |
+| `is-resizing` / `is-dragging`                                 | The column being resized or dragged                                                           |
+| `is-drop-before` / `is-drop-after`                            | Where a dragged column would land                                                             |
+| `is-reorderable` / `is-wrapped`                               | A header that drags; a cell that wraps                                                        |
+| `selectable-rows` / `selectable-columns` / `selectable-cells` | On the grid, per `selectable`                                                                 |
+| `no-hover-rows` / `no-hover-columns` / `no-hover-cells`       | On the grid, per `hoverable`                                                                  |
+| `is-sorted-asc` / `is-sorted-desc`                            | A header's `header-sort-toggle` while its column sorts                                        |
+| `is-grouped`                                                  | A header's `header-group-toggle` while its column is grouped                                  |
+| `is-expanded`                                                 | A group row's `group-toggle` while the group is open                                          |
+| `is-drag-target` / `is-drag-blocked`                          | The group-by bar while a drag can drop on it; while a header already grouped is dragged at it |
 
 The `selectable-*` classes enable and the `no-hover-*` classes disable, because
 selection is off by default and hover is on — each follows its own default.
+
+The toolbar (`gridkit-toolbar`), the overlay around every menu and panel
+(`gridkit-overlay`), menus (`gridkit-menu`) and the column chooser
+(`gridkit-column-chooser`) mark their state with ARIA attributes rather than
+classes — `aria-disabled`, `aria-pressed`, `aria-checked`, `aria-expanded` —
+and the stylesheet targets those. An overlay renders into `document.body` and
+carries the grid's `gridkit-light`/`gridkit-dark`, so its selectors are
+top-level, not under `gridkit-data-grid`.
 
 ## License
 

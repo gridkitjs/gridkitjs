@@ -7,7 +7,7 @@ DataGrid implements the [WAI-ARIA grid pattern](https://www.w3.org/WAI/ARIA/apg/
 
 ## Keyboard navigation
 
-One cell holds the grid's tab stop at a time — Tab reaches the grid once, and the arrow keys move within it from there.
+One cell holds the grid's tab stop at a time — <Kbd>Tab</Kbd> reaches the grid once, and the arrow keys move within it from there.
 
 | Key                                                                                      | Moves to                                          |
 | ---------------------------------------------------------------------------------------- | ------------------------------------------------- |
@@ -16,14 +16,7 @@ One cell holds the grid's tab stop at a time — Tab reaches the grid once, and 
 | <Kbd>Ctrl</Kbd>+<Kbd>Home</Kbd> / <Kbd>Ctrl</Kbd>+<Kbd>End</Kbd>                         | The first / last cell of the whole grid.          |
 | <Kbd>PageUp</Kbd> / <Kbd>PageDown</Kbd>                                                  | Up or down by however many rows fit the viewport. |
 
-<Kbd>Alt</Kbd>+<Kbd>ArrowLeft</Kbd>/<Kbd>ArrowRight</Kbd> and <Kbd>Ctrl</Kbd>+
-<Kbd>ArrowLeft</Kbd>/<Kbd>ArrowRight</Kbd> are reserved for column resize and
-column reorder respectively, not plain navigation — a focused header claims them
-first. See [column resizing](/docs/react/column-resizing) and [column
-reordering](/docs/react/column-reordering) for what they do there.
-<Kbd>Alt</Kbd>+<Kbd>ArrowDown</Kbd> is likewise reserved on a groupable header,
-for adding or removing it from the group-by stack — see [row
-grouping](/docs/react/row-grouping).
+On a focused header, <Kbd>Alt</Kbd>+<Kbd>ArrowLeft</Kbd> / <Kbd>Alt</Kbd>+<Kbd>ArrowRight</Kbd> and <Kbd>Ctrl</Kbd>+<Kbd>ArrowLeft</Kbd> / <Kbd>Ctrl</Kbd>+<Kbd>ArrowRight</Kbd> resize and reorder its column rather than move focus — see [column resizing](/docs/react/column-resizing) and [column reordering](/docs/react/column-reordering) for what they do there. <Kbd>Alt</Kbd>+<Kbd>ArrowDown</Kbd> is likewise reserved on a groupable header, for adding or removing it from the group-by stack — see [row grouping](/docs/react/row-grouping).
 
 With [`contextMenu`](/docs/react/context-menu) on, <Kbd>Shift</Kbd>+<Kbd>F10</Kbd> or the <Kbd>ContextMenu</Kbd> key on a focused header, cell or group row opens its menu, the keyboard's way to a right-click. The menu follows the [WAI-ARIA menu pattern](https://www.w3.org/WAI/ARIA/apg/patterns/menubar/): the arrow keys, <Kbd>Home</Kbd> and <Kbd>End</Kbd> move between its items, typing a letter jumps to an item starting with it, <Kbd>Enter</Kbd>/<Kbd>Space</Kbd> runs one, and <Kbd>Escape</Kbd> or <Kbd>Tab</Kbd> closes it — focus goes back to where it was opened either way. A disabled item still takes focus, so it can be found.
 
@@ -31,22 +24,11 @@ The [toolbar](/docs/react/toolbar) follows the [WAI-ARIA toolbar pattern](https:
 
 The [column chooser](/docs/react/column-chooser) is a dialog (`role="dialog"`, named "Columns") of native controls: focus starts in its search box, <Kbd>Tab</Kbd> moves through "Show all" and a checkbox per column, <Kbd>Space</Kbd> toggles one, and <Kbd>Escape</Kbd> closes it, giving focus back to where it was opened from. "Show all" is a tri-state checkbox, mixed while only some of the columns its search lists show.
 
-A group header renders as one cell spanning every column, so it holds the tab
-stop as a single unit rather than N per-column cells: <Kbd>ArrowLeft</Kbd>/<Kbd>ArrowRight</Kbd> are a no-op on it, and <Kbd>Space</Kbd>/<Kbd>Enter</Kbd>
-expand or collapse it in place of selecting anything.
+A group header renders as one cell spanning every column, so it holds the tab stop as a single unit rather than N per-column cells: <Kbd>ArrowLeft</Kbd>/<Kbd>ArrowRight</Kbd> are a no-op on it, and <Kbd>Space</Kbd>/<Kbd>Enter</Kbd> expand or collapse it in place of selecting anything.
 
 Under `groupAggregateDisplay: "row"` (see [aggregate functions](/docs/react/aggregate-functions)), a group's own summary row is presentational rather than an addressable stop: <Kbd>ArrowUp</Kbd>/<Kbd>ArrowDown</Kbd>/<Kbd>PageUp</Kbd>/<Kbd>PageDown</Kbd>/<Kbd>Ctrl</Kbd>+<Kbd>End</Kbd> step straight over it, landing on the nearest row that isn't one. It still occupies a real position for `aria-rowindex`/`aria-rowcount` — see below — only the tab stop skips it.
 
-The group-by bar sits outside the grid's own table and its single-roving-tab-stop
-model entirely — there's no shared position for a chip to keep in sync the way a
-cell has, so each chip (and its own remove button) is simply, always its own tab
-stop, in plain DOM order. Drag a chip to reorder the stack, or focus one and press
-
-<Kbd>Ctrl</Kbd>+<Kbd>ArrowLeft</Kbd> / <Kbd>Ctrl</Kbd>+<Kbd>ArrowRight</Kbd> —
-the same modifier and semantics a column header's own reorder shortcut uses. A
-groupable header whose column sets `groupByDraggable` can also be dragged
-straight into the bar, landing at whichever position among the existing chips
-it's released.
+The group-by bar sits outside the grid's own table and its single-roving-tab-stop model entirely — there's no shared position for a chip to keep in sync the way a cell has, so each chip (and its own remove button) is simply, always its own tab stop, in plain DOM order. Drag a chip to reorder the stack, or focus one and press <Kbd>Ctrl</Kbd>+<Kbd>ArrowLeft</Kbd> / <Kbd>Ctrl</Kbd>+<Kbd>ArrowRight</Kbd> — the same modifier and semantics a column header's own reorder shortcut uses. A groupable header whose column sets `groupByDraggable` can also be dragged straight into the bar, landing at whichever position among the existing chips it's released.
 
 ## ARIA attributes
 
@@ -62,7 +44,7 @@ it's released.
 | `aria-keyshortcuts`              | Column headers and body cells | Lists whichever shortcuts that column or cell actually responds to (below), so they're discoverable rather than assumed.                                                                                                                                            |
 | `aria-expanded`                  | Group header rows             | Whether that group is currently expanded or collapsed.                                                                                                                                                                                                              |
 | `aria-level`                     | Group header rows             | 1-based nesting depth — 1 for a top-level group, 2 for one nested inside it, and so on.                                                                                                                                                                             |
-| `aria-label`                     | The context menu              | Names the menu: a header's after its column, "Name column menu"; a cell's "Row menu"; a group row's "Group menu" — the `headerMenuLabel`, `cellMenuLabel` and `groupMenuLabel` messages.                                                                            |
+| `aria-label`                     | The context menu              | Names the menu: a header's after its column, "Name column menu"; a cell's "Row menu"; a group row's "Group menu"; empty body space's "Grid menu" — the `headerMenuLabel`, `cellMenuLabel`, `groupMenuLabel` and `bodyMenuLabel` messages.                           |
 | `aria-disabled` / `aria-checked` | Context menu items            | A disabled item, which stays focusable; and a checkable item's state — "Sort ascending" is checked while the column sorts ascending.                                                                                                                                |
 | `aria-label` / `aria-controls`   | The toolbar                   | Names the toolbar — "Grid toolbar", the `toolbarLabel` message, or its `label` — and points it at the grid it acts on.                                                                                                                                              |
 | `aria-disabled` / `aria-pressed` | Toolbar buttons               | A disabled button, which stays focusable; and a toggle's state. A dropdown carries `aria-haspopup="menu"` and `aria-expanded`.                                                                                                                                      |
@@ -82,15 +64,17 @@ A body cell's `aria-keyshortcuts` is `Space Enter` when cell selection is on —
 
 A `role="status" aria-live="polite"` region, outside the table itself, reports changes that have no visual cue a screen reader could otherwise pick up on:
 
-- **Column resize** — only on release (`phase: "end"`), not on every frame of the drag: a live region updated on each pointermove would say nothing an assistive technology could keep up with. Announces the column's name and its new width in pixels.
+- **Column resize** — only on release (`phase: "end"`), not on every frame of the drag: a live region updated on each pointermove would say nothing an assistive technology could keep up with. Announces the column's name and its new width in pixels. Autofitting one column announces the same way.
+- **Autofit** — fitting more than one column at once, as "Autofit all columns" or the ref's `autoFitColumns` does, announces how many in place of each one's width ("3 columns autofitted").
 - **Column reorder** — on drop. Announces the column's name and its new position, as "column _n_ of _total_".
 - **Sort change** — a toggle, a stack, or a clear back to unsorted are each phrased differently: a plain toggle announces the column and its new direction; adding or updating a column in a multi-column sort also announces its priority ("key _n_ of _total_"); clearing a column's sort announces that its sort was cleared.
-- **Row and column selection changes** — only when more than one row or column changes in the same interaction (a range, a select-all, `Ctrl+A`). A single selection is already carried by that row's or column's own `aria-selected`, so announcing it too would talk over what a screen reader just read. Announces the resulting total, e.g. "3 rows selected".
+- **Row and column selection changes** — only when more than one row or column changes in the same interaction (a range, a select-all, <Kbd>Ctrl</Kbd>+<Kbd>A</Kbd>). A single selection is already carried by that row's or column's own `aria-selected`, so announcing it too would talk over what a screen reader just read. Announces the resulting total, e.g. "3 rows selected".
 - **Cell selection** — every time a selection lands on a cell. Unlike row and column selection, a cell selection is always exactly one cell, so there's no multi-item threshold to cross — the announcement fires on every commit instead, naming the column and row the selected cell is in.
-- **Group-by change** — adding, removing, or repositioning a level (via the header toggle, a header dropped on the bar, a dragged chip, or a chip's own `Ctrl+Arrow`) announces the column and, once two or more levels are stacked, its position ("key _n_ of _total_"); removing the last level announces that grouping was removed. Every path funnels through the same announcement, so a drag and a click read identically.
+- **Group-by change** — adding, removing, or repositioning a level (via the header toggle, a header dropped on the bar, a dragged chip, or a chip's own <Kbd>Ctrl</Kbd>+<Kbd>ArrowLeft</Kbd> / <Kbd>Ctrl</Kbd>+<Kbd>ArrowRight</Kbd>) announces the column and, once two or more levels are stacked, its position ("level _n_ of _total_"); removing any column from the grouping announces that its grouping was removed ("Region, grouping removed"). Every path funnels through the same announcement, so a drag and a click read identically.
 - **Column visibility** — hiding or showing one column, from the context menu, the column chooser or the ref's `hideColumns`/`showColumns`, announces the column and which ("Name, column hidden"); hiding or showing several at once, as the chooser's "Show all" does, announces how many ("3 columns hidden").
 - **Search** — once a search typed into the toolbar's box applies, announces how many rows it found ("3 rows found").
 - **Group expand/collapse** — a single group toggle announces "Group expanded"/"Group collapsed"; `expandAllGroups()`/`collapseAllGroups()` announce the whole-tree result instead ("All groups expanded"/"All groups collapsed").
+- **Page change** — moving to another page or changing the page size announces where the grid is now, as the `pageStatus` message has it ("Page 2 of 5"). The silent reset to the first page a filter, sort or regroup causes is not announced on its own.
 
 Each announcement's wording is a `messages` key, so it can be translated — see [localization](/docs/react/localization).
 

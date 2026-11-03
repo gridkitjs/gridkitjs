@@ -1,9 +1,9 @@
 ---
 title: "Context menu"
-description: "The grid's own menu on headers, rows and group rows — sort, group, select, autofit and hide — opened by a right-click, a long-press, Shift+F10 or the ContextMenu key."
+description: "The grid's own menu on headers, rows and group rows — sort, group, select, autofit, hide and choose columns — opened by a right-click, a long-press, Shift+F10 or the ContextMenu key."
 ---
 
-`contextMenu` gives the grid a menu of its own in place of the browser's. A right-click or a touch long-press on a column header, a data cell or a group row — or <Kbd>Shift</Kbd>+<Kbd>F10</Kbd> or the <Kbd>ContextMenu</Kbd> key on a focused one — opens a menu of what can be done there: sort the column, group by it, size it to its content, hide it; select every row or clear the selection; expand or collapse every group. It is off by default, like every other GridKit feature: without `contextMenu`, a right-click shows the browser's menu.
+`contextMenu` gives the grid a menu of its own in place of the browser's. A right-click or a touch long-press on a column header, a data cell or a group row — or <Kbd>Shift</Kbd>+<Kbd>F10</Kbd> or the <Kbd>ContextMenu</Kbd> key on a focused one — opens a menu of what can be done there: sort the column, group by it, size it to its content, hide it or open the column chooser; select every row on the page or clear the selection; expand or collapse every group. It is off by default, like every other GridKit feature: without `contextMenu`, a right-click shows the browser's menu.
 
 ## Turning it on
 
@@ -254,7 +254,7 @@ Each is safe to call from an effect: opening a menu renders nothing synchronousl
 - **Placement** is at the pointer for a right-click or a long-press, and 4 pixels below the header, cell or group row for a key — the same gap a toolbar dropdown's menu and the column chooser leave below what they open from.
 - **Changes** report and announce exactly as the user's own gesture would: "Sort ascending" fires `onColumnSortChange` and says "Name sorted ascending", "Hide column" fires `onColumnVisibilityChange` and says "Name, column hidden", "Collapse all groups" says "All groups collapsed".
 
-The menu renders into `document.body`, so no scrolling ancestor clips it, and takes the grid's `.gridkit-light`/`.gridkit-dark` palette with it — see the [theme](/docs/theme-tailwind/overview#overlays-and-menus) for its classes.
+The menu renders into `document.body`, so no scrolling ancestor clips it, and takes the grid's `.gridkit-light`/`.gridkit-dark` palette with it — see the [theme](/docs/theme-tailwind#overlays-and-menus) for its classes.
 
 A cell or header template with a menu of its own keeps it: a `contextmenu` event the template's `onContextMenu` already prevented is left to it.
 
@@ -274,7 +274,7 @@ A cell or header template with a menu of its own keeps it: a `contextmenu` event
 | <Kbd>Escape</Kbd>                                        | Closes the menu — a submenu alone, back to its item — and goes no further: the grid's selection stays.    |
 | <Kbd>Tab</Kbd> / <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd>         | Closes every menu.                                                                                        |
 
-Moving the pointer over an item focuses it, and resting it on a submenu item opens that submenu. A disabled item still takes focus, so a screen reader finds it. While an area opens a menu, the `aria-keyshortcuts` of its headers, cells or group rows lists `Shift+F10`. The [theme](/docs/theme-tailwind/overview) keys off that to give the long-press to the menu alone: on those headers, cells and group rows iOS shows no callout of its own, and a touch screen does not start selecting their text.
+Moving the pointer over an item focuses it, and resting it on a submenu item opens that submenu. A disabled item still takes focus, so a screen reader finds it. While an area opens a menu, the `aria-keyshortcuts` of its headers, cells or group rows lists `Shift+F10`. The [theme](/docs/theme-tailwind) keys off that to give the long-press to the menu alone: on those headers, cells and group rows iOS shows no callout of its own, and a touch screen does not start selecting their text.
 
 ## Props
 

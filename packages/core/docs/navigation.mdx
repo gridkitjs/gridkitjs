@@ -1,0 +1,55 @@
+---
+title: "Focus and virtualization"
+description: "The arithmetic behind the grid's single tab stop and its virtualized rows."
+---
+
+nextFocusForKey works out where a navigation key moves the grid's tab stop, and visibleRange which rows a virtualized body draws. Both are plain arithmetic over numbers; @gridkitjs/dom's [`createGridFocus`](/docs/dom#focus-movement) and [`createRowVirtualizer`](/docs/dom#row-virtualizer) do the DOM side and call them for you. Reach for them directly in a renderer that keeps its own focus or scroll.
+
+## Focus
+
+One coordinate space covers the header and the body: a `GridFocus` is `{ rowIndex, columnIndex }`, with body rows from `0` and the header at `HEADER_ROW`, `-1`, so arrowing up out of the first row reaches the header without a case of its own.
+
+| Function                                                                                   | Type                | Description                                                                                                                                                                                                                                                                       |
+| ------------------------------------------------------------------------------------------ | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `nextFocusForKey(key, modifiers, focus, rowCount, columnCount, pageSize, isSkippableRow?)` | `GridFocus \| null` | Where `key` moves `focus`, or `null` when the key is not the grid's — any key but the arrows, <Kbd>Home</Kbd>, <Kbd>End</Kbd>, <Kbd>PageUp</Kbd> and <Kbd>PageDown</Kbd>, anything with <Kbd>Alt</Kbd>, and <Kbd>Ctrl</Kbd> with a left or right arrow, which resize and reorder. |
+| `clampFocus(focus, rowCount, columnCount)`                                                 | `GridFocus`         | `focus` held inside the grid, so a tab stop left behind by a removed column or a shorter page still lands on a cell.                                                                                                                                                              |
+
+`modifiers` is a `NavigationModifiers`, `{ ctrlKey, metaKey, altKey, shiftKey }` — a `KeyboardEvent` will do. `pageSize` is how many rows <Kbd>PageUp</Kbd> and <Kbd>PageDown</Kbd> move, measured once by the caller. <Kbd>Ctrl</Kbd>+<Kbd>Home</Kbd> and <Kbd>Ctrl</Kbd>+<Kbd>End</Kbd> go to the grid's first and last cells, plain <Kbd>Home</Kbd> and <Kbd>End</Kbd> to the row's.
+
+`isSkippableRow(rowIndex)` names rows the vertical moves step over — a group's summary row under `groupAggregateDisplay: "row"`, which holds a row's place but is no tab stop. A move with nowhere to land stays where it was. The left and right moves can run past the grid's edges, so pass the result through `clampFocus`:
+
+```ts
+import { clampFocus, nextFocusForKey } from "@gridkitjs/core";
+
+const next = nextFocusForKey(
+  event.key,
+  event,
+  focus,
+  rowCount,
+  columnCount,
+  10,
+);
+if (next !== null) {
+  focus = clampFocus(next, rowCount, columnCount);
+  event.preventDefault();
+}
+```
+
+## Virtualization
+
+| Function                                                                      | Type           | Description                                                                                                                                                     |
+| ----------------------------------------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `visibleRange(heights, estimatedHeight, scrollTop, viewportHeight, overscan)` | `VisibleRange` | The rows inside `[scrollTop, scrollTop + viewportHeight)`, padded by `overscan` rows each side and kept within the rows there are. Rows need not be one height. |
+
+`heights` is a `RowHeights`, one entry per row: its measured height once known, `undefined` until then, which counts as `estimatedHeight`. A `VisibleRange` is what to draw and the space to leave around it:
+
+| Field          | Type     | Description                                                      |
+| -------------- | -------- | ---------------------------------------------------------------- |
+| `startIndex`   | `number` | The first row to draw.                                           |
+| `endIndex`     | `number` | The last row to draw, inclusive — `-1` when there are no rows.   |
+| `offsetBefore` | `number` | The height of every row before `startIndex`: the leading spacer. |
+| `offsetAfter`  | `number` | The height of every row after `endIndex`: the trailing spacer.   |
+
+## In the React grid
+
+See [accessibility](/docs/react/accessibility#keyboard-navigation) for the keys and [row virtualization](/docs/react/row-virtualization) for `virtualized`.

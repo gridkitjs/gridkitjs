@@ -28,7 +28,7 @@ description: "Stacking columns into nested, collapsible groups with groupBy, gro
 
 ## The group toggle, the group-by bar, and dragging a header in
 
-A groupable header's icon (click it, or focus the header and press <Kbd>Alt</Kbd>+<Kbd>ArrowDown</Kbd>) adds the column to the end of the group-by stack, or removes it if it's already grouped. `ColumnDefinition.groupToggleIcon` (or the grid-level `groupToggleIconColumns`) hides the icon itself without touching the toggle's capability — `Alt+ArrowDown` keeps working on a groupable header with no visible icon, the same way the resize handle stays hidden from assistive technology while `Alt+ArrowLeft`/`ArrowRight` still resize.
+A groupable header's icon (click it, or focus the header and press <Kbd>Alt</Kbd>+<Kbd>ArrowDown</Kbd>) adds the column to the end of the group-by stack, or removes it if it's already grouped. `ColumnDefinition.groupToggleIcon` (or the grid-level `groupToggleIconColumns`) hides the icon itself without touching the toggle's capability — <Kbd>Alt</Kbd>+<Kbd>ArrowDown</Kbd> keeps working on a groupable header with no visible icon, the same way the resize handle stays hidden from assistive technology while <Kbd>Alt</Kbd>+<Kbd>ArrowLeft</Kbd> / <Kbd>Alt</Kbd>+<Kbd>ArrowRight</Kbd> still resize.
 
 The group-by bar above the grid mirrors the active stack as chips, each with its own remove button. A column whose header sets `groupByDraggable` (or whose grid turns on `groupByDraggableColumns`) can also be dragged straight from its header into the bar — released at a specific point among the existing chips, it's inserted there, not just appended to the end. A column already in the stack rejects its own header dragged back toward the bar — a `not-allowed` cursor and a muted outline in place of the usual one — since repositioning an existing level is the chip's job; see [Reordering the group-by bar](#reordering-the-group-by-bar) below.
 
@@ -61,7 +61,7 @@ onGroupExpansionChange?: (event: GroupExpansionEvent) => void;
 | `groupId`   | `string \| null`      | The group toggled, or `null` for `expandAllGroups()`/`collapseAllGroups()`, which touch every group in one call. |
 | `expansion` | `GroupExpansionState` | The full collapsed set after the change.                                                                         |
 
-There's no built-in "expand all" control — call `gridRef.current?.expandAllGroups()` or `collapseAllGroups()` from a button of your own. See [imperative handle](/docs/react/imperative-handle) for both, and for `getGroupBy()`/`getGroupExpansion()`/`getDisplayRows()`.
+"Expand all groups" and "Collapse all groups" — the `group.expandAll` and `group.collapseAll` commands — are in the default [context menu](/docs/react/context-menu#default-items) of a group row and, while the grid is grouped, of a cell; a [toolbar](/docs/react/toolbar) can list them too. From a button of your own, call `gridRef.current?.expandAllGroups()` or `collapseAllGroups()`. See [imperative handle](/docs/react/imperative-handle) for both, and for `getGroupBy()`/`getGroupExpansion()`/`getDisplayRows()`.
 
 ## Building a group-by UI outside the grid's own tree
 
@@ -89,7 +89,7 @@ function Sidebar({ gridRef }: { gridRef: RefObject<DataGridApi<Row> | null> }) {
 }
 ```
 
-`DataGridApi` has no per-group toggle action today — only `expandAllGroups`/`collapseAllGroups`, both included above. A custom UI needing to toggle a single group has no imperative action to call yet. A specific group's own computed aggregates are read off `getDisplayRows()`'s per-header `aggregates` field rather than a getter here — see [`useAggregateState`](/docs/react/aggregate-functions) for the grand-total equivalent.
+`useGroupByState` returns a `GroupByStateApi`, below. To toggle a single group, give the ref's `setGroupExpansion(expansion)` the collapsed set with that group's id added or removed — it replaces the set and fires `onGroupExpansionChange` with `groupId: null`; `setGroupBy(groupBy)` replaces the stack the same way. A specific group's own computed aggregates are read off `getDisplayRows()`'s per-header `aggregates` field rather than a getter here — see [`useAggregateState`](/docs/react/aggregate-functions) for the grand-total equivalent.
 
 | Field               | Type                  | Description                                    |
 | ------------------- | --------------------- | ---------------------------------------------- |
@@ -119,22 +119,24 @@ Before the grid mounts, both fields read as empty and the actions are no-ops. Se
 
 ## Props
 
-| Prop                      | Type                                   | Default  | Description                                                                                                        |
-| ------------------------- | -------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------ |
-| `groupableColumns`        | `boolean`                              | `false`  | Whether a column's header shows a click/`Alt+ArrowDown` group toggle, unless a column says otherwise.              |
-| `groupToggleIconColumns`  | `boolean`                              | `true`   | Whether a groupable header shows its group-toggle icon, unless a column says otherwise. Purely a rendering choice. |
-| `groupByDraggableColumns` | `boolean`                              | `false`  | Whether a column's header may be dragged into the group-by bar, unless a column says otherwise.                    |
-| `groupByBarVisibility`    | `"always" \| "auto" \| "never"`        | `"auto"` | How the group-by bar's visibility follows the active grouping.                                                     |
-| `defaultGroupBy`          | `GroupByState`                         |          | The group-by stack to start with, outer to inner. Uncontrolled.                                                    |
-| `onGroupByChange`         | `(event: GroupByEvent) => void`        |          | Once when the user adds, removes, or reorders a level.                                                             |
-| `defaultGroupExpansion`   | `GroupExpansionState`                  |          | Group ids collapsed to start with — every other group starts expanded. Uncontrolled.                               |
-| `onGroupExpansionChange`  | `(event: GroupExpansionEvent) => void` |          | Once when the user expands or collapses a group, or every group at once.                                           |
+| Prop                      | Type                                   | Default  | Description                                                                                                                                  |
+| ------------------------- | -------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `groupableColumns`        | `boolean`                              | `false`  | Whether a column's header shows a group toggle, clicked or pressed with <Kbd>Alt</Kbd>+<Kbd>ArrowDown</Kbd>, unless a column says otherwise. |
+| `groupToggleIconColumns`  | `boolean`                              | `true`   | Whether a groupable header shows its group-toggle icon, unless a column says otherwise. Purely a rendering choice.                           |
+| `groupByDraggableColumns` | `boolean`                              | `false`  | Whether a column's header may be dragged into the group-by bar, unless a column says otherwise.                                              |
+| `groupByBarVisibility`    | `"always" \| "auto" \| "never"`        | `"auto"` | How the group-by bar's visibility follows the active grouping.                                                                               |
+| `defaultGroupBy`          | `GroupByState`                         |          | The group-by stack to start with, outer to inner. Uncontrolled.                                                                              |
+| `groupBy`                 | `GroupByState`                         |          | The group-by stack, controlled — changed only through `onGroupByChange`. See [controlled state](/docs/react/state).                          |
+| `onGroupByChange`         | `(event: GroupByEvent) => void`        |          | Once when the user adds, removes, or reorders a level.                                                                                       |
+| `defaultGroupExpansion`   | `GroupExpansionState`                  |          | Group ids collapsed to start with — every other group starts expanded. Uncontrolled.                                                         |
+| `groupExpansion`          | `GroupExpansionState`                  |          | The collapsed groups, controlled — changed only through `onGroupExpansionChange`. See [controlled state](/docs/react/state).                 |
+| `onGroupExpansionChange`  | `(event: GroupExpansionEvent) => void` |          | Once when the user expands or collapses a group, or every group at once.                                                                     |
 
 `GroupByState` is `readonly { columnId: string; direction?: "asc" | "desc" }[]` — each level's own `direction` orders _that level's_ group values (via the same comparator [column sorting](/docs/react/column-sorting) uses), not the row order within a group.
 
 ## Scope
 
-Sorting groups by an aggregate value is still out of scope for this release. Rendering an aggregate in a group's header, though, is not: see [Aggregate functions](/docs/react/aggregate-functions) for the `aggregates` prop, which populates `ResolvedGroupRow.aggregates` (returned by `getDisplayRows()`) additively on top of everything described here.
+Groups sort by their own value, never by an aggregate. Rendering an aggregate in a group's header, though, is not: see [Aggregate functions](/docs/react/aggregate-functions) for the `aggregates` prop, which populates `ResolvedGroupRow.aggregates` (returned by `getDisplayRows()`) additively on top of everything described here.
 
 ## See also
 

@@ -10,8 +10,8 @@ export interface FilterStateApi<Row> {
 
 /**
  * Reactive filter state read off a mounted `DataGrid`'s `ref`, for a filter
- * bar or search box living outside the grid's own DOM — which, while the grid
- * has no filter UI of its own, is where filtering happens. `setFilter`
+ * bar or search box living outside the grid's own DOM, which sees every change
+ * however it was made — the toolbar's search box included. `setFilter`
  * replaces the whole filter and sends the grid back to its first page.
  *
  * Before the grid mounts, `filter` reads as an empty array and `setFilter`

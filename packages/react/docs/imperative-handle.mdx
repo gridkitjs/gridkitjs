@@ -21,10 +21,10 @@ Every getter reads the grid's state at the moment it is called, so a read straig
 
 ## Elements
 
-| Member    | Type                       | Description                             |
-| --------- | -------------------------- | --------------------------------------- |
-| `element` | `HTMLDivElement \| null`   | The grid's scrollable viewport element. |
-| `table`   | `HTMLTableElement \| null` | The grid's `<table>` element.           |
+| Member    | Type                       | Description                                                                                                                                                                        |
+| --------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `element` | `HTMLDivElement \| null`   | The grid's scrollable viewport element.                                                                                                                                            |
+| `table`   | `HTMLTableElement \| null` | The row-area `<table>`, the one holding `<tbody>`. The header and, when aggregates are active, the footer are sibling `<table>`s outside it; `element` reaches the whole viewport. |
 
 ## Reading state
 
@@ -85,9 +85,9 @@ Every getter reads the grid's state at the moment it is called, so a read straig
 | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `focusCell(rowIndex, columnIndex)`   | Moves the grid's tab stop, and the browser's focus, to a cell.                                                                                                    |
 | `clearSelection()`                   | Clears row, column, and cell selection together — the same as pressing <Kbd>Escape</Kbd>.                                                                         |
-| `selectAllRows()`                    | Selects every row — the same as <Kbd>Ctrl</Kbd>+<Kbd>A</Kbd>.                                                                                                     |
+| `selectAllRows()`                    | Selects every data row on the current page, under `selectable.rows: "multiple"` only — the same as <Kbd>Ctrl</Kbd>+<Kbd>A</Kbd>.                                  |
 | `selectRows(rowIds, intent?)`        | Selects rows by id within `selectable.rows`: `"replace"` (the default) or `"toggle"`. Fires the row callbacks once, or not at all when nothing changed.           |
-| `expandAllGroups()`                  | Expands every group at once — there's no dedicated UI control for it.                                                                                             |
+| `expandAllGroups()`                  | Expands every group at once, as the `group.expandAll` command ("Expand all groups") does.                                                                         |
 | `collapseAllGroups()`                | Collapses every group currently shown at once.                                                                                                                    |
 | `goToPage(pageIndex)`                | Moves to the given page, clamped into range. Fires `onPaginationChange`, or nothing when that is the page already shown.                                          |
 | `nextPage()`                         | Moves to the next page. A no-op on the last page — `onPaginationChange` doesn't fire.                                                                             |

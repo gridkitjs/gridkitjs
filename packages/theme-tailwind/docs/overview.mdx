@@ -7,7 +7,7 @@ description: "Palette tokens, dark mode, and the grid's styles."
 
 ## Install
 
-```ts
+```bash
 npm install @gridkitjs/theme-tailwind
 ```
 
@@ -16,18 +16,96 @@ npm install @gridkitjs/theme-tailwind
 @import "@gridkitjs/theme-tailwind/styles.css";
 ```
 
+## Layout
+
+The grid is a set of siblings rather than one table, so the header and footer never scroll with the rows:
+
+| Class                         | Element   | Description                                                                                                                                                       |
+| ----------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.gridkit-data-grid-viewport` | `<div>`   | The grid's root: the toolbar, the group-by bar, the tables and the pager, in that order. Scrolls sideways when the columns are wider than it.                     |
+| `.gridkit-data-grid-tables`   | `<div>`   | Holds the three tables and carries `role="grid"` (or `"treegrid"` while grouped), since the pattern needs one element around every row.                           |
+| `.gridkit-data-grid-header`   | `<table>` | The header's table. Also a `.gridkit-data-grid`.                                                                                                                  |
+| `.gridkit-data-grid-body`     | `<div>`   | The scroll container around the rows' table — the one `height` bounds, through `--gridkit-body-height`.                                                           |
+| `.gridkit-data-grid-footer`   | `<table>` | The grand-total footer's table, while `aggregates` is non-empty. Also a `.gridkit-data-grid`.                                                                     |
+| `.gridkit-sr-only`            | `<div>`   | The live region announcements are read from, clipped to nothing but left in the accessibility tree. Usable on anything of your own that should be read, not seen. |
+
 ## Semantic classes
 
-| Class                                                        | Element                | Description                                                                                                                      |
-| ------------------------------------------------------------ | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `.gridkit-data-grid`                                         | `<table>`              | The grid itself. Carries borders-horizontal/vertical/all and no-hover-rows/columns/cells state classes.                          |
-| `.grid-header`                                               | `<tr>`                 | The header row.                                                                                                                  |
-| `.header-cell`                                               | `<th>`                 | A header cell. States: is-resizing, is-dragging, is-drop-before, is-drop-after, is-wrapped.                                      |
-| `.grid-row`                                                  | `<tr>`                 | A body row.                                                                                                                      |
-| `.grid-cell`                                                 | `<td>`                 | A body cell. States: is-resizing, is-wrapped.                                                                                    |
-| `.header-resize-handle`                                      | `element`              | The draggable resize grip on a header cell's trailing edge.                                                                      |
-| `.selectable-rows / .selectable-columns / .selectable-cells` | `<table>`              | Present on the grid while the matching selectable member is enabled — what turns on the pointer cursor and text-selection guard. |
-| `.is-selected`                                               | `<tr> \| <th> \| <td>` | A selected row, header cell, or cell. A selected cell wins over its row and column.                                              |
+| Class                                                        | Element                | Description                                                                                                                                                                     |
+| ------------------------------------------------------------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.gridkit-data-grid`                                         | `<table>`              | Each of the grid's tables — header, rows and footer — not the grid's root, which is `div.gridkit-data-grid-viewport`. Carries the border, hover and selectable modifiers below. |
+| `.grid-header`                                               | `<tr>`                 | The header row.                                                                                                                                                                 |
+| `.header-cell`                                               | `<th>`                 | A header cell. States: is-resizing, is-dragging, is-drop-before, is-drop-after, is-wrapped, and is-reorderable on one that can be dragged.                                      |
+| `.grid-row`                                                  | `<tr>`                 | A body row.                                                                                                                                                                     |
+| `.grid-cell`                                                 | `<td>`                 | A body cell. States: is-resizing, is-wrapped.                                                                                                                                   |
+| `.selectable-rows / .selectable-columns / .selectable-cells` | `<table>`              | Present on the grid while the matching selectable member is enabled — what turns on the pointer cursor and text-selection guard.                                                |
+| `.is-selected`                                               | `<tr> \| <th> \| <td>` | A selected row, header cell, or cell. A selected cell wins over its row and column.                                                                                             |
+
+### Header
+
+| Class                                       | Element  | Description                                                                                                                                                       |
+| ------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.header-resize-handle`                     | `<span>` | The strip on a resizable header's trailing edge that a drag resizes from and a double-click autofits.                                                             |
+| `.header-sort-toggle`                       | `<span>` | A sortable header's sort icon. Hidden until the header is hovered or focused, or the column sorts. `.is-sorted-asc` / `.is-sorted-desc` while it does, in accent. |
+| `.header-sort-priority`                     | `<span>` | The column's place in a sort of more than one column, beside its sort icon.                                                                                       |
+| `.header-group-toggle`                      | `<span>` | A groupable header's group icon, before its label. Faint until hovered or focused; `.is-grouped` while the column is grouped, in accent.                          |
+| `.gridkit-data-grid.header-cell.drag-ghost` | `<div>`  | The header following the pointer while a column is dragged, rendered into `document.body`.                                                                        |
+
+### Group rows
+
+| Class                      | Element  | Description                                                                                                   |
+| -------------------------- | -------- | ------------------------------------------------------------------------------------------------------------- |
+| `.grid-group-row`          | `<tr>`   | A group header row, also `.is-group-level-N` for its depth.                                                   |
+| `.grid-group-cell`         | `<td>`   | Its one cell, spanning every column.                                                                          |
+| `.grid-group-cell-content` | `<div>`  | The cell's content — toggle, label, count and aggregates in a row — which carries the padding and the indent. |
+| `.group-toggle`            | `<span>` | The triangle; `.is-expanded` turns it open, `.is-collapsed` marks it closed.                                  |
+| `.group-label`             | `<span>` | The grouped column's name and the group's value.                                                              |
+| `.group-count`             | `<span>` | The group's row count.                                                                                        |
+| `.group-aggregates`        | `<span>` | A group's own subtotals, inline after the count, under `groupAggregateDisplay: "inline"`.                     |
+| `.group-aggregate`         | `<span>` | One of those subtotals.                                                                                       |
+
+### Footer, summary and loading rows
+
+| Class                                      | Element         | Description                                                                                                                              |
+| ------------------------------------------ | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `.grid-footer`                             | `<tr>`          | The grand-total row, in the footer's table.                                                                                              |
+| `.grid-footer-cell`                        | `<td>`          | One column's grand total.                                                                                                                |
+| `.grid-group-summary-row`                  | `<tr>`          | A group's own summary row, under `groupAggregateDisplay: "row"`, also `.is-group-level-N`.                                               |
+| `.grid-group-summary-cell`                 | `<td>`          | One column's subtotal in it.                                                                                                             |
+| `.grid-group-summary-indent`               | `<span>`        | The empty spacer in its first cell that indents the row to its group's depth.                                                            |
+| `.grid-loading-row` / `.grid-loading-cell` | `<tr>` / `<td>` | The loading row and its one cell, while `infiniteScroll.isLoadingMore` is on — holding "Loading more…", or what `loadingTemplate` draws. |
+
+### Borders and hover
+
+The `borders` and `hoverable` props put modifiers on each `.gridkit-data-grid` table:
+
+| Class                                                        | Description                                                                                     |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `.borders-horizontal` / `.borders-vertical` / `.borders-all` | Draw lines between rows, between columns, or both. `borders="none"`, or none given, draws none. |
+| `.no-hover-rows` / `.no-hover-columns` / `.no-hover-cells`   | Turn off one kind of hover highlight, for a `hoverable` member set to `false`.                  |
+
+## Group-by bar
+
+The [group-by bar](/docs/react/row-grouping) sits above the tables, outside `.gridkit-data-grid`, so its selectors are unscoped.
+
+| Class                       | Element    | Description                                                                                                                                                                            |
+| --------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.gridkit-group-by-bar`     | `<div>`    | The bar. `.is-drag-target` while a chip or a header that can be grouped is dragged — a dashed accent outline — and `.is-drag-blocked` while a header already grouped is dragged at it. |
+| `.group-by-bar-placeholder` | `<span>`   | The hint shown while nothing is grouped and a column can be dragged in.                                                                                                                |
+| `.group-by-chip`            | `<span>`   | One level of the grouping. States: is-dragging, is-drop-before, is-drop-after; as `.group-by-chip.drag-ghost`, the chip following the pointer.                                         |
+| `.group-by-chip-remove`     | `<button>` | The chip's remove button.                                                                                                                                                              |
+
+## Pager
+
+The [pager](/docs/react/pagination#the-built-in-pager) sits below the tables, unscoped like the group-by bar.
+
+| Class                   | Element    | Description                                                                                        |
+| ----------------------- | ---------- | -------------------------------------------------------------------------------------------------- |
+| `.gridkit-grid-pager`   | `<div>`    | The pager.                                                                                         |
+| `.grid-pager-button`    | `<button>` | Previous, Next, and each page number. The current page's carries `[aria-current="page"]`.          |
+| `.grid-pager-status`    | `<span>`   | "Page 2 of 5", under the default `"compact"` variant.                                              |
+| `.grid-pager-ellipsis`  | `<span>`   | The `…` standing for pages left out, under `"numbered"`.                                           |
+| `.grid-pager-page-size` | `<label>`  | The page-size `<select>` and its label, pushed to the far end, while `pager.sizeOptions` is given. |
 
 ## Toolbar
 
@@ -79,22 +157,35 @@ The [column chooser](/docs/react/column-chooser) is an overlay too, in a `.gridk
 
 ## Theme tokens
 
-| Token                       | Type    | Description                                  |
-| --------------------------- | ------- | -------------------------------------------- |
-| `--gridkit-surface`         | `color` | Header background.                           |
-| `--gridkit-surface-muted`   | `color` | Hover background.                            |
-| `--gridkit-line`            | `color` | Borders.                                     |
-| `--gridkit-hover-line`      | `color` | Cell hover outline, resize edge.             |
-| `--gridkit-fg`              | `color` | Text.                                        |
-| `--gridkit-fg-muted`        | `color` | Secondary text, resize grip.                 |
-| `--gridkit-accent`          | `color` | Accent — resize and reorder indicator lines. |
-| `--gridkit-selected`        | `color` | A selected row, column, or cell.             |
-| `--gridkit-selected-strong` | `color` | A selected row or cell also hovered.         |
+| Token                       | Type    | Description                                                               |
+| --------------------------- | ------- | ------------------------------------------------------------------------- |
+| `--gridkit-surface`         | `color` | Header background.                                                        |
+| `--gridkit-surface-muted`   | `color` | Hover background.                                                         |
+| `--gridkit-line`            | `color` | Borders.                                                                  |
+| `--gridkit-hover-line`      | `color` | Cell hover outline, resize edge.                                          |
+| `--gridkit-fg`              | `color` | Text.                                                                     |
+| `--gridkit-fg-muted`        | `color` | Secondary text and icons.                                                 |
+| `--gridkit-accent`          | `color` | Focus rings, drop indicators, and the active sort, group and check marks. |
+| `--gridkit-selected`        | `color` | A selected row, column, or cell.                                          |
+| `--gridkit-selected-strong` | `color` | A selected row or cell also hovered.                                      |
 
 ```css
 :root {
   --gridkit-accent: oklch(0.6 0.17 145);
   --gridkit-line: oklch(0.9 0.01 145);
+}
+```
+
+### Light and dark values
+
+Each token is backed by a raw pair, `--gridkit-<name>-light` and `--gridkit-<name>-dark` — `--gridkit-accent-light`, `--gridkit-accent-dark` and so on — defined once on `:root`. The stylesheet only ever reads `--gridkit-<name>`, and points it at one of the pair: the light one on `:root`, the dark one under `@variant dark`, and whichever `.gridkit-light` or `.gridkit-dark` names on an element that has one.
+
+That reassignment is why an override of `--gridkit-<name>` on `:root` does not reach a grid, or its menus, pinned with `.gridkit-light`/`.gridkit-dark`: the class sets `--gridkit-<name>` again, closer to the grid. To change a colour everywhere, override the raw pair instead:
+
+```css
+:root {
+  --gridkit-accent-light: oklch(0.6 0.17 145);
+  --gridkit-accent-dark: oklch(0.7 0.15 145);
 }
 ```
 

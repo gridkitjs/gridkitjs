@@ -218,7 +218,7 @@ export interface GridOptions<Row> {
   /**
    * Called as the user resizes a column. Fires continuously with
    * `phase: "move"` and once on release with `phase: "end"` — the latter being
-   * the one to persist. Auto-fit does not call it; it reports user intent only.
+   * the one to persist. Auto-fitting a column calls it once, with "end".
    */
   onColumnResize?: ((event: ColumnResizeEvent) => void) | undefined;
   /**
@@ -303,8 +303,8 @@ export interface GridOptions<Row> {
    */
   filter?: FilterState<Row> | undefined;
   /**
-   * Called once when the filter changes — through `setFilter` for now, as
-   * the grid has no filter UI of its own yet.
+   * Called once when the filter changes — from the toolbar's search box, the
+   * `filter.clearAll` command, `setFilter` or a restored state.
    */
   onFilterChange?: ((event: FilterChangeEvent<Row>) => void) | undefined;
   /**

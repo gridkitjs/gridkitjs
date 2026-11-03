@@ -103,12 +103,14 @@ function Toolbar({ gridRef }: { gridRef: RefObject<DataGridApi<Row> | null> }) {
 }
 ```
 
+It returns a `SelectionStateApi`:
+
 | Field             | Type                 | Description                                                                   |
 | ----------------- | -------------------- | ----------------------------------------------------------------------------- |
 | `rowSelection`    | `SelectionState`     | Selected row ids.                                                             |
 | `columnSelection` | `SelectionState`     | Selected column ids — see [column selection](/docs/react/column-selection).   |
 | `cellSelection`   | `CellSelectionState` | The selected cell, if any — see [cell selection](/docs/react/cell-selection). |
 | `clearSelection`  | `() => void`         | Clears row, column, and cell selection together.                              |
-| `selectAllRows`   | `() => void`         | Selects every row.                                                            |
+| `selectAllRows`   | `() => void`         | Selects every data row on the current page, under `"multiple"` only.          |
 
 Before the grid mounts, the row/column fields read as empty arrays and the cell field reads `null`. See [imperative handle](/docs/react/imperative-handle) for `subscribe`, the primitive this hook is built on.

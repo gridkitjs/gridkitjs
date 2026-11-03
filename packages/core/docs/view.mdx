@@ -31,10 +31,11 @@ view.grandTotal.get("Amount"); // the sum over every filtered row, on every page
 
 ## Functions
 
-| Function                   | Type                                 | Description                                                                                                                                                    |
-| -------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `resolveGridView(input)`   | `GridView<Row, Node>`                | Derives the whole view in one call, with no memory of earlier calls.                                                                                           |
-| `createGridViewResolver()` | `(input: GridViewInput) => GridView` | A memoised `resolveGridView`. Each stage keeps its last inputs and returns its last output when none changed, so a call recomputes only what a change touches. |
+| Function                                        | Type                                 | Description                                                                                                                                                                  |
+| ----------------------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resolveGridView(input)`                        | `GridView<Row, Node>`                | Derives the whole view in one call, with no memory of earlier calls.                                                                                                         |
+| `createGridViewResolver()`                      | `(input: GridViewInput) => GridView` | A memoised `resolveGridView`. Each stage keeps its last inputs and returns its last output when none changed, so a call recomputes only what a change touches.               |
+| `resolveShownRows(rows, filter, sort, columns)` | `readonly ResolvedRow<Row>[]`        | The data stages before grouping on their own: `rows` filtered with `filterRows`, then sorted with `sortRows`. Filtering first only saves work; the order comes out the same. |
 
 ## `GridView`
 

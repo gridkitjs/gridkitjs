@@ -3,7 +3,7 @@ title: "Column sorting"
 description: "Clicking a header's sort toggle with sortableColumns, and stacking with Shift-click."
 ---
 
-sortableColumns turns on a clickable sort toggle in every header, unless a column sets its own sortable to override the grid. A plain click sorts by that column alone, cycling ascending, descending, and off; Shift-click adds or updates the column in a priority-ordered stack instead of replacing it — sort by `Id` ascending, then by `Application.Name` descending as a tiebreaker.
+sortableColumns turns on a clickable sort toggle in every header, unless a column sets its own sortable to override the grid. A plain click sorts by that column alone, cycling ascending, descending, and off; <Kbd>Shift</Kbd>+click adds or updates the column in a priority-ordered stack instead of replacing it — sort by `Id` ascending, then by `Application.Name` descending as a tiebreaker.
 
 ## Click to sort, Shift-click to stack
 
@@ -22,18 +22,20 @@ sortableColumns turns on a clickable sort toggle in every header, unless a colum
 
 ## Props
 
-| Prop                 | Type                                 | Default | Description                                                                                |
-| -------------------- | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------ |
-| `sortableColumns`    | `boolean`                            | `false` | Whether columns can be sorted by clicking their header toggle.                             |
-| `defaultColumnSort`  | `readonly { columnId, direction }[]` |         | The sort to start with, in priority order. Uncontrolled.                                   |
-| `onColumnSortChange` | `(event: ColumnSortEvent) => void`   |         | Called once when the user changes the sort — a toggle, a stack, or a clear back to "none". |
-| `column.sortable`    | `boolean`                            |         | Per-column override of sortableColumns.                                                    |
+| Prop                 | Type                                 | Default | Description                                                                                                                                                                                       |
+| -------------------- | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sortableColumns`    | `boolean`                            | `false` | Whether columns can be sorted by clicking their header toggle.                                                                                                                                    |
+| `defaultColumnSort`  | `readonly { columnId, direction }[]` |         | The sort to start with, in priority order. Uncontrolled.                                                                                                                                          |
+| `columnSort`         | `ColumnSortState`                    |         | The sort, controlled: a header click, the ref's `setColumnSort` or a sort command asks for a change through `onColumnSortChange` instead of making it. See [controlled state](/docs/react/state). |
+| `onColumnSortChange` | `(event: ColumnSortEvent) => void`   |         | Called once when the user changes the sort — a toggle, a stack, or a clear back to "none".                                                                                                        |
+| `column.sortable`    | `boolean`                            |         | Per-column override of sortableColumns.                                                                                                                                                           |
 
 ## Keyboard & pointer interactions
 
 - Click a header's sort toggle to cycle it through ascending, descending, and off.
-- Shift-click a toggle to add or update that column in the sort's stack instead of replacing it.
-- With a header focused, <Kbd>Alt</Kbd>+<Kbd>ArrowUp</Kbd> cycles its sort the same way a click does; <Kbd>Alt</Kbd>+<Kbd>Shift</Kbd>+<Kbd>ArrowUp</Kbd> stacks it the same way a Shift-click does.
+- <Kbd>Shift</Kbd>+click a toggle to add or update that column in the sort's
+  stack instead of replacing it.
+- With a header focused, <Kbd>Alt</Kbd>+<Kbd>ArrowUp</Kbd> cycles its sort the same way a click does; <Kbd>Alt</Kbd>+<Kbd>Shift</Kbd>+<Kbd>ArrowUp</Kbd> stacks it the same way a <Kbd>Shift</Kbd>+click does.
 
 ## Reading sort state outside the grid's own tree
 
@@ -53,4 +55,4 @@ function SortIndicator({ gridRef }: { gridRef: RefObject<DataGridApi<Row> | null
 }
 ```
 
-Read-only: `DataGridApi` has no sort-mutating action — sort stays uncontrolled via `defaultColumnSort`/the grid's own header toggle. Before the grid mounts, it reads as an empty array. See [imperative handle](/docs/react/imperative-handle) for `getColumnSort`/`subscribe`, and [row grouping](/docs/react/row-grouping) for `useGroupByState`'s equivalent.
+`useColumnSortState` only reads. To change the sort from code, call the ref's `setColumnSort(sort)`, which replaces it and fires `onColumnSortChange`, or run a sort command — `runCommand("sort.ascending", { area: "header", columnId })`, likewise `"sort.descending"` and `"sort.clear"`, or `"sort.clearAll"` with no target — as the [context menu](/docs/react/context-menu#default-items) does; to hold the sort yourself, pass the controlled `columnSort` prop. Before the grid mounts, the hook reads as an empty array. See [imperative handle](/docs/react/imperative-handle) for `getColumnSort`/`subscribe`, and [row grouping](/docs/react/row-grouping) for `useGroupByState`'s equivalent.

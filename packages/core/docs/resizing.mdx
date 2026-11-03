@@ -19,6 +19,11 @@ resolveColumnWidths and fitColumnsToWidth are the functions DataGrid calls inter
 | `totalColumnWidth(resolved)`                                         | `number`                         | The sum of every resolved column's width.                                                                                           |
 | `revertColumnSize(current, base, columnId)`                          | `ColumnSizingState`              | The sizing state with columnId reverted to its width in base — or omitted entirely if base had none — for Escape to restore.        |
 
+| Constant               | Value                                              | Description                                                                                                 |
+| ---------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `DEFAULT_COLUMN_SIZES` | `{ width: 150, minWidth: 40, maxWidth: Infinity }` | The `ColumnSizeDefaults` a column falls back to when neither it nor `columnSizeDefaults` sizes it.          |
+| `KEYBOARD_STEP`        | `10`                                               | Pixels one <Kbd>Alt</Kbd>+<Kbd>ArrowLeft</Kbd> or <Kbd>Alt</Kbd>+<Kbd>ArrowRight</Kbd> moves a column edge. |
+
 ## The same logic, in the React grid
 
 <LiveExampleFrame title="resizableColumns">

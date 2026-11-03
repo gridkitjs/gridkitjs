@@ -3,26 +3,28 @@ title: "Selection"
 description: "The selection primitives underneath selectable."
 ---
 
-These transforms are what a click, a Ctrl-click, and a Shift-click each reduce to — every one takes the selection it received and returns the selection after, never touching a DOM node or a row of data. The [controller](/docs/core/controller)'s selection actions are built on them, so every renderer selects the same way.
+These transforms are what a click, a <Kbd>Ctrl</Kbd>+click, and a <Kbd>Shift</Kbd>+click each reduce to — every one takes the selection it received and returns the selection after, never touching a DOM node or a row of data. The [controller](/docs/core/controller)'s selection actions are built on them, so every renderer selects the same way.
 
 ## Functions
 
 | Function                                                                  | Type                             | Description                                                                                                                          |
 | ------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `toggleSelection(selection, id, mode)`                                    | `SelectionState`                 | Adds id if absent, removes it if present — a Ctrl-click, or Space on the focused member.                                             |
+| `toggleSelection(selection, id, mode)`                                    | `SelectionState`                 | Adds id if absent, removes it if present — a <Kbd>Ctrl</Kbd>+click, or <Kbd>Space</Kbd> on the focused member.                       |
 | `selectOnly(selection, id, mode)`                                         | `SelectionState`                 | The selection reduced to id alone — a plain click. Never deselects, so clicking the one selected row leaves it selected.             |
-| `selectRange(selection, orderedIds, anchorId, focusId, mode)`             | `SelectionState`                 | Every id from anchorId to focusId inclusive, spanning orderedIds — a Shift-click. Degrades to selectOnly under "single".             |
+| `selectRange(selection, orderedIds, anchorId, focusId, mode)`             | `SelectionState`                 | Every id from anchorId to focusId inclusive, spanning orderedIds — a <Kbd>Shift</Kbd>+click. Degrades to selectOnly under "single".  |
 | `selectAll(selection, orderedIds, mode)`                                  | `SelectionState`                 | Every id in orderedIds, or selection untouched under any mode but "multiple".                                                        |
 | `clearSelection(selection)`                                               | `SelectionState`                 | Empties the selection.                                                                                                               |
 | `diffSelection(previous, next)`                                           | `SelectionDiff`                  | What one transition added and removed — the one place a select and a deselect fired for the same interaction cannot disagree.        |
 | `selectCell(selection, cell, mode)`                                       | `CellSelectionState`             | Moves the cell selection to cell — a plain click. Idempotent: clicking the selected cell again leaves it selected.                   |
-| `toggleCellSelection(selection, cell, mode)`                              | `CellSelectionState`             | Moves to cell, or clears when it is already there — a Ctrl-click.                                                                    |
+| `toggleCellSelection(selection, cell, mode)`                              | `CellSelectionState`             | Moves to cell, or clears when it is already there — a <Kbd>Ctrl</Kbd>+click.                                                         |
 | `isSameCell(a, b)`                                                        | `boolean`                        | Whether two cell selections address the same row and column.                                                                         |
 | `intentOf(event, options?)`                                               | `SelectIntent`                   | Reads a click or key press's modifiers into "replace", "toggle", or "range". `{ toggleOnClick: true }` makes a plain press a toggle. |
 | `applySelectionIntent(selection, orderedIds, anchorId, id, intent, mode)` | `SelectionState`                 | Dispatches an intent to toggleSelection, selectRange, or selectOnly.                                                                 |
 | `resolveRows(rowsById, ids)`                                              | `readonly ResolvedRow<Row>[]`    | Resolves selected ids back to the rows behind them, dropping any id whose row no longer exists.                                      |
 | `resolveColumns(columns, ids)`                                            | `readonly SelectedColumn<Row>[]` | Resolves selected ids back to their column and position, dropping any id whose column no longer exists.                              |
 | `resolveCell(rowsById, columns, cell)`                                    | `SelectedCell<Row> \| null`      | Resolves a cell selection down to its row, column, and value — null if either no longer exists.                                      |
+
+A grid's `selectable` option is a `SelectableConfig` — `{ rows?, columns?, cells?, toggleOnClick? }` — giving each `mode` above: `rows` and `columns` take a `SelectionMode`, `false`, `"single"` or `"multiple"`, and `cells` a `CellSelectionMode`, `false` or `"single"`. All are off by default. `toggleOnClick` makes a plain click on a row toggle it, as `intentOf`'s `{ toggleOnClick: true }` does.
 
 ## The same logic, in the React grid
 

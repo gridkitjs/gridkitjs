@@ -24,7 +24,7 @@ description: "Computing group subtotals and a grand total with aggregates, the b
 />;
 ```
 
-`aggregates` is a plain controlled prop, unlike `sort`/`filter`/`groupBy`/`pagination`: there is no built-in UI for a user to add or remove an aggregate interactively, so there's no `defaultAggregates`/`onAggregatesChange` pair — a consumer declares which aggregates to compute the same way it declares `columns`.
+`aggregates` is a plain controlled prop, unlike `columnSort`/`filter`/`groupBy`/`pagination`: there is no built-in UI for a user to add or remove an aggregate interactively, so there's no `defaultAggregates`/`onAggregatesChange` pair — a consumer declares which aggregates to compute the same way it declares `columns`.
 
 With `groupBy` active, every group header shows its own subtotal next to its leaf-row count — `Region: West (3) amount: 90`. Whether or not grouping is active, a grand-total footer renders below the grid whenever `aggregates` is non-empty.
 
@@ -48,7 +48,7 @@ With `groupBy` active, every group header shows its own subtotal next to its lea
 
 Every nesting level gets its own summary row under `"row"`, the same way every level already gets its own `aggregates` — a nested `Status` group inside `Region` shows its own row right after its own last entry, and `Region`'s own summary row follows every nested one beneath it.
 
-A group's summary row is presentational: it takes up a real row (`aria-rowindex` counts it, matching a header or data row), but it is never a keyboard tab stop — <Kbd>ArrowUp</Kbd>/<Kbd>ArrowDown</Kbd>/<Kbd>PageUp</Kbd>/<Kbd>PageDown</Kbd> step over it rather than landing there, the same way they already skip nothing today for an ordinary grid. It also never splits from its own group across a page boundary: a page's unit is still the whole group, summary row included.
+A group's summary row is presentational: it takes up a real row (`aria-rowindex` counts it, matching a header or data row), but it is never a keyboard tab stop — <Kbd>ArrowUp</Kbd>/<Kbd>ArrowDown</Kbd>/<Kbd>PageUp</Kbd>/<Kbd>PageDown</Kbd> step over it to the nearest row that isn't a summary row. It also never splits from its own group across a page boundary: a page's unit is still the whole group, summary row included.
 
 ## The six built-in reducers
 
@@ -189,6 +189,6 @@ Read-only, same as `getAggregates()` itself — there is no action to include, s
 
 - [Row grouping](/docs/react/row-grouping) for `groupBy`, whose headers a subtotal attaches to.
 - [Pagination](/docs/react/pagination) for how a page composes after aggregation, never before it.
-- [Column sorting](/docs/react/column-sorting) for the `compareValues` comparator `min`/`max` reuse.
+- @gridkitjs/core's [sorting](/docs/core/sorting) for `compareValues`, the comparator `min`/`max` reuse, and its [aggregation](/docs/core/aggregation) page for `computeAggregates` and `withGroupAggregates`.
 - [Column filtering](/docs/react/column-filtering) for `PredicateFilterEntry`, the closest precedent for a caller-supplied function received per row.
 - [Imperative handle](/docs/react/imperative-handle) for `getAggregates`, `getDisplayRows`, and `subscribe`.

@@ -214,7 +214,7 @@ export interface DataGridApi<Row> {
    * callbacks once for the whole call, and none when nothing changed.
    */
   selectRows(rowIds: readonly string[], intent?: "replace" | "toggle"): void;
-  /** Expands every group at once — there is no dedicated UI control for it. */
+  /** Expands every group at once, as the `group.expandAll` command does. */
   expandAllGroups(): void;
   /** Collapses every group currently shown at once — see `collapseAllGroups` in `@gridkitjs/core` for what "currently shown" means for a group already nested under a collapsed one. */
   collapseAllGroups(): void;
