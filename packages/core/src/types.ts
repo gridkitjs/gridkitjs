@@ -216,6 +216,12 @@ export interface ColumnDefinition<Row, Node = string> {
    * this for as long as it holds an entry for the column.
    */
   hidden?: boolean | undefined;
+  /**
+   * Whether the user may hide this column — from its header's menu, or the
+   * column chooser. Defaults to `true`. Like `sortable`, it gates the user's
+   * ways to do it and nothing else: `hideColumns` still hides the column.
+   */
+  hideable?: boolean | undefined;
 }
 
 /** Which parts of a column opt out of the grid's default single-line text. */

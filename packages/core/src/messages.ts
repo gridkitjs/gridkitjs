@@ -2,10 +2,11 @@ import type { SortDirection } from "./types";
 
 /**
  * Every string a grid shows or announces of its own — the pager, the group-by
- * bar, the loading row, the text of a boolean or missing value, and the
- * live-region announcements — so a grid can speak a language other than
- * English. A message that names something takes a function, so a translation
- * can put the name where its own grammar wants it.
+ * bar, the loading row, the text of a boolean or missing value, the labels of
+ * its built-in commands, and the live-region announcements — so a grid can
+ * speak a language other than English. A message that names something takes
+ * a function, so a translation can put the name where its own grammar wants
+ * it.
  *
  * Text the data supplies (cells, headers, labels) is not here: it is already
  * the app's to choose. Nor is formatting — dates and numbers follow
@@ -73,6 +74,30 @@ export interface GridMessages {
   selectedCount: (count: number, target: "rows" | "columns") => string;
   /** Announced when a cell is selected. `rowNumber` counts from one. */
   cellSelected: (columnName: string, rowNumber: number) => string;
+  /** The built-in `sort.ascending` command's label. */
+  sortAscending: string;
+  sortDescending: string;
+  /** `sort.clear`: takes one column out of the sort. */
+  clearSort: string;
+  /** `sort.clearAll` */
+  clearAllSorting: string;
+  /** `group.add`, naming the column it groups by. */
+  groupByColumn: (columnName: string) => string;
+  /** `group.clearAll`. `group.remove` reads `removeGroupBy`, as the group-by chip's button does. */
+  ungroupAll: string;
+  expandAllGroups: string;
+  collapseAllGroups: string;
+  /** `column.hide` */
+  hideColumn: string;
+  /** `column.autoFit`: sizes the column to its content. */
+  autoFitColumn: string;
+  autoFitAllColumns: string;
+  /** `selection.selectAllRows` */
+  selectAllRows: string;
+  /** `selection.clear` */
+  clearSelection: string;
+  /** `filter.clearAll`, which clears the search too. */
+  clearFilters: string;
 }
 
 /** "3 rows selected", "1 column selected", "No rows selected". */
@@ -129,6 +154,20 @@ export const defaultMessages: GridMessages = {
   selectedCount,
   cellSelected: (columnName, rowNumber) =>
     `${columnName}, row ${String(rowNumber)}, selected`,
+  sortAscending: "Sort ascending",
+  sortDescending: "Sort descending",
+  clearSort: "Clear sort",
+  clearAllSorting: "Clear all sorting",
+  groupByColumn: (columnName) => `Group by ${columnName}`,
+  ungroupAll: "Ungroup all",
+  expandAllGroups: "Expand all groups",
+  collapseAllGroups: "Collapse all groups",
+  hideColumn: "Hide column",
+  autoFitColumn: "Autofit column",
+  autoFitAllColumns: "Autofit all columns",
+  selectAllRows: "Select all rows",
+  clearSelection: "Clear selection",
+  clearFilters: "Clear filters",
 };
 
 /**

@@ -15,11 +15,15 @@ description: "Framework-agnostic grid logic: columns, sizing, ordering, selectio
 
 ### Messages
 
-`GridMessages` is every string a grid shows or announces of its own — the pager, the group-by bar, the loading row, boolean and blank values, and the live-region announcements. `defaultMessages` holds the English a grid speaks unless told otherwise, and `resolveMessages(messages)` lays a partial `messages` option over it, returning `defaultMessages` itself when given none. A message naming something is a function — `pageStatus: (page, pageCount) => string` — so a translation puts the name where its grammar wants it. See [localization](/docs/react/localization) for every key.
+`GridMessages` is every string a grid shows or announces of its own — the pager, the group-by bar, the loading row, boolean and blank values, the built-in commands' labels, and the live-region announcements. `defaultMessages` holds the English a grid speaks unless told otherwise, and `resolveMessages(messages)` lays a partial `messages` option over it, returning `defaultMessages` itself when given none. A message naming something is a function — `pageStatus: (page, pageCount) => string` — so a translation puts the name where its grammar wants it. See [localization](/docs/react/localization) for every key.
 
 ## The controller
 
 [createGridController](/docs/core/controller) holds a grid's state, derives its view and carries every action a user can take, with each slice of state controlled or uncontrolled on its own. A renderer creates one per grid, feeds it its options and draws the view, so the renderer decides nothing the user can see.
+
+## Commands
+
+A [command](/docs/core/commands) is the one implementation behind a menu item, a toolbar button and the API — "Sort ascending", "Hide column", "Clear filters". It decides whether it shows and whether it can run from a snapshot of the grid, and acts through the controller's actions. `builtInCommands` is the grid's own set; `resolveCommands` lays an app's commands over it, replacing a built-in by id.
 
 ## Filters and filter editors
 
