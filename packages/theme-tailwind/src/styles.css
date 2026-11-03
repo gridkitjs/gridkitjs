@@ -971,4 +971,125 @@
     outline: 2px solid var(--gridkit-accent);
     outline-offset: 1px;
   }
+
+  /*
+   * Overlays — the grid's menus — render into `document.body`, outside the
+   * grid and any scrolling ancestor that would clip them, so every selector
+   * from here on is top-level rather than under `.gridkit-data-grid`. The
+   * grid copies the `.gridkit-light`/`.gridkit-dark` it sits under onto the
+   * overlay, since the portal leaves that ancestor's token scope.
+   *
+   * Fixed from the start, so the overlay never takes room at the end of the
+   * page before it is placed; above the grid's own drag ghosts.
+   */
+  .gridkit-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 60;
+    color: var(--gridkit-fg);
+  }
+
+  /*
+   * A menu too tall for the viewport scrolls inside itself — a scroll there
+   * does not dismiss it, as one outside would.
+   */
+  .gridkit-menu {
+    min-width: 12rem;
+    max-height: 100vh;
+    overflow-y: auto;
+    padding: 0.25rem 0;
+    font-size: 0.875rem;
+    background-color: var(--gridkit-surface);
+    border: 1px solid var(--gridkit-line);
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 12px oklch(0 0 0 / 0.15);
+  }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  /*
+   * `:focus` rather than `:focus-visible`: the pointer moves focus to the
+   * item under it, so focus is the hover state too, and has to show
+   * whichever moved it.
+   */
+  .menu-item:focus {
+    outline: none;
+    background-color: var(--gridkit-selected);
+  }
+
+  /*
+   * The item whose submenu is open, while focus is in that submenu — the
+   * trail back to it.
+   */
+  .menu-item[aria-expanded="true"]:not(:focus) {
+    background-color: var(--gridkit-surface-muted);
+  }
+
+  /*
+   * Still focusable, so a screen reader finds it: muted, and marked only
+   * faintly when focused, since choosing it does nothing.
+   */
+  .menu-item[aria-disabled="true"] {
+    color: var(--gridkit-fg-muted);
+    cursor: default;
+  }
+
+  .menu-item[aria-disabled="true"]:focus {
+    background-color: var(--gridkit-surface-muted);
+  }
+
+  /*
+   * Always there, empty for an item without an icon, so every label in a
+   * menu starts at the same place. A checked item shows its check here.
+   */
+  .menu-item-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    color: var(--gridkit-fg-muted);
+  }
+
+  .menu-item-icon svg,
+  .menu-submenu-indicator svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .menu-item[aria-checked="true"] .menu-item-icon {
+    color: var(--gridkit-accent);
+  }
+
+  .menu-item-label {
+    flex: 1;
+  }
+
+  .menu-item-shortcut {
+    margin-inline-start: 1.5rem;
+    font-size: 0.75rem;
+    color: var(--gridkit-fg-muted);
+  }
+
+  .menu-submenu-indicator {
+    display: inline-flex;
+    margin-inline-end: -0.25rem;
+    color: var(--gridkit-fg-muted);
+  }
+
+  .menu-separator {
+    height: 1px;
+    margin: 0.25rem 0;
+    background-color: var(--gridkit-line);
+  }
 }

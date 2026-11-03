@@ -29,6 +29,23 @@ npm install @gridkitjs/theme-tailwind
 | `.selectable-rows / .selectable-columns / .selectable-cells` | `<table>`              | Present on the grid while the matching selectable member is enabled — what turns on the pointer cursor and text-selection guard. |
 | `.is-selected`                                               | `<tr> \| <th> \| <td>` | A selected row, header cell, or cell. A selected cell wins over its row and column.                                              |
 
+## Overlays and menus
+
+The grid's [context menu](/docs/react/context-menu) renders into `document.body`, not inside the grid, so no scrolling ancestor clips it — its selectors are top-level rather than under `.gridkit-data-grid`. States are ARIA attributes, not classes.
+
+| Class                     | Element  | Description                                                                                                                                                                                 |
+| ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.gridkit-overlay`        | `<div>`  | The positioned box around every menu and submenu, `position: fixed` and above the grid. Carries the grid's `.gridkit-light`/`.gridkit-dark`.                                                |
+| `.gridkit-menu`           | `<div>`  | A menu (`role="menu"`): its surface, border, shadow and padding.                                                                                                                            |
+| `.menu-item`              | `<div>`  | An item. Focused (`:focus`) when the keyboard or the pointer is on it; `[aria-disabled="true"]`, `[aria-checked="true"]` and `[aria-expanded="true"]` (its submenu is open) style the rest. |
+| `.menu-item-icon`         | `<span>` | The icon before the label — empty when the item has none, so labels line up; a checked item's check.                                                                                        |
+| `.menu-item-label`        | `<span>` | The label.                                                                                                                                                                                  |
+| `.menu-item-shortcut`     | `<span>` | A key-combination hint after the label.                                                                                                                                                     |
+| `.menu-submenu-indicator` | `<span>` | The chevron on an item that opens a submenu.                                                                                                                                                |
+| `.menu-separator`         | `<div>`  | A separator (`role="separator"`).                                                                                                                                                           |
+
+Because an overlay sits outside the grid, it takes its colours from the tokens on `:root` — or from `.gridkit-light`/`.gridkit-dark`, which the grid copies onto it from the nearest ancestor that has one (below). A token you override on some other wrapper around the grid does not reach its menus; override it on `:root`, or on `.gridkit-overlay` as well.
+
 ## Theme tokens
 
 | Token                       | Type    | Description                                  |
@@ -78,7 +95,7 @@ Redefine a token inside `@variant dark { }` to change its dark value too:
 
 ## Forcing a theme on one grid
 
-`.gridkit-light` / `.gridkit-dark` pin a grid to one palette regardless of the ambient `dark:` state. Put either on any ancestor of the grid, including the grid's own root — toggle the app theme below and only the first grid follows it:
+`.gridkit-light` / `.gridkit-dark` pin a grid to one palette regardless of the ambient `dark:` state. Put either on any ancestor of the grid, including the grid's own root; its menus follow, since the grid copies the class onto each overlay it opens. Toggle the app theme below and only the first grid follows it:
 
 <LiveExampleFrame title=".gridkit-light / .gridkit-dark">
   <DarkModeExample />
