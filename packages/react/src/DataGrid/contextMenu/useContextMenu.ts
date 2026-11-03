@@ -5,11 +5,9 @@ import {
   useState,
   type RefObject,
 } from "react";
-import { flushSync } from "react-dom";
 import {
   contextMenuEntries,
   hasContextMenu,
-  HEADER_ROW,
   isSameCell,
   resolveMenu,
   type GridContextMenuArea,
@@ -21,10 +19,6 @@ import {
 } from "@gridkitjs/core";
 import {
   attachContextMenuTrigger,
-  bodyCellFrom,
-  bodyRowFrom,
-  findBodyRow,
-  groupRowFrom,
   type ContextMenuRequest,
   type OverlayAnchor,
 } from "@gridkitjs/dom";
@@ -33,6 +27,12 @@ import { overlayThemeClassName } from "../overlay/Overlay";
 import type { DataGridController } from "../useGridController";
 import type { GridNavigationApi } from "../useGridNavigation";
 import type { GridSelectionApi } from "../useGridSelection";
+import {
+  placeAt,
+  placeOf,
+  type ContextMenuPlace,
+  type GridParts,
+} from "./contextMenuPlaces";
 
 interface UseContextMenuOptions<Row> {
   /** The grid's root element: a menu is asked for on what is inside it. */
@@ -42,6 +42,7 @@ interface UseContextMenuOptions<Row> {
   /** The body's scrolling region, whose empty space is the `body` area. */
   bodyScrollRef: RefObject<HTMLElement | null>;
   contextMenu: GridOptions<Row>["contextMenu"];
+  onContextMenuOpenChange: GridOptions<Row>["onContextMenuOpenChange"];
   controller: DataGridController<Row>;
   commands: GridCommandsApi<Row>;
   nav: GridNavigationApi;
@@ -73,33 +74,23 @@ export interface ContextMenuApi {
   menu: OpenContextMenu | null;
   /** Whether `area` opens a menu — for the `aria-keyshortcuts` of its cells. */
   opens: (area: GridContextMenuArea) => boolean;
+  /**
+   * Opens the menu `target` has, as a right-click there would, beside
+   * `anchor` or below its cell, and says whether it did: not for a target
+   * that is not on screen, or whose menu is empty.
+   */
+  open: (target: GridContextMenuTarget, anchor?: OverlayAnchor) => boolean;
   /** Runs the item the user chose, reporting it if it ran, then closes the menu. */
   run: (item: ResolvedMenuItem) => void;
   close: () => void;
 }
 
-/** The cell a menu opens on, by its place in the grid's focus. */
-interface TargetCell {
-  readonly element: HTMLTableCellElement;
-  readonly rowIndex: number;
-  readonly columnIndex: number;
-}
-
-/** Where a menu was asked for: its target, and what it is drawn beside. */
-interface FoundTarget {
-  readonly target: GridContextMenuTarget;
-  /** `null` in the body's empty space. */
-  readonly cell: TargetCell | null;
-  /** What a menu opened without a point goes beside: the cell, or the body. */
-  readonly anchor: Element;
-  readonly label: string;
-}
-
 /**
  * The grid's context menu. `@gridkitjs/dom`'s trigger reports a right-click,
- * Shift+F10 or the ContextMenu key inside the grid; the `contextMenu` option
- * and `@gridkitjs/core`'s `resolveMenu` say what menu that place has; this
- * holds which one is open and does what opening it means in the grid.
+ * Shift+F10 or the ContextMenu key inside the grid, and the ref can ask for
+ * one too; the `contextMenu` option and `@gridkitjs/core`'s `resolveMenu`
+ * say what menu that place has; this holds which one is open, tells
+ * `onContextMenuOpenChange`, and does what opening it means in the grid.
  *
  * Opening one on a column, row or cell that is not selected selects it
  * first, where that kind is selectable, as a click on it would — opening one
@@ -113,6 +104,7 @@ export default function useContextMenu<Row>({
   bodyTableRef,
   bodyScrollRef,
   contextMenu,
+  onContextMenuOpenChange,
   controller,
   commands,
   nav,
@@ -121,114 +113,33 @@ export default function useContextMenu<Row>({
   columnName,
 }: UseContextMenuOptions<Row>): ContextMenuApi {
   const [menu, setMenu] = useState<OpenContextMenu | null>(null);
+  /** The menu open as of the last change, ahead of the render that draws it. */
+  const current = useRef<OpenContextMenu | null>(null);
   const openings = useRef(0);
   const enabled = contextMenu !== undefined && contextMenu !== false;
 
-  function headerTarget(element: Element): FoundTarget | null {
-    const headerRow = headerTableRef.current?.tHead?.rows[0];
-    const cell = element.closest<HTMLTableCellElement>(
-      "th[data-gridkit-column]",
-    );
-    const columnId = cell?.getAttribute("data-gridkit-column");
-    if (
-      cell === null ||
-      cell.parentElement !== headerRow ||
-      columnId === null ||
-      columnId === undefined
-    ) {
-      return null;
-    }
+  function parts(): GridParts<Row> {
+    const { columns, pageRows } = controller.getView();
     return {
-      target: { area: "header", columnId },
-      cell: {
-        element: cell,
-        rowIndex: HEADER_ROW,
-        columnIndex: cell.cellIndex,
-      },
-      anchor: cell,
-      label: messages.headerMenuLabel(columnName(columnId)),
+      headerTable: headerTableRef.current,
+      bodyTable: bodyTableRef.current,
+      body: bodyScrollRef.current,
+      columns,
+      pageRows,
     };
   }
 
-  /**
-   * Body row `rowIndex`'s cell `columnIndex`, when `element` is in it — not
-   * in a table some cell template holds, which has rows of its own.
-   */
-  function bodyCell(
-    element: Element,
-    rowIndex: number,
-    columnIndex: number,
-  ): TargetCell | null {
-    const cell = findBodyRow(bodyTableRef.current, rowIndex)?.cells[
-      columnIndex
-    ];
-    return cell?.contains(element)
-      ? { element: cell, rowIndex, columnIndex }
-      : null;
-  }
-
-  /**
-   * A data cell or a group row of the body, read off the rows on the page,
-   * or the body's empty space. A group's summary row, which has nothing of
-   * its own to act on, has no grid menu — nor has anything outside the body,
-   * such as the footer, the pager or the group-by bar.
-   */
-  function bodyTarget(element: Element): FoundTarget | null {
-    const body = bodyScrollRef.current;
-    if (body === null || !body.contains(element)) {
-      return null;
+  function labelOf(target: GridContextMenuTarget): string {
+    switch (target.area) {
+      case "header":
+        return messages.headerMenuLabel(columnName(target.columnId));
+      case "cell":
+        return messages.cellMenuLabel;
+      case "group":
+        return messages.groupMenuLabel;
+      case "body":
+        return messages.bodyMenuLabel;
     }
-    const { pageRows } = controller.getView();
-    const group = groupRowFrom(element);
-    if (group !== null) {
-      const entry = pageRows[group.rowIndex];
-      const cell = bodyCell(element, group.rowIndex, 0);
-      if (
-        entry === undefined ||
-        !("kind" in entry) ||
-        entry.kind !== "group" ||
-        cell === null
-      ) {
-        return null;
-      }
-      return {
-        target: {
-          area: "group",
-          groupId: group.groupId,
-          columnId: entry.columnId,
-        },
-        cell,
-        anchor: cell.element,
-        label: messages.groupMenuLabel,
-      };
-    }
-    const position = bodyCellFrom(element);
-    if (position !== null) {
-      const entry = pageRows[position.rowIndex];
-      const cell = bodyCell(element, position.rowIndex, position.columnIndex);
-      if (entry === undefined || "kind" in entry || cell === null) {
-        return null;
-      }
-      return {
-        target: {
-          area: "cell",
-          rowId: entry.rowId,
-          columnId: position.columnId,
-        },
-        cell,
-        anchor: cell.element,
-        label: messages.cellMenuLabel,
-      };
-    }
-    if (bodyRowFrom(element) !== null) {
-      return null;
-    }
-    return {
-      target: { area: "body" },
-      cell: null,
-      anchor: body,
-      label: messages.bodyMenuLabel,
-    };
   }
 
   /**
@@ -266,21 +177,6 @@ export default function useContextMenu<Row>({
     return selectRow || selectCell;
   }
 
-  /**
-   * Drawn at once, not with the next render: the grid's focus follows a move
-   * once it is drawn, and a move still pending when the menu opens would
-   * pull focus back out of it.
-   */
-  function focusCell({ element, rowIndex, columnIndex }: TargetCell): void {
-    if (document.activeElement === element) {
-      return;
-    }
-    flushSync(() => {
-      nav.focusCell(rowIndex, columnIndex);
-    });
-    element.focus({ preventScroll: true });
-  }
-
   /** The menu `target` has, over the grid as it is now. */
   function resolveFor(
     target: GridContextMenuTarget,
@@ -292,33 +188,58 @@ export default function useContextMenu<Row>({
     });
   }
 
-  function handleRequest({ target, point }: ContextMenuRequest): boolean {
-    const found = headerTarget(target) ?? bodyTarget(target);
-    if (found === null) {
-      return false;
+  /**
+   * Shows `next` in place of the menu open, or closes it with `null`, and
+   * tells `onContextMenuOpenChange` — the one closing first.
+   */
+  function show(next: OpenContextMenu | null): void {
+    const previous = current.current;
+    if (previous === next) {
+      return;
     }
-    let resolved = resolveFor(found.target);
+    current.current = next;
+    setMenu(next);
+    if (previous !== null) {
+      onContextMenuOpenChange?.({ open: false, target: previous.target });
+    }
+    if (next !== null) {
+      onContextMenuOpenChange?.({ open: true, target: next.target });
+    }
+  }
+
+  function openAt(
+    { target, cell, anchor }: ContextMenuPlace,
+    point: OverlayAnchor | null,
+  ): boolean {
+    let resolved = resolveFor(target);
     if (resolved.length === 0) {
       return false;
     }
     // Resolved again against the selection the menu now acts on.
-    if (selectTarget(found.target)) {
-      resolved = resolveFor(found.target);
+    if (selectTarget(target)) {
+      resolved = resolveFor(target);
     }
-    if (found.cell !== null) {
-      focusCell(found.cell);
+    if (cell !== null && document.activeElement !== cell.element) {
+      nav.focusCellNow(cell.rowIndex, cell.columnIndex);
+      // The tab stop may have been there already, with focus elsewhere.
+      cell.element.focus({ preventScroll: true });
     }
     openings.current += 1;
-    setMenu({
+    show({
       key: openings.current,
-      target: found.target,
+      target,
       entries: resolved,
-      label: found.label,
-      anchor: point ?? found.anchor,
-      cell: found.cell?.element ?? null,
+      label: labelOf(target),
+      anchor: point ?? anchor,
+      cell: cell?.element ?? null,
       themeClassName: overlayThemeClassName(rootRef.current),
     });
     return true;
+  }
+
+  function handleRequest({ target, point }: ContextMenuRequest): boolean {
+    const place = placeAt(target, parts());
+    return place !== null && openAt(place, point);
   }
 
   // The trigger is attached once, and hears every request through this.
@@ -358,15 +279,20 @@ export default function useContextMenu<Row>({
   });
 
   function close(): void {
-    setMenu(null);
+    show(null);
   }
 
   return {
     menu,
     opens: (area) => hasContextMenu(contextMenu, area),
+    open: (target, anchor) => {
+      const place = placeOf(target, parts());
+      return place !== null && openAt(place, anchor ?? null);
+    },
     run: (item) => {
-      if (item.run() && menu !== null) {
-        commands.report(item.id, menu.target, "contextMenu");
+      const open = current.current;
+      if (item.run() && open !== null) {
+        commands.report(item.id, open.target, "contextMenu");
       }
       close();
     },

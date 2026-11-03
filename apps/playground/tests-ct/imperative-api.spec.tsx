@@ -8,10 +8,12 @@ import type {
   ColumnSortEvent,
   ColumnSortState,
   ColumnVisibilityEvent,
+  ContextMenuOpenChangeEvent,
+  GridCommandEvent,
   PaginationState,
 } from "@gridkitjs/core";
 import { expect, test } from "./support/coverage";
-import { mountGrid } from "./support/mountGrid";
+import { mountGrid, updateGrid } from "./support/mountGrid";
 import ImperativeApiGrid from "./support/ImperativeApiGrid";
 
 interface Row {
@@ -481,4 +483,319 @@ test("autoFitColumn sizes a column to its content and reports it as a resize", a
   expect(width).toBeGreaterThan(0);
   await expect.poll(() => events.length).toBe(1);
   expect(events[0]).toMatchObject({ columnId: "id", phase: "end" });
+});
+
+test("autoFitColumns sizes the columns given, or every column shown", async ({
+  mount,
+}) => {
+  const wide: readonly ColumnDefinition<Row>[] = [
+    { field: "id", width: 300 },
+    { field: "name", width: 300 },
+  ];
+  const root = await mountGrid(
+    mount,
+    <ImperativeApiGrid
+      columns={wide}
+      dataSource={buildRows(3)}
+      label="autoFitColumns"
+      resizeMode="fixed"
+      autoFitColumnIds={["name"]}
+    />,
+  );
+  const widths = async () => {
+    await root.getByRole("button", { name: "report" }).click();
+    return new Map((await readStatus(root)).columnWidths);
+  };
+
+  await root.getByRole("button", { name: "fit-columns" }).click();
+  let sized = await widths();
+  expect(sized.get("name")).toBeLessThan(300);
+  expect(sized.get("id")).toBe(300);
+
+  await updateGrid(
+    root,
+    <ImperativeApiGrid
+      columns={wide}
+      dataSource={buildRows(3)}
+      label="autoFitColumns"
+      resizeMode="fixed"
+    />,
+  );
+  await root.getByRole("button", { name: "fit-columns" }).click();
+  sized = await widths();
+  expect(sized.get("id")).toBeLessThan(300);
+});
+
+test.describe("context menu", () => {
+  test("openContextMenu opens a header's menu below it, and closeContextMenu closes it", async ({
+    mount,
+    page,
+  }) => {
+    const events: ContextMenuOpenChangeEvent[] = [];
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={columns}
+        dataSource={buildRows(3)}
+        label="Open a menu"
+        sortableColumns
+        contextMenu
+        contextMenuTarget={{ area: "header", columnId: "name" }}
+        onContextMenuOpenChange={(event) => {
+          events.push(event);
+        }}
+      />,
+    );
+    const target = { area: "header", columnId: "name" };
+
+    await root.getByRole("button", { name: "open-context-menu" }).click();
+
+    const menu = page.getByRole("menu", { name: "name column menu" });
+    await expect(
+      menu.getByRole("menuitemcheckbox", { name: "Sort ascending" }),
+    ).toBeFocused();
+    await expect(root.getByTestId("imperative-result")).toHaveText("true");
+    await expect(page.locator(".gridkit-overlay")).toHaveAttribute(
+      "data-gridkit-placement",
+      "bottom-start",
+    );
+    await expect.poll(() => events).toEqual([{ open: true, target }]);
+
+    // Dispatched rather than clicked: a pointer down outside the menu would
+    // close it before the button's own click did.
+    await root
+      .getByRole("button", { name: "close-context-menu" })
+      .dispatchEvent("click");
+
+    await expect(menu).toHaveCount(0);
+    await expect(
+      root.getByRole("columnheader", { name: "name", exact: true }),
+    ).toBeFocused();
+    await expect
+      .poll(() => events)
+      .toEqual([
+        { open: true, target },
+        { open: false, target },
+      ]);
+  });
+
+  test("openContextMenu on a row opens beside the point given, selecting the row", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={columns}
+        dataSource={buildRows(3)}
+        label="Open a row menu"
+        selectable={{ rows: "multiple" }}
+        contextMenu
+        contextMenuTarget={{ area: "cell", rowId: "row-1", columnId: "name" }}
+        contextMenuPoint={{ x: 400, y: 300 }}
+      />,
+    );
+
+    await root.getByRole("button", { name: "open-context-menu" }).click();
+
+    const menu = page.getByRole("menu", { name: "Row menu" });
+    await expect(
+      menu.getByRole("menuitem", { name: "Select all rows" }),
+    ).toBeFocused();
+    const box = await page.locator(".gridkit-overlay").boundingBox();
+    expect(box?.x).toBeCloseTo(400, 0);
+    expect(box?.y).toBeCloseTo(300, 0);
+    await page.keyboard.press("Escape");
+    await root.getByRole("button", { name: "report" }).click();
+    const status = await readStatus(root);
+    expect(status.rowSelection).toEqual(["row-1"]);
+    expect(status.focusedCell).toEqual({ rowIndex: 1, columnIndex: 1 });
+  });
+
+  test("openContextMenu opens nothing for a row not on screen, or without contextMenu", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={columns}
+        dataSource={buildRows(3)}
+        label="No menu"
+        selectable={{ rows: "multiple" }}
+        contextMenu
+        contextMenuTarget={{ area: "cell", rowId: "row-9", columnId: "name" }}
+      />,
+    );
+    const result = root.getByTestId("imperative-result");
+
+    await root.getByRole("button", { name: "open-context-menu" }).click();
+    await expect(result).toHaveText("false");
+
+    await updateGrid(
+      root,
+      <ImperativeApiGrid
+        columns={columns}
+        dataSource={buildRows(3)}
+        label="No menu"
+        selectable={{ rows: "multiple" }}
+        contextMenuTarget={{ area: "cell", rowId: "row-1", columnId: "name" }}
+      />,
+    );
+    await root.getByRole("button", { name: "report" }).click();
+    await root.getByRole("button", { name: "open-context-menu" }).click();
+    await expect(result).toHaveText("false");
+    await expect(page.getByRole("menu")).toHaveCount(0);
+  });
+
+  test("openContextMenu called from an effect keeps focus in the menu", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={columns}
+        dataSource={buildRows(3)}
+        label="From an effect"
+        selectable={{ rows: "multiple" }}
+        contextMenu
+        contextMenuTarget={{ area: "cell", rowId: "row-2", columnId: "id" }}
+      />,
+    );
+
+    await root.getByRole("button", { name: "open-in-effect" }).click();
+
+    const first = page
+      .getByRole("menu", { name: "Row menu" })
+      .getByRole("menuitem", { name: "Select all rows" });
+    await expect(first).toBeFocused();
+    // A move of the grid's focus still waiting to be drawn would take it
+    // back to the cell a frame or two later.
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              resolve();
+            });
+          });
+        }),
+    );
+    await expect(first).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(
+      root.locator("tbody tr").nth(2).locator("td").first(),
+    ).toBeFocused();
+  });
+});
+
+test.describe("runCommand", () => {
+  test("runs a command on its target, says so, and reports it as the API's", async ({
+    mount,
+  }) => {
+    const events: GridCommandEvent[] = [];
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={columns}
+        dataSource={buildRows(3)}
+        label="Run a command"
+        sortableColumns
+        commandId="sort.descending"
+        commandTarget={{ area: "header", columnId: "name" }}
+        onCommand={(event) => {
+          events.push(event);
+        }}
+      />,
+    );
+
+    await root.getByRole("button", { name: "run-command" }).click();
+
+    await expect(root.getByTestId("imperative-result")).toHaveText("true");
+    await root.getByRole("button", { name: "report" }).click();
+    expect((await readStatus(root)).columnSort).toEqual([
+      { columnId: "name", direction: "desc" },
+    ]);
+    await expect
+      .poll(() => events)
+      .toEqual([
+        {
+          commandId: "sort.descending",
+          target: { area: "header", columnId: "name" },
+          source: "api",
+        },
+      ]);
+  });
+
+  test("runs nothing that is disabled, or unknown, and reports nothing", async ({
+    mount,
+    page,
+  }) => {
+    const events: GridCommandEvent[] = [];
+    const errors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") errors.push(message.text());
+    });
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={columns}
+        dataSource={buildRows(3)}
+        label="Run nothing"
+        selectable={{ rows: "multiple" }}
+        commandId="selection.clear"
+        onCommand={(event) => {
+          events.push(event);
+        }}
+      />,
+    );
+    const result = root.getByTestId("imperative-result");
+
+    // Nothing is selected, so there is nothing to clear.
+    await root.getByRole("button", { name: "run-command" }).click();
+    await expect(result).toHaveText("false");
+
+    await updateGrid(
+      root,
+      <ImperativeApiGrid
+        columns={columns}
+        dataSource={buildRows(3)}
+        label="Run nothing"
+        commandId="orders.missing"
+        onCommand={(event) => {
+          events.push(event);
+        }}
+      />,
+    );
+    await root.getByRole("button", { name: "report" }).click();
+    await root.getByRole("button", { name: "run-command" }).click();
+    await expect(result).toHaveText("false");
+    await expect
+      .poll(() => errors)
+      .toContain("DataGrid: there is no command `orders.missing` to run.");
+    expect(events).toEqual([]);
+  });
+
+  test("runs a command for the whole grid when given no target", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={columns}
+        dataSource={buildRows(3)}
+        label="Run on the grid"
+        sortableColumns
+        defaultColumnSort={[{ columnId: "id", direction: "desc" }]}
+        commandId="sort.clearAll"
+      />,
+    );
+
+    await root.getByRole("button", { name: "run-command" }).click();
+
+    await expect(root.getByTestId("imperative-result")).toHaveText("true");
+    await root.getByRole("button", { name: "report" }).click();
+    expect((await readStatus(root)).columnSort).toEqual([]);
+  });
 });

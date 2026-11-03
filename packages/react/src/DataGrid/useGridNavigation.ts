@@ -51,6 +51,13 @@ export interface GridNavigationApi {
   /** Moves the tab stop, and the browser's focus with it. */
   focusCell: (rowIndex: number, columnIndex: number) => void;
   /**
+   * `focusCell` for a cell on screen, whose browser focus moves now rather
+   * than once the move is drawn — for something about to take focus from
+   * it, such as a menu opened on it, which the drawing would pull focus back
+   * out of. It renders nothing synchronously, so it is safe in an effect.
+   */
+  focusCellNow: (rowIndex: number, columnIndex: number) => void;
+  /**
    * Moves the browser's focus to the cell holding the tab stop, as drawn now
    * — for when the element focus was to go back to has gone, as a header
    * does when a menu opened on it hides its column.
@@ -125,6 +132,12 @@ export default function useGridNavigation({
         rowIndex === focus.rowIndex ? focus.columnIndex : null,
       ),
     focusCell: gridFocus.focusCell,
+    focusCellNow: (rowIndex, columnIndex) => {
+      gridFocus.focusCell(rowIndex, columnIndex);
+      // The cell is drawn already, all but its tab stop, so the move is
+      // followed now, and the drawing that redraws the stop has none left.
+      gridFocus.focusDrawnCell(gridFocus.getFocus());
+    },
     focusTabStop: () => {
       const cells = (
         focus.rowIndex === HEADER_ROW

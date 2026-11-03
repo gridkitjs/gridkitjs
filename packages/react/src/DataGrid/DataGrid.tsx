@@ -30,6 +30,8 @@ import {
   type ColumnVisibilityState,
   type DisplayRow,
   type FilterState,
+  type GridCommandTarget,
+  type GridContextMenuTarget,
   type GridOptions,
   type GridState,
   type GroupByBarVisibility,
@@ -275,6 +277,31 @@ export interface DataGridApi<Row> {
    * with no rows to measure, is left as it is.
    */
   autoFitColumn(columnId: string): void;
+  /**
+   * `autoFitColumn` for each of the given columns, or for every column shown
+   * when given none.
+   */
+  autoFitColumns(columnIds?: readonly string[]): void;
+  /**
+   * Opens the context menu `target` has, as a right-click there would —
+   * selecting it and focusing its cell first — beside `anchor`, a point in
+   * viewport coordinates or an element, or else below its cell. Says whether
+   * it opened: not for a target not on screen, nor where `contextMenu`
+   * gives no menu.
+   */
+  openContextMenu(
+    target: GridContextMenuTarget,
+    anchor?: { readonly x: number; readonly y: number } | Element,
+  ): boolean;
+  /** Closes the context menu, if one is open. */
+  closeContextMenu(): void;
+  /**
+   * Runs a command by id — a built-in or one of `commands` — on `target`,
+   * `{ area: "grid" }` when left out, when it is visible and enabled there.
+   * Reports it through `onCommand` with `source: "api"`, and says whether it
+   * ran.
+   */
+  runCommand(commandId: string, target?: GridCommandTarget): boolean;
   /** Scrolls the row with the given id into view, if it is currently shown. */
   scrollToRow(rowId: string, options?: ScrollIntoViewOptions): void;
   /** Scrolls the column with the given id into view. */
@@ -890,6 +917,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     bodyTableRef,
     bodyScrollRef,
     contextMenu: props.contextMenu,
+    onContextMenuOpenChange: props.onContextMenuOpenChange,
     controller,
     commands,
     nav,
@@ -981,6 +1009,15 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     autoFitColumn: (columnId) => {
       commands.host.autoFitColumns([columnId]);
     },
+    autoFitColumns: (columnIds) => {
+      commands.host.autoFitColumns(
+        columnIds ?? controller.getView().columns.map((entry) => entry.id),
+      );
+    },
+    openContextMenu: contextMenu.open,
+    closeContextMenu: contextMenu.close,
+    runCommand: (commandId, target = { area: "grid" }) =>
+      commands.run(commandId, target, "api"),
     scrollToRow: (rowId, options) => {
       // `pageRows`, not `displayRows`: a data row's DOM position is its place
       // in the currently rendered page — with grouping active, that's its

@@ -98,6 +98,10 @@ Every getter reads the grid's state at the moment it is called, so a read straig
 | `scrollToRow(rowId, options?)`       | Scrolls the row with the given id into view, if it is currently shown.                                                                                            |
 | `scrollToColumn(columnId, options?)` | Scrolls the column with the given id into view.                                                                                                                   |
 | `autoFitColumn(columnId)`            | Sizes a shown column to fit its content, as double-clicking its resize handle does, firing `onColumnResize`. A hidden column, or one with no rows, is left alone. |
+| `autoFitColumns(columnIds?)`         | `autoFitColumn` for each column given, or for every column shown when given none.                                                                                 |
+| `openContextMenu(target, anchor?)`   | Opens the [context menu](/docs/react/context-menu#from-the-ref) `target` has, as a right-click there would. Returns whether it opened.                            |
+| `closeContextMenu()`                 | Closes the context menu, if one is open.                                                                                                                          |
+| `runCommand(commandId, target?)`     | Runs a command by id on `target` — `{ area: "grid" }` by default — when it can run there, firing `onCommand`. Returns whether it ran.                             |
 
 `options` on `scrollToRow`/`scrollToColumn` is a standard
 [`ScrollIntoViewOptions`](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView),

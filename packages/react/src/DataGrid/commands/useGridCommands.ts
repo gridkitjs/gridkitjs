@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import {
   createCommandContext,
   resolveCommands,
+  runCommand,
   type GridCommand,
   type GridCommandContext,
   type GridCommandHost,
@@ -37,6 +38,15 @@ export interface GridCommandsApi<Row> {
     target: GridCommandTarget,
     source: GridCommandSource,
   ) => void;
+  /**
+   * Runs the command `commandId` on `target` when it is visible and enabled
+   * there, reports it, and says whether it ran.
+   */
+  run: (
+    commandId: string,
+    target: GridCommandTarget,
+    source: GridCommandSource,
+  ) => boolean;
 }
 
 /**
@@ -72,14 +82,35 @@ export default function useGridCommands<Row>({
     announce,
   };
 
+  function contextFor(target: GridCommandTarget): GridCommandContext<Row> {
+    return createCommandContext({ controller, target, messages, host });
+  }
+
+  function report(
+    commandId: string,
+    target: GridCommandTarget,
+    source: GridCommandSource,
+  ): void {
+    onCommand?.({ commandId, target, source });
+  }
+
   // A new object each render, as the other hooks here return.
   return {
     commands,
     host,
-    contextFor: (target) =>
-      createCommandContext({ controller, target, messages, host }),
-    report: (commandId, target, source) => {
-      onCommand?.({ commandId, target, source });
+    contextFor,
+    report,
+    run: (commandId, target, source) => {
+      const command = commands.get(commandId);
+      if (command === undefined) {
+        console.error(`DataGrid: there is no command \`${commandId}\` to run.`);
+        return false;
+      }
+      if (!runCommand(command, contextFor(target))) {
+        return false;
+      }
+      report(commandId, target, source);
+      return true;
     },
   };
 }

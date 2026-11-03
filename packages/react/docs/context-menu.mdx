@@ -195,7 +195,56 @@ const commands: readonly GridCommand<Order>[] = [
 
 A command of yours with a built-in's id replaces it in every menu that lists that id, the defaults included — a translated label, a privilege check, or different behaviour, without listing the menus again.
 
-`onCommand` is called after a command runs — and after an inline item runs, with that item's id — with `{ commandId, target, source }` — `source` is `"contextMenu"` for a menu. An item that did not run — a disabled one — is not reported. The change the command made reports through its own callback too, as it always does: `onColumnSortChange` for a sort.
+`onCommand` is called after a command runs — and after an inline item runs, with that item's id — with `{ commandId, target, source }`: `source` is `"contextMenu"` for a menu and `"api"` for the ref's [`runCommand`](#from-the-ref). An item that did not run — a disabled one — is not reported. The change the command made reports through its own callback too, as it always does: `onColumnSortChange` for a sort.
+
+## Open state
+
+The grid keeps which menu is open; there is no prop to hold it, as a context menu's open state carries a place and a position a parent rarely wants to own. `onContextMenuOpenChange` tells you as it changes, with `{ open, target }` — where the menu opened, or where the one closing had — however it opened or closed: a right-click, a key, choosing an item, <Kbd>Escape</Kbd>, a click outside, or the ref. A menu opened in place of another reports that one closing first.
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={rows}
+  contextMenu
+  onContextMenuOpenChange={({ open, target }) => {
+    setHighlighted(open && target.area === "cell" ? target.rowId : null);
+  }}
+/>
+```
+
+### From the ref
+
+The [imperative handle](/docs/react/imperative-handle) opens and closes the menu, and runs a command, from your own code — a "⋯" button in a cell template, a keyboard shortcut of your own, a test:
+
+| Member                             | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `openContextMenu(target, anchor?)` | Opens the menu `target` has — a `GridContextMenuTarget` such as `{ area: "cell", rowId, columnId }` — as a right-click there would: it selects and focuses the cell first, and closes back to it. It opens beside `anchor`, a point `{ x, y }` in viewport coordinates or an element, or else below the cell — at the body's top-left corner for `{ area: "body" }`. Returns whether it opened: not for a column, row or group that is not on screen, nor where `contextMenu` gives that place no menu. |
+| `closeContextMenu()`               | Closes the menu, if one is open; focus goes back to where it opened.                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `runCommand(commandId, target?)`   | Runs a command — a built-in or one of `commands` — on `target`, `{ area: "grid" }` when left out, when it is visible and enabled there. Fires `onCommand` with `source: "api"`, and returns whether it ran.                                                                                                                                                                                                                                                                                             |
+
+```ts
+const gridRef = useRef<DataGridApi<Order>>(null);
+
+// A cell template's own button, opening the row's menu beside itself.
+cellTemplate: ({ rowId }) => (
+  <button
+    type="button"
+    aria-label="Row actions"
+    onClick={(event) => {
+      gridRef.current?.openContextMenu(
+        { area: "cell", rowId, columnId: "actions" },
+        event.currentTarget,
+      );
+    }}
+  >
+    ⋯
+  </button>
+);
+
+gridRef.current?.runCommand("column.hide", { area: "header", columnId: "Notes" });
+```
+
+Each is safe to call from an effect: opening a menu renders nothing synchronously.
 
 ## What opening it does
 
@@ -227,10 +276,11 @@ Moving the pointer over an item focuses it, and resting it on a submenu item ope
 
 ## Props
 
-| Prop          | Type                                     | Default | Description                                                                                                                                                                                  |
-| ------------- | ---------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `contextMenu` | `boolean \| GridContextMenuOptions<Row>` |         | The grid's own context menu. `true` shows the defaults; `{ header, cell, group, body }` gives an area's entries, or a function of its request — `[]` or `null` for the browser's menu there. |
-| `commands`    | `readonly GridCommand<Row>[]`            |         | Your own commands, for menus to list by id. One with a built-in's id replaces it.                                                                                                            |
-| `onCommand`   | `(event: GridCommandEvent) => void`      |         | Called after a command or an inline menu item runs, with `{ commandId, target, source }`.                                                                                                    |
+| Prop                      | Type                                          | Default | Description                                                                                                                                                                                  |
+| ------------------------- | --------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `contextMenu`             | `boolean \| GridContextMenuOptions<Row>`      |         | The grid's own context menu. `true` shows the defaults; `{ header, cell, group, body }` gives an area's entries, or a function of its request — `[]` or `null` for the browser's menu there. |
+| `commands`                | `readonly GridCommand<Row>[]`                 |         | Your own commands, for menus to list by id. One with a built-in's id replaces it.                                                                                                            |
+| `onCommand`               | `(event: GridCommandEvent) => void`           |         | Called after a command or an inline menu item runs, with `{ commandId, target, source }`.                                                                                                    |
+| `onContextMenuOpenChange` | `(event: ContextMenuOpenChangeEvent) => void` |         | Called as the menu opens or closes, with `{ open, target }`.                                                                                                                                 |
 
 Each menu's accessible name is a message — `headerMenuLabel`, "Name column menu"; `cellMenuLabel`, "Row menu"; `groupMenuLabel`, "Group menu"; `bodyMenuLabel`, "Grid menu" — and every item's label a message too; see [localization](/docs/react/localization).
