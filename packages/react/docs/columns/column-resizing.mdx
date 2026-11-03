@@ -39,4 +39,8 @@ resizableColumns turns on dragging a header's trailing edge to resize, unless a 
 ## Keyboard & pointer interactions
 
 - Drag a header's trailing edge to resize; double-click it to size the column to its content.
-- With the trailing edge focused, <Kbd>Alt</Kbd>+<Kbd>ArrowLeft</Kbd> / <Kbd>Alt</Kbd>+<Kbd>ArrowRight</Kbd> nudge the width; <Kbd>Escape</Kbd> cancels an in-progress resize.
+- With a resizable header focused, <Kbd>Alt</Kbd>+<Kbd>ArrowLeft</Kbd> / <Kbd>Alt</Kbd>+<Kbd>ArrowRight</Kbd> nudge the width and <Kbd>Alt</Kbd>+<Kbd>Enter</Kbd> sizes the column to its content, as double-clicking the edge does; <Kbd>Escape</Kbd> cancels an in-progress resize.
+
+## Autofit
+
+Sizing a column to its content — a double-click on its edge, <Kbd>Alt</Kbd>+<Kbd>Enter</Kbd> on its header — measures the column's content in the rows on screen and fits the column to it, within its `minWidth`/`maxWidth`, firing `onColumnResize` once with `"end"`. On a paged or virtualized grid, rows not drawn are not measured. The same fit is available from code: the ref's [`autoFitColumn(columnId)`](/docs/react/imperative-handle#actions) and `autoFitColumns(columnIds?)`, which fits every column shown when given none, and the `column.autoFit` and `column.autoFitAll` commands, which a [context menu](/docs/react/context-menu#default-items) or [toolbar](/docs/react/toolbar) can carry or `runCommand` can run.
