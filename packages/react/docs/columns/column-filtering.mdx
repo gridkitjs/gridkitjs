@@ -153,7 +153,7 @@ const gridRef = useRef<DataGridApi<Row>>(null);
 <DataGrid ref={gridRef} columns={columns} dataSource={rows} />;
 ```
 
-`useFilterState(gridRef)` returns `{ filter, setFilter }` and re-renders its component whenever the filter changes, for a filter UI elsewhere in the tree that shows the filter as well as setting it. To keep the filter in your own state instead, pass it as the controlled `filter` prop with `onFilterChange` — see [controlled state](/docs/react/state).
+`useFilterState(gridRef)` returns a `FilterStateApi`, `{ filter, setFilter }`, and re-renders its component whenever the filter changes, for a filter UI elsewhere in the tree that shows the filter as well as setting it. To keep the filter in your own state instead, pass it as the controlled `filter` prop with `onFilterChange` — see [controlled state](/docs/react/state).
 
 ## Filter data before it reaches the grid
 

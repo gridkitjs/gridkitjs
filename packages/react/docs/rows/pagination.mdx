@@ -166,7 +166,7 @@ function App() {
 }
 ```
 
-`usePaginationState` updates on every pagination change, including the silent page-0 reset a filter/sort/regroup triggers — the case with no `onPaginationChange` of its own, since the change that caused it already reports its own callback. Before the grid mounts, `pagination` reads `{ pageIndex: 0, pageSize: 0 }` and `pageCount` reads `0`.
+`usePaginationState` returns a `PaginationStateApi`, below. It updates on every pagination change, including the silent page-0 reset a filter/sort/regroup triggers — the case with no `onPaginationChange` of its own, since the change that caused it already reports its own callback. Before the grid mounts, `pagination` reads `{ pageIndex: 0, pageSize: 0 }` and `pageCount` reads `0`.
 
 | Field          | Type                          | Description                                                |
 | -------------- | ----------------------------- | ---------------------------------------------------------- |
