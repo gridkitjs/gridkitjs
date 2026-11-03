@@ -84,6 +84,11 @@ export interface GridMessages {
   columnsHidden: (count: number) => string;
   /** Announced when one change shows more than one column. */
   columnsShown: (count: number) => string;
+  /**
+   * Announced when one action autofits more than one column, as
+   * `column.autoFitAll` does, in place of each column's `columnResized`.
+   */
+  columnsAutoFitted: (count: number) => string;
   /** A column header's context menu's accessible name. */
   headerMenuLabel: (columnName: string) => string;
   /** A data cell's context menu's accessible name — a menu for its row. */
@@ -138,8 +143,11 @@ export interface GridMessages {
   noMatchingColumns: string;
 }
 
-/** "3 columns hidden", "1 column shown". */
-function columnCount(count: number, change: "hidden" | "shown"): string {
+/** "3 columns hidden", "1 column shown", "2 columns autofitted". */
+function columnCount(
+  count: number,
+  change: "hidden" | "shown" | "autofitted",
+): string {
   return count === 1
     ? `1 column ${change}`
     : `${String(count)} columns ${change}`;
@@ -211,6 +219,7 @@ export const defaultMessages: GridMessages = {
   columnShown: (columnName) => `${columnName}, column shown`,
   columnsHidden: (count) => columnCount(count, "hidden"),
   columnsShown: (count) => columnCount(count, "shown"),
+  columnsAutoFitted: (count) => columnCount(count, "autofitted"),
   headerMenuLabel: (columnName) => `${columnName} column menu`,
   cellMenuLabel: "Row menu",
   groupMenuLabel: "Group menu",
