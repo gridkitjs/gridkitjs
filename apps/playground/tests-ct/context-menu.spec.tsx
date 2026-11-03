@@ -211,6 +211,20 @@ test.describe("trigger", () => {
 });
 
 test.describe("header menu", () => {
+  test("Autofit all columns announces once, for every column it fitted", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, grid());
+    const status = root.locator('[role="status"]');
+
+    await item(await openOn(root, page, "Name"), "Autofit column").click();
+    await expect(status).toHaveText(/^Name, \d+ pixels wide$/);
+
+    await item(await openOn(root, page, "Name"), "Autofit all columns").click();
+    await expect(status).toHaveText("3 columns autofitted");
+  });
+
   test("opens on a right-click with the default items, named after its column", async ({
     mount,
     page,
