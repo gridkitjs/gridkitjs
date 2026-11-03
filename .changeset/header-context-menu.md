@@ -6,7 +6,8 @@
 opened by a right-click, Shift+F10 or the ContextMenu key, in place of the
 browser's. `contextMenu` alone shows the defaults — sort ascending or
 descending, clear the sort, group by the column or stop, autofit it or every
-column, hide it — each only where the column allows it; `contextMenu={{
+column, hide it, choose the columns shown — each only where the column allows
+it; `contextMenu={{
 header: [...] }}` lists the items. Opening it moves focus to the header, which
 gets focus back when the menu closes, and under `selectable.columns` selects
 the column first unless it is selected already. Off by default.

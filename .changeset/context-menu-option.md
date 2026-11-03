@@ -5,7 +5,8 @@
 A `contextMenu` grid option for the grid's own context menu on column
 headers, off by default. `true` shows the defaults — `defaultContextMenu`:
 sort ascending and descending, clear the sort, group by and stop grouping,
-autofit the column or all of them, and hide it, each where the column allows;
+autofit the column or all of them, hide it, and choose the columns shown,
+each where the column allows;
 `{ header: entries }` lists a header's menu in the menu vocabulary, and
 `{ header: [] }` leaves the browser's menu.
 

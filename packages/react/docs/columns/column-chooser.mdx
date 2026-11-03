@@ -1,0 +1,86 @@
+---
+title: "Column chooser"
+description: "A dialog for choosing which columns show — a checkbox per column, a search box and Show all — opened from the toolbar, a header's context menu or the ref."
+---
+
+The column chooser is a small dialog listing every data column, hidden ones included, each with a checkbox: checked while the column shows. A search box narrows the list, and a "Show all" checkbox shows or hides every column the search lists at once. Each change applies as it is made — there is nothing to confirm or cancel.
+
+## Opening it
+
+It is the built-in `column.choose` command, "Choose columns", so it opens wherever that command is offered:
+
+- **The toolbar.** `toolbar` alone lists it at the far end, after "Clear filters"; an object lists it as `"column.choose"`. It opens below its button — or below "More", while the toolbar is too narrow for it.
+- **A header's context menu.** `contextMenu` lists it last in the header menu, after "Hide column". It opens below the header the menu was opened on.
+- **The ref.** `openColumnChooser()` opens it at the grid's top-end corner, as does `runCommand("column.choose")`.
+
+```tsx
+const gridRef = useRef<DataGridApi<Order>>(null);
+
+<DataGrid
+  ref={gridRef}
+  columns={[
+    { field: "Id", hideable: false },
+    { field: "Customer" },
+    { field: "Region" },
+    { field: "Notes", hidden: true },
+  ]}
+  dataSource={orders}
+  toolbar
+  contextMenu
+/>;
+
+<button onClick={() => gridRef.current?.openColumnChooser()}>Columns</button>;
+```
+
+Only one panel is open at a time: opening the chooser again replaces it. Opened from a context menu, the menu closes first. Closing the chooser gives focus back to where it was opened from — the toolbar button, the header, or, from the ref, whatever had focus — or to the grid's focused cell when that header has gone with a column the chooser hid.
+
+To leave the chooser out, list your own items without `column.choose`: `toolbar={{ items: ["search", "spacer", "filter.clearAll"] }}`, or a header menu built from `defaultContextMenu.header` with it filtered out — see [choosing the items](/docs/react/context-menu#choosing-the-items). A [command of your own](/docs/react/context-menu#commands-of-your-own) with the id `column.choose` replaces it everywhere at once.
+
+## What it shows
+
+- **Every data column, in column order**, by its header text — a column with `hidden: true` included, unchecked, so it can be shown.
+- **A search box** that narrows the list to the columns whose header text contains what is typed, ignoring case. When it matches nothing, the chooser says "No matching columns".
+- **"Show all"**, over the columns the search lists: checked while all of them show, unchecked while none does, and mixed in between. Toggling it shows every hidden one, or, once all show, hides them.
+
+## The rules
+
+- A column with [`hideable: false`](/docs/react/column-definition#column-visibility) shows checked and disabled while it shows: the user cannot hide it. "Show all" leaves it alone, and does not count it. Hidden some other way — `hidden: true`, or the ref's `hideColumns` — it can still be shown.
+- The last column shown cannot be hidden: its checkbox is disabled, and "Show all" keeps the first of the columns it would hide rather than leave none.
+- Each change goes through `showColumns` and `hideColumns`, so it fires `onColumnVisibilityChange` and, with a controlled `columnVisibility`, only asks — as any change to the columns does.
+- A screen reader hears each change: "Score, column hidden" for one column, "3 columns hidden" for "Show all".
+
+The chooser does not reorder columns; drag a header for that — see [column reordering](/docs/react/column-reordering).
+
+## Keyboard & pointer interactions
+
+The chooser is a dialog of native controls, so it works as a form does.
+
+| Key or action                                    | Does                                                                         |
+| ------------------------------------------------ | ---------------------------------------------------------------------------- |
+| Opening it                                       | Focus goes to the search box.                                                |
+| <Kbd>Tab</Kbd> / <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd> | The next or previous control — the search box, "Show all", then each column. |
+| <Kbd>Space</Kbd>, or a click                     | Toggles the checkbox. A disabled one does nothing.                           |
+| <Kbd>Escape</Kbd>                                | Closes it, giving focus back to where it was opened from.                    |
+| A click outside it, a scroll or a resize         | Closes it.                                                                   |
+
+<Kbd>Escape</Kbd> closes only the chooser: it never reaches the grid, so the
+selection stays.
+
+## Messages
+
+Every string the chooser shows or announces is a message — see [localization](/docs/react/localization):
+
+| Key                        | Default                                      |
+| -------------------------- | -------------------------------------------- |
+| `chooseColumns`            | "Choose columns" — the command's label.      |
+| `columnChooserLabel`       | "Columns" — the dialog's accessible name.    |
+| `columnChooserSearchLabel` | "Search columns" — the search box's name.    |
+| `searchPlaceholder`        | "Search…" — shown in the empty search box.   |
+| `showAllColumns`           | "Show all"                                   |
+| `noMatchingColumns`        | "No matching columns"                        |
+| `columnShown`              | "Name, column shown" — one column shown.     |
+| `columnHidden`             | "Name, column hidden" — one column hidden.   |
+| `columnsShown`             | "3 columns shown" — several shown at once.   |
+| `columnsHidden`            | "3 columns hidden" — several hidden at once. |
+
+The theme's classes for it are listed under [column chooser](/docs/theme-tailwind/overview#column-chooser). For a chooser of your own, @gridkitjs/core's [`resolveColumnChooser`](/docs/core/commands#the-column-chooser) works out the list, the "Show all" state and what it does.

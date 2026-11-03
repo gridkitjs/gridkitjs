@@ -4,7 +4,7 @@
 
 `DataGrid` takes a `toolbar` prop: a toolbar above the grid, sticky to its
 start edge, written in the context menu's vocabulary. `toolbar` alone shows a
-search box and "Clear filters"; `toolbar={{ items, label }}` lists command
+search box, "Clear filters" and "Choose columns"; `toolbar={{ items, label }}` lists command
 buttons (a checkable one is a toggle), inline items, dropdowns opening a menu,
 separators, a spacer, the search box and custom entries, which the new
 `renderToolbarItem(id)` prop draws. Buttons follow the grid's state —

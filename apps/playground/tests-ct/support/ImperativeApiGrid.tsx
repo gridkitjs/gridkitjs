@@ -314,6 +314,14 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
       <button
         type="button"
         onClick={() => {
+          gridRef.current?.openColumnChooser();
+        }}
+      >
+        open-column-chooser
+      </button>
+      <button
+        type="button"
+        onClick={() => {
           const api = gridRef.current;
           if (api !== null && commandId !== undefined) {
             setResult(String(api.runCommand(commandId, commandTarget)));

@@ -94,11 +94,11 @@ gridRef.current?.hideColumns(["Name", "Region"]);
 
 The state is a `ColumnVisibilityState` — column id to `true` (shown) or `false` (hidden) — holding only the columns that were changed; one absent from it follows its definition. `onColumnVisibilityChange` fires once per call that changes something, listing every column it touched. `getColumnVisibility()` reads the state, `useColumnVisibilityState(gridRef)` follows it from a component outside the grid, `getColumns()` lists what is shown, and `getDataColumns()` lists every column, hidden ones included. `aria-colcount` counts only the columns shown. To hold the state yourself, pass it as the controlled `columnVisibility` prop — `showColumns` and `hideColumns` then ask through `onColumnVisibilityChange` instead of changing it; see [controlled state](/docs/react/state).
 
-`hideable: false` keeps the user from hiding a column: the header's context menu leaves out its "Hide column" command, and the column chooser shows the column checked and disabled. Like `sortable`, it gates only the user's ways to do it — `hideColumns` still hides the column.
+`hideable: false` keeps the user from hiding a column: the header's context menu leaves out its "Hide column" command, and the [column chooser](/docs/react/column-chooser) shows the column checked and disabled. Like `sortable`, it gates only the user's ways to do it — `hideColumns` still hides the column.
 
 ## See also
 
 - [DataGrid](/docs/react/data-grid) for the `columns` prop itself, and the grid-level defaults (`resizableColumns`, `reorderableColumns`, `sortableColumns`, `groupableColumns`, `groupToggleIconColumns`, `groupByDraggableColumns`) each per-column override falls back to.
-- [Column templates](/docs/react/column-templates), [resizing](/docs/react/column-resizing), [reordering](/docs/react/column-reordering), [sorting](/docs/react/column-sorting), and [filtering](/docs/react/column-filtering), each in depth.
+- [Column templates](/docs/react/column-templates), [resizing](/docs/react/column-resizing), [reordering](/docs/react/column-reordering), [sorting](/docs/react/column-sorting), [filtering](/docs/react/column-filtering), and the [column chooser](/docs/react/column-chooser), each in depth.
 - [Row grouping](/docs/react/row-grouping) for `groupable`, `groupToggleIcon`, and `groupByDraggable`, in depth.
 - [Aggregate functions](/docs/react/aggregate-functions) for `footerTemplate`, in depth.

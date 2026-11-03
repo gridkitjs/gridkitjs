@@ -320,12 +320,12 @@ A `GridContextMenuTarget` is a command target in one of these areas.
 
 `defaultContextMenu` holds each area's defaults — each item hidden where it has nothing to act on, and the separators collapsing around what is left:
 
-| Area     | Defaults                                                                                                                                                                        |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `header` | `sort.ascending`, `sort.descending`, `sort.clear`, a separator, `group.add`, `group.remove`, a separator, `column.autoFit`, `column.autoFitAll`, a separator and `column.hide`. |
-| `cell`   | `selection.selectAllRows`, `selection.clear`, a separator, `group.expandAll` and `group.collapseAll`.                                                                           |
-| `group`  | `group.expandAll`, `group.collapseAll`, a separator and `group.remove` — which stops grouping by the row's column.                                                              |
-| `body`   | None: empty space keeps the browser's menu until the grid lists entries for it.                                                                                                 |
+| Area     | Defaults                                                                                                                                                                                         |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `header` | `sort.ascending`, `sort.descending`, `sort.clear`, a separator, `group.add`, `group.remove`, a separator, `column.autoFit`, `column.autoFitAll`, a separator, `column.hide` and `column.choose`. |
+| `cell`   | `selection.selectAllRows`, `selection.clear`, a separator, `group.expandAll` and `group.collapseAll`.                                                                                            |
+| `group`  | `group.expandAll`, `group.collapseAll`, a separator and `group.remove` — which stops grouping by the row's column.                                                                               |
+| `body`   | None: empty space keeps the browser's menu until the grid lists entries for it.                                                                                                                  |
 
 An area takes a `GridContextMenuEntries<Row, Area>`: its entries, or a function asked each time its menu opens with a `GridContextMenuRequest<Row, Area>` and returning the entries to show — or `null`, like `[]`, for no grid menu there.
 

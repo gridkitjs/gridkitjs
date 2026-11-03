@@ -88,6 +88,7 @@ export const defaultContextMenu: {
     "column.autoFitAll",
     "separator",
     "column.hide",
+    "column.choose",
   ],
   cell: [
     "selection.selectAllRows",

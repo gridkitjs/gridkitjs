@@ -843,3 +843,46 @@ test.describe("runCommand", () => {
     expect((await readStatus(root)).columnSort).toEqual([]);
   });
 });
+
+test("openColumnChooser opens the chooser at the grid's top-end corner, giving focus back on Escape", async ({
+  mount,
+  page,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ImperativeApiGrid
+      columns={columns}
+      dataSource={buildRows(3)}
+      label="Choose columns"
+    />,
+  );
+  const opener = root.getByRole("button", { name: "open-column-chooser" });
+
+  await opener.click();
+
+  const chooser = page.getByRole("dialog", { name: "Columns" });
+  await expect(
+    chooser.getByRole("searchbox", { name: "Search columns" }),
+  ).toBeFocused();
+  await expect(page.locator(".gridkit-overlay")).toHaveAttribute(
+    "data-gridkit-placement",
+    "bottom-end",
+  );
+  const [panel, grid] = await Promise.all([
+    chooser.boundingBox(),
+    root.locator(".gridkit-data-grid-viewport").boundingBox(),
+  ]);
+  if (panel === null || grid === null) throw new Error("not visible");
+  expect(panel.x + panel.width).toBeCloseTo(grid.x + grid.width, 0);
+  expect(panel.y).toBeCloseTo(grid.y, 0);
+
+  await chooser.getByRole("checkbox", { name: "id", exact: true }).click();
+  await expect(
+    root.getByRole("columnheader", { name: "id", exact: true }),
+  ).toHaveCount(0);
+
+  await page.keyboard.press("Escape");
+
+  await expect(chooser).toHaveCount(0);
+  await expect(opener).toBeFocused();
+});
