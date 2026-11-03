@@ -44,6 +44,13 @@ export {
   type InfiniteScrollOptions,
 } from "./infiniteScroll";
 export {
+  attachMenu,
+  type AttachedMenu,
+  type MenuCloseReason,
+  type MenuOptions,
+  type MenuSubmenuFocus,
+} from "./menu/attachMenu";
+export {
   attachOverlay,
   type OverlayAnchor,
   type OverlayDismissReason,

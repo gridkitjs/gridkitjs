@@ -3,7 +3,7 @@ title: "Overview"
 description: "Framework-free browser behaviours for GridKit renderers: gestures, focus, observers, virtualization, overlays and announcements."
 ---
 
-@gridkitjs/dom holds every browser behaviour a grid needs that is not drawing: pointer gestures, keyboard focus movement, the observers behind fit-to-width and infinite scroll, the row virtualizer's measuring, overlays, and the live region it reports changes through. @gridkitjs/core decides what the grid does and runs without a DOM; @gridkitjs/dom does what needs one, with no framework; a renderer such as @gridkitjs/react draws the markup and attaches these behaviours to it. A second renderer — for Angular, Vue or Svelte — reuses both unchanged.
+@gridkitjs/dom holds every browser behaviour a grid needs that is not drawing: pointer gestures, keyboard focus movement, the observers behind fit-to-width and infinite scroll, the row virtualizer's measuring, overlays and the menus shown in them, and the live region it reports changes through. @gridkitjs/core decides what the grid does and runs without a DOM; @gridkitjs/dom does what needs one, with no framework; a renderer such as @gridkitjs/react draws the markup and attaches these behaviours to it. A second renderer — for Angular, Vue or Svelte — reuses both unchanged.
 
 You only need this package to write a renderer of your own. @gridkitjs/react depends on it already, so installing that is enough to use the grid.
 
@@ -283,3 +283,122 @@ Overlays stack in the order they attach, so a submenu opened from a menu, or a p
 - Detaching an overlay first dismisses every overlay still above it with `"parent"` and detaches it, topmost first, so a submenu never outlives its menu.
 
 `placeOverlay(anchorRect, panelSize, viewport, { placement, gap, offset })` is the placement on its own: pure arithmetic over boxes, returning `{ top, left, placement }`, for a renderer that positions its own panels.
+
+## Menu
+
+`attachMenu(panel, options)` makes a menu the renderer has drawn behave as one, following the [WAI-ARIA menu pattern](https://www.w3.org/WAI/ARIA/apg/patterns/menubar/): keys, typeahead and the pointer move focus among its items, and choosing one is reported through callbacks. It decides what each key and hover does; the renderer runs the item, opens or closes the submenu, and draws the result. It returns `focusItem(idOrIndex)` and `detach()`.
+
+What to show is @gridkitjs/core's: [`resolveMenu`](/docs/core/commands#menus) resolves a grid's menu entries to the items to draw, and the keys below are worked out with its [pure helpers](/docs/core/commands#keyboard). `attachMenu` reads only the markup:
+
+| Markup                                                       | Read as                                                                                                                                             |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `role="menuitem"`, `"menuitemcheckbox"` or `"menuitemradio"` | An item, when it also carries `data-gridkit-menu-item`. Its value is the id every callback reports. Read afresh on every key, so later items count. |
+| `aria-haspopup="menu"`                                       | An item that opens a submenu. Give it `aria-expanded` too, `"true"` while the submenu is open.                                                      |
+| `aria-disabled="true"`                                       | A disabled item: it takes focus, so a screen reader finds it, but is never chosen.                                                                  |
+| `role="separator"`, or anything else                         | Not an item, so the keys pass over it.                                                                                                              |
+| `aria-label`, else the text                                  | The label typeahead matches.                                                                                                                        |
+
+It keeps one item the tab stop — `tabindex="0"` on the focused item, or the first, `-1` on the rest — so attach the menu before its overlay, and the overlay's initial focus lands on the first item.
+
+| Option              | Called                                                                                                                                                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `onActivate`        | `(id)` — an enabled item that opens no submenu was chosen. Run it and close every menu.                                                                                                                      |
+| `onOpenSubmenu`     | `(id, { focus })` — an enabled submenu item asks for its submenu. `focus` is `"first"` from the keyboard, so focus its first item; `"none"` from a click or the pointer resting on it, so leave focus there. |
+| `onCollapseSubmenu` | `()` — the pointer came to rest on another item. Close any submenu open from this menu.                                                                                                                      |
+| `onCloseSubmenu`    | `()` — <Kbd>ArrowLeft</Kbd> in this menu, which is a submenu: close it. Pass it only to a submenu's menu.                                                                                                    |
+| `onClose`           | `("tab")` — <Kbd>Tab</Kbd> or <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd>: close every menu, and focus returns to where the first was opened from.                                                                       |
+
+| Key                                              | Does                                                                                                                                                        |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <Kbd>ArrowDown</Kbd> / <Kbd>ArrowUp</Kbd>        | Focuses the next or previous item, wrapping round the ends.                                                                                                 |
+| <Kbd>Home</Kbd> / <Kbd>End</Kbd>                 | Focuses the first or last item.                                                                                                                             |
+| <Kbd>Enter</Kbd> / <Kbd>Space</Kbd>              | `onActivate(id)`; on a submenu item, `onOpenSubmenu(id, { focus: "first" })`. Nothing on a disabled item.                                                   |
+| <Kbd>ArrowRight</Kbd>                            | On a submenu item, `onOpenSubmenu(id, { focus: "first" })` — also for one already open, when focus should move into it.                                     |
+| <Kbd>ArrowLeft</Kbd>                             | `onCloseSubmenu()`, when given.                                                                                                                             |
+| <Kbd>Tab</Kbd> / <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd> | `onClose("tab")`, in place of the key's own move.                                                                                                           |
+| A printable character                            | Typeahead: focuses the next item whose label starts with what was typed in the last half second. One letter typed again steps through every item it starts. |
+| <Kbd>Escape</Kbd>                                | Not handled here: the [overlay stack](#stacking) closes the topmost overlay.                                                                                |
+
+Moving the pointer over an item focuses it at once. What the item opens or closes waits until the pointer has rested on it for 150 ms: a submenu item reports `onOpenSubmenu(id, { focus: "none" })`, any other item `onCollapseSubmenu()`. Leaving the panel cancels the wait, so a pointer crossing another item on its way into an open submenu leaves it open. A click chooses an item as <Kbd>Enter</Kbd> does, except that a submenu opens with `focus: "none"`. Touch has no hover: only its taps count, as clicks.
+
+### Submenus
+
+A submenu is a menu of its own: a panel with its own `attachMenu`, shown in an overlay of its own anchored to its item. Attach it when it opens, after the menu below it, so it sits above that menu in the [stack](#stacking): <Kbd>Escape</Kbd> then closes the submenu alone, focus goes back to its item, and closing the menu closes the submenu with it.
+
+```ts
+import {
+  attachMenu,
+  attachOverlay,
+  type AttachedMenu,
+  type MenuSubmenuFocus,
+} from "@gridkitjs/dom";
+
+// <div role="menu" aria-label="Column"> holding, among its items,
+// <div role="menuitem" data-gridkit-menu-item="grouping"
+//      aria-haspopup="menu" aria-expanded="false">Grouping</div>
+function showMenu(
+  anchor: HTMLElement,
+  menu: HTMLElement,
+  submenu: HTMLElement,
+) {
+  const groupingItem = menu.querySelector<HTMLElement>(
+    '[data-gridkit-menu-item="grouping"]',
+  )!;
+  let openSubmenu: { behaviour: AttachedMenu; close: () => void } | null = null;
+
+  function closeSubmenu() {
+    openSubmenu?.close();
+  }
+
+  function showSubmenu(focus: MenuSubmenuFocus) {
+    if (openSubmenu !== null) {
+      if (focus === "first") openSubmenu.behaviour.focusItem(0);
+      return;
+    }
+    document.body.append(submenu);
+    groupingItem.setAttribute("aria-expanded", "true");
+    const behaviour = attachMenu(submenu, {
+      onActivate: (id) => {
+        run(id);
+        close();
+      },
+      onCloseSubmenu: closeSubmenu,
+      onClose: close,
+    });
+    const detach = attachOverlay(groupingItem, submenu, {
+      placement: "right-start",
+      offset: -4, // the submenu's top padding, so its first item lines up
+      initialFocus: focus,
+      onDismiss: closeSubmenu,
+    });
+    openSubmenu = {
+      behaviour,
+      close: () => {
+        openSubmenu = null;
+        detach();
+        behaviour.detach();
+        submenu.remove();
+        groupingItem.setAttribute("aria-expanded", "false");
+      },
+    };
+  }
+
+  document.body.append(menu);
+  const behaviour = attachMenu(menu, {
+    onActivate: (id) => {
+      run(id);
+      close();
+    },
+    onOpenSubmenu: (_id, { focus }) => showSubmenu(focus),
+    onCollapseSubmenu: closeSubmenu,
+    onClose: close,
+  });
+  const detach = attachOverlay(anchor, menu, { onDismiss: close });
+
+  function close() {
+    detach(); // dismisses the submenu above it with "parent" first
+    behaviour.detach();
+    menu.remove();
+  }
+}
+```
