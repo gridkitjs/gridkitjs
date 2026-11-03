@@ -87,11 +87,11 @@ const columns = defineColumnsFromRows(rows);
 <DataGrid columns={columns} dataSource={rows} borders="horizontal" />;
 ```
 
-| Function                          | Type                               | Description                                                                                             |
-| --------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `defineColumnsFromRows(rows)`     | `readonly ColumnDefinition<Row>[]` | Infers a type and alignment per field, one level into nested objects.                                   |
-| `accessDotted(obj, path)`         | `unknown`                          | Reads a value at a dotted path, e.g. "Application.Id".                                                  |
-| `alignmentForType(type)`          | `ColumnAlignment`                  | Alignment a column type defaults to — "right" for numbers.                                              |
-| `resolveColumnLabel(column)`      | `Node \| string`                   | What a column's header shows: its headerTemplate, else header, else a label read off the field path.    |
-| `resolveColumnHeaderText(column)` | `string`                           | The column name as text: header, else a text label, else the field path — for announcements and export. |
-| `buildKeyShortcuts(capabilities)` | `string`                           | The aria-keyshortcuts string for a column header, naming only the keys that column responds to.         |
+| Function                          | Type                               | Description                                                                                                                               |
+| --------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `defineColumnsFromRows(rows)`     | `readonly ColumnDefinition<Row>[]` | Infers a type and alignment per field, one level into nested objects.                                                                     |
+| `accessDotted(obj, path)`         | `unknown`                          | Reads a value at a dotted path, e.g. "Application.Id".                                                                                    |
+| `alignmentForType(type)`          | `ColumnAlignment`                  | Alignment a column type defaults to — "right" for numbers.                                                                                |
+| `resolveColumnLabel(column)`      | `Node \| string`                   | What a column's header shows: its headerTemplate, else header, else a label read off the field path.                                      |
+| `resolveColumnHeaderText(column)` | `string`                           | The column name as text: header, else a text label, else the field path — for announcements and export.                                   |
+| `buildKeyShortcuts(capabilities)` | `string`                           | The aria-keyshortcuts string for a column header, naming only the keys that column responds to — Shift+F10 too under `contextMenu: true`. |

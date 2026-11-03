@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
   buildKeyShortcuts,
@@ -12,6 +11,7 @@ import {
 import type { ResolvedColumn } from "../DataGrid";
 import { ariaAttr } from "../ariaAttr";
 import { classNames } from "../classNames";
+import { ChevronsUpDownIcon, ChevronUpIcon, GroupIcon } from "../icons";
 import { isOwnEvent } from "../isOwnEvent";
 import type { ColumnDragApi } from "../useColumnDrag";
 import type { ColumnResizeApi } from "../useColumnResize";
@@ -33,58 +33,10 @@ interface GridHeaderProps<Row> {
   groupBy: GroupByState;
   groupableColumns: boolean;
   groupToggleIconColumns: boolean;
+  /** Whether a header opens the grid's context menu, which its `aria-keyshortcuts` says. */
+  headerMenu: boolean;
   nav: GridNavigationApi;
   selection: GridSelectionApi;
-}
-
-/** The common attributes behind every icon here — just the `<path>`s differ. */
-function Icon({ children }: { children: ReactNode }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {children}
-    </svg>
-  );
-}
-
-/**
- * The two glyphs a sort toggle shows: a neutral hint before a column has a
- * direction, and a single chevron reused for both directions once it does —
- * `theme-tailwind` rotates it 180° for `desc` rather than swapping icons.
- */
-function ChevronsUpDownIcon() {
-  return (
-    <Icon>
-      <path d="m7 15 5 5 5-5" />
-      <path d="m7 9 5-5 5 5" />
-    </Icon>
-  );
-}
-
-function ChevronUpIcon() {
-  return (
-    <Icon>
-      <path d="m18 15-6-6-6 6" />
-    </Icon>
-  );
-}
-
-/** Three stacked panes, standing in for "group by this column". */
-function GroupIcon() {
-  return (
-    <Icon>
-      <rect x="3" y="3" width="7" height="7" rx="1" />
-      <rect x="14" y="3" width="7" height="7" rx="1" />
-      <rect x="8.5" y="14" width="7" height="7" rx="1" />
-    </Icon>
-  );
 }
 
 export default function GridHeader<Row>({
@@ -97,6 +49,7 @@ export default function GridHeader<Row>({
   groupBy,
   groupableColumns,
   groupToggleIconColumns,
+  headerMenu,
   nav,
   selection,
 }: GridHeaderProps<Row>) {
@@ -144,6 +97,7 @@ export default function GridHeader<Row>({
             resizable: entry.resizable,
             sortable,
             groupable,
+            contextMenu: headerMenu,
           });
 
           return (

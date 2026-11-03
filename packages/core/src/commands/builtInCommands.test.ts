@@ -141,6 +141,24 @@ describe("builtInCommands", () => {
     ).toEqual([]);
   });
 
+  test("gives the sort, group, hide and autofit commands icon keys", () => {
+    const icons = Object.fromEntries(
+      builtInCommands()
+        .filter((command) => command.icon !== undefined)
+        .map((command) => [command.id, command.icon]),
+    );
+
+    expect(icons).toEqual({
+      "sort.ascending": "sortAscending",
+      "sort.descending": "sortDescending",
+      "group.add": "group",
+      "group.remove": "group",
+      "column.hide": "hide",
+      "column.autoFit": "autoFit",
+      "column.autoFitAll": "autoFit",
+    });
+  });
+
   test("labels each from the messages it is given", () => {
     const context = createCommandContext({
       controller: create(),
@@ -271,6 +289,24 @@ describe("sort.clear", () => {
       { columnId: "Region", direction: "asc" },
     ]);
     expect(command.run()).toBe(false);
+  });
+
+  test("reports the column it cleared, even when it was the first key", () => {
+    const onColumnSortChange = vi.fn();
+    const controller = create({
+      defaultColumnSort: [
+        { columnId: "Region", direction: "asc" },
+        { columnId: "Amount", direction: "desc" },
+      ],
+      onColumnSortChange,
+    });
+
+    builtIn("sort.clear", controller, header("Region")).run();
+
+    expect(onColumnSortChange).toHaveBeenCalledWith({
+      columnId: "Region",
+      sort: [{ columnId: "Amount", direction: "desc" }],
+    });
   });
 });
 

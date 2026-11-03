@@ -1,0 +1,287 @@
+---
+title: "Context menu"
+description: "The grid's own menu on headers, rows and group rows — sort, group, select, autofit and hide — opened by a right-click, a long-press, Shift+F10 or the ContextMenu key."
+---
+
+`contextMenu` gives the grid a menu of its own in place of the browser's. A right-click or a touch long-press on a column header, a data cell or a group row — or <Kbd>Shift</Kbd>+<Kbd>F10</Kbd> or the <Kbd>ContextMenu</Kbd> key on a focused one — opens a menu of what can be done there: sort the column, group by it, size it to its content, hide it; select every row or clear the selection; expand or collapse every group. It is off by default, like every other GridKit feature: without `contextMenu`, a right-click shows the browser's menu.
+
+## Turning it on
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={rows}
+  sortableColumns
+  resizableColumns
+  groupableColumns
+  selectable={{ rows: "multiple" }}
+  contextMenu
+/>
+```
+
+`contextMenu` alone shows the default menus. Each item is a [built-in command](/docs/core/commands#built-in-commands) and shows only where it has something to act on, so a column that cannot sort has no sort items and a grid without `resizableColumns` no autofit.
+
+### Areas
+
+Each part of the grid that opens a menu is an **area**, with its own menu:
+
+| Area     | Where                                                                                                             | Menu name          |
+| -------- | ----------------------------------------------------------------------------------------------------------------- | ------------------ |
+| `header` | A column header.                                                                                                  | "Name column menu" |
+| `cell`   | A data cell — a menu for its row and cell.                                                                        | "Row menu"         |
+| `group`  | A group header row.                                                                                               | "Group menu"       |
+| `body`   | The body's empty space: below the last row of a grid with a `height`, or a grid with no rows. No menu by default. | "Grid menu"        |
+
+A group's summary row, the footer, the pager and the group-by bar keep the browser's menu.
+
+### Default items
+
+The header menu:
+
+| Item                      | Command             | Shown when                                                                                   |
+| ------------------------- | ------------------- | -------------------------------------------------------------------------------------------- |
+| Sort ascending            | `sort.ascending`    | The column is sortable. Checked while it sorts ascending.                                    |
+| Sort descending           | `sort.descending`   | The column is sortable. Checked while it sorts descending.                                   |
+| Clear sort                | `sort.clear`        | The column is sortable; disabled until it is sorted. Leaves the rest of a multi-column sort. |
+| Group by _column_         | `group.add`         | The column is groupable and not grouped.                                                     |
+| Stop grouping by _column_ | `group.remove`      | The column is grouped.                                                                       |
+| Autofit column            | `column.autoFit`    | The column is resizable.                                                                     |
+| Autofit all columns       | `column.autoFitAll` | Any column is resizable.                                                                     |
+| Hide column               | `column.hide`       | The column's `hideable` is not `false`; disabled for the last column shown.                  |
+
+The cell menu:
+
+| Item                | Command                   | Shown when                                                    |
+| ------------------- | ------------------------- | ------------------------------------------------------------- |
+| Select all rows     | `selection.selectAllRows` | `selectable.rows` is `"multiple"`; disabled with no rows.     |
+| Clear selection     | `selection.clear`         | Anything is selectable; disabled until something is selected. |
+| Expand all groups   | `group.expandAll`         | The grid is grouped.                                          |
+| Collapse all groups | `group.collapseAll`       | The grid is grouped.                                          |
+
+The group menu:
+
+| Item                      | Command             | Shown when                                     |
+| ------------------------- | ------------------- | ---------------------------------------------- |
+| Expand all groups         | `group.expandAll`   | Always — there is a group to open it on.       |
+| Collapse all groups       | `group.collapseAll` | Always.                                        |
+| Stop grouping by _column_ | `group.remove`      | Always: it stops grouping by the row's column. |
+
+Separators fall between the groups of items, and collapse when the items around them are hidden. A place whose menu would be empty — a cell in a grid with nothing selectable and nothing grouped, say — shows the browser's menu instead.
+
+## Choosing the items
+
+An object lists an area's menu yourself, in the menu vocabulary of [@gridkitjs/core](/docs/core/commands#menus) — command ids and `"separator"`. An area left out keeps its defaults:
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={rows}
+  sortableColumns
+  contextMenu={{
+    header: ["sort.ascending", "sort.descending", "separator", "column.hide"],
+    cell: ["selection.clear"],
+  }}
+/>
+```
+
+`[]` turns an area's menu off and leaves the browser's there — `{ header: [] }` keeps the menu on rows and group rows alone. `defaultContextMenu`, exported from @gridkitjs/core, holds each area's defaults, to build on.
+
+### Items of your own
+
+Beside command ids, a menu holds items written into it — `{ type: "item", id, label, onSelect }` — and submenus — `{ type: "submenu", id, label, items }`. An item with `checked` is a checkable one, drawn as a `menuitemcheckbox`; `hidden`, `disabled` and `checked` each take a boolean or a function of the context. `onSelect` receives the [command context](/docs/core/commands#the-context): the grid's state, its actions, the target, and the `row` and `column` a cell's menu opened on.
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  getRowId={(order) => order.id}
+  selectable={{ rows: "multiple" }}
+  contextMenu={{
+    cell: [
+      {
+        type: "item",
+        id: "orders.open",
+        label: "Open order",
+        onSelect: ({ row }) => openOrder(row?.row),
+      },
+      {
+        type: "submenu",
+        id: "orders.mark",
+        label: "Mark as",
+        items: [
+          { type: "item", id: "orders.markPaid", label: "Paid", onSelect: markPaid },
+          { type: "item", id: "orders.markSent", label: "Sent", onSelect: markSent },
+        ],
+      },
+      "separator",
+      "selection.clear",
+    ],
+  }}
+/>
+```
+
+### Working the items out each time
+
+An area also takes a function, asked each time its menu opens with a `GridContextMenuRequest` — `{ target, defaults, context }`: where the menu opens, the area's default entries, and the grid as the menu sees it. It returns the entries to show, or `null` (or `[]`) for the browser's menu there. That is how to add to the defaults, take some out, reorder them, or vary the menu by column or row:
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  sortableColumns
+  contextMenu={{
+    // "Hide column" first, no autofit, and a "Pin column" of your own.
+    header: ({ target, defaults }) => [
+      "column.hide",
+      "separator",
+      ...defaults.filter(
+        (entry) =>
+          entry !== "column.hide" &&
+          entry !== "column.autoFit" &&
+          entry !== "column.autoFitAll",
+      ),
+      "separator",
+      {
+        type: "item",
+        id: "pin",
+        label: "Pin column",
+        checked: pinned.includes(target.columnId),
+        onSelect: () => togglePin(target.columnId),
+      },
+    ],
+    // No grid menu on the Id column.
+    cell: ({ target, defaults }) =>
+      target.columnId === "Id" ? null : defaults,
+  }}
+/>
+```
+
+`target` is typed for the area — a header's carries `columnId`, a cell's `rowId` and `columnId`, a group row's `groupId` and `columnId`. A function is asked again once the menu has selected the row or column it opened on, so what it reads of the selection is what the menu acts on.
+
+## Commands of your own
+
+An action more than one menu offers is better registered once as a [command](/docs/core/commands#commands) than written into each menu. `commands` registers them, and a menu lists one by its id, like a built-in:
+
+```ts
+const commands: readonly GridCommand<Order>[] = [
+  {
+    id: "orders.exportSelected",
+    label: "Export selected",
+    isEnabled: ({ selectedRows }) => selectedRows().length > 0,
+    execute: ({ selectedRows }) => exportOrders(selectedRows()),
+  },
+  // Replaces the built-in everywhere it is listed: only an admin may hide.
+  {
+    id: "column.hide",
+    label: ({ messages }) => messages.hideColumn,
+    isVisible: ({ target }) => target.area === "header" && user.isAdmin,
+    execute: ({ column, actions }) => {
+      if (column !== null) actions.hideColumns([column.id]);
+    },
+  },
+];
+
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  selectable={{ rows: "multiple" }}
+  commands={commands}
+  contextMenu={{
+    cell: ({ defaults }) => ["orders.exportSelected", "separator", ...defaults],
+  }}
+  onCommand={({ commandId, source }) => analytics.track(commandId, source)}
+/>;
+```
+
+A command of yours with a built-in's id replaces it in every menu that lists that id, the defaults included — a translated label, a privilege check, or different behaviour, without listing the menus again.
+
+`onCommand` is called after a command runs — and after an inline item runs, with that item's id — with `{ commandId, target, source }`: `source` is `"contextMenu"` for a menu and `"api"` for the ref's [`runCommand`](#from-the-ref). An item that did not run — a disabled one — is not reported. The change the command made reports through its own callback too, as it always does: `onColumnSortChange` for a sort.
+
+## Open state
+
+The grid keeps which menu is open; there is no prop to hold it, as a context menu's open state carries a place and a position a parent rarely wants to own. `onContextMenuOpenChange` tells you as it changes, with `{ open, target }` — where the menu opened, or where the one closing had — however it opened or closed: a right-click, a key, choosing an item, <Kbd>Escape</Kbd>, a click outside, or the ref. A menu opened in place of another reports that one closing first.
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={rows}
+  contextMenu
+  onContextMenuOpenChange={({ open, target }) => {
+    setHighlighted(open && target.area === "cell" ? target.rowId : null);
+  }}
+/>
+```
+
+### From the ref
+
+The [imperative handle](/docs/react/imperative-handle) opens and closes the menu, and runs a command, from your own code — a "⋯" button in a cell template, a keyboard shortcut of your own, a test:
+
+| Member                             | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `openContextMenu(target, anchor?)` | Opens the menu `target` has — a `GridContextMenuTarget` such as `{ area: "cell", rowId, columnId }` — as a right-click there would: it selects and focuses the cell first, and closes back to it. It opens beside `anchor`, a point `{ x, y }` in viewport coordinates or an element, or else below the cell — at the body's top-left corner for `{ area: "body" }`. Returns whether it opened: not for a column, row or group that is not on screen, nor where `contextMenu` gives that place no menu. |
+| `closeContextMenu()`               | Closes the menu, if one is open; focus goes back to where it opened.                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `runCommand(commandId, target?)`   | Runs a command — a built-in or one of `commands` — on `target`, `{ area: "grid" }` when left out, when it is visible and enabled there. Fires `onCommand` with `source: "api"`, and returns whether it ran.                                                                                                                                                                                                                                                                                             |
+
+```ts
+const gridRef = useRef<DataGridApi<Order>>(null);
+
+// A cell template's own button, opening the row's menu beside itself.
+cellTemplate: ({ rowId }) => (
+  <button
+    type="button"
+    aria-label="Row actions"
+    onClick={(event) => {
+      gridRef.current?.openContextMenu(
+        { area: "cell", rowId, columnId: "actions" },
+        event.currentTarget,
+      );
+    }}
+  >
+    ⋯
+  </button>
+);
+
+gridRef.current?.runCommand("column.hide", { area: "header", columnId: "Notes" });
+```
+
+Each is safe to call from an effect: opening a menu renders nothing synchronously.
+
+## What opening it does
+
+- **Focus** moves to the header, cell or group row first, so closing the menu — by choosing an item, <Kbd>Escape</Kbd>, <Kbd>Tab</Kbd> or a click outside — puts focus back on it. When the item hid that column, focus goes to the header now in its place. A menu opened in the body's empty space leaves focus where it was.
+- **Selection** follows the menu, kind by kind, as a click would: opening it on a column, row or cell that is not selected selects it alone, where that kind is selectable; opening it on one already in the selection keeps the selection as it is, so the menu acts on everything selected. A cell's row and the cell itself each follow their own `selectable` mode.
+- **Placement** is at the pointer for a right-click or a long-press, and below the header, cell or group row for a key.
+- **Changes** report and announce exactly as the user's own gesture would: "Sort ascending" fires `onColumnSortChange` and says "Name sorted ascending", "Hide column" fires `onColumnVisibilityChange` and says "Name, column hidden", "Collapse all groups" says "All groups collapsed".
+
+The menu renders into `document.body`, so no scrolling ancestor clips it, and takes the grid's `.gridkit-light`/`.gridkit-dark` palette with it — see the [theme](/docs/theme-tailwind/overview#overlays-and-menus) for its classes.
+
+A cell or header template with a menu of its own keeps it: a `contextmenu` event the template's `onContextMenu` already prevented is left to it.
+
+## Keyboard & pointer interactions
+
+| Key or action                                            | Does                                                                                                      |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Right-click a header, cell or group row                  | Opens its menu at the pointer.                                                                            |
+| Touch and hold a header, cell or group row               | Opens its menu at the touch after half a second, if the finger stays put. Lifting it then clicks nothing. |
+| <Kbd>Shift</Kbd>+<Kbd>F10</Kbd> / <Kbd>ContextMenu</Kbd> | On a focused header, cell or group row, opens its menu below it.                                          |
+| <Kbd>ArrowDown</Kbd> / <Kbd>ArrowUp</Kbd>                | The next or previous item, wrapping round the ends.                                                       |
+| <Kbd>Home</Kbd> / <Kbd>End</Kbd>                         | The first or last item.                                                                                   |
+| <Kbd>Enter</Kbd> / <Kbd>Space</Kbd>, or a click          | Runs the item and closes every menu; on a submenu item, opens it. A disabled item does nothing.           |
+| <Kbd>ArrowRight</Kbd>                                    | On a submenu item, opens it and focuses its first item.                                                   |
+| <Kbd>ArrowLeft</Kbd>                                     | In a submenu, closes it and focuses the item that opened it.                                              |
+| A printable character                                    | Moves to the next item whose label starts with what was typed.                                            |
+| <Kbd>Escape</Kbd>                                        | Closes the menu — a submenu alone, back to its item — and goes no further: the grid's selection stays.    |
+| <Kbd>Tab</Kbd> / <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd>         | Closes every menu.                                                                                        |
+
+Moving the pointer over an item focuses it, and resting it on a submenu item opens that submenu. A disabled item still takes focus, so a screen reader finds it. While an area opens a menu, the `aria-keyshortcuts` of its headers, cells or group rows lists `Shift+F10`.
+
+## Props
+
+| Prop                      | Type                                          | Default | Description                                                                                                                                                                                  |
+| ------------------------- | --------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `contextMenu`             | `boolean \| GridContextMenuOptions<Row>`      |         | The grid's own context menu. `true` shows the defaults; `{ header, cell, group, body }` gives an area's entries, or a function of its request — `[]` or `null` for the browser's menu there. |
+| `commands`                | `readonly GridCommand<Row>[]`                 |         | Your own commands, for menus to list by id. One with a built-in's id replaces it.                                                                                                            |
+| `onCommand`               | `(event: GridCommandEvent) => void`           |         | Called after a command or an inline menu item runs, with `{ commandId, target, source }`.                                                                                                    |
+| `onContextMenuOpenChange` | `(event: ContextMenuOpenChangeEvent) => void` |         | Called as the menu opens or closes, with `{ open, target }`.                                                                                                                                 |
+
+Each menu's accessible name is a message — `headerMenuLabel`, "Name column menu"; `cellMenuLabel`, "Row menu"; `groupMenuLabel`, "Group menu"; `bodyMenuLabel`, "Grid menu" — and every item's label a message too; see [localization](/docs/react/localization).

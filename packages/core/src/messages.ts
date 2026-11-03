@@ -3,7 +3,8 @@ import type { SortDirection } from "./types";
 /**
  * Every string a grid shows or announces of its own — the pager, the group-by
  * bar, the loading row, the text of a boolean or missing value, the labels of
- * its built-in commands, and the live-region announcements — so a grid can
+ * its built-in commands, the names of its menus, and the live-region
+ * announcements — so a grid can
  * speak a language other than English. A message that names something takes
  * a function, so a translation can put the name where its own grammar wants
  * it.
@@ -74,6 +75,18 @@ export interface GridMessages {
   selectedCount: (count: number, target: "rows" | "columns") => string;
   /** Announced when a cell is selected. `rowNumber` counts from one. */
   cellSelected: (columnName: string, rowNumber: number) => string;
+  /** Announced when one column is hidden. */
+  columnHidden: (columnName: string) => string;
+  /** Announced when one column is shown. */
+  columnShown: (columnName: string) => string;
+  /** A column header's context menu's accessible name. */
+  headerMenuLabel: (columnName: string) => string;
+  /** A data cell's context menu's accessible name — a menu for its row. */
+  cellMenuLabel: string;
+  /** A group header row's context menu's accessible name. */
+  groupMenuLabel: string;
+  /** The accessible name of the menu in the body's empty space. */
+  bodyMenuLabel: string;
   /** The built-in `sort.ascending` command's label. */
   sortAscending: string;
   sortDescending: string;
@@ -154,6 +167,12 @@ export const defaultMessages: GridMessages = {
   selectedCount,
   cellSelected: (columnName, rowNumber) =>
     `${columnName}, row ${String(rowNumber)}, selected`,
+  columnHidden: (columnName) => `${columnName}, column hidden`,
+  columnShown: (columnName) => `${columnName}, column shown`,
+  headerMenuLabel: (columnName) => `${columnName} column menu`,
+  cellMenuLabel: "Row menu",
+  groupMenuLabel: "Group menu",
+  bodyMenuLabel: "Grid menu",
   sortAscending: "Sort ascending",
   sortDescending: "Sort descending",
   clearSort: "Clear sort",

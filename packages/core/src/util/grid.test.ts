@@ -404,6 +404,18 @@ describe("buildKeyShortcuts", () => {
     ).toBe("Alt+ArrowLeft Alt+ArrowRight Alt+Enter");
   });
 
+  test("names Shift+F10 for a header that opens the context menu", () => {
+    expect(
+      buildKeyShortcuts({
+        reorderable: false,
+        resizable: false,
+        sortable: true,
+        groupable: false,
+        contextMenu: true,
+      }),
+    ).toBe("Alt+ArrowUp Shift+F10");
+  });
+
   test("is empty for a column with none of the four", () => {
     expect(
       buildKeyShortcuts({

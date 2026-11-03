@@ -33,7 +33,12 @@ import type {
   SelectableConfig,
   SelectionState,
 } from "./types";
+import type { GridCommand, GridCommandEvent } from "./commands/types";
 import type { GridMessages } from "./messages";
+import type {
+  ContextMenuOpenChangeEvent,
+  GridContextMenuOptions,
+} from "./menu/contextMenu";
 import type { FormatLocale } from "./util/format";
 
 /** Which cell borders a grid draws. */
@@ -395,11 +400,43 @@ export interface GridOptions<Row> {
   /**
    * The grid's own strings, replacing its English key by key — the pager's
    * buttons, the group-by bar, the loading row, boolean and blank values,
-   * the built-in commands' labels, and every live-region announcement. Keys
+   * the built-in commands' labels, the menus' names, and every live-region
+   * announcement. Keys
    * left out keep their default.
    * Formatting is `locale`'s, not this.
    */
   messages?: Partial<GridMessages> | undefined;
+  /**
+   * The grid's own context menu, opened on a column header, a data cell, a
+   * group row or the body's empty space by a right-click, Shift+F10 or the
+   * ContextMenu key. Off by default, like every other feature, leaving the
+   * browser's menu. `true` shows each area's defaults — see
+   * `defaultContextMenu`; an object lists an area's entries, an area left
+   * out keeping its defaults and one given `[]` showing the browser's menu
+   * there.
+   */
+  contextMenu?: boolean | GridContextMenuOptions<Row> | undefined;
+  /**
+   * Called when the grid's context menu opens or closes, with where. A menu
+   * opened in place of another reports that one closing first. The open
+   * state is the renderer's to keep, so no option holds it.
+   */
+  onContextMenuOpenChange?:
+    ((event: ContextMenuOpenChangeEvent) => void) | undefined;
+  /**
+   * The app's own commands, for its menus to list by id. One with a
+   * built-in's id replaces it wherever that id is listed — a translated,
+   * privilege-gated or differently behaving "Hide column" — see
+   * `resolveCommands`.
+   */
+  commands?: readonly GridCommand<Row>[] | undefined;
+  /**
+   * Called after a command or an inline menu item runs — chosen from a menu,
+   * or run through a renderer's API — saying which, where it was asked for
+   * and from where. One that did not run, being hidden or disabled, is not
+   * reported.
+   */
+  onCommand?: ((event: GridCommandEvent) => void) | undefined;
 }
 
 /**

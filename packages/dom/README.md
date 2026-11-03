@@ -48,6 +48,7 @@ announcer.destroy();
 | `bodyCellFrom` and others  | Resolve a delegated body event to the cell, row or group header it addresses. |
 | `attachOverlay`            | Positions a panel beside an anchor or point, and reports when to dismiss it.  |
 | `attachMenu`               | Moves a menu's focus by key, typeahead and pointer, and reports choices.      |
+| `attachContextMenuTrigger` | Reports a right-click, Shift+F10 or the ContextMenu key, once per gesture.    |
 
 Full documentation: [github.com/blagojablazhevski/gridkit](https://github.com/blagojablazhevski/gridkit#readme)
 

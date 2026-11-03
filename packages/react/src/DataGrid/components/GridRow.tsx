@@ -28,6 +28,8 @@ interface GridRowProps<Row> {
   focusedColumnIndex: number | null;
   rowsSelectable: boolean;
   cellsSelectable: boolean;
+  /** Whether a cell opens the grid's context menu, which its `aria-keyshortcuts` says. */
+  contextMenu: boolean;
   /** The grid's `locale`, which a cell without a template is formatted for. */
   locale: FormatLocale;
   /** A boolean cell's words, from `messages` — memoised on the two strings by `GridBody`. */
@@ -52,12 +54,20 @@ function GridRowComponent<Row>({
   focusedColumnIndex,
   rowsSelectable,
   cellsSelectable,
+  contextMenu,
   locale,
   cellMessages,
   rowClassName,
   rowAttributes,
   ref,
 }: GridRowProps<Row>) {
+  // The ContextMenu key needs no mention: it says what it does on its face.
+  const shortcuts = [
+    cellsSelectable ? "Space Enter" : "",
+    contextMenu ? "Shift+F10" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
   return (
     <tr
       // First, so the grid's own attributes below win over one of the same
@@ -102,7 +112,7 @@ function GridRowComponent<Row>({
             aria-colindex={columnIndex + 1}
             tabIndex={tabIndexFor(columnIndex, focusedColumnIndex)}
             {...ariaAttr(cellsSelectable, "aria-selected", cellSelected)}
-            {...ariaAttr(cellsSelectable, "aria-keyshortcuts", "Space Enter")}
+            {...ariaAttr(shortcuts !== "", "aria-keyshortcuts", shortcuts)}
             className={classNames(
               "grid-cell",
               id === activeColumnId ? "is-resizing" : "",

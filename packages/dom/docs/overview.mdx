@@ -284,6 +284,35 @@ Overlays stack in the order they attach, so a submenu opened from a menu, or a p
 
 `placeOverlay(anchorRect, panelSize, viewport, { placement, gap, offset })` is the placement on its own: pure arithmetic over boxes, returning `{ top, left, placement }`, for a renderer that positions its own panels.
 
+## Context menu trigger
+
+`attachContextMenuTrigger(root, { onRequest })` reports every context menu the user asks for inside `root` — a right-click, <Kbd>Shift</Kbd>+<Kbd>F10</Kbd>, the <Kbd>ContextMenu</Kbd> key, or a touch held still for half a second — and returns the function that stops it. `onRequest` is called with a `ContextMenuRequest` and answers whether it opened a menu of its own: `true` prevents the browser's menu, `false` lets it show, so a part of the grid with nothing to offer keeps the browser's.
+
+| Field    | Type                      | Description                                                                                                                  |
+| -------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `target` | `Element`                 | The element under the pointer, or the focused one for a key.                                                                 |
+| `point`  | `{ x, y } \| null`        | Where the pointer was, in viewport coordinates — an overlay anchor as it is. `null` from the keyboard: open beside `target`. |
+| `source` | `"pointer" \| "keyboard"` | How it was asked for: a right-click or a long-press, or a key.                                                               |
+
+```ts
+import { attachContextMenuTrigger, attachOverlay } from "@gridkitjs/dom";
+
+const stop = attachContextMenuTrigger(gridElement, {
+  onRequest: ({ target, point }) => {
+    const cell = target.closest("td[data-gridkit-column]");
+    if (cell === null) return false; // the browser's menu, then
+    showMenu(point ?? cell); // an attachOverlay anchor: the point, or the cell
+    return true;
+  },
+});
+```
+
+Each gesture asks once. On some systems a key press also makes the browser fire a `contextmenu` event of its own; once the key opened a menu, that event is taken rather than reported again.
+
+A long-press is a primary touch that rests for 500 ms, drifting no more than 10 pixels; one that moves further, lifts sooner or is taken over by the browser to scroll asks nothing, and a mouse or pen held down never asks. It is reported with the touch's point. A browser that turns a held touch into a `contextmenu` of its own — Chrome on Android does — asks once, whichever comes first. Once a long-press opened a menu, the click its lifting brings is taken before anything under the finger hears it: the menu opened there, and a click would land in it.
+
+An event something already prevented is left alone, so a cell template with a menu of its own keeps it. For that, the trigger listens on the document in the bubble phase — after a framework that handles events at its root container, as React does, where a listener on `root` would hear them first — and counts only events whose target is inside `root`.
+
 ## Menu
 
 `attachMenu(panel, options)` makes a menu the renderer has drawn behave as one, following the [WAI-ARIA menu pattern](https://www.w3.org/WAI/ARIA/apg/patterns/menubar/): keys, typeahead and the pointer move focus among its items, and choosing one is reported through callbacks. It decides what each key and hover does; the renderer runs the item, opens or closes the submenu, and draws the result. It returns `focusItem(idOrIndex)` and `detach()`.

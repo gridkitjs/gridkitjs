@@ -1,7 +1,9 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   ColumnSortState,
   FilterState,
+  GridCommandTarget,
+  GridContextMenuTarget,
   SerializedGridState,
 } from "@gridkitjs/core";
 import {
@@ -34,6 +36,14 @@ export interface ImperativeApiGridProps<Row extends RowWithId> extends Omit<
   sortToSet?: ColumnSortState;
   /** The column `auto-fit-column` sizes to its content. */
   autoFitColumnId?: string;
+  /** The columns `fit-columns` sizes to their content; every column shown when left out. */
+  autoFitColumnIds?: readonly string[];
+  /** Where `open-context-menu` opens the context menu, and the point beside which, if any. */
+  contextMenuTarget?: GridContextMenuTarget;
+  contextMenuPoint?: { readonly x: number; readonly y: number };
+  /** The command `run-command` runs, and where; `{ area: "grid" }` when left out. */
+  commandId?: string;
+  commandTarget?: GridCommandTarget;
 }
 
 /**
@@ -70,12 +80,29 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
   selectRowIds,
   sortToSet,
   autoFitColumnId,
+  autoFitColumnIds,
+  contextMenuTarget,
+  contextMenuPoint,
+  commandId,
+  commandTarget,
   ...props
 }: ImperativeApiGridProps<Row>) {
   const gridRef = useRef<DataGridApi<Row>>(null);
   const [status, setStatus] = useState("");
   /** What `save-state` stored, as JSON — the way a real page would keep it. */
   const [savedState, setSavedState] = useState<string | null>(null);
+  /** What the last `openContextMenu` or `runCommand` call returned. */
+  const [result, setResult] = useState("");
+  /** Bumped by `open-in-effect`, whose effect then opens the menu. */
+  const [effectOpenings, setEffectOpenings] = useState(0);
+
+  // From an effect, as a consumer opening the menu on some change of its own
+  // would: the grid must not render synchronously from inside one.
+  useEffect(() => {
+    if (effectOpenings > 0 && contextMenuTarget !== undefined) {
+      gridRef.current?.openContextMenu(contextMenuTarget, contextMenuPoint);
+    }
+  }, [effectOpenings, contextMenuTarget, contextMenuPoint]);
 
   function report(): void {
     const api = gridRef.current;
@@ -250,6 +277,54 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
       <button
         type="button"
         onClick={() => {
+          gridRef.current?.autoFitColumns(autoFitColumnIds);
+        }}
+      >
+        fit-columns
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          const api = gridRef.current;
+          if (api !== null && contextMenuTarget !== undefined) {
+            setResult(
+              String(api.openContextMenu(contextMenuTarget, contextMenuPoint)),
+            );
+          }
+        }}
+      >
+        open-context-menu
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          setEffectOpenings((count) => count + 1);
+        }}
+      >
+        open-in-effect
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          gridRef.current?.closeContextMenu();
+        }}
+      >
+        close-context-menu
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          const api = gridRef.current;
+          if (api !== null && commandId !== undefined) {
+            setResult(String(api.runCommand(commandId, commandTarget)));
+          }
+        }}
+      >
+        run-command
+      </button>
+      <button
+        type="button"
+        onClick={() => {
           const api = gridRef.current;
           if (api !== null) {
             setSavedState(JSON.stringify(serializeGridState(api.getState())));
@@ -274,6 +349,7 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         report
       </button>
       <pre data-testid="imperative-status">{status}</pre>
+      <output data-testid="imperative-result">{result}</output>
     </div>
   );
 }

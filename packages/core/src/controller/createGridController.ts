@@ -544,6 +544,17 @@ export function createGridController<Row, Node = string>(
         options.onColumnSortChange?.({ columnId, sort: next });
       });
     },
+    clearColumnSort(columnId) {
+      const next = state.columnSort.filter(
+        (entry) => entry.columnId !== columnId,
+      );
+      if (next.length === state.columnSort.length) {
+        return;
+      }
+      commit("columnSort", next, () => {
+        options.onColumnSortChange?.({ columnId, sort: next });
+      });
+    },
 
     setGroupBy(groupBy) {
       const columnId = changedEntryColumnId(state.groupBy, groupBy);

@@ -21,22 +21,19 @@ import {
   type AggregateState,
   type Borders,
   type ColumnOrderState,
-  type ColumnResizeEvent,
   type ColumnSizingState,
-  type ColumnSortEvent,
   type ColumnSortState,
   type ColumnVisibilityState,
   type DisplayRow,
   type FilterState,
+  type GridCommandTarget,
+  type GridContextMenuTarget,
   type GridOptions,
   type GridState,
   type GroupByBarVisibility,
-  type GroupByEvent,
   type GroupByState,
-  type GroupExpansionEvent,
   type GroupExpansionState,
   type HoverableConfig,
-  type PaginationChangeEvent,
   type PaginationState,
   type ResizeMode,
   type ResolvedRow,
@@ -50,7 +47,6 @@ import {
   type ColumnSelectionChangeEvent as CoreColumnSelectionChangeEvent,
   type ColumnsSelectEvent as CoreColumnsSelectEvent,
   type SelectionCallbacks as CoreSelectionCallbacks,
-  type SelectionDiffEvent,
   type SerializedGridState,
 } from "@gridkitjs/core";
 import type { ColumnDropTarget } from "@gridkitjs/dom";
@@ -60,8 +56,12 @@ import GridBody from "./components/GridBody";
 import GridFooter from "./components/GridFooter";
 import GridPager from "./components/GridPager";
 import GroupByBar from "./components/GroupByBar";
+import { announcedCallbacks } from "./announcedCallbacks";
 import { ariaAttr } from "./ariaAttr";
 import { classNames } from "./classNames";
+import useGridCommands from "./commands/useGridCommands";
+import GridContextMenu from "./contextMenu/GridContextMenu";
+import useContextMenu from "./contextMenu/useContextMenu";
 import { isOwnEvent } from "./isOwnEvent";
 import useColumnDrag from "./useColumnDrag";
 import useColumnResize from "./useColumnResize";
@@ -270,6 +270,31 @@ export interface DataGridApi<Row> {
    * with no rows to measure, is left as it is.
    */
   autoFitColumn(columnId: string): void;
+  /**
+   * `autoFitColumn` for each of the given columns, or for every column shown
+   * when given none.
+   */
+  autoFitColumns(columnIds?: readonly string[]): void;
+  /**
+   * Opens the context menu `target` has, as a right-click there would —
+   * selecting it and focusing its cell first — beside `anchor`, a point in
+   * viewport coordinates or an element, or else below its cell. Says whether
+   * it opened: not for a target not on screen, nor where `contextMenu`
+   * gives no menu.
+   */
+  openContextMenu(
+    target: GridContextMenuTarget,
+    anchor?: { readonly x: number; readonly y: number } | Element,
+  ): boolean;
+  /** Closes the context menu, if one is open. */
+  closeContextMenu(): void;
+  /**
+   * Runs a command by id — a built-in or one of `commands` — on `target`,
+   * `{ area: "grid" }` when left out, when it is visible and enabled there.
+   * Reports it through `onCommand` with `source: "api"`, and says whether it
+   * ran.
+   */
+  runCommand(commandId: string, target?: GridCommandTarget): boolean;
   /** Scrolls the row with the given id into view, if it is currently shown. */
   scrollToRow(rowId: string, options?: ScrollIntoViewOptions): void;
   /** Scrolls the column with the given id into view. */
@@ -445,18 +470,12 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     selectable,
     resizeMode = "fit",
     columnSizeDefaults,
-    onColumnResize,
     sortableColumns = false,
-    onColumnSortChange,
     groupableColumns = false,
     groupToggleIconColumns = true,
     groupByBarVisibility = "auto",
-    onGroupByChange,
-    onGroupExpansionChange,
     paginated = false,
     pager,
-    onPaginationChange,
-    onCellSelectionChange,
     infiniteScroll,
     aggregates = NO_AGGREGATES as AggregateState<Row>,
     groupAggregateDisplay = "inline",
@@ -495,18 +514,18 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   /**
    * Every slice of grid state, and everything the grid draws, comes from
    * here. The change callbacks go in wrapped, so each change is announced
-   * where the controller reports it — see `announce`.
+   * where the controller reports it — see `announcedCallbacks`.
    */
   const { controller, state, view } = useGridController<Row>({
     ...props,
     viewportWidth,
-    onColumnResize: handleColumnResize,
-    onColumnSortChange: handleColumnSortChange,
-    onGroupByChange: handleGroupByChange,
-    onGroupExpansionChange: handleGroupExpansionChange,
-    onPaginationChange: handlePaginationChange,
-    onCellSelectionChange: handleCellSelectionChange,
-    onSelectionDiff: handleSelectionDiff,
+    ...announcedCallbacks({
+      callbacks: props,
+      announce,
+      messages,
+      columnName,
+      columnOf,
+    }),
   });
 
   /**
@@ -556,31 +575,16 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     config: infiniteScroll,
   });
 
-  /** What a column is called in an announcement — see `resolveColumnHeaderText`. */
-  function columnName(columnId: string): string {
-    const entry = view.dataColumns.find(
-      (candidate) => candidate.id === columnId,
-    );
-    return entry === undefined
-      ? columnId
-      : resolveColumnHeaderText(entry.column);
+  /** A column's definition by id, hidden ones included. */
+  function columnOf(columnId: string): ColumnDefinition<Row> | undefined {
+    return view.dataColumns.find((candidate) => candidate.id === columnId)
+      ?.column;
   }
 
-  /**
-   * Announced only once the drag ends: the controller reports the continuous
-   * `"move"` phase as well, and a live region given every frame of a drag
-   * says nothing an assistive technology can keep up with.
-   */
-  function handleColumnResize(event: ColumnResizeEvent): void {
-    onColumnResize?.(event);
-    if (event.phase === "end") {
-      announce(
-        messages.columnResized(
-          columnName(event.columnId),
-          Math.round(event.width),
-        ),
-      );
-    }
+  /** What a column is called in an announcement — see `resolveColumnHeaderText`. */
+  function columnName(columnId: string): string {
+    const column = columnOf(columnId);
+    return column === undefined ? columnId : resolveColumnHeaderText(column);
   }
 
   const resize = useColumnResize<Row>({
@@ -592,112 +596,14 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     controller,
     columnSizeDefaults,
   });
-
-  /** Wrapped the same way `handleColumnResize` is, for its own announcement. */
-  function handleGroupByChange(event: GroupByEvent): void {
-    onGroupByChange?.(event);
-    const entry = event.groupBy.find(
-      (candidate) => candidate.columnId === event.columnId,
-    );
-    if (entry === undefined) {
-      announce(messages.groupingRemoved(columnName(event.columnId)));
-      return;
-    }
-    announce(
-      messages.groupedBy(
-        columnName(event.columnId),
-        event.groupBy.indexOf(entry) + 1,
-        event.groupBy.length,
-      ),
-    );
-  }
-
-  /**
-   * `groupId: null` marks `expandAll`/`collapseAll`, which touch every group
-   * in one call rather than one at a time — announced as a single summary
-   * instead of naming a group that doesn't apply.
-   */
-  function handleGroupExpansionChange(event: GroupExpansionEvent): void {
-    onGroupExpansionChange?.(event);
-    if (event.groupId === null) {
-      announce(
-        event.expansion.length === 0
-          ? messages.allGroupsExpanded
-          : messages.allGroupsCollapsed,
-      );
-      return;
-    }
-    announce(
-      event.expansion.includes(event.groupId)
-        ? messages.groupCollapsed
-        : messages.groupExpanded,
-    );
-  }
-
-  /**
-   * Wrapped the same way `handleColumnResize` is, so a toggle, a stack, or a
-   * clear back to "none" each get their own announcement.
-   */
-  function handleColumnSortChange(event: ColumnSortEvent): void {
-    onColumnSortChange?.(event);
-    const entry = event.sort.find(
-      (candidate) => candidate.columnId === event.columnId,
-    );
-    if (entry === undefined) {
-      announce(messages.sortCleared(columnName(event.columnId)));
-      return;
-    }
-    announce(
-      messages.columnSorted(
-        columnName(event.columnId),
-        entry.direction,
-        event.sort.indexOf(entry) + 1,
-        event.sort.length,
-      ),
-    );
-  }
-
-  /** Wrapped the same way `handleColumnSortChange` is, for its own announcement. */
-  function handlePaginationChange(event: PaginationChangeEvent): void {
-    onPaginationChange?.(event);
-    announce(
-      messages.pageStatus(event.pagination.pageIndex + 1, event.pageCount),
-    );
-  }
-
-  /**
-   * Announced only for a change touching more than one row or column. A
-   * single selection is already carried by the focused member's own
-   * `aria-selected`, and repeating it here would talk over that. Counted by
-   * id, so rows the change touched off screen — on another page, in a
-   * collapsed group — count too.
-   */
-  function handleSelectionDiff(event: SelectionDiffEvent): void {
-    if (event.added.length + event.removed.length > 1) {
-      announce(messages.selectedCount(event.selection.length, event.target));
-    }
-  }
-
-  /**
-   * Unlike rows and columns, a cell selection is always exactly one cell —
-   * there is no multi-cell range — so it never crosses the count's >1
-   * threshold and the focused cell's own `aria-selected` is the only
-   * feedback a screen-reader user would otherwise get. Announced on every
-   * change that lands on a cell instead.
-   */
-  function handleCellSelectionChange(
-    event: CellSelectionChangeEvent<Row>,
-  ): void {
-    onCellSelectionChange?.(event);
-    if (event.selected !== null) {
-      announce(
-        messages.cellSelected(
-          columnName(event.selected.columnId),
-          event.selected.rowIndex + 1,
-        ),
-      );
-    }
-  }
+  const commands = useGridCommands({
+    controller,
+    commands: props.commands,
+    onCommand: props.onCommand,
+    messages,
+    announce,
+    resize,
+  });
 
   const nav = useGridNavigation({
     headerTableRef,
@@ -854,6 +760,21 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   const multiselectable =
     selection.rowMode === "multiple" || selection.columnMode === "multiple";
 
+  const contextMenu = useContextMenu({
+    rootRef: viewportRef,
+    headerTableRef,
+    bodyTableRef,
+    bodyScrollRef,
+    contextMenu: props.contextMenu,
+    onContextMenuOpenChange: props.onContextMenuOpenChange,
+    controller,
+    commands,
+    nav,
+    selection,
+    messages,
+    columnName,
+  });
+
   /**
    * Tells `subscribe`'s listeners once a render has drawn a change: to the
    * controller's state or view — whether an action or a prop made it — or to
@@ -935,13 +856,17 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     setColumnSelection: controller.setColumnSelection,
     setCellSelection: controller.setCellSelection,
     autoFitColumn: (columnId) => {
-      const entry = controller
-        .getView()
-        .columns.find((candidate) => candidate.id === columnId);
-      if (entry !== undefined) {
-        resize.sizeToContent(entry);
-      }
+      commands.host.autoFitColumns([columnId]);
     },
+    autoFitColumns: (columnIds) => {
+      commands.host.autoFitColumns(
+        columnIds ?? controller.getView().columns.map((entry) => entry.id),
+      );
+    },
+    openContextMenu: contextMenu.open,
+    closeContextMenu: contextMenu.close,
+    runCommand: (commandId, target = { area: "grid" }) =>
+      commands.run(commandId, target, "api"),
     scrollToRow: (rowId, options) => {
       // `pageRows`, not `displayRows`: a data row's DOM position is its place
       // in the currently rendered page — with grouping active, that's its
@@ -1106,6 +1031,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
             groupBy={state.groupBy}
             groupableColumns={groupableColumns}
             groupToggleIconColumns={groupToggleIconColumns}
+            headerMenu={contextMenu.opens("header")}
             nav={nav}
             selection={selection}
           />
@@ -1147,6 +1073,8 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
               onRowClick={onRowClick}
               onRowDoubleClick={onRowDoubleClick}
               messages={messages}
+              cellMenu={contextMenu.opens("cell")}
+              groupMenu={contextMenu.opens("group")}
             />
           </table>
         </div>
@@ -1170,6 +1098,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
           </table>
         )}
       </div>
+      <GridContextMenu contextMenu={contextMenu} />
       {paginated &&
         (pager?.template ? (
           pager.template(pagerContext)

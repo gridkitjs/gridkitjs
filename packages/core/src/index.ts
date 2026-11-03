@@ -108,13 +108,18 @@ export type {
   GridCommand,
   GridCommandActions,
   GridCommandContext,
+  GridCommandEvent,
   GridCommandHost,
+  GridCommandSource,
   GridCommandTarget,
   GridPanelKind,
 } from "./commands/types";
 export type { GridCommandContextInput } from "./commands/context";
 export { createCommandContext } from "./commands/context";
-export type { BuiltInCommandId } from "./commands/builtInCommands";
+export type {
+  BuiltInCommandIcon,
+  BuiltInCommandId,
+} from "./commands/builtInCommands";
 export { builtInCommands } from "./commands/builtInCommands";
 export { resolveCommands, runCommand } from "./commands/registry";
 export type {
@@ -128,6 +133,19 @@ export type {
 } from "./menu/types";
 export type { MenuResolveOptions } from "./menu/resolveMenu";
 export { resolveMenu } from "./menu/resolveMenu";
+export type {
+  ContextMenuOpenChangeEvent,
+  GridContextMenuArea,
+  GridContextMenuEntries,
+  GridContextMenuOptions,
+  GridContextMenuRequest,
+  GridContextMenuTarget,
+} from "./menu/contextMenu";
+export {
+  contextMenuEntries,
+  defaultContextMenu,
+  hasContextMenu,
+} from "./menu/contextMenu";
 export type { MenuMove } from "./menu/navigation";
 export { nextMenuIndex, typeaheadIndex } from "./menu/navigation";
 export type { KeyShortcutCapabilities } from "./util/grid";

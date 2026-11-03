@@ -101,7 +101,7 @@ A `GridCommandHost` holds what a command needs that only a renderer has. A calle
 | ------------------------- | -------------------------- | --------------------------------------- | ----------------------------------------- | ------------------------------------------------------------- | ------------------- |
 | `sort.ascending`          | header                     | the column is sortable                  | always; checked while it sorts ascending  | Sorts by this column alone, ascending.                        | `sortAscending`     |
 | `sort.descending`         | header                     | the column is sortable                  | always; checked while it sorts descending | Sorts by this column alone, descending.                       | `sortDescending`    |
-| `sort.clear`              | header                     | the column is sortable                  | the column is sorted                      | Takes the column out of the sort, keeping the rest.           | `clearSort`         |
+| `sort.clear`              | header                     | the column is sortable                  | the column is sorted                      | `clearColumnSort`, keeping the rest of the sort.              | `clearSort`         |
 | `sort.clearAll`           | grid, toolbar, header      | always                                  | anything is sorted                        | `setColumnSort([])`                                           | `clearAllSorting`   |
 | `group.add`               | header                     | the column is groupable and not grouped | always                                    | `toggleGroupBy`, adding it to the end of the grouping.        | `groupByColumn`     |
 | `group.remove`            | header, group              | the column is grouped                   | always                                    | `toggleGroupBy`, taking it out of the grouping.               | `removeGroupBy`     |
@@ -116,6 +116,8 @@ A `GridCommandHost` holds what a command needs that only a renderer has. A calle
 | `filter.clearAll`         | grid, toolbar, header      | always                                  | anything filters                          | `setFilter([])`, which clears the search too.                 | `clearFilters`      |
 
 "Sortable" is the column's `sortable`, else the grid's `sortableColumns`; "groupable" the same with `groupable` and `groupableColumns`; "resizable" is the column as rendered, after `resizableColumns`. [`hideable`](/docs/core/column-definitions#column-definition-shape) defaults to `true` and, like `sortable`, gates only the user's ways to do it: `hideColumns` still hides a column that is not hideable.
+
+The sorting, grouping, hiding and autofit built-ins carry an `icon` key — a `BuiltInCommandIcon`: `sortAscending` and `sortDescending` on the two sorts, `group` on `group.add` and `group.remove`, `hide` on `column.hide`, and `autoFit` on both autofits. @gridkitjs/react draws each as an icon of its own; a command of yours may use the same keys to look like the built-ins, and a renderer of your own maps them to its icons or leaves them out.
 
 The ids `filter.open`, `copy.cell`, `copy.row`, `copy.selection`, `export.csv`, `export.json`, `export.xlsx`, `export.pdf`, `print` and `layout.reset` are reserved for built-ins still to come.
 
@@ -161,6 +163,28 @@ A command with the id `"separator"` is left out with a `console.error` — a men
 | `resolveCommands(commands)`    | `ReadonlyMap<string, GridCommand<Row>>` | The built-ins, then `commands`, keyed by id — yours replacing a built-in of the same id. |
 | `createCommandContext(input)`  | `GridCommandContext<Row>`               | The context for one target, over the controller as it is now.                            |
 | `runCommand(command, context)` | `boolean`                               | Runs the command when visible and enabled, and says whether it did.                      |
+
+### On a grid
+
+A grid takes its app commands through the `commands` option, which a renderer passes to `resolveCommands` — so the grid's menus list them by id, and a built-in's id replaced there is replaced in every menu:
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  commands={[exportSelected, hideColumn]}
+  contextMenu={{ cell: ["orders.exportSelected", "separator", "selection.clear"] }}
+  onCommand={({ commandId, target, source }) => track(commandId, source)}
+/>
+```
+
+`onCommand` is called after a command runs, with a `GridCommandEvent` — and after an inline menu item runs, with that item's id. A hidden or disabled one, which does not run, is not reported.
+
+| Field       | Type                                  | Description                                                                       |
+| ----------- | ------------------------------------- | --------------------------------------------------------------------------------- |
+| `commandId` | `string`                              | The command's id, or the inline item's.                                           |
+| `target`    | `GridCommandTarget`                   | Where it was asked for — `{ area: "grid" }` for a call through the API with none. |
+| `source`    | `"contextMenu" \| "toolbar" \| "api"` | A `GridCommandSource`: a context menu, the toolbar, or a renderer's API.          |
 
 ## Menus
 
@@ -222,6 +246,97 @@ An empty result means there is nothing to show, so a renderer shows no grid menu
 | `ResolvedMenuSeparator` | `type: "separator"`, `key` — the separator's place among the entries it came from, unique among its menu's separators |
 
 `run()` runs an item against the context its menu was resolved in — a command through `runCommand`, so only while it is visible and enabled; an inline item unless it is disabled — and returns whether it ran.
+
+## Context menus
+
+A grid's `contextMenu` option — `boolean | GridContextMenuOptions<Row>` — says which context menus it shows, by area. It is off by default, leaving the browser's menu. `true` shows each area's defaults; an object gives an area's entries in the menu vocabulary above — or a function working them out, below — an area left out keeping its defaults and `[]` leaving the browser's menu there.
+
+| Area     | Where                                                       | Target                                 |
+| -------- | ----------------------------------------------------------- | -------------------------------------- |
+| `header` | A column header.                                            | `{ area: "header", columnId }`         |
+| `cell`   | A data cell — a menu for its row and cell.                  | `{ area: "cell", rowId, columnId }`    |
+| `group`  | A group header row.                                         | `{ area: "group", groupId, columnId }` |
+| `body`   | The body's empty space, below the last row or with no rows. | `{ area: "body" }`                     |
+
+A `GridContextMenuTarget` is a command target in one of these areas.
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  sortableColumns
+  contextMenu={{
+    header: ["sort.ascending", "sort.descending", "separator", "column.hide"],
+    cell: ["selection.selectAllRows", "selection.clear"],
+  }}
+/>
+```
+
+`defaultContextMenu` holds each area's defaults — each item hidden where it has nothing to act on, and the separators collapsing around what is left:
+
+| Area     | Defaults                                                                                                                                                                        |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `header` | `sort.ascending`, `sort.descending`, `sort.clear`, a separator, `group.add`, `group.remove`, a separator, `column.autoFit`, `column.autoFitAll`, a separator and `column.hide`. |
+| `cell`   | `selection.selectAllRows`, `selection.clear`, a separator, `group.expandAll` and `group.collapseAll`.                                                                           |
+| `group`  | `group.expandAll`, `group.collapseAll`, a separator and `group.remove` — which stops grouping by the row's column.                                                              |
+| `body`   | None: empty space keeps the browser's menu until the grid lists entries for it.                                                                                                 |
+
+An area takes a `GridContextMenuEntries<Row, Area>`: its entries, or a function asked each time its menu opens with a `GridContextMenuRequest<Row, Area>` and returning the entries to show — or `null`, like `[]`, for no grid menu there.
+
+| Field      | Type                          | Description                                                                                    |
+| ---------- | ----------------------------- | ---------------------------------------------------------------------------------------------- |
+| `target`   | `GridContextMenuTarget<Area>` | Where the menu opens, typed for the area: a header's carries `columnId`, a cell's `rowId` too. |
+| `defaults` | `readonly MenuEntry<Row>[]`   | The area's defaults, to keep, trim, reorder or add to.                                         |
+| `context`  | `GridCommandContext<Row>`     | The grid as the menu sees it — the context its items resolve and run in.                       |
+
+```ts
+contextMenu={{
+  cell: ({ target, defaults, context }) =>
+    target.columnId === "Id"
+      ? null
+      : [
+          { type: "item", id: "orders.open", label: "Open", onSelect: ({ row }) => open(row) },
+          "separator",
+          ...defaults,
+        ],
+}}
+```
+
+For a renderer of your own, two functions read the option:
+
+| Function                                   | Type                        | Description                                                                                                                                                                                             |
+| ------------------------------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `contextMenuEntries(contextMenu, context)` | `readonly MenuEntry<Row>[]` | The entries the option gives the place `context.target` names — asking the area's function, if it has one — for `resolveMenu` to resolve in the same context. None for a target outside the four areas. |
+| `hasContextMenu(contextMenu, area)`        | `boolean`                   | Whether the option opens a grid menu on `area` at all: it is on, and the area has entries or a function rather than `[]`. For an `aria-keyshortcuts` that lists `Shift+F10`.                            |
+
+No entries, or none left once resolved, means no grid menu there: the renderer leaves the browser's.
+
+```ts
+import {
+  contextMenuEntries,
+  createCommandContext,
+  resolveMenu,
+} from "@gridkitjs/core";
+
+const context = createCommandContext({
+  controller,
+  target: { area: "header", columnId },
+  messages,
+  host,
+});
+const entries = resolveMenu(
+  contextMenuEntries(controller.getOptions().contextMenu, context),
+  { commands, context },
+);
+if (entries.length > 0) {
+  event.preventDefault();
+  showMenu(entries);
+}
+```
+
+`onContextMenuOpenChange` is called as a grid's context menu opens and closes, with a `ContextMenuOpenChangeEvent` — `{ open, target }`, where the menu opened or where the one closing had. A menu opened in place of another reports that one closing first. The open state itself is the renderer's: no option holds it.
+
+@gridkitjs/react draws them and opens them for you — see its [context menu](/docs/react/context-menu).
 
 ## Keyboard
 
