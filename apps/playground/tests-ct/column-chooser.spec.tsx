@@ -42,6 +42,12 @@ function grid(props: Partial<DataGridProps<Row>> = {}) {
   );
 }
 
+/** Wider than a 260px container, with only the chooser in its toolbar. */
+const narrowGrid = grid({
+  resizeMode: "fixed",
+  toolbar: { items: ["column.choose"] },
+});
+
 function header(root: MountResult, name: string): Locator {
   return root.getByRole("columnheader", { name, exact: true });
 }
@@ -131,6 +137,57 @@ test.describe("column chooser", () => {
     await expect(status(root)).toHaveText("Notes, column shown");
     // Still open: every change applies at once, with nothing to confirm.
     await expect(chooser).toBeVisible();
+  });
+
+  test("stays open when hiding a column scrolls a grid scrolled to its end", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, narrowGrid, { width: 260 });
+    const viewport = root.locator(".gridkit-data-grid-viewport");
+    await viewport.evaluate((element) => {
+      element.scrollLeft = element.scrollWidth;
+    });
+    expect(await viewport.evaluate((element) => element.scrollLeft)).toBe(60);
+    const chooser = await openFromToolbar(root, page);
+
+    // The tables become narrower than the grid, which scrolls back to 0.
+    await option(chooser, "Score").click();
+
+    await expect(header(root, "Score")).toHaveCount(0);
+    await expect
+      .poll(() => viewport.evaluate((element) => element.scrollLeft))
+      .toBe(0);
+    await option(chooser, "Name").click();
+    await expect(header(root, "Name")).toHaveCount(0);
+    await expect(chooser).toBeVisible();
+    await expect(option(chooser, "Name")).toBeFocused();
+  });
+
+  test("a scroll it did not cause still closes it", async ({ mount, page }) => {
+    const root = await mountGrid(mount, narrowGrid, { width: 260 });
+    const chooser = await openFromToolbar(root, page);
+    await option(chooser, "Notes").click();
+    await expect(header(root, "Notes")).toHaveCount(1);
+    // Past the frames a scroll the change caused would come in.
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          let frames = 3;
+          const tick = () => {
+            frames -= 1;
+            if (frames === 0) resolve();
+            else requestAnimationFrame(tick);
+          };
+          requestAnimationFrame(tick);
+        }),
+    );
+
+    await root.locator(".gridkit-data-grid-viewport").evaluate((element) => {
+      element.scrollLeft = 20;
+    });
+
+    await expect(chooser).toHaveCount(0);
   });
 
   test("the search narrows the list, and Show all acts on what it lists", async ({

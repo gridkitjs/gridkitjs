@@ -22,6 +22,8 @@ interface OverlayProps {
   offset?: number | undefined;
   initialFocus?: OverlayInitialFocus | undefined;
   returnFocusTo?: HTMLElement | null | undefined;
+  /** See ttachOverlay's option: a panel whose controls change the grid under it. */
+  ignoreScrollAfterInput?: boolean | undefined;
   /** The palette the overlay takes — see `overlayThemeClassName`. */
   themeClassName: string;
   /** The overlay asks to close; the caller unmounts it, or not. */
@@ -63,6 +65,7 @@ export default function Overlay({
   offset,
   initialFocus,
   returnFocusTo,
+  ignoreScrollAfterInput,
   themeClassName,
   onDismiss,
   children,
@@ -85,11 +88,20 @@ export default function Overlay({
       offset,
       initialFocus,
       returnFocusTo,
+      ignoreScrollAfterInput,
       onDismiss: (reason) => {
         onDismissRef.current(reason);
       },
     });
-  }, [anchor, placement, gap, offset, initialFocus, returnFocusTo]);
+  }, [
+    anchor,
+    placement,
+    gap,
+    offset,
+    initialFocus,
+    returnFocusTo,
+    ignoreScrollAfterInput,
+  ]);
 
   return createPortal(
     <div

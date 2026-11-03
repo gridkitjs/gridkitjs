@@ -58,6 +58,8 @@ export default function GridPanels<Row>({
       anchor={panel.anchor}
       placement={panel.placement}
       returnFocusTo={panel.returnFocusTo}
+      // A column the chooser hides can scroll the grid back under it.
+      ignoreScrollAfterInput
       themeClassName={panel.themeClassName}
       onDismiss={close}
     >
