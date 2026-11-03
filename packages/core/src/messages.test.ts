@@ -57,6 +57,11 @@ function rendered(messages: GridMessages): Record<keyof GridMessages, string> {
     selectAllRows: messages.selectAllRows,
     clearSelection: messages.clearSelection,
     clearFilters: messages.clearFilters,
+    toolbarLabel: messages.toolbarLabel,
+    searchLabel: messages.searchLabel,
+    searchPlaceholder: messages.searchPlaceholder,
+    moreToolbarItems: messages.moreToolbarItems,
+    searchResults: messages.searchResults(3),
   };
 }
 
@@ -117,6 +122,11 @@ describe("defaultMessages", () => {
       selectAllRows: "Select all rows",
       clearSelection: "Clear selection",
       clearFilters: "Clear filters",
+      toolbarLabel: "Grid toolbar",
+      searchLabel: "Search",
+      searchPlaceholder: "Search…",
+      moreToolbarItems: "More",
+      searchResults: "3 rows found",
     });
   });
 
@@ -136,6 +146,12 @@ describe("defaultMessages", () => {
     expect(defaultMessages.selectedCount(2, "columns")).toBe(
       "2 columns selected",
     );
+  });
+
+  test("counts a search's rows as none, one or many", () => {
+    expect(defaultMessages.searchResults(0)).toBe("No rows found");
+    expect(defaultMessages.searchResults(1)).toBe("1 row found");
+    expect(defaultMessages.searchResults(12)).toBe("12 rows found");
   });
 });
 
