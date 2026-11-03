@@ -231,6 +231,13 @@ export interface GridController<Row, Node = string> {
     columnId: string,
     options?: { readonly stack?: boolean | undefined },
   ) => void;
+  /**
+   * Takes one column out of the sort, keeping the rest in their order, and
+   * reports naming that column — which `setColumnSort` without it would not
+   * when it was the first key, naming instead the key that moved up. A
+   * column the sort leaves out already reports nothing.
+   */
+  readonly clearColumnSort: (columnId: string) => void;
 
   /**
    * Replaces the group-by stack. Reported through `onGroupByChange` naming

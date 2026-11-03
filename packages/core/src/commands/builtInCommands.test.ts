@@ -272,6 +272,24 @@ describe("sort.clear", () => {
     ]);
     expect(command.run()).toBe(false);
   });
+
+  test("reports the column it cleared, even when it was the first key", () => {
+    const onColumnSortChange = vi.fn();
+    const controller = create({
+      defaultColumnSort: [
+        { columnId: "Region", direction: "asc" },
+        { columnId: "Amount", direction: "desc" },
+      ],
+      onColumnSortChange,
+    });
+
+    builtIn("sort.clear", controller, header("Region")).run();
+
+    expect(onColumnSortChange).toHaveBeenCalledWith({
+      columnId: "Region",
+      sort: [{ columnId: "Amount", direction: "desc" }],
+    });
+  });
 });
 
 describe("sort.clearAll", () => {

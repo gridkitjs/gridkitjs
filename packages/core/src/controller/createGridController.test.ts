@@ -173,6 +173,43 @@ describe("createGridController: sort", () => {
     ]);
   });
 
+  test("clearColumnSort takes one column out and names it, the first key too", () => {
+    const onColumnSortChange = vi.fn<(event: ColumnSortEvent) => void>();
+    const controller = create({
+      defaultColumnSort: [
+        { columnId: "Region", direction: "asc" },
+        { columnId: "Amount", direction: "desc" },
+      ],
+      onColumnSortChange,
+    });
+
+    controller.clearColumnSort("Region");
+
+    expect(onColumnSortChange.mock.calls.map(([event]) => event)).toEqual([
+      {
+        columnId: "Region",
+        sort: [{ columnId: "Amount", direction: "desc" }],
+      },
+    ]);
+  });
+
+  test("clearColumnSort on a column the sort leaves out reports nothing", () => {
+    const onColumnSortChange = vi.fn();
+    const listener = vi.fn();
+    const controller = create({
+      defaultColumnSort: [{ columnId: "Region", direction: "asc" }],
+      onColumnSortChange,
+    });
+    controller.subscribe(listener);
+    const state = controller.getState();
+
+    controller.clearColumnSort("Amount");
+
+    expect(onColumnSortChange).not.toHaveBeenCalled();
+    expect(listener).not.toHaveBeenCalled();
+    expect(controller.getState()).toBe(state);
+  });
+
   test("setColumnSort with an equal sort reports nothing", () => {
     const onColumnSortChange = vi.fn();
     const listener = vi.fn();

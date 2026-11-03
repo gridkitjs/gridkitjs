@@ -189,16 +189,16 @@ export function builtInCommands<Row>(): readonly GridCommand<Row>[] {
   return [
     sortCommand("asc"),
     sortCommand("desc"),
+    // Cleared rather than set, so the change reports this column — the one
+    // the announcement names — rather than a key that moved up past it.
     columnCommand({
       id: "sort.clear",
       label: ({ messages }) => messages.clearSort,
       find: sortableColumn,
       isEnabled: (column, { state }) =>
         sortDirectionFor(state.columnSort, column.id) !== null,
-      execute: (column, { state, actions }) => {
-        actions.setColumnSort(
-          state.columnSort.filter((entry) => entry.columnId !== column.id),
-        );
+      execute: (column, { actions }) => {
+        actions.clearColumnSort(column.id);
       },
     }),
     {
