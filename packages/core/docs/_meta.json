@@ -13,6 +13,7 @@
     "column-definitions",
     "resizing",
     "ordering",
-    "selection"
+    "selection",
+    "navigation"
   ]
 }

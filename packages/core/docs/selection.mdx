@@ -24,6 +24,8 @@ These transforms are what a click, a <Kbd>Ctrl</Kbd>+click, and a <Kbd>Shift</Kb
 | `resolveColumns(columns, ids)`                                            | `readonly SelectedColumn<Row>[]` | Resolves selected ids back to their column and position, dropping any id whose column no longer exists.                              |
 | `resolveCell(rowsById, columns, cell)`                                    | `SelectedCell<Row> \| null`      | Resolves a cell selection down to its row, column, and value — null if either no longer exists.                                      |
 
+A grid's `selectable` option is a `SelectableConfig` — `{ rows?, columns?, cells?, toggleOnClick? }` — giving each `mode` above: `rows` and `columns` take a `SelectionMode`, `false`, `"single"` or `"multiple"`, and `cells` a `CellSelectionMode`, `false` or `"single"`. All are off by default. `toggleOnClick` makes a plain click on a row toggle it, as `intentOf`'s `{ toggleOnClick: true }` does.
+
 ## The same logic, in the React grid
 
 <LiveExampleFrame title="selectable">

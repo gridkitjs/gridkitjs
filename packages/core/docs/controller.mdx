@@ -25,7 +25,7 @@ controller.getState().pagination; // { pageIndex: 1, pageSize: 25 }
 
 ## Options
 
-createGridController takes a `GridControllerOptions<Row, Node>`: every [`GridOptions`](/docs/core#grid-options) field and selection callback (`onRowSelect`, `onRowSelectionChange` and the rest), plus `columns` (inferred from `dataSource` when omitted or empty, as `defineColumnsFromRows` does) and `viewportWidth`, the width `resizeMode: "fit"` fills — `null` or absent where there is none, such as an export in Node — and `onSelectionDiff`, called after each row or column selection change with the ids it added and removed, including those with no row on screen, for a renderer's own feedback such as a live-region count.
+createGridController takes a `GridControllerOptions<Row, Node>`: every [`GridOptions`](/docs/core#grid-options) field and selection callback — `SelectionCallbacks<Row, Node>`, the thirteen of `onRowSelect`, `onRowSelectionChange` and the rest — plus `columns` (inferred from `dataSource` when omitted or empty, as `defineColumnsFromRows` does) and `viewportWidth`, the width `resizeMode: "fit"` fills — `null` or absent where there is none, such as an export in Node — and `onSelectionDiff`, called after each row or column selection change with the ids it added and removed, including those with no row on screen, for a renderer's own feedback such as a live-region count.
 
 `setOptions(options)` replaces them all, as a renderer does with its current props on each update. Calling it again with equal options changes nothing, so it is safe to call on every render. It does not call subscribers: the renderer calling it is already drawing the result.
 
@@ -103,7 +103,7 @@ Every `set*` action also stops for a value equal to the current one, so setting 
 
 `restoreState(saved)` puts back state read earlier with `getState()`. Every slice it is given is set as its own `set*` action would set it — each one that changes fires its callback, and a controlled one only asks — while slices left out keep their value. Subscribers are called once, after every slice is in place, and a restored pagination is kept even when the same call changed the sort, filter or grouping.
 
-`getState()` holds plain data except in the filter, where a `Date` value does not survive JSON and a predicate entry is a function. `serializeGridState(state)` returns state that does: a `Date` becomes its ISO string, which `restoreState` turns back into a `Date` — in a value entry always, in an operator entry when its column is a date, date-time or time column — and a predicate entry is left out with a `console.error` naming its column — along with any group it leaves empty.
+`getState()` holds plain data except in the filter, where a `Date` value does not survive JSON and a predicate entry is a function. `serializeGridState(state)` returns a `SerializedGridState<Row>`, state that does survive it: a `Date` becomes its ISO string, which `restoreState` turns back into a `Date` — in a value entry always, in an operator entry when its column is a date, date-time or time column — and a predicate entry is left out with a `console.error` naming its column — along with any group it leaves empty.
 
 ```ts
 import { serializeGridState } from "@gridkitjs/core";

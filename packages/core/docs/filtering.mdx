@@ -112,3 +112,17 @@ input.addEventListener("input", () => {
 ```
 
 `setSearchText` writes the text as typed, spaces and all: trimming would take a space from under the caret of a box that reads its text back. A [toolbar](/docs/core/toolbar)'s `"search"` entry is this box.
+
+## Filter state helpers
+
+Smaller transforms over a whole `FilterState`, for a filter bar of plain text boxes, and the functions that apply one:
+
+| Function                                   | Type                          | Description                                                                                                                                                                                                       |
+| ------------------------------------------ | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `filterQueryFor(filter, columnId?)`        | `string \| null`              | The query of the text entry naming `columnId`, or of the global one with no `columnId`. `null` when no text entry holds that key, including when an entry of another kind does.                                   |
+| `setColumnFilter(filter, columnId, query)` | `FilterState<Row>`            | `filter` with the text entry for `columnId` — `undefined` for the global one — set to `query`, replacing whatever entry held that key. An empty `query` removes it. Returns `filter` itself when nothing changes. |
+| `clearAllFilters(filter)`                  | `FilterState<Row>`            | Empty. Returns `filter` itself when already empty.                                                                                                                                                                |
+| `filterRows(rows, filter, columns)`        | `readonly ResolvedRow<Row>[]` | The rows every entry lets through, in their order, with `rowIndex` renumbered. Returns `rows` itself for an empty filter, or one naming only absent columns.                                                      |
+| `matchesQuery(value, query)`               | `boolean`                     | Whether one value matches one text query, as a text entry matches it.                                                                                                                                             |
+
+Unlike `setSearchText`, `setColumnFilter` stores `query` as given, so a bare word is an exact match; wrap it in `%` for "contains".
