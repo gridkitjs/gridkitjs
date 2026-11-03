@@ -101,6 +101,7 @@ Every getter reads the grid's state at the moment it is called, so a read straig
 | `autoFitColumns(columnIds?)`         | `autoFitColumn` for each column given, or for every column shown when given none.                                                                                 |
 | `openContextMenu(target, anchor?)`   | Opens the [context menu](/docs/react/context-menu#from-the-ref) `target` has, as a right-click there would. Returns whether it opened.                            |
 | `closeContextMenu()`                 | Closes the context menu, if one is open.                                                                                                                          |
+| `openColumnChooser()`                | Opens the [column chooser](/docs/react/column-chooser) at the grid's top-end corner, in place of any panel open. Closing it gives focus back to what had it.      |
 | `runCommand(commandId, target?)`     | Runs a command by id on `target` — `{ area: "grid" }` by default — when it can run there, firing `onCommand`. Returns whether it ran.                             |
 
 `options` on `scrollToRow`/`scrollToColumn` is a standard

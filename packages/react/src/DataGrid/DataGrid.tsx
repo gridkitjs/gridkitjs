@@ -64,6 +64,8 @@ import useGridCommands from "./commands/useGridCommands";
 import GridContextMenu from "./contextMenu/GridContextMenu";
 import useContextMenu from "./contextMenu/useContextMenu";
 import { isOwnEvent } from "./isOwnEvent";
+import GridPanels from "./panels/GridPanels";
+import useGridPanels from "./panels/useGridPanels";
 import GridToolbar from "./toolbar/GridToolbar";
 import useColumnDrag from "./useColumnDrag";
 import useColumnResize from "./useColumnResize";
@@ -290,6 +292,11 @@ export interface DataGridApi<Row> {
   ): boolean;
   /** Closes the context menu, if one is open. */
   closeContextMenu(): void;
+  /**
+   * Opens the column chooser at the grid's top-end corner, in place of any
+   * panel open; it gives focus back to what had it when it closes.
+   */
+  openColumnChooser(): void;
   /**
    * Runs a command by id — a built-in or one of `commands` — on `target`,
    * `{ area: "grid" }` when left out, when it is visible and enabled there.
@@ -603,15 +610,6 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     controller,
     columnSizeDefaults,
   });
-  const commands = useGridCommands({
-    controller,
-    commands: props.commands,
-    onCommand: props.onCommand,
-    messages,
-    announce,
-    resize,
-  });
-
   const nav = useGridNavigation({
     headerTableRef,
     bodyTableRef,
@@ -636,6 +634,17 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
         entry !== undefined && "kind" in entry && entry.kind === "group-summary"
       );
     },
+  });
+
+  const panels = useGridPanels({ rootRef: viewportRef, headerTableRef, nav });
+  const commands = useGridCommands({
+    controller,
+    commands: props.commands,
+    onCommand: props.onCommand,
+    messages,
+    announce,
+    resize,
+    openPanel: panels.open,
   });
 
   /**
@@ -872,6 +881,9 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     },
     openContextMenu: contextMenu.open,
     closeContextMenu: contextMenu.close,
+    openColumnChooser: () => {
+      panels.open("columnChooser", { area: "grid" });
+    },
     runCommand: (commandId, target = { area: "grid" }) =>
       commands.run(commandId, target, "api"),
     scrollToRow: (rowId, options) => {
@@ -1116,6 +1128,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
         )}
       </div>
       <GridContextMenu contextMenu={contextMenu} />
+      <GridPanels panels={panels} controller={controller} messages={messages} />
       {paginated &&
         (pager?.template ? (
           pager.template(pagerContext)

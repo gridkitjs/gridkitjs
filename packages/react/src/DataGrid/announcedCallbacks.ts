@@ -83,20 +83,37 @@ export function announcedCallbacks<Row>({
       }
     },
 
-    /** Naming a column shown or hidden alone; counts are for later. */
+    /**
+     * Naming a column shown or hidden alone, and counting several — "Show
+     * all" in the column chooser, or `hideColumns` given a list. A change
+     * that shows some and hides others, as restoring a layout can, has no
+     * one thing to say, and says nothing.
+     */
     onColumnVisibilityChange: (event) => {
       callbacks.onColumnVisibilityChange?.(event);
-      const [columnId] = event.columnIds;
-      const column = columnId === undefined ? undefined : columnOf(columnId);
+      const { columnIds, visibility } = event;
+      const [columnId] = columnIds;
+      const shownCount = columnIds.filter((id) => {
+        const column = columnOf(id);
+        return column !== undefined && isColumnVisible(column, visibility);
+      }).length;
       if (
-        event.columnIds.length !== 1 ||
         columnId === undefined ||
-        column === undefined
+        (shownCount !== 0 && shownCount !== columnIds.length)
       ) {
         return;
       }
+      const shown = shownCount > 0;
+      if (columnIds.length > 1) {
+        announce(
+          shown
+            ? messages.columnsShown(columnIds.length)
+            : messages.columnsHidden(columnIds.length),
+        );
+        return;
+      }
       announce(
-        isColumnVisible(column, event.visibility)
+        shown
           ? messages.columnShown(columnName(columnId))
           : messages.columnHidden(columnName(columnId)),
       );

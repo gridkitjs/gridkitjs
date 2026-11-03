@@ -8,7 +8,8 @@ dropdown — plus `"search"`, `"spacer"` and `{ type: "custom", id }` for a
 renderer's own content. `resolveToolbar(entries, { commands, contextFor })`
 resolves them by `resolveMenu`'s rules, each item in a context targeting
 `{ area: "toolbar", itemId }`, and separators also collapse beside a spacer.
-`GridToolbarOptions`, `defaultToolbar` (search, spacer, `filter.clearAll`) and
+`GridToolbarOptions`, `defaultToolbar` (search, spacer, `filter.clearAll`,
+`column.choose`) and
 `toolbarEntries(toolbar)` describe the `toolbar` grid option.
 
 For a toolbar too narrow for its items, `fitToolbarItems` works out how many

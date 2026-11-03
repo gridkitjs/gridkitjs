@@ -3,7 +3,8 @@ import type { SortDirection } from "./types";
 /**
  * Every string a grid shows or announces of its own — the pager, the group-by
  * bar, the loading row, the text of a boolean or missing value, the labels of
- * its built-in commands, the names of its menus and toolbar, and the live-region
+ * its built-in commands, the names of its menus, toolbar and column chooser,
+ * and the live-region
  * announcements — so a grid can
  * speak a language other than English. A message that names something takes
  * a function, so a translation can put the name where its own grammar wants
@@ -79,6 +80,10 @@ export interface GridMessages {
   columnHidden: (columnName: string) => string;
   /** Announced when one column is shown. */
   columnShown: (columnName: string) => string;
+  /** Announced when one change hides more than one column. */
+  columnsHidden: (count: number) => string;
+  /** Announced when one change shows more than one column. */
+  columnsShown: (count: number) => string;
   /** A column header's context menu's accessible name. */
   headerMenuLabel: (columnName: string) => string;
   /** A data cell's context menu's accessible name — a menu for its row. */
@@ -111,6 +116,8 @@ export interface GridMessages {
   clearSelection: string;
   /** `filter.clearAll`, which clears the search too. */
   clearFilters: string;
+  /** `column.choose`, which opens the column chooser. */
+  chooseColumns: string;
   /** The toolbar's accessible name, unless its `label` gives one. */
   toolbarLabel: string;
   /** The toolbar's search box's accessible name. */
@@ -121,6 +128,21 @@ export interface GridMessages {
   moreToolbarItems: string;
   /** Announced when a search settles: how many rows it found. */
   searchResults: (count: number) => string;
+  /** The column chooser's accessible name. */
+  columnChooserLabel: string;
+  /** The column chooser's search box's accessible name. */
+  columnChooserSearchLabel: string;
+  /** The column chooser's checkbox showing or hiding every column its search lists. */
+  showAllColumns: string;
+  /** Shown in the column chooser when its search matches no column. */
+  noMatchingColumns: string;
+}
+
+/** "3 columns hidden", "1 column shown". */
+function columnCount(count: number, change: "hidden" | "shown"): string {
+  return count === 1
+    ? `1 column ${change}`
+    : `${String(count)} columns ${change}`;
 }
 
 /** "3 rows found", "1 row found", "No rows found". */
@@ -187,6 +209,8 @@ export const defaultMessages: GridMessages = {
     `${columnName}, row ${String(rowNumber)}, selected`,
   columnHidden: (columnName) => `${columnName}, column hidden`,
   columnShown: (columnName) => `${columnName}, column shown`,
+  columnsHidden: (count) => columnCount(count, "hidden"),
+  columnsShown: (count) => columnCount(count, "shown"),
   headerMenuLabel: (columnName) => `${columnName} column menu`,
   cellMenuLabel: "Row menu",
   groupMenuLabel: "Group menu",
@@ -205,11 +229,16 @@ export const defaultMessages: GridMessages = {
   selectAllRows: "Select all rows",
   clearSelection: "Clear selection",
   clearFilters: "Clear filters",
+  chooseColumns: "Choose columns",
   toolbarLabel: "Grid toolbar",
   searchLabel: "Search",
   searchPlaceholder: "Search…",
   moreToolbarItems: "More",
   searchResults,
+  columnChooserLabel: "Columns",
+  columnChooserSearchLabel: "Search columns",
+  showAllColumns: "Show all",
+  noMatchingColumns: "No matching columns",
 };
 
 /**

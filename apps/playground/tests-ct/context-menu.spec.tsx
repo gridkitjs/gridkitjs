@@ -223,6 +223,7 @@ test.describe("header menu", () => {
       "Autofit column",
       "Autofit all columns",
       "Hide column",
+      "Choose columns",
     ]);
     await expect(menu.getByRole("separator")).toHaveCount(3);
     await expect(item(menu, "Sort ascending")).toHaveAttribute(
@@ -377,6 +378,7 @@ test.describe("header menu", () => {
     const menu = await openOn(root, page, "Name");
 
     await page.keyboard.press("End");
+    await page.keyboard.press("ArrowUp");
     await page.keyboard.press("Enter");
 
     await expect(header(root, "Name")).toHaveCount(0);
@@ -547,6 +549,19 @@ test.describe("header menu", () => {
       grid({
         sortableColumns: false,
         resizableColumns: false,
+        // The defaults less "Choose columns", which every header offers.
+        contextMenu: {
+          header: [
+            "sort.ascending",
+            "sort.descending",
+            "sort.clear",
+            "group.add",
+            "group.remove",
+            "column.autoFit",
+            "column.autoFitAll",
+            "column.hide",
+          ],
+        },
         columns: columns.map((column) => ({
           ...column,
           groupable: false,
@@ -842,10 +857,11 @@ test.describe("menus worked out per request", () => {
       "Sort ascending",
       "Sort descending",
       "Clear sort",
+      "Choose columns",
       "View",
       "Pin column",
     ]);
-    await expect(menu.getByRole("separator")).toHaveCount(2);
+    await expect(menu.getByRole("separator")).toHaveCount(3);
   });
 
   test("an inline item runs in the context of the row it opened on", async ({

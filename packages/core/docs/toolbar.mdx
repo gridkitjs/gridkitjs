@@ -40,7 +40,7 @@ A `ToolbarEntry<Row>` is any `MenuEntry<Row>` or one of the toolbar's own:
 
 Like `"separator"`, the strings `"search"` and `"spacer"` are the toolbar's own: a toolbar reads them as its entries, never as command ids.
 
-The built-ins meant for a toolbar are `sort.clearAll`, `group.clearAll`, `group.expandAll`, `group.collapseAll`, `column.autoFitAll` and `filter.clearAll` — see [built-in commands](/docs/core/commands#built-in-commands). The rest act on a column, a row or a group, which a toolbar has none of, so they never show in one.
+The built-ins meant for a toolbar are `sort.clearAll`, `group.clearAll`, `group.expandAll`, `group.collapseAll`, `column.autoFitAll`, `column.choose` and `filter.clearAll` — see [built-in commands](/docs/core/commands#built-in-commands). The rest act on a column, a row or a group, which a toolbar has none of, so they never show in one.
 
 ## The option
 
@@ -51,13 +51,13 @@ A grid's `toolbar` option — `boolean | GridToolbarOptions<Row>` — says wheth
 | `items` | `readonly ToolbarEntry<Row>[]` | The entries, in order. Defaults to the defaults. |
 | `label` | `string`                       | The toolbar's accessible name.                   |
 
-`defaultToolbar` is the search box, a spacer and `filter.clearAll`: search on the left, "Clear filters" at the far end. `toolbarEntries(toolbar)` reads the option — no entries while it is off, else the defaults or its `items` — for `resolveToolbar` to resolve.
+`defaultToolbar` is the search box, a spacer, `filter.clearAll` and `column.choose`: search on the left, "Clear filters" and "Choose columns" at the far end. `toolbarEntries(toolbar)` reads the option — no entries while it is off, else the defaults or its `items` — for `resolveToolbar` to resolve.
 
 ## Resolving
 
 `resolveToolbar(entries, { commands, contextFor })` — a `ToolbarResolveOptions` — resolves a toolbar against the grid and returns the `ResolvedToolbarItem[]` to draw, by `resolveMenu`'s rules: hidden commands and items are left out, and so is an id naming no command, reported once per command map with a `console.error`; labels become strings and flags booleans; a dropdown whose items all hide is left out; and separators never lead, trail, double up — or sit beside a spacer, which already parts what is on either side of it.
 
-Each item resolves and runs in a context of its own, from `contextFor(target)`: its target is a `GridToolbarTarget`, `{ area: "toolbar", itemId }`, naming the item — or, for an item in a dropdown, the dropdown — so a command opening a panel can anchor it there.
+Each item resolves and runs in a context of its own, from `contextFor(target)`: its target is a `GridToolbarTarget`, `{ area: "toolbar", itemId }`, naming the item — or, for an item in a dropdown, the dropdown — so a command opening a [panel](/docs/core/commands#panels), as `column.choose` does, can anchor it there.
 
 ```ts
 import {

@@ -256,6 +256,13 @@ export {
   isColumnVisible,
   setColumnVisibility,
 } from "./util/visibility";
+export type {
+  ColumnChooserEntry,
+  ColumnChooserInput,
+  ColumnChooserModel,
+  ColumnChooserToggle,
+} from "./util/columnChooser";
+export { resolveColumnChooser } from "./util/columnChooser";
 export { createGridViewResolver, resolveGridView } from "./util/view";
 export { serializeGridState } from "./util/serialize";
 export type {

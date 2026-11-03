@@ -11,11 +11,11 @@ export interface GridToolbarOptions<Row> {
 
 /**
  * What a toolbar lists unless the grid says otherwise: the search box, then
- * the free space, then "Clear filters" at the far end.
+ * the free space, then "Clear filters" and "Choose columns" at the far end.
  */
 export const defaultToolbar: readonly (
   BuiltInCommandId | "search" | "spacer"
-)[] = ["search", "spacer", "filter.clearAll"];
+)[] = ["search", "spacer", "filter.clearAll", "column.choose"];
 
 /**
  * The entries a grid's `toolbar` option lists, to resolve with

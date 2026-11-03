@@ -29,6 +29,8 @@ With [`contextMenu`](/docs/react/context-menu) on, <Kbd>Shift</Kbd>+<Kbd>F10</Kb
 
 The [toolbar](/docs/react/toolbar) follows the [WAI-ARIA toolbar pattern](https://www.w3.org/WAI/ARIA/apg/patterns/toolbar/): it is one tab stop of its own, before the grid's, and <Kbd>ArrowLeft</Kbd>/<Kbd>ArrowRight</Kbd> move between its controls, wrapping round, with <Kbd>Home</Kbd>/<Kbd>End</Kbd> to the first and last. The search box keeps the keys that move its caret, and the arrows lead out of it at either end of its text. A dropdown — or "More" — opens its menu on <Kbd>Enter</Kbd>, <Kbd>Space</Kbd> or <Kbd>ArrowDown</Kbd>, and the menu works as the context menu's does. A disabled button still takes focus.
 
+The [column chooser](/docs/react/column-chooser) is a dialog (`role="dialog"`, named "Columns") of native controls: focus starts in its search box, <Kbd>Tab</Kbd> moves through "Show all" and a checkbox per column, <Kbd>Space</Kbd> toggles one, and <Kbd>Escape</Kbd> closes it, giving focus back to where it was opened from. "Show all" is a tri-state checkbox, mixed while only some of the columns its search lists show.
+
 A group header renders as one cell spanning every column, so it holds the tab
 stop as a single unit rather than N per-column cells: <Kbd>ArrowLeft</Kbd>/<Kbd>ArrowRight</Kbd> are a no-op on it, and <Kbd>Space</Kbd>/<Kbd>Enter</Kbd>
 expand or collapse it in place of selecting anything.
@@ -86,7 +88,7 @@ A `role="status" aria-live="polite"` region, outside the table itself, reports c
 - **Row and column selection changes** — only when more than one row or column changes in the same interaction (a range, a select-all, `Ctrl+A`). A single selection is already carried by that row's or column's own `aria-selected`, so announcing it too would talk over what a screen reader just read. Announces the resulting total, e.g. "3 rows selected".
 - **Cell selection** — every time a selection lands on a cell. Unlike row and column selection, a cell selection is always exactly one cell, so there's no multi-item threshold to cross — the announcement fires on every commit instead, naming the column and row the selected cell is in.
 - **Group-by change** — adding, removing, or repositioning a level (via the header toggle, a header dropped on the bar, a dragged chip, or a chip's own `Ctrl+Arrow`) announces the column and, once two or more levels are stacked, its position ("key _n_ of _total_"); removing the last level announces that grouping was removed. Every path funnels through the same announcement, so a drag and a click read identically.
-- **Column visibility** — hiding or showing one column, from the context menu or the ref's `hideColumns`/`showColumns`, announces the column and which ("Name, column hidden").
+- **Column visibility** — hiding or showing one column, from the context menu, the column chooser or the ref's `hideColumns`/`showColumns`, announces the column and which ("Name, column hidden"); hiding or showing several at once, as the chooser's "Show all" does, announces how many ("3 columns hidden").
 - **Search** — once a search typed into the toolbar's box applies, announces how many rows it found ("3 rows found").
 - **Group expand/collapse** — a single group toggle announces "Group expanded"/"Group collapsed"; `expandAllGroups()`/`collapseAllGroups()` announce the whole-tree result instead ("All groups expanded"/"All groups collapsed").
 

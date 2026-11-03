@@ -311,6 +311,7 @@ test.describe("DataGrid toolbar", () => {
       "search",
       "spacer-1",
       "filter.clearAll",
+      "column.choose",
     ]);
 
     const id = await root.getByRole("grid").getAttribute("id");

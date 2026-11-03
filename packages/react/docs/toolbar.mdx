@@ -3,7 +3,7 @@ title: "Toolbar"
 description: "A toolbar above the grid — clear the filters or the sort, search every column, dropdowns of actions and content of your own — written in the same vocabulary as the context menu."
 ---
 
-`toolbar` puts a toolbar above the grid: buttons for the grid's own commands — clear the filters, clear the sort, expand or collapse every group — a search box over every column, dropdown menus of actions, and content of your own. It is written in the same vocabulary as the [context menu](/docs/react/context-menu), so a command you register once shows in both. It is off by default, like every other GridKit feature.
+`toolbar` puts a toolbar above the grid: buttons for the grid's own commands — clear the filters, clear the sort, expand or collapse every group, choose the columns shown — a search box over every column, dropdown menus of actions, and content of your own. It is written in the same vocabulary as the [context menu](/docs/react/context-menu), so a command you register once shows in both. It is off by default, like every other GridKit feature.
 
 ## Turning it on
 
@@ -11,7 +11,7 @@ description: "A toolbar above the grid — clear the filters or the sort, search
 <DataGrid columns={columns} dataSource={rows} toolbar />
 ```
 
-`toolbar` alone shows the defaults, `defaultToolbar` from @gridkitjs/core: the search box on the left and "Clear filters" at the far end, with a spacer between them. "Clear filters" is disabled until something filters.
+`toolbar` alone shows the defaults, `defaultToolbar` from @gridkitjs/core: the search box on the left, and "Clear filters" and "Choose columns" at the far end, with a spacer between them. "Clear filters" is disabled until something filters; "Choose columns" opens the [column chooser](/docs/react/column-chooser) below it.
 
 The toolbar is the first thing inside the grid, above the group-by bar. It sticks to the grid's start edge, so it stays in view while a grid wider than its container scrolls sideways under it.
 
@@ -67,6 +67,7 @@ The built-in commands meant for a toolbar:
 | Expand all groups   | `group.expandAll`   | The grid is grouped.                        |
 | Collapse all groups | `group.collapseAll` | The grid is grouped.                        |
 | Autofit all columns | `column.autoFitAll` | Any column is resizable.                    |
+| Choose columns      | `column.choose`     | Always; opens the column chooser below it.  |
 
 The rest act on a column, a row or a group, which a toolbar has none of, so they never show in one. See [built-in commands](/docs/core/commands#built-in-commands) for every command, and @gridkitjs/core's [toolbar model](/docs/core/toolbar) for the vocabulary in depth.
 

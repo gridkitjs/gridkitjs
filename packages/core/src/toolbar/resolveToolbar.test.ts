@@ -381,7 +381,12 @@ describe("toolbarEntries", () => {
   test("lists the defaults under true, or without items", () => {
     expect(toolbarEntries<Order>(true)).toBe(defaultToolbar);
     expect(toolbarEntries<Order>({ label: "Orders" })).toBe(defaultToolbar);
-    expect(defaultToolbar).toEqual(["search", "spacer", "filter.clearAll"]);
+    expect(defaultToolbar).toEqual([
+      "search",
+      "spacer",
+      "filter.clearAll",
+      "column.choose",
+    ]);
   });
 
   test("lists the items given", () => {
@@ -392,10 +397,11 @@ describe("toolbarEntries", () => {
   });
 });
 
-test("the default toolbar resolves to a search box, a spacer and Clear filters", () => {
+test("the default toolbar resolves to a search box, a spacer, Clear filters and Choose columns", () => {
   expect(outline(resolve(toolbarEntries(true)))).toEqual([
     "search",
     "<->",
     "filter.clearAll",
+    "column.choose",
   ]);
 });

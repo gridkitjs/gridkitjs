@@ -23,6 +23,8 @@ interface UseGridCommandsOptions<Row> {
   messages: GridMessages;
   announce: (text: string) => void;
   resize: ColumnResizeApi<Row>;
+  /** Opens one of the grid's panels — see `useGridPanels`. */
+  openPanel: GridCommandHost["openPanel"];
 }
 
 export interface GridCommandsApi<Row> {
@@ -53,8 +55,8 @@ export interface GridCommandsApi<Row> {
  * The commands behind the grid's menus — the built-ins and the app's own —
  * and the context they run in. Which command shows, is enabled or does what
  * is `@gridkitjs/core`'s; the grid lends them what needs a DOM — sizing a
- * column to its content, as double-clicking its resize handle does — and its
- * live region.
+ * column to its content, as double-clicking its resize handle does, and
+ * opening its panels — and its live region.
  */
 export default function useGridCommands<Row>({
   controller,
@@ -63,6 +65,7 @@ export default function useGridCommands<Row>({
   messages,
   announce,
   resize,
+  openPanel,
 }: UseGridCommandsOptions<Row>): GridCommandsApi<Row> {
   const commands = useMemo(() => resolveCommands(appCommands), [appCommands]);
 
@@ -76,9 +79,7 @@ export default function useGridCommands<Row>({
         }
       }
     },
-    openPanel: (kind) => {
-      console.error(`DataGrid: there is no \`${kind}\` panel to open.`);
-    },
+    openPanel,
     announce,
   };
 

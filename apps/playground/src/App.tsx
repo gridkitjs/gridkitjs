@@ -108,10 +108,12 @@ export default function App() {
       </h2>
       <p className="mt-2 text-sm text-gray-600">
         Type in the search box to filter every column; "Clear filters" empties
-        it. "By region" is a toggle that groups the rows, "Groups" and "Orders"
-        are dropdowns — the second of the app's own actions, logged below — and
-        the count at the end is a custom entry. Tab to the toolbar and move with
-        the arrow keys; narrow the window to see items move into "More".
+        it. "Choose columns" opens the column chooser: Id cannot be hidden, and
+        Notes starts hidden. "By region" is a toggle that groups the rows,
+        "Groups" and "Orders" are dropdowns — the second of the app's own
+        actions, logged below — and the count at the end is a custom entry. Tab
+        to the toolbar and move with the arrow keys; narrow the window to see
+        items move into "More".
       </p>
       <div className="mt-2">
         <ToolbarGrid />

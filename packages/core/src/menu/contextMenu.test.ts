@@ -116,7 +116,7 @@ describe("hasContextMenu", () => {
 });
 
 describe("defaultContextMenu", () => {
-  test("a header sorts, groups, fits and hides its column", () => {
+  test("a header sorts, groups, fits and hides its column, and chooses columns", () => {
     expect(defaultContextMenu.header).toEqual([
       "sort.ascending",
       "sort.descending",
@@ -129,6 +129,7 @@ describe("defaultContextMenu", () => {
       "column.autoFitAll",
       "separator",
       "column.hide",
+      "column.choose",
     ]);
   });
 
