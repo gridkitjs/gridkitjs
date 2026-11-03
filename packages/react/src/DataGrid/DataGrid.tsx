@@ -62,6 +62,7 @@ import GridPager from "./components/GridPager";
 import GroupByBar from "./components/GroupByBar";
 import { ariaAttr } from "./ariaAttr";
 import { classNames } from "./classNames";
+import { isOwnEvent } from "./isOwnEvent";
 import useColumnDrag from "./useColumnDrag";
 import useColumnResize from "./useColumnResize";
 import useElementWidth from "./useElementWidth";
@@ -1066,6 +1067,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
            * caught here where everything bubbles to rather than in each of
            * them.
            */
+          if (!isOwnEvent(event)) return;
           if (event.key === "Escape") {
             // A gesture in flight has its own use for Escape — cancelling —
             // and gets it first.

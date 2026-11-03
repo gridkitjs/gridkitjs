@@ -159,6 +159,8 @@ Under the hood, the header, the rows, and (when `aggregates` is active) the gran
 - Drag a chip in the group-by bar to reorder the stack; with a chip focused, <Kbd>Ctrl</Kbd>+<Kbd>ArrowLeft</Kbd> / <Kbd>Ctrl</Kbd>+<Kbd>ArrowRight</Kbd> moves it via keyboard.
 - Click a group header, or focus it and press <Kbd>Space</Kbd>/<Kbd>Enter</Kbd>, to expand or collapse it.
 
+These keys act only when pressed inside the grid itself. A popover or menu that a template portals into `document.body` still sits inside the grid in React's tree, and React bubbles its events through the grid's handlers — but the grid ignores them, so <Kbd>Escape</Kbd> in it leaves the selection alone and <Kbd>Ctrl</Kbd>+<Kbd>A</Kbd> in its text box selects the text.
+
 ## See also
 
 - [Column definition](/docs/react/column-definition) for the full `ColumnDefinition<Row>` field reference.

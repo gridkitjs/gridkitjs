@@ -30,6 +30,7 @@ import type {
 import type { GridNavigationApi } from "../useGridNavigation";
 import type { DataGridController } from "../useGridController";
 import type { RowVirtualizerApi } from "../useRowVirtualizer";
+import { isOwnEvent } from "../isOwnEvent";
 import { createRowPropsResolver } from "../rowProps";
 import {
   keyboardSelectIntent,
@@ -250,6 +251,7 @@ export default function GridBody<Row>({
         reportRowPointer(event, onRowDoubleClick);
       }}
       onKeyDown={(event) => {
+        if (!isOwnEvent(event)) return;
         const group = groupRowFrom(event.target);
         if (group !== null) {
           // One cell spans every column, so there is nothing to move within —
