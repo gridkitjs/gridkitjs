@@ -65,7 +65,7 @@ function headerCell(
 }
 
 /**
- * The grid's panels — the column chooser, and the filter editor to come —
+ * The grid's panels — the column chooser and a column's filter menu —
  * opened through the command host's `openPanel`, one at a time. A panel
  * opens beside where it was asked for: below the toolbar button, below the
  * column header, or at the grid's top-end corner for a call from nowhere in
