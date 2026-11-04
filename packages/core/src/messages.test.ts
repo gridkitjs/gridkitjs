@@ -96,6 +96,10 @@ function rendered(messages: GridMessages): Record<keyof GridMessages, string> {
     filterAnd: messages.filterAnd,
     filterOr: messages.filterOr,
     filterValueInvalid: messages.filterValueInvalid("number"),
+    filterSearchLabel: messages.filterSearchLabel,
+    filterSelectAll: messages.filterSelectAll,
+    filterValuesLabel: messages.filterValuesLabel,
+    filterByCondition: messages.filterByCondition,
   };
 }
 
@@ -190,6 +194,10 @@ describe("defaultMessages", () => {
       filterAnd: "And",
       filterOr: "Or",
       filterValueInvalid: "Enter a number",
+      filterSearchLabel: "Search values",
+      filterSelectAll: "Select all",
+      filterValuesLabel: "Values",
+      filterByCondition: "Filtered by condition",
     });
   });
 

@@ -202,6 +202,17 @@ export interface GridMessages {
    * a number" on a number column.
    */
   filterValueInvalid: (family: FilterOperatorFamily) => string;
+  /** The accessible name of a filter checklist's search box. */
+  filterSearchLabel: string;
+  /** The checkbox above a filter checklist checking every value its search shows. */
+  filterSelectAll: string;
+  /** The accessible name of a filter checklist's list of values. */
+  filterValuesLabel: string;
+  /**
+   * Shown above a filter checklist whose column is filtered by conditions,
+   * which checking values replaces.
+   */
+  filterByCondition: string;
 }
 
 /** "3 columns hidden", "1 column shown", "2 columns autofitted". */
@@ -386,6 +397,10 @@ export const defaultMessages: GridMessages = {
   filterAnd: "And",
   filterOr: "Or",
   filterValueInvalid: (family) => filterValueRequests[family],
+  filterSearchLabel: "Search values",
+  filterSelectAll: "Select all",
+  filterValuesLabel: "Values",
+  filterByCondition: "Filtered by condition",
 };
 
 /**

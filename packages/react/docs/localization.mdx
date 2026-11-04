@@ -143,6 +143,10 @@ Functions are called with numbers that count from one, and receive a column by i
 | `filterAnd`                | `string`                                           | "And" — a row has to meet both conditions.                                                                                                                          |
 | `filterOr`                 | `string`                                           | "Or" — a row has to meet either condition.                                                                                                                          |
 | `filterValueInvalid`       | `(family) => string`                               | "Enter a number", "Enter a date", "Enter a value" or "Choose a value", by its column's kind — shown when a condition's value is missing or doesn't read.            |
+| `filterSearchLabel`        | `string`                                           | "Search values" — the accessible name of the [filter menu](/docs/react/column-filter-menu)'s checklist search box.                                                  |
+| `filterSelectAll`          | `string`                                           | "Select all" — the checkbox above a filter checklist, checking every value its search shows.                                                                        |
+| `filterValuesLabel`        | `string`                                           | "Values" — the accessible name of a filter checklist's list of values.                                                                                              |
+| `filterByCondition`        | `string`                                           | "Filtered by condition" — shown above a filter checklist whose column is filtered by conditions, which checking values replaces.                                    |
 
 ## What messages don't cover
 
