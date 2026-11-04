@@ -160,6 +160,26 @@ export interface GridMessages {
   filterSearchFirst: (total: number) => string;
   /** Shown under a searched filter checklist `filterMenu.valueLimit` cut short: how many matches it left out. */
   filterMoreValues: (count: number) => string;
+  /** `filter.open`, which opens a column's filter menu. */
+  openFilter: string;
+  /** `filter.clear`, and the filter menu's button doing the same: clears one column's filter. */
+  clearColumnFilter: string;
+  /** A column's filter menu's accessible name. */
+  filterMenuLabel: (columnName: string) => string;
+  /** What a column header is described as while its column is filtered. */
+  columnFiltered: string;
+  /** The filter menu's button applying what it holds. */
+  applyFilter: string;
+  /** The filter menu's button closing it without applying. */
+  cancelFilter: string;
+  /**
+   * Shown in a filter menu for a filter its editor cannot show — a
+   * predicate, a text query, a group across columns — which applying
+   * replaces.
+   */
+  customFilter: string;
+  /** Announced when a filter menu applies: how many rows the filter keeps, of how many. */
+  filterResults: (shown: number, total: number) => string;
 }
 
 /** "3 columns hidden", "1 column shown", "2 columns autofitted". */
@@ -232,6 +252,11 @@ function filterSearchFirst(total: number): string {
   return total === 1
     ? "Type to search 1 value"
     : `Type to search ${String(total)} values`;
+}
+
+/** "3 of 10 rows", "1 of 1 row". */
+function filterResults(shown: number, total: number): string {
+  return `${String(shown)} of ${String(total)} ${total === 1 ? "row" : "rows"}`;
 }
 
 /** The grid's own English, which `messages` replaces key by key. */
@@ -314,6 +339,14 @@ export const defaultMessages: GridMessages = {
   filterBlanks: "(Blanks)",
   filterSearchFirst,
   filterMoreValues: (count) => `${String(count)} more, refine the search`,
+  openFilter: "Filter…",
+  clearColumnFilter: "Clear filter",
+  filterMenuLabel: (columnName) => `${columnName} filter`,
+  columnFiltered: "Filtered",
+  applyFilter: "OK",
+  cancelFilter: "Cancel",
+  customFilter: "Custom filter",
+  filterResults,
 };
 
 /**

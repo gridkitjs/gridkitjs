@@ -416,6 +416,19 @@ describe("buildKeyShortcuts", () => {
     ).toBe("Alt+ArrowUp Shift+F10");
   });
 
+  test("names Alt+Shift+ArrowDown for a column with a filter menu", () => {
+    expect(
+      buildKeyShortcuts({
+        reorderable: false,
+        resizable: false,
+        sortable: true,
+        groupable: true,
+        filterable: true,
+        contextMenu: true,
+      }),
+    ).toBe("Alt+ArrowUp Alt+ArrowDown Alt+Shift+ArrowDown Shift+F10");
+  });
+
   test("is empty for a column with none of the four", () => {
     expect(
       buildKeyShortcuts({

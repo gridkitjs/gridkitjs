@@ -87,11 +87,11 @@ A context is a snapshot. A renderer builds one each time it resolves a menu or a
 
 A `GridCommandHost` holds what a command needs that only a renderer has. A caller with no renderer — a test, a script in Node — passes members that do nothing.
 
-| Member                      | Description                                                                                                               |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `autoFitColumns(columnIds)` | Sizes each column to fit its content, as double-clicking its resize handle does.                                          |
-| `openPanel(kind, target)`   | Opens one of the grid's [panels](#panels) anchored to the target. `kind` is a `GridPanelKind`: `"columnChooser"` for now. |
-| `announce(text)`            | Reads `text` out through the grid's live region.                                                                          |
+| Member                      | Description                                                                                                                     |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `autoFitColumns(columnIds)` | Sizes each column to fit its content, as double-clicking its resize handle does.                                                |
+| `openPanel(kind, target)`   | Opens one of the grid's [panels](#panels) anchored to the target. `kind` is a `GridPanelKind`: `"columnChooser"` or `"filter"`. |
+| `announce(text)`            | Reads `text` out through the grid's live region.                                                                                |
 
 ## Built-in commands
 
@@ -112,19 +112,21 @@ A `GridCommandHost` holds what a command needs that only a renderer has. A calle
 | `column.autoFit`          | header                     | the column is resizable                 | always                                    | `host.autoFitColumns([id])`                                   | `autoFitColumn`     |
 | `column.autoFitAll`       | grid, toolbar, header      | any shown column is resizable           | always                                    | `host.autoFitColumns(ids)` with every shown resizable column. | `autoFitAllColumns` |
 | `column.choose`           | grid, toolbar, header      | always                                  | always                                    | `host.openPanel("columnChooser", target)`                     | `chooseColumns`     |
+| `filter.open`             | header                     | the column is filterable                | always                                    | `host.openPanel("filter", target)`                            | `openFilter`        |
+| `filter.clear`            | header                     | the column is filterable                | the column is filtered                    | `setFilter` without any entry about the column.               | `clearColumnFilter` |
 | `selection.selectAllRows` | grid, cell                 | `selectable.rows` is `"multiple"`       | there are rows                            | `selectAllRows()`                                             | `selectAllRows`     |
 | `selection.clear`         | grid, cell, header         | rows, columns or cells are selectable   | anything is selected                      | `clearSelection()`                                            | `clearSelection`    |
 | `filter.clearAll`         | grid, toolbar, header      | always                                  | anything filters                          | `setFilter([])`, which clears the search too.                 | `clearFilters`      |
 
-"Sortable" is the column's `sortable`, else the grid's `sortableColumns`; "groupable" the same with `groupable` and `groupableColumns`; "resizable" is the column as rendered, after `resizableColumns`. [`hideable`](/docs/core/column-definitions#column-definition-shape) defaults to `true` and, like `sortable`, gates only the user's ways to do it: `hideColumns` still hides a column that is not hideable.
+"Sortable" is the column's `sortable`, else the grid's `sortableColumns`; "groupable" the same with `groupable` and `groupableColumns`; "filterable" the same with `filterable` and `filterableColumns` — see [filter menu options](/docs/core/filtering#filter-menu-options); "resizable" is the column as rendered, after `resizableColumns`. [`hideable`](/docs/core/column-definitions#column-definition-shape) defaults to `true` and, like `sortable`, gates only the user's ways to do it: `hideColumns` still hides a column that is not hideable.
 
 The sorting, grouping, hiding and autofit built-ins carry an `icon` key — a `BuiltInCommandIcon`: `sortAscending` and `sortDescending` on the two sorts, `group` on `group.add` and `group.remove`, `hide` on `column.hide`, and `autoFit` on both autofits. @gridkitjs/react draws each as an icon of its own; a command of yours may use the same keys to look like the built-ins, and a renderer of your own maps them to its icons or leaves them out.
 
-The ids `filter.open`, `copy.cell`, `copy.row`, `copy.selection`, `export.csv`, `export.json`, `export.xlsx`, `export.pdf`, `print` and `layout.reset` are reserved for built-ins still to come.
+The ids `copy.cell`, `copy.row`, `copy.selection`, `export.csv`, `export.json`, `export.xlsx`, `export.pdf`, `print` and `layout.reset` are reserved for built-ins still to come.
 
 ## Panels
 
-A panel is a small dialog a renderer opens beside where it was asked for — the column chooser now, a column's filter editor later. A command opens one through `host.openPanel(kind, target)`, passing its own target along, so the renderer can anchor it: below a header, beside a toolbar button, or at the grid's corner for `{ area: "grid" }`. The renderer holds which panel is open, one at a time; core holds what each one shows.
+A panel is a small dialog a renderer opens beside where it was asked for — the column chooser, or a column's filter menu. A command opens one through `host.openPanel(kind, target)`, passing its own target along, so the renderer can anchor it: below a header, beside a toolbar button, or at the grid's corner for `{ area: "grid" }`. The renderer holds which panel is open, one at a time; core holds what each one shows.
 
 ### The column chooser
 
@@ -166,6 +168,10 @@ The rules every chooser keeps:
 - An entry is `disabled` — its checkbox cannot be unchecked — while its column shows and is either not `hideable` or the last column shown. A hidden column can always be shown, `hideable` or not.
 - "Show all" shows every hidden column the search lists once any is hidden, and hides those it lists once none is. It never touches a column that is not `hideable`, and never hides the last column shown: when that is all that would be left, the first of them stays.
 - Changes go through `showColumns` and `hideColumns`, so each reports through `onColumnVisibilityChange` like any other.
+
+### The filter menu
+
+`filter.open` opens a column's filter menu below its header: the column's sort commands, an editor for its filter, and buttons to clear the filter, cancel or apply. It shows only for a column that has a menu, as [`resolveColumnFilterMenu`](/docs/core/filtering#filter-menu-options) settles. `filter.clear` does what the menu's "Clear filter" does — takes every entry about the column out of the filter, whichever editor wrote it — and a renderer runs it, and the sort commands, with the source `"filterMenu"`, so `onCommand` hears them.
 
 ## App commands and overrides
 
@@ -226,11 +232,11 @@ A grid takes its app commands through the `commands` option, which a renderer pa
 
 `onCommand` is called after a command runs, with a `GridCommandEvent` — and after an inline menu item runs, with that item's id. A hidden or disabled one, which does not run, is not reported.
 
-| Field       | Type                                  | Description                                                                       |
-| ----------- | ------------------------------------- | --------------------------------------------------------------------------------- |
-| `commandId` | `string`                              | The command's id, or the inline item's.                                           |
-| `target`    | `GridCommandTarget`                   | Where it was asked for — `{ area: "grid" }` for a call through the API with none. |
-| `source`    | `"contextMenu" \| "toolbar" \| "api"` | A `GridCommandSource`: a context menu, the toolbar, or a renderer's API.          |
+| Field       | Type                                                  | Description                                                                                      |
+| ----------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `commandId` | `string`                                              | The command's id, or the inline item's.                                                          |
+| `target`    | `GridCommandTarget`                                   | Where it was asked for — `{ area: "grid" }` for a call through the API with none.                |
+| `source`    | `"contextMenu" \| "toolbar" \| "api" \| "filterMenu"` | A `GridCommandSource`: a context menu, the toolbar, a renderer's API, or a column's filter menu. |
 
 ## Menus
 
@@ -320,12 +326,12 @@ A `GridContextMenuTarget` is a command target in one of these areas.
 
 `defaultContextMenu` holds each area's defaults — each item hidden where it has nothing to act on, and the separators collapsing around what is left:
 
-| Area     | Defaults                                                                                                                                                                                         |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `header` | `sort.ascending`, `sort.descending`, `sort.clear`, a separator, `group.add`, `group.remove`, a separator, `column.autoFit`, `column.autoFitAll`, a separator, `column.hide` and `column.choose`. |
-| `cell`   | `selection.selectAllRows`, `selection.clear`, a separator, `group.expandAll` and `group.collapseAll`.                                                                                            |
-| `group`  | `group.expandAll`, `group.collapseAll`, a separator and `group.remove` — which stops grouping by the row's column.                                                                               |
-| `body`   | None: empty space keeps the browser's menu until the grid lists entries for it.                                                                                                                  |
+| Area     | Defaults                                                                                                                                                                                                                                     |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `header` | `sort.ascending`, `sort.descending`, `sort.clear`, a separator, `filter.open`, `filter.clear`, a separator, `group.add`, `group.remove`, a separator, `column.autoFit`, `column.autoFitAll`, a separator, `column.hide` and `column.choose`. |
+| `cell`   | `selection.selectAllRows`, `selection.clear`, a separator, `group.expandAll` and `group.collapseAll`.                                                                                                                                        |
+| `group`  | `group.expandAll`, `group.collapseAll`, a separator and `group.remove` — which stops grouping by the row's column.                                                                                                                           |
+| `body`   | None: empty space keeps the browser's menu until the grid lists entries for it.                                                                                                                                                              |
 
 An area takes a `GridContextMenuEntries<Row, Area>`: its entries, or a function asked each time its menu opens with a `GridContextMenuRequest<Row, Area>` and returning the entries to show — or `null`, like `[]`, for no grid menu there.
 

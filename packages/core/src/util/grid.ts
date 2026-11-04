@@ -171,6 +171,8 @@ export interface KeyShortcutCapabilities {
   resizable: boolean;
   sortable: boolean;
   groupable: boolean;
+  /** Whether the column has a filter menu the header opens. Defaults to `false`. */
+  filterable?: boolean | undefined;
   /** Whether the header opens the grid's context menu. Defaults to `false`. */
   contextMenu?: boolean | undefined;
 }
@@ -193,6 +195,9 @@ export function buildKeyShortcuts(
     // Down rather than reusing Up: it reads as "drill into groups", and Up is
     // already sort's own mnemonic on the same header.
     capabilities.groupable ? "Alt+ArrowDown" : "",
+    // Excel's own key for its filter dropdown is Alt+ArrowDown, which
+    // grouping already holds here; Shift sets the filter apart from it.
+    capabilities.filterable === true ? "Alt+Shift+ArrowDown" : "",
     // The ContextMenu key needs no mention: it says what it does on its face.
     capabilities.contextMenu === true ? "Shift+F10" : "",
   ]

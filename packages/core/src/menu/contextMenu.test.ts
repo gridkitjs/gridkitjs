@@ -116,11 +116,14 @@ describe("hasContextMenu", () => {
 });
 
 describe("defaultContextMenu", () => {
-  test("a header sorts, groups, fits and hides its column, and chooses columns", () => {
+  test("a header sorts, filters, groups, fits and hides its column, and chooses columns", () => {
     expect(defaultContextMenu.header).toEqual([
       "sort.ascending",
       "sort.descending",
       "sort.clear",
+      "separator",
+      "filter.open",
+      "filter.clear",
       "separator",
       "group.add",
       "group.remove",

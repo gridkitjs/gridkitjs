@@ -79,6 +79,14 @@ function rendered(messages: GridMessages): Record<keyof GridMessages, string> {
     filterBlanks: messages.filterBlanks,
     filterSearchFirst: messages.filterSearchFirst(12000),
     filterMoreValues: messages.filterMoreValues(250),
+    openFilter: messages.openFilter,
+    clearColumnFilter: messages.clearColumnFilter,
+    filterMenuLabel: messages.filterMenuLabel("Name"),
+    columnFiltered: messages.columnFiltered,
+    applyFilter: messages.applyFilter,
+    cancelFilter: messages.cancelFilter,
+    customFilter: messages.customFilter,
+    filterResults: messages.filterResults(3, 10),
   };
 }
 
@@ -156,6 +164,14 @@ describe("defaultMessages", () => {
       filterBlanks: "(Blanks)",
       filterSearchFirst: "Type to search 12000 values",
       filterMoreValues: "250 more, refine the search",
+      openFilter: "Filter…",
+      clearColumnFilter: "Clear filter",
+      filterMenuLabel: "Name filter",
+      columnFiltered: "Filtered",
+      applyFilter: "OK",
+      cancelFilter: "Cancel",
+      customFilter: "Custom filter",
+      filterResults: "3 of 10 rows",
     });
   });
 
@@ -257,6 +273,12 @@ describe("defaultMessages", () => {
     expect(defaultMessages.filterSearchFirst(20000)).toBe(
       "Type to search 20000 values",
     );
+  });
+
+  test("counts the rows a filter keeps of a total of one or many", () => {
+    expect(defaultMessages.filterResults(0, 1)).toBe("0 of 1 row");
+    expect(defaultMessages.filterResults(1, 1)).toBe("1 of 1 row");
+    expect(defaultMessages.filterResults(0, 12)).toBe("0 of 12 rows");
   });
 });
 

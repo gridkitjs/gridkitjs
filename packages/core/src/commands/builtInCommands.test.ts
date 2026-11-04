@@ -117,6 +117,8 @@ describe("builtInCommands", () => {
       "column.autoFit",
       "column.autoFitAll",
       "column.choose",
+      "filter.open",
+      "filter.clear",
       "selection.selectAllRows",
       "selection.clear",
       "filter.clearAll",
@@ -633,6 +635,108 @@ describe("column.choose", () => {
         target,
       );
     }
+  });
+});
+
+describe("filter.open", () => {
+  test("shows on a filterable column's header, always enabled", () => {
+    const controller = create({ filterableColumns: true });
+    const command = builtIn("filter.open", controller, header("Region"));
+
+    expect(command.label()).toBe("Filter…");
+    expect(command.visible()).toBe(true);
+    expect(command.enabled()).toBe(true);
+    expect(command.checked()).toBeUndefined();
+    for (const target of [
+      GRID,
+      TOOLBAR,
+      cell("1", "Region"),
+      group("Region"),
+    ]) {
+      expect(builtIn("filter.open", controller, target).visible()).toBe(false);
+    }
+    expect(builtIn("filter.open", create(), header("Region")).visible()).toBe(
+      false,
+    );
+  });
+
+  test("follows a column's own filterable over the grid's", () => {
+    const controller = create({
+      columns: columns.map((column) =>
+        column.field === "Amount" ? { ...column, filterable: true } : column,
+      ),
+    });
+
+    expect(builtIn("filter.open", controller, header("Amount")).visible()).toBe(
+      true,
+    );
+    expect(builtIn("filter.open", controller, header("Region")).visible()).toBe(
+      false,
+    );
+  });
+
+  test("asks the host to open the filter menu below the header", () => {
+    const command = builtIn(
+      "filter.open",
+      create({ filterableColumns: true }),
+      header("Amount"),
+    );
+
+    expect(command.run()).toBe(true);
+    expect(command.host.openPanel).toHaveBeenCalledExactlyOnceWith(
+      "filter",
+      header("Amount"),
+    );
+  });
+});
+
+describe("filter.clear", () => {
+  test("shows on a filterable header, enabled while its column is filtered", () => {
+    const controller = create({ filterableColumns: true });
+    const command = builtIn("filter.clear", controller, header("Region"));
+
+    expect(command.label()).toBe("Clear filter");
+    expect(command.visible()).toBe(true);
+    expect(command.enabled()).toBe(false);
+    expect(builtIn("filter.clear", controller, GRID).visible()).toBe(false);
+    expect(builtIn("filter.clear", create(), header("Region")).visible()).toBe(
+      false,
+    );
+
+    // A search across every column filters none in particular.
+    controller.setFilter([{ query: "%West%" }]);
+    expect(command.enabled()).toBe(false);
+
+    controller.setFilter([
+      { columnId: "Region", operator: "eq", value: "West" },
+    ]);
+    expect(command.enabled()).toBe(true);
+  });
+
+  test("takes out every entry about the column, keeping the rest in order", () => {
+    const controller = create({
+      filterableColumns: true,
+      defaultFilter: [
+        { columnId: "Region", operator: "in", value: ["West"] },
+        { query: "%a%" },
+        {
+          combinator: "or",
+          entries: [
+            { columnId: "Region", operator: "isEmpty" },
+            { columnId: "Amount", operator: "gt", value: 15 },
+          ],
+        },
+        { columnId: "Amount", operator: "lt", value: 100 },
+      ],
+    });
+
+    expect(builtIn("filter.clear", controller, header("Region")).run()).toBe(
+      true,
+    );
+    expect(controller.getState().filter).toEqual([
+      { query: "%a%" },
+      { columnId: "Amount", operator: "lt", value: 100 },
+    ]);
   });
 });
 

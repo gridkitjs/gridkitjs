@@ -1,4 +1,6 @@
+import { resolveColumnFilterMenu } from "../filterMenu/options";
 import type { DataColumn, SelectableConfig, SortDirection } from "../types";
+import { isColumnFiltered, touchesColumn } from "../util/filterEditor";
 import { resolveColumnHeaderText } from "../util/grid";
 import { sortDirectionFor } from "../util/sorting";
 import type {
@@ -22,6 +24,8 @@ export type BuiltInCommandId =
   | "column.autoFit"
   | "column.autoFitAll"
   | "column.choose"
+  | "filter.open"
+  | "filter.clear"
   | "selection.selectAllRows"
   | "selection.clear"
   | "filter.clearAll";
@@ -79,6 +83,15 @@ function groupableColumn<Row>(context: Context<Row>): Column<Row> | null {
 function groupedColumn<Row>(context: Context<Row>): Column<Row> | null {
   const column = columnOn(context, ["header", "group"]);
   return column !== null && isGroupedBy(context, column.id) ? column : null;
+}
+
+/** A header's column with a filter menu — see `resolveColumnFilterMenu`. */
+function filterableColumn<Row>(context: Context<Row>): Column<Row> | null {
+  const column = columnOn(context, ["header"]);
+  return column !== null &&
+    resolveColumnFilterMenu(context.options, column.column) !== null
+    ? column
+    : null;
 }
 
 function hideableColumn<Row>(context: Context<Row>): Column<Row> | null {
@@ -316,6 +329,30 @@ export function builtInCommands<Row>(): readonly GridCommand<Row>[] {
         host.openPanel("columnChooser", target);
       },
     },
+    // Opened below the header it was asked for, as the chooser is.
+    columnCommand({
+      id: "filter.open",
+      label: ({ messages }) => messages.openFilter,
+      find: filterableColumn,
+      execute: (_column, { host, target }) => {
+        host.openPanel("filter", target);
+      },
+    }),
+    // Every entry about the column goes, whichever editor wrote it — or
+    // none did, as with a predicate set in code — as applying an editor
+    // replaces them all.
+    columnCommand({
+      id: "filter.clear",
+      label: ({ messages }) => messages.clearColumnFilter,
+      find: filterableColumn,
+      isEnabled: (column, { state }) =>
+        isColumnFiltered(state.filter, column.id),
+      execute: (column, { actions, state }) => {
+        actions.setFilter(
+          state.filter.filter((entry) => !touchesColumn(entry, column.id)),
+        );
+      },
+    }),
     {
       id: "selection.selectAllRows",
       label: ({ messages }) => messages.selectAllRows,

@@ -27,8 +27,12 @@ export type GridCommandTarget =
   /** A renderer's API, with no particular place. */
   | { readonly area: "grid" };
 
-/** Where a command was run from: a context menu, the toolbar, or a renderer's API. */
-export type GridCommandSource = "contextMenu" | "toolbar" | "api";
+/**
+ * Where a command was run from: a context menu, the toolbar, a renderer's
+ * API, or a column's filter menu — its sort entries and its "Clear filter".
+ */
+export type GridCommandSource =
+  "contextMenu" | "toolbar" | "api" | "filterMenu";
 
 /** What `onCommand` is told of a command, or an inline menu item, that ran. */
 export interface GridCommandEvent {
@@ -40,10 +44,10 @@ export interface GridCommandEvent {
 }
 
 /**
- * The panels a command can ask a renderer to open. A union so the filter UI
- * can add its own kind through the same door.
+ * The panels a command can ask a renderer to open: the column chooser, and
+ * a column's filter menu, which opens on a header target only.
  */
-export type GridPanelKind = "columnChooser";
+export type GridPanelKind = "columnChooser" | "filter";
 
 /**
  * What a command needs that only a renderer has: a DOM to measure, panels to

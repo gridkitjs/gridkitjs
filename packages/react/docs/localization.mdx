@@ -6,7 +6,7 @@ description: "Translating the grid's own strings with messages, and formatting v
 Two props put a grid into another language, and they divide the work:
 
 - **`locale`** formats values — dates and numbers in cells and aggregates, through `Intl`. See [formatting values](/docs/react/column-definition#formatting-values).
-- **`messages`** replaces the grid's own strings — the pager's buttons, the group-by bar, the loading row, boolean and blank values, the labels of the [built-in commands](/docs/core/commands#built-in-commands), the names of its menus, the toolbar's search box and "More" button, and every [live announcement](/docs/react/accessibility#live-announcements) a screen reader hears.
+- **`messages`** replaces the grid's own strings — the pager's buttons, the group-by bar, the loading row, boolean and blank values, the labels of the [built-in commands](/docs/core/commands#built-in-commands), the names of its menus, the toolbar's search box and "More" button, the filter menu, and every [live announcement](/docs/react/accessibility#live-announcements) a screen reader hears.
 
 Text your data supplies — cell values, headers, `label` — is already yours to choose, so neither touches it.
 
@@ -122,6 +122,18 @@ Functions are called with numbers that count from one, and receive a column by i
 | `columnChooserSearchLabel` | `string`                                           | "Search columns" — the column chooser's search box's accessible name.                                                                                               |
 | `showAllColumns`           | `string`                                           | "Show all" — the column chooser's checkbox over every column its search lists.                                                                                      |
 | `noMatchingColumns`        | `string`                                           | "No matching columns" — shown when the chooser's search matches no column.                                                                                          |
+| `filterOperatorLabel`      | `(operator, family) => string`                     | "Before" for `lt` on a date column, "Less than" on a number — a condition's operator in the [filter menu](/docs/react/column-filter-menu).                          |
+| `filterBlanks`             | `string`                                           | "(Blanks)" — the filter checklist's item for blank cells.                                                                                                           |
+| `filterSearchFirst`        | `(total) => string`                                | "Type to search 12000 values" — shown in place of a checklist whose column holds more values than `filterMenu.valueLimit`.                                          |
+| `filterMoreValues`         | `(count) => string`                                | "250 more, refine the search" — shown under a searched checklist `filterMenu.valueLimit` cut short.                                                                 |
+| `openFilter`               | `string`                                           | "Filter…" — `filter.open`, which opens a column's [filter menu](/docs/react/column-filter-menu).                                                                    |
+| `clearColumnFilter`        | `string`                                           | "Clear filter" — `filter.clear`, and the filter menu's button doing the same.                                                                                       |
+| `filterMenuLabel`          | `(columnName) => string`                           | "Name filter" — a column's filter menu's accessible name.                                                                                                           |
+| `columnFiltered`           | `string`                                           | "Filtered" — the `aria-description` of a filtered column's header.                                                                                                  |
+| `applyFilter`              | `string`                                           | "OK" — the filter menu's button applying what it holds.                                                                                                             |
+| `cancelFilter`             | `string`                                           | "Cancel" — the filter menu's button closing it without applying.                                                                                                    |
+| `customFilter`             | `string`                                           | "Custom filter" — shown in the filter menu for a filter its editor cannot show, which applying replaces.                                                            |
+| `filterResults`            | `(shown, total) => string`                         | "3 of 10 rows", "1 of 1 row" — announced when the filter menu applies.                                                                                              |
 
 ## What messages don't cover
 

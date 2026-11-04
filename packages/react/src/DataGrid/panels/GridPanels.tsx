@@ -29,6 +29,7 @@ const panelComponents: {
   ) => ReactNode;
 } = {
   columnChooser: ColumnChooser,
+  filter: () => null,
 };
 
 interface GridPanelsProps<Row> {
