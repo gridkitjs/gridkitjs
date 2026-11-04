@@ -1,9 +1,9 @@
 ---
 title: "Overview"
-description: "Framework-free browser behaviours for GridKit renderers: gestures, focus, observers, virtualization, overlays, menus, toolbars and announcements."
+description: "Framework-free browser behaviours for GridKit renderers: gestures, focus, observers, virtualization, overlays, menus, toolbars, announcements and downloads."
 ---
 
-@gridkitjs/dom holds every browser behaviour a grid needs that is not drawing: pointer gestures, keyboard focus movement, the observers behind fit-to-width and infinite scroll, the row virtualizer's measuring, overlays and the menus shown in them, toolbars, and the live region it reports changes through. @gridkitjs/core decides what the grid does and runs without a DOM; @gridkitjs/dom does what needs one, with no framework; a renderer such as @gridkitjs/react draws the markup and attaches these behaviours to it. A second renderer — for Angular, Vue or Svelte — reuses both unchanged.
+@gridkitjs/dom holds every browser behaviour a grid needs that is not drawing: pointer gestures, keyboard focus movement, the observers behind fit-to-width and infinite scroll, the row virtualizer's measuring, overlays and the menus shown in them, toolbars, the live region it reports changes through, and the download an export ends in. @gridkitjs/core decides what the grid does and runs without a DOM; @gridkitjs/dom does what needs one, with no framework; a renderer such as @gridkitjs/react draws the markup and attaches these behaviours to it. A second renderer — for Angular, Vue or Svelte — reuses both unchanged.
 
 You only need this package to write a renderer of your own. @gridkitjs/react depends on it already, so installing that is enough to use the grid.
 
@@ -511,3 +511,23 @@ overflow.update({
   onChange: (count) => draw(splitToolbarItems(items, count)),
 });
 ```
+
+## Download
+
+`downloadBlob(blob, fileName)` saves `blob` as a file named `fileName` through the browser's own download — a hidden link with a `download` attribute, clicked and removed — so nothing opens or navigates. It is where an export ends: @gridkitjs/core writes the file's contents, the renderer makes a `Blob` of them, and this saves it.
+
+```ts
+import { exportFile, resolveExportWriters } from "@gridkitjs/core";
+import { downloadBlob } from "@gridkitjs/dom";
+
+const writers = resolveExportWriters(context.options.exportWriters);
+const file = await exportFile(context, "csv", {}, writers);
+if (file !== null) {
+  downloadBlob(
+    new Blob([file.content], { type: file.mimeType }),
+    file.fileName,
+  );
+}
+```
+
+The link's object URL is revoked a moment after the click, not during it: Safari reads the file from the URL once the click has returned.

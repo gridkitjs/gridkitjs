@@ -184,3 +184,85 @@ The markup carries semantic class names for a stylesheet and no styles of its ow
 | `tr.export-group[data-level]`         | A group header, `data-level` its depth from `0`. Its label spans every column, or the columns before the first aggregate it shows inline. |
 | `tr.export-group-summary[data-level]` | A group's summary row.                                                                                                                    |
 | `style="text-align:right"` / `center` | A cell in a right- or centre-aligned column, numeric ones included. Inline, so the alignment survives a paste where no stylesheet goes.   |
+
+## Writers
+
+A writer is one export format as a file: an `ExportWriter` turns an `ExportTable` into the file's contents and says what the file is. CSV and JSON ship as `csvWriter` and `jsonWriter`; any other format — xlsx, or one of your own — is a writer you register on the grid through `exportWriters`, so the grid's export commands and its renderer's API reach it exactly as they reach CSV.
+
+```ts
+import type { ExportWriter } from "@gridkitjs/core";
+import { toHtmlTable } from "@gridkitjs/core";
+
+const htmlWriter: ExportWriter = {
+  format: "html",
+  fileExtension: "html",
+  mimeType: "text/html;charset=utf-8",
+  write: (table) =>
+    `<!doctype html><meta charset="utf-8">${toHtmlTable(table)}`,
+};
+```
+
+| Field           | Type                                                     | Description                                                                                       |
+| --------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `format`        | `string`                                                 | The id the grid knows it by, `"csv"` or `"xlsx"`. One writer per format.                          |
+| `fileExtension` | `string`                                                 | The file's extension, without the dot.                                                            |
+| `mimeType`      | `string`                                                 | The file's media type — the `Blob`'s `type`.                                                      |
+| `write`         | `(table, context) => string \| Uint8Array \| Promise<…>` | The file's contents: text, bytes, or a promise of either for a writer that loads a library first. |
+
+`write`'s second argument, an `ExportWriteContext`, carries the grid's `locale`, its `messages` over the defaults, and the export's `options` — a `GridExportOptions`, below — where the built-in writers find their settings: `csvWriter` reads `options.csv`, `jsonWriter` `options.json`. A writer of your own takes its settings when you make it, in a closure.
+
+| Writer       | Format   | Extension | MIME type                | Writes                                                                                    |
+| ------------ | -------- | --------- | ------------------------ | ----------------------------------------------------------------------------------------- |
+| `csvWriter`  | `"csv"`  | `csv`     | `text/csv;charset=utf-8` | `toCsv(table, options.csv)`, with the grid's `locale` unless `options.csv.locale` is set. |
+| `jsonWriter` | `"json"` | `json`    | `application/json`       | `toJson(table, options.json)`.                                                            |
+
+`resolveExportWriters(writers)` returns every writer a grid can export with, keyed by format: CSV and JSON, then `writers` — one with a built-in's format replacing it, as an app command replaces a built-in of the same id.
+
+## Exporting a file
+
+`exportFile(source, format, options, writers)` does the whole export: it builds the table `options` narrow, runs the format's writer from `writers`, and names the file. It returns an `ExportFile` — `{ fileName, mimeType, content }`, the contents a `string` or `Uint8Array` — or a promise of one when the writer returns a promise. `format` is a format id, or a writer to use as it is.
+
+```ts
+import { exportFile, resolveExportWriters } from "@gridkitjs/core";
+
+const file = exportFile(
+  context,
+  "csv",
+  { fileName: "orders", scope: "page", csv: { delimiter: "auto" } },
+  resolveExportWriters(context.options.exportWriters),
+);
+// { fileName: "orders.csv", mimeType: "text/csv;charset=utf-8", content: "…" }
+```
+
+The source is an `ExportFileSource<Row>` — an `ExportSource` whose `messages` are a whole `GridMessages`, since a writer may print any of them. A command's context is one as it stands. A format with no writer is reported with a `console.error` and gives `null`, so a renderer saves nothing rather than failing. Saving the file — a `Blob` and a download — is the renderer's: the grid's export commands hand it to [`host.saveFile`](/docs/core/commands#the-host).
+
+| Function                                       | Type                                        | Description                                                                   |
+| ---------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------- |
+| `exportFile(source, format, options, writers)` | `ExportFile \| Promise<ExportFile> \| null` | The view written as a file of `format`, named — `null` for an unknown format. |
+| `resolveExportWriters(writers)`                | `ReadonlyMap<string, ExportWriter>`         | CSV and JSON, then `writers`, by format.                                      |
+
+## On a grid
+
+A grid's `export` option, a `GridExportOptions`, says how it exports unless a call says otherwise. It takes every `ExportOptions` field — `scope`, `columns`, `includeGroups`, `includeAggregates`, `includeHeader` — and three of its own:
+
+| Option     | Type                                   | Default    | Description                                                                                                                                                 |
+| ---------- | -------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fileName` | `string \| (format: string) => string` | `"export"` | The file's name. The writer's extension is added unless the name already ends with it, so `"orders"` saves as `orders.csv`. A function is asked per export. |
+| `csv`      | `CsvOptions`                           | —          | How `csvWriter` writes. Its `locale` defaults to the grid's.                                                                                                |
+| `json`     | `JsonOptions`                          | —          | How `jsonWriter` writes.                                                                                                                                    |
+
+`exportWriters`, a `readonly ExportWriter[]`, registers formats beyond CSV and JSON by their `format`, and replaces a built-in writer of the same format.
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  export={{
+    fileName: "orders",
+    csv: { delimiter: "auto" },
+  }}
+  exportWriters={[htmlWriter]}
+/>
+```
+
+The grid's export [commands](/docs/core/commands#built-in-commands) — `export.csv`, `export.json`, `export.xlsx` and `export.pdf`, and `exportSelection.csv`, `exportSelection.json` and `exportSelection.xlsx` for the selected rows — export under these defaults with the writers `exportWriters` registers, so a toolbar's [`"export"` dropdown](/docs/core/toolbar#the-export-dropdown), a context menu and a renderer's `runCommand` all write the same file. A command for a format shows only once a writer for it is registered, so `export.xlsx` appears with an xlsx writer.

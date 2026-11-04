@@ -25,7 +25,7 @@ const context = createCommandContext({
   controller,
   target: { area: "header", columnId: "Amount" },
   messages: defaultMessages,
-  host: { autoFitColumns() {}, openPanel() {}, announce() {} },
+  host: { autoFitColumns() {}, openPanel() {}, announce() {}, saveFile() {} },
 });
 
 const sortAscending = commands.get("sort.ascending");
@@ -87,40 +87,50 @@ A context is a snapshot. A renderer builds one each time it resolves a menu or a
 
 A `GridCommandHost` holds what a command needs that only a renderer has. A caller with no renderer — a test, a script in Node — passes members that do nothing.
 
-| Member                      | Description                                                                                                               |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `autoFitColumns(columnIds)` | Sizes each column to fit its content, as double-clicking its resize handle does.                                          |
-| `openPanel(kind, target)`   | Opens one of the grid's [panels](#panels) anchored to the target. `kind` is a `GridPanelKind`: `"columnChooser"` for now. |
-| `announce(text)`            | Reads `text` out through the grid's live region.                                                                          |
+| Member                      | Description                                                                                                                                                                     |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `autoFitColumns(columnIds)` | Sizes each column to fit its content, as double-clicking its resize handle does.                                                                                                |
+| `openPanel(kind, target)`   | Opens one of the grid's [panels](#panels) anchored to the target. `kind` is a `GridPanelKind`: `"columnChooser"` for now.                                                       |
+| `announce(text)`            | Reads `text` out through the grid's live region.                                                                                                                                |
+| `saveFile(file)`            | Saves an [`ExportFile`](/docs/core/export#exporting-a-file) — in a browser, a download. Given a promise of one, it waits for it, and reports a rejected one rather than saving. |
 
 ## Built-in commands
 
 `builtInCommands<Row>()` returns the grid's own commands. Each acts on a column, a row, a group or the whole grid, and is hidden on a target that has none of what it needs — so any id can be listed in any menu without checks. Their labels come from [`messages`](/docs/react/localization#every-key), and their ids form the `BuiltInCommandId` type.
 
-| Id                        | Shown for                  | Visible when                            | Enabled when                              | Does                                                          | Label               |
-| ------------------------- | -------------------------- | --------------------------------------- | ----------------------------------------- | ------------------------------------------------------------- | ------------------- |
-| `sort.ascending`          | header                     | the column is sortable                  | always; checked while it sorts ascending  | Sorts by this column alone, ascending.                        | `sortAscending`     |
-| `sort.descending`         | header                     | the column is sortable                  | always; checked while it sorts descending | Sorts by this column alone, descending.                       | `sortDescending`    |
-| `sort.clear`              | header                     | the column is sortable                  | the column is sorted                      | `clearColumnSort`, keeping the rest of the sort.              | `clearSort`         |
-| `sort.clearAll`           | grid, toolbar, header      | always                                  | anything is sorted                        | `setColumnSort([])`                                           | `clearAllSorting`   |
-| `group.add`               | header                     | the column is groupable and not grouped | always                                    | `toggleGroupBy`, adding it to the end of the grouping.        | `groupByColumn`     |
-| `group.remove`            | header, group              | the column is grouped                   | always                                    | `toggleGroupBy`, taking it out of the grouping.               | `removeGroupBy`     |
-| `group.clearAll`          | grid, toolbar              | anything is grouped                     | always                                    | `setGroupBy([])`                                              | `ungroupAll`        |
-| `group.expandAll`         | grid, toolbar, group, cell | anything is grouped                     | always                                    | `expandAllGroups()`                                           | `expandAllGroups`   |
-| `group.collapseAll`       | grid, toolbar, group, cell | anything is grouped                     | always                                    | `collapseAllGroups()`                                         | `collapseAllGroups` |
-| `column.hide`             | header                     | the column is `hideable`                | another column is shown                   | `hideColumns([id])`                                           | `hideColumn`        |
-| `column.autoFit`          | header                     | the column is resizable                 | always                                    | `host.autoFitColumns([id])`                                   | `autoFitColumn`     |
-| `column.autoFitAll`       | grid, toolbar, header      | any shown column is resizable           | always                                    | `host.autoFitColumns(ids)` with every shown resizable column. | `autoFitAllColumns` |
-| `column.choose`           | grid, toolbar, header      | always                                  | always                                    | `host.openPanel("columnChooser", target)`                     | `chooseColumns`     |
-| `selection.selectAllRows` | grid, cell                 | `selectable.rows` is `"multiple"`       | there are rows                            | `selectAllRows()`                                             | `selectAllRows`     |
-| `selection.clear`         | grid, cell, header         | rows, columns or cells are selectable   | anything is selected                      | `clearSelection()`                                            | `clearSelection`    |
-| `filter.clearAll`         | grid, toolbar, header      | always                                  | anything filters                          | `setFilter([])`, which clears the search too.                 | `clearFilters`      |
+| Id                        | Shown for                  | Visible when                                         | Enabled when                              | Does                                                          | Label                 |
+| ------------------------- | -------------------------- | ---------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------- | --------------------- |
+| `sort.ascending`          | header                     | the column is sortable                               | always; checked while it sorts ascending  | Sorts by this column alone, ascending.                        | `sortAscending`       |
+| `sort.descending`         | header                     | the column is sortable                               | always; checked while it sorts descending | Sorts by this column alone, descending.                       | `sortDescending`      |
+| `sort.clear`              | header                     | the column is sortable                               | the column is sorted                      | `clearColumnSort`, keeping the rest of the sort.              | `clearSort`           |
+| `sort.clearAll`           | grid, toolbar, header      | always                                               | anything is sorted                        | `setColumnSort([])`                                           | `clearAllSorting`     |
+| `group.add`               | header                     | the column is groupable and not grouped              | always                                    | `toggleGroupBy`, adding it to the end of the grouping.        | `groupByColumn`       |
+| `group.remove`            | header, group              | the column is grouped                                | always                                    | `toggleGroupBy`, taking it out of the grouping.               | `removeGroupBy`       |
+| `group.clearAll`          | grid, toolbar              | anything is grouped                                  | always                                    | `setGroupBy([])`                                              | `ungroupAll`          |
+| `group.expandAll`         | grid, toolbar, group, cell | anything is grouped                                  | always                                    | `expandAllGroups()`                                           | `expandAllGroups`     |
+| `group.collapseAll`       | grid, toolbar, group, cell | anything is grouped                                  | always                                    | `collapseAllGroups()`                                         | `collapseAllGroups`   |
+| `column.hide`             | header                     | the column is `hideable`                             | another column is shown                   | `hideColumns([id])`                                           | `hideColumn`          |
+| `column.autoFit`          | header                     | the column is resizable                              | always                                    | `host.autoFitColumns([id])`                                   | `autoFitColumn`       |
+| `column.autoFitAll`       | grid, toolbar, header      | any shown column is resizable                        | always                                    | `host.autoFitColumns(ids)` with every shown resizable column. | `autoFitAllColumns`   |
+| `column.choose`           | grid, toolbar, header      | always                                               | always                                    | `host.openPanel("columnChooser", target)`                     | `chooseColumns`       |
+| `selection.selectAllRows` | grid, cell                 | `selectable.rows` is `"multiple"`                    | there are rows                            | `selectAllRows()`                                             | `selectAllRows`       |
+| `selection.clear`         | grid, cell, header         | rows, columns or cells are selectable                | anything is selected                      | `clearSelection()`                                            | `clearSelection`      |
+| `filter.clearAll`         | grid, toolbar, header      | always                                               | anything filters                          | `setFilter([])`, which clears the search too.                 | `clearFilters`        |
+| `export.csv`              | grid, toolbar, body, cell  | always                                               | there are rows                            | Saves the view as CSV through `host.saveFile`.                | `exportCsv`           |
+| `export.json`             | grid, toolbar, body, cell  | always                                               | there are rows                            | Saves the view as JSON through `host.saveFile`.               | `exportJson`          |
+| `export.xlsx`             | grid, toolbar, body, cell  | an `xlsx` writer is registered                       | there are rows                            | Saves the view with the `xlsx` writer.                        | `exportXlsx`          |
+| `export.pdf`              | grid, toolbar, body, cell  | a `pdf` writer is registered                         | there are rows                            | Saves the view with the `pdf` writer.                         | `exportPdf`           |
+| `exportSelection.csv`     | grid, toolbar, body, cell  | rows are selected                                    | a selected row passes the filter          | Saves the selected rows as CSV.                               | `exportSelectionCsv`  |
+| `exportSelection.json`    | grid, toolbar, body, cell  | rows are selected                                    | a selected row passes the filter          | Saves the selected rows as JSON.                              | `exportSelectionJson` |
+| `exportSelection.xlsx`    | grid, toolbar, body, cell  | rows are selected and an `xlsx` writer is registered | a selected row passes the filter          | Saves the selected rows with the `xlsx` writer.               | `exportSelectionXlsx` |
 
 "Sortable" is the column's `sortable`, else the grid's `sortableColumns`; "groupable" the same with `groupable` and `groupableColumns`; "resizable" is the column as rendered, after `resizableColumns`. [`hideable`](/docs/core/column-definitions#column-definition-shape) defaults to `true` and, like `sortable`, gates only the user's ways to do it: `hideColumns` still hides a column that is not hideable.
 
 The sorting, grouping, hiding and autofit built-ins carry an `icon` key — a `BuiltInCommandIcon`: `sortAscending` and `sortDescending` on the two sorts, `group` on `group.add` and `group.remove`, `hide` on `column.hide`, and `autoFit` on both autofits. @gridkitjs/react draws each as an icon of its own; a command of yours may use the same keys to look like the built-ins, and a renderer of your own maps them to its icons or leaves them out.
 
-The ids `filter.open`, `copy.cell`, `copy.row`, `copy.selection`, `export.csv`, `export.json`, `export.xlsx`, `export.pdf`, `print` and `layout.reset` are reserved for built-ins still to come.
+The export built-ins write with the grid's [export writers](/docs/core/export#writers) — CSV and JSON built in, others registered through `exportWriters` — under its `export` defaults, as [`exportFile`](/docs/core/export#exporting-a-file) does, and hand the file to `host.saveFile`. The selection exports set `scope: "selection"` over those defaults. An export acts on the whole grid, so it shows wherever the grid as a whole is asked for, a cell's menu included. GridKit ships no PDF writer — the browser's print dialog saves a PDF — so `export.pdf` shows only for a `pdf` writer of your own.
+
+The ids `filter.open`, `copy.cell`, `copy.row`, `copy.selection`, `print` and `layout.reset` are reserved for built-ins still to come.
 
 ## Panels
 

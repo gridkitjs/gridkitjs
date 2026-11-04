@@ -87,6 +87,8 @@ An object lists an area's menu yourself, in the menu vocabulary of [@gridkitjs/c
 
 `[]` turns an area's menu off and leaves the browser's there — `{ header: [] }` keeps the menu on rows and group rows alone. `defaultContextMenu`, exported from @gridkitjs/core, holds each area's defaults, to build on.
 
+No default menu exports. The export commands — `export.csv`, `export.json`, `exportSelection.csv` and the rest — show in the `cell` and `body` menus when you list them, and download the whole grid's export from either: see [export](/docs/react/export#from-the-context-menu).
+
 ### Items of your own
 
 Beside command ids, a menu holds items written into it — `{ type: "item", id, label, onSelect }` — and submenus — `{ type: "submenu", id, label, items }`. An item with `checked` is a checkable one, drawn as a `menuitemcheckbox`; `hidden`, `disabled` and `checked` each take a boolean or a function of the context. `onSelect` receives the [command context](/docs/core/commands#the-context): the grid's state, its actions, the target, and the `row` and `column` a cell's menu opened on.

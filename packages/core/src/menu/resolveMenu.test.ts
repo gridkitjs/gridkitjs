@@ -44,7 +44,12 @@ function contextFor(
     controller,
     target,
     messages: defaultMessages,
-    host: { autoFitColumns: vi.fn(), openPanel: vi.fn(), announce: vi.fn() },
+    host: {
+      autoFitColumns: vi.fn(),
+      openPanel: vi.fn(),
+      announce: vi.fn(),
+      saveFile: vi.fn(),
+    },
   });
 }
 

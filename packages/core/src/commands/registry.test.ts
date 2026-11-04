@@ -19,7 +19,12 @@ function context(): GridCommandContext<Row> {
     controller: createGridController<Row>({ dataSource: [{ Id: 1 }] }),
     target: { area: "grid" },
     messages: defaultMessages,
-    host: { autoFitColumns: vi.fn(), openPanel: vi.fn(), announce: vi.fn() },
+    host: {
+      autoFitColumns: vi.fn(),
+      openPanel: vi.fn(),
+      announce: vi.fn(),
+      saveFile: vi.fn(),
+    },
   });
 }
 

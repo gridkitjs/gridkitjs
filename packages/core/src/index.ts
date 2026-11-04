@@ -315,3 +315,12 @@ export type { JsonOptions } from "./export/json";
 export { toJson } from "./export/json";
 export type { HtmlTableOptions } from "./export/htmlTable";
 export { toHtmlTable } from "./export/htmlTable";
+export type {
+  ExportFile,
+  ExportWriteContext,
+  ExportWriter,
+  GridExportOptions,
+} from "./export/writer";
+export { csvWriter, jsonWriter, resolveExportWriters } from "./export/writer";
+export type { ExportFileSource } from "./export/exportFile";
+export { exportFile } from "./export/exportFile";

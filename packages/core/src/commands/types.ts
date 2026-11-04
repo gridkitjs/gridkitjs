@@ -1,4 +1,5 @@
 import type { GridController } from "../controller/gridController";
+import type { ExportFile } from "../export/writer";
 import type { GridMessages } from "../messages";
 import type { GridOptions } from "../options";
 import type { DataColumn, GridState, GridView, ResolvedRow } from "../types";
@@ -57,6 +58,12 @@ export interface GridCommandHost {
   readonly openPanel: (kind: GridPanelKind, target: GridCommandTarget) => void;
   /** Reads `text` out through the grid's live region. */
   readonly announce: (text: string) => void;
+  /**
+   * Saves an export as a file — in a browser, a download. A promise is the
+   * file of a writer still writing; the host waits for it, and reports a
+   * rejected one rather than saving.
+   */
+  readonly saveFile: (file: ExportFile | Promise<ExportFile>) => void;
 }
 
 /**

@@ -81,3 +81,12 @@ export { default as useColumnOrderState } from "./DataGrid/hooks/useColumnOrderS
 export { default as useColumnVisibilityState } from "./DataGrid/hooks/useColumnVisibilityState";
 export { default as useFilterState } from "./DataGrid/hooks/useFilterState";
 export type { FilterStateApi } from "./DataGrid/hooks/useFilterState";
+
+// Re-exported so typing an export — its options, a writer of the app's own,
+// the file a writer gives — needs no import from core.
+export type {
+  ExportFile,
+  ExportOptions,
+  ExportWriter,
+  GridExportOptions,
+} from "@gridkitjs/core";

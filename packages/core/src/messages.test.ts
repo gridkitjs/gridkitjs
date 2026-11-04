@@ -70,6 +70,15 @@ function rendered(messages: GridMessages): Record<keyof GridMessages, string> {
     columnChooserSearchLabel: messages.columnChooserSearchLabel,
     showAllColumns: messages.showAllColumns,
     noMatchingColumns: messages.noMatchingColumns,
+    exportMenu: messages.exportMenu,
+    exportCsv: messages.exportCsv,
+    exportJson: messages.exportJson,
+    exportXlsx: messages.exportXlsx,
+    exportPdf: messages.exportPdf,
+    exportSelectionCsv: messages.exportSelectionCsv,
+    exportSelectionJson: messages.exportSelectionJson,
+    exportSelectionXlsx: messages.exportSelectionXlsx,
+    exportFailed: messages.exportFailed,
   };
 }
 
@@ -143,6 +152,15 @@ describe("defaultMessages", () => {
       columnChooserSearchLabel: "Search columns",
       showAllColumns: "Show all",
       noMatchingColumns: "No matching columns",
+      exportMenu: "Export",
+      exportCsv: "Export to CSV",
+      exportJson: "Export to JSON",
+      exportXlsx: "Export to Excel",
+      exportPdf: "Export to PDF",
+      exportSelectionCsv: "Export selection to CSV",
+      exportSelectionJson: "Export selection to JSON",
+      exportSelectionXlsx: "Export selection to Excel",
+      exportFailed: "Export failed",
     });
   });
 
