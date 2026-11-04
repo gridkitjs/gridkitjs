@@ -1,3 +1,5 @@
+import type { ColumnFilterMenuOptions } from "./filterMenu/options";
+
 /**
  * Values a cell shows as-is instead of being drilled into. Arrays and `Date`s
  * are cell values rather than groups of columns, and `null` cannot be
@@ -169,6 +171,17 @@ export interface ColumnDefinition<Row, Node = string> {
   reorderable?: boolean;
   /** Whether this column can be sorted, overriding the grid-level default. */
   sortable?: boolean;
+  /**
+   * Whether this column has a filter menu, overriding the grid-level
+   * `filterableColumns`. Like `sortable`, it gates the user's way in and
+   * nothing else: a filter on the column set in code still applies.
+   */
+  filterable?: boolean | undefined;
+  /**
+   * This column's own filter menu settings — its editor and the operators
+   * its conditions offer — over the grid's `filterMenu`.
+   */
+  filterMenu?: ColumnFilterMenuOptions | undefined;
   /** Whether this column can be grouped by, overriding the grid-level default. */
   groupable?: boolean;
   /**

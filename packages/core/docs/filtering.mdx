@@ -90,6 +90,44 @@ A value or blanks action switches the draft to its checklist (`mode: "values"`);
 
 What `draftToFilter` writes, `describeColumnFilter` reads back as the same shape. When nothing changes it returns `current` itself, and `setFilter` reports nothing for a filter equal to the one it has.
 
+## Filter menu options
+
+A renderer draws a filter menu in each filterable column's header; these options say which columns get one and what it opens. They follow the grid's other column features: a grid-level default that a column overrides, as `sortableColumns` and `sortable` do.
+
+| Option                  | Type                  | Default    | Description                                                                                                                                         |
+| ----------------------- | --------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `filterableColumns`     | `boolean`             | `false`    | Whether columns get a filter menu. The filter applies either way — from `defaultFilter`, `setFilter` or a search box.                               |
+| `filterMenu.ui`         | `"simple" \| "excel"` | `"simple"` | Which editor the menu opens: one or two conditions joined by and/or, or a search box over a checklist of values with the conditions a submenu away. |
+| `filterMenu.showCounts` | `boolean`             | `false`    | Whether the checklist shows how many rows hold each value.                                                                                          |
+| `filterMenu.valueLimit` | `number`              | `10000`    | How many distinct values the checklist lists before it asks for a search first — `DEFAULT_FILTER_VALUE_LIMIT`.                                      |
+| `column.filterable`     | `boolean`             |            | Per-column override of `filterableColumns`.                                                                                                         |
+| `column.filterMenu`     | `{ ui?, operators? }` |            | The column's own editor, over `filterMenu.ui`, and the operators its conditions offer, in place of its type's defaults.                             |
+
+Both editors edit the one `FilterState`, so switching `ui` at runtime keeps every filter, and a filter set in code shows in whichever editor is open. A column's `operators` drop `in`, the checklist's own operator; `[]` offers no condition, leaving the excel editor its checklist alone.
+
+`resolveColumnFilterMenu(options, column)` settles all of this for one column — what a renderer draws from:
+
+```ts
+import { resolveColumnFilterMenu } from "@gridkitjs/core";
+
+const menu = resolveColumnFilterMenu(
+  { filterableColumns: true, filterMenu: { ui: "excel", showCounts: true } },
+  { field: "Placed", type: "dateTime" },
+);
+// { ui: "excel", operators: ["lt", "gt", "between", "isEmpty", "isNotEmpty"],
+//   family: "date", showCounts: true, valueLimit: 10000 }
+```
+
+It returns `null` for a column with no filter menu, else a `ResolvedColumnFilterMenu`:
+
+| Field        | Type                        | Description                                                                                         |
+| ------------ | --------------------------- | --------------------------------------------------------------------------------------------------- |
+| `ui`         | `"simple" \| "excel"`       | The column's `filterMenu.ui`, else the grid's, else `"simple"`.                                     |
+| `operators`  | `readonly FilterOperator[]` | The column's `filterMenu.operators` without `in`, else its type's `defaultFilterOperators` (below). |
+| `family`     | `FilterOperatorFamily`      | The family the column's `type` falls in, which its operators are labelled by.                       |
+| `showCounts` | `boolean`                   | The grid's `filterMenu.showCounts`, else `false`.                                                   |
+| `valueLimit` | `number`                    | The grid's `filterMenu.valueLimit`, else `DEFAULT_FILTER_VALUE_LIMIT` (10,000, Excel's own cap).    |
+
 ## Operators by column type
 
 The conditions a filter menu offers depend on what the column holds. `filterOperatorFamily(type)` reads a column's `type` as one of four families — the filter engine's own reading, so a menu never offers a condition the column would compare differently:

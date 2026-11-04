@@ -283,6 +283,16 @@ export {
   selectAllState,
   visibleFilterOptions,
 } from "./util/filterEditor";
+export type {
+  ColumnFilterMenuOptions,
+  FilterMenuUi,
+  GridFilterMenuOptions,
+  ResolvedColumnFilterMenu,
+} from "./filterMenu/options";
+export {
+  DEFAULT_FILTER_VALUE_LIMIT,
+  resolveColumnFilterMenu,
+} from "./filterMenu/options";
 export type { FilterOperatorFamily } from "./filterMenu/operators";
 export {
   defaultFilterOperators,
