@@ -1324,3 +1324,43 @@
     color: var(--gridkit-fg-muted);
   }
 }
+
+/*
+ * The browser's own Ctrl+P of a page holding a grid: the grid as a plain
+ * table, every row it has drawn flowing onto as many pages as it takes. Only
+ * those rows — not one a virtualised grid has not mounted, nor another
+ * page's — which is why printing through the grid's own Print, building a
+ * document of every row in a hidden frame, is the supported path.
+ */
+@layer base {
+  @media print {
+    /* What is for using the grid, not reading it. */
+    .gridkit-data-grid-viewport .gridkit-toolbar,
+    .gridkit-data-grid-viewport .gridkit-group-by-bar,
+    .gridkit-data-grid-viewport .gridkit-grid-pager,
+    .gridkit-data-grid-viewport .header-resize-handle {
+      display: none;
+    }
+
+    /* No height bound, and nothing scrolls, so no row is cut off. */
+    .gridkit-data-grid-viewport,
+    .gridkit-data-grid-viewport .gridkit-data-grid-body {
+      height: auto;
+      overflow: visible;
+    }
+
+    .gridkit-data-grid-viewport :focus-visible {
+      outline: none;
+    }
+
+    /* Shading printed as it is, not dropped to save ink. */
+    .gridkit-data-grid {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .gridkit-data-grid tr {
+      break-inside: avoid;
+    }
+  }
+}

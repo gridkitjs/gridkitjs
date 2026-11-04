@@ -169,6 +169,8 @@ export interface GridMessages {
   copied: (count: number, unit: "cells" | "rows" | "columns") => string;
   /** Announced when the browser refuses the clipboard, so nothing was copied. */
   copyFailed: string;
+  /** `print` */
+  print: string;
 }
 
 /** "3 columns hidden", "1 column shown", "2 columns autofitted". */
@@ -297,6 +299,7 @@ export const defaultMessages: GridMessages = {
   copySelection: "Copy selection",
   copied,
   copyFailed: "Copy failed",
+  print: "Print",
 };
 
 /**

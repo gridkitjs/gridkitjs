@@ -92,3 +92,8 @@ export {
   type ToolbarOverflowItem,
   type ToolbarOverflowOptions,
 } from "./toolbar/observeToolbarOverflow";
+export {
+  printDocument,
+  type PrintDocumentOptions,
+} from "./print/printDocument";
+export { printStyles } from "./print/styles";

@@ -3,7 +3,7 @@ title: "Toolbar"
 description: "A toolbar above the grid — clear the filters or the sort, search every column, dropdowns of actions and content of your own — written in the same vocabulary as the context menu."
 ---
 
-`toolbar` puts a toolbar above the grid: buttons for the grid's own commands — clear the filters, clear the sort, expand or collapse every group, choose the columns shown — a search box over every column, an Export dropdown, dropdown menus of actions, and content of your own. It is written in the same vocabulary as the [context menu](/docs/react/context-menu), so a command you register once shows in both. It is off by default, like every other GridKit feature.
+`toolbar` puts a toolbar above the grid: buttons for the grid's own commands — clear the filters, clear the sort, expand or collapse every group, choose the columns shown — a search box over every column, an Export dropdown, a Print button, dropdown menus of actions, and content of your own. It is written in the same vocabulary as the [context menu](/docs/react/context-menu), so a command you register once shows in both. It is off by default, like every other GridKit feature.
 
 ## Turning it on
 
@@ -53,6 +53,7 @@ An object lists the items yourself, in order, and may name the toolbar for a scr
 | `"separator"`                              | A separator.                                                                           |
 | `"search"`                                 | The search box — see [search](#search).                                                |
 | `"export"`                                 | The Export dropdown — see [export](#export).                                           |
+| `"print"`                                  | The Print button — see [print](#print).                                                |
 | `"spacer"`                                 | The free space, pushing what follows it to the far end.                                |
 | `{ type: "custom", id }`                   | Content of your own, drawn by `renderToolbarItem` — see [below](#content-of-your-own). |
 
@@ -149,6 +150,21 @@ A custom entry, `{ type: "custom", id }`, holds whatever `renderToolbarItem` dra
 ```
 
 For a different list, write the export commands' ids yourself — `"export.csv"` alone is a button. See [export](/docs/react/export) for what an export holds, its options and formats of your own.
+
+## Print
+
+`"print"` is a button, "Print", that prints every row the grid holds through the browser's print dialog — under a title, with the header row on every page. Like the Export dropdown, it is not among the defaults:
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  label="Orders"
+  toolbar={{ items: ["search", "spacer", "export", "print"] }}
+/>
+```
+
+See [printing](/docs/react/printing) for what is printed and its options.
 
 ## Search
 

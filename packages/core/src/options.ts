@@ -41,6 +41,7 @@ import type {
 } from "./menu/contextMenu";
 import type { GridToolbarOptions } from "./toolbar/options";
 import type { FormatLocale } from "./util/format";
+import type { PrintOptions } from "./export/print";
 import type { ExportWriter, GridExportOptions } from "./export/writer";
 
 /** Which cell borders a grid draws. */
@@ -460,6 +461,12 @@ export interface GridOptions<Row> {
    * once a writer for their format is here — see `resolveExportWriters`.
    */
   exportWriters?: readonly ExportWriter[] | undefined;
+  /**
+   * How the grid prints unless a call says otherwise: the rows and columns,
+   * the title and text around the table, and the page. Left out, a print
+   * holds what an export does, titled with `label`, on an A4 page.
+   */
+  print?: PrintOptions | undefined;
 }
 
 /**

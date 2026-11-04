@@ -1,0 +1,139 @@
+---
+title: "Printing"
+description: "Print every row the grid holds — from a Print button in the toolbar, the context menu or the ref — with a title, a header row on every page and page numbers, and save it as a PDF from the print dialog."
+---
+
+The grid prints what the user sees: every row the filter, search and sort leave, across every page and inside collapsed groups, not only the rows a virtualized or paginated grid has drawn. The toolbar's Print button, a Print item in the context menu, `ref.current.runCommand("print")` and `ref.current.print()` all open the browser's print dialog on the same document.
+
+The grid builds that document from its state — the [export model](/docs/core/export), as an export does — and prints it through a hidden frame: a page of its own holding the title, the table and a footer, with the column headers repeated at the top of every page and the rows never split across two. Nothing of the page around the grid prints, and no popup opens.
+
+## From the toolbar
+
+`"print"` in the toolbar's items is a Print button:
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  label="Orders"
+  toolbar={{ items: ["search", "spacer", "export", "print"] }}
+/>
+```
+
+It is not among the default toolbar's items, so `toolbar` alone does not show it; list it where you want it. It is disabled only while no column is shown — a grid with no rows still prints its header.
+
+## From the context menu
+
+No default menu prints, so list `print` in the areas you want it — `cell` for a row's menu, `body` for the grid's empty space:
+
+```ts
+import { defaultContextMenu } from "@gridkitjs/core";
+
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  contextMenu={{ cell: [...defaultContextMenu.cell, "separator", "print"] }}
+/>;
+```
+
+A print from a row's menu still prints the whole grid. The command reports to `onCommand` like any other; see [built-in commands](/docs/core/commands#built-in-commands).
+
+## From the ref
+
+`print(options?)` prints and resolves once the print dialog has closed. `options` go over the grid's `print` option field by field, so a call need only say what differs:
+
+```ts
+const gridRef = useRef<DataGridApi<Order>>(null);
+
+await gridRef.current?.print({
+  subtitle: "Selected orders",
+  scope: "selection",
+});
+```
+
+| Method                | Returns         | Description                                                                                   |
+| --------------------- | --------------- | --------------------------------------------------------------------------------------------- |
+| `print(options?)`     | `Promise<void>` | Prints the grid's view under `print` with `options` over it; resolves once the dialog closes. |
+| `runCommand("print")` | `boolean`       | Prints under the `print` option, as the toolbar does. Says whether it ran.                    |
+
+One print at a time: a print asked for while the dialog is open does nothing, and its promise resolves at once.
+
+## Options
+
+`print` sets how the grid prints unless a call says otherwise:
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  label="Orders"
+  toolbar={{ items: ["print"] }}
+  print={{
+    subtitle: "Q1, all regions",
+    footer: "Internal — do not distribute",
+    timestamp: true,
+    fitToWidth: true,
+  }}
+/>
+```
+
+| Option              | Type                                      | Default      | Description                                                                                                           |
+| ------------------- | ----------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `title`             | `string`                                  | `label`      | A heading above the table, and the document's title, which names a PDF saved from the dialog. `""` prints none.       |
+| `subtitle`          | `string`                                  |              | A line under the title.                                                                                               |
+| `footer`            | `string`                                  |              | A line after the table, once, at the end.                                                                             |
+| `timestamp`         | `boolean \| Date`                         | `false`      | When the print was made, under the title: `true` for now, or a `Date`, in the grid's `locale`.                        |
+| `locale`            | `string \| string[]`                      | the grid's   | The language the timestamp is written in.                                                                             |
+| `orientation`       | `"portrait" \| "landscape"`               | by the width | Landscape for a table of more than six columns, else portrait.                                                        |
+| `paperSize`         | `string`                                  | `"A4"`       | A page size CSS names: `"A4"`, `"Letter"`, `"A3"`, `"Legal"`. The print dialog can still change it.                   |
+| `pageNumbers`       | `boolean`                                 | `true`       | "3 / 12" at the foot of each page, where the browser can — see [browser support](#browser-support).                   |
+| `fitToWidth`        | `boolean`                                 | `false`      | Squeezes a wide table onto the page — a smaller font and fixed columns that wrap their text — rather than run off it. |
+| `styles`            | `string`                                  |              | CSS added after the print stylesheet, to restyle the printed document — see [styling the print](#styling-the-print).  |
+| `scope`             | `"all" \| "page" \| "selection"`          | `"all"`      | Every row the filter leaves, the current page's, or the selected rows.                                                |
+| `columns`           | `"visible" \| "all" \| readonly string[]` | `"visible"`  | The shown columns, every column, or these ids in this order. A column with `exportable: false` never prints.          |
+| `includeGroups`     | `boolean`                                 | `true`       | Group header rows, when the grid is grouped.                                                                          |
+| `includeAggregates` | `boolean`                                 | `true`       | Aggregate values: group summaries and the grand total, printed once at the end.                                       |
+| `includeHeader`     | `boolean`                                 | `true`       | The header row, repeated on every page.                                                                               |
+
+Cells print as the grid formats them, and a column decides its own part with `exportable` and `exportValue` — see [column definition](/docs/react/column-definition). Without a `title` or a `label` the print has no heading, and the browser names a saved PDF after the page.
+
+## Styling the print
+
+The printed document is a page of its own, so it sees none of your CSS, the theme's included. It carries a small stylesheet of its own — the page size and margins, the repeating header, neutral borders, group rows indented by level — and `styles` goes after it:
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  print={{
+    styles: `
+      .print-title { color: #1d4ed8; }
+      .gridkit-export-table th { background: #dbeafe; }
+    `,
+  }}
+/>
+```
+
+The heading is `header.gridkit-print-header` holding `h1.print-title`, `p.print-subtitle` and `p.print-timestamp`; the footer `footer.gridkit-print-footer`; the table `table.gridkit-export-table`, with group rows `tr.export-group` and summary rows `tr.export-group-summary`, each with a `data-level`. See @gridkitjs/core's [print document](/docs/core/export#printing) and @gridkitjs/dom's [print stylesheet](/docs/dom#print).
+
+## Save as PDF
+
+GridKit writes no PDF of its own: the print dialog does it. Choose "Save as PDF" (Chrome, Edge) or "Microsoft Print to PDF" (Windows) as the printer, and the browser writes the document — any script, Cyrillic and accented Latin alike, in the fonts it already has — with the title as the file's name. An `export.pdf` command shows only for a PDF writer of your own.
+
+## Browser support
+
+In Chrome the header row repeats at the top of every page and each page is numbered, "1 / 4", at its foot. Firefox and Safari have not been checked yet.
+
+Page numbers use CSS `@page` margin boxes. A browser without them prints no numbers and nothing else changes; the browser's own header and footer, when turned on in the dialog, number the pages instead.
+
+## Printing the page
+
+The browser's own print — <Kbd>Ctrl</Kbd>+<Kbd>P</Kbd>, or <Kbd>Cmd</Kbd>+<Kbd>P</Kbd> on a Mac — prints the page, the grid as it is drawn. The [theme](/docs/theme-tailwind) makes that read as a plain table: the toolbar, the pager, the group-by bar and the resize handles are hidden, a `height` stops bounding the rows, and no row is split across two pages. It prints only the rows the grid has drawn, though — not those on another page, or those a virtualized grid has not mounted — so use the grid's own Print for everything.
+
+## Props
+
+| Prop    | Type           | Default | Description                                                                 |
+| ------- | -------------- | ------- | --------------------------------------------------------------------------- |
+| `print` | `PrintOptions` |         | How the grid prints unless a call says otherwise — see [options](#options). |
+
+The button's and the menu item's label is a message, `print` — see [localization](/docs/react/localization).

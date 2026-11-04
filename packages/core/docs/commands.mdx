@@ -31,6 +31,7 @@ const context = createCommandContext({
     announce() {},
     saveFile() {},
     writeClipboard() {},
+    print() {},
   },
 });
 
@@ -100,6 +101,7 @@ A `GridCommandHost` holds what a command needs that only a renderer has. A calle
 | `announce(text)`            | Reads `text` out through the grid's live region.                                                                                                                                |
 | `saveFile(file)`            | Saves an [`ExportFile`](/docs/core/export#exporting-a-file) — in a browser, a download. Given a promise of one, it waits for it, and reports a rejected one rather than saving. |
 | `writeClipboard(content)`   | Puts a [`CopyContent`](/docs/core/export#copying) on the clipboard as text and HTML, and announces it — `messages.copied(count, unit)` — or `messages.copyFailed`.              |
+| `print(document, options)`  | Puts a [`PrintDocument`](/docs/core/export#printing) on paper — in a browser, the print dialog — under the `PrintOptions` it was built with.                                    |
 
 ## Built-in commands
 
@@ -133,16 +135,19 @@ A `GridCommandHost` holds what a command needs that only a renderer has. A calle
 | `copy.cell`               | cell                       | always                                               | the column is shown and exportable        | Copies the cell through `host.writeClipboard`.                | `copyCell`            |
 | `copy.row`                | cell                       | always                                               | a shown column is exportable              | Copies the row's shown, exportable cells, without a header.   | `copyRow`             |
 | `copy.selection`          | grid, toolbar, body, cell  | rows, columns or cells are selectable                | anything selected would copy              | Copies the selected rows, else columns, else cell.            | `copySelection`       |
+| `print`                   | grid, toolbar, body, cell  | always                                               | a column is shown                         | Prints the view through `host.print`.                         | `print`               |
 
 "Sortable" is the column's `sortable`, else the grid's `sortableColumns`; "groupable" the same with `groupable` and `groupableColumns`; "resizable" is the column as rendered, after `resizableColumns`. [`hideable`](/docs/core/column-definitions#column-definition-shape) defaults to `true` and, like `sortable`, gates only the user's ways to do it: `hideColumns` still hides a column that is not hideable.
 
-The sorting, grouping, hiding, autofit and copy built-ins carry an `icon` key — a `BuiltInCommandIcon`: `sortAscending` and `sortDescending` on the two sorts, `group` on `group.add` and `group.remove`, `hide` on `column.hide`, `autoFit` on both autofits, and `copy` on the three copies. @gridkitjs/react draws each as an icon of its own; a command of yours may use the same keys to look like the built-ins, and a renderer of your own maps them to its icons or leaves them out.
+The sorting, grouping, hiding, autofit, copy and print built-ins carry an `icon` key — a `BuiltInCommandIcon`: `sortAscending` and `sortDescending` on the two sorts, `group` on `group.add` and `group.remove`, `hide` on `column.hide`, `autoFit` on both autofits, `copy` on the three copies, and `print` on `print`. @gridkitjs/react draws each as an icon of its own; a command of yours may use the same keys to look like the built-ins, and a renderer of your own maps them to its icons or leaves them out.
 
 The export built-ins write with the grid's [export writers](/docs/core/export#writers) — CSV and JSON built in, others registered through `exportWriters` — under its `export` defaults, as [`exportFile`](/docs/core/export#exporting-a-file) does, and hand the file to `host.saveFile`. The selection exports set `scope: "selection"` over those defaults. An export acts on the whole grid, so it shows wherever the grid as a whole is asked for, a cell's menu included. GridKit ships no PDF writer — the browser's print dialog saves a PDF — so `export.pdf` shows only for a `pdf` writer of your own.
 
 The copy built-ins build their content with [`copyContent`](/docs/core/export#copying) — tab-separated text and an HTML table, read from the export model as an export is — and hand it to `host.writeClipboard`, which writes it and announces it. `copy.selection` copies what a selection holds, in order of precedence: the selected rows, else the selected columns, else the selected cell.
 
-The ids `filter.open`, `print` and `layout.reset` are reserved for built-ins still to come.
+`print` builds a print document with [`exportPrintDocument`](/docs/core/export#printing-a-grid) under the grid's `print` defaults — the rows and columns an export would hold, titled with the grid's `label` unless the defaults give a `title` — and hands it to `host.print` with those defaults, for what the host adds itself, such as `styles`. It shows where the exports do, and is enabled while a column is shown: a grid with no rows still prints its header.
+
+The ids `filter.open` and `layout.reset` are reserved for built-ins still to come.
 
 ## Panels
 

@@ -609,6 +609,7 @@ describe("buildExportTable", () => {
         announce: () => {},
         saveFile: () => {},
         writeClipboard: () => {},
+        print: () => {},
       },
     });
 

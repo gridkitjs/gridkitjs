@@ -326,3 +326,11 @@ export type { ExportFileSource } from "./export/exportFile";
 export { exportFile } from "./export/exportFile";
 export type { CopyContent, CopyRequest, CopySource } from "./export/copy";
 export { copyContent } from "./export/copy";
+export type {
+  PrintDocument,
+  PrintOptions,
+  PrintOrientation,
+  PrintPage,
+  PrintSource,
+} from "./export/print";
+export { buildPrintDocument, exportPrintDocument } from "./export/print";

@@ -71,6 +71,7 @@ function inertHost(): GridCommandHost {
     announce: vi.fn(),
     saveFile: vi.fn(),
     writeClipboard: vi.fn(),
+    print: vi.fn(),
   };
 }
 
@@ -137,10 +138,11 @@ describe("builtInCommands", () => {
       "copy.cell",
       "copy.row",
       "copy.selection",
+      "print",
     ]);
   });
 
-  test("shows only the exports and the selection copy on empty body space, which act on the whole grid", () => {
+  test("shows only the exports, the selection copy and print on empty body space, which act on the whole grid", () => {
     const context = createCommandContext({
       controller: create({
         selectable: { rows: "multiple" },
@@ -156,10 +158,10 @@ describe("builtInCommands", () => {
       builtInCommands<Order>()
         .filter((command) => isCommandVisible(command, context))
         .map((command) => command.id),
-    ).toEqual(["export.csv", "export.json", "copy.selection"]);
+    ).toEqual(["export.csv", "export.json", "copy.selection", "print"]);
   });
 
-  test("gives the sort, group, hide, autofit and copy commands icon keys", () => {
+  test("gives the sort, group, hide, autofit, copy and print commands icon keys", () => {
     const icons = Object.fromEntries(
       builtInCommands()
         .filter((command) => command.icon !== undefined)
@@ -177,6 +179,7 @@ describe("builtInCommands", () => {
       "copy.cell": "copy",
       "copy.row": "copy",
       "copy.selection": "copy",
+      print: "print",
     });
   });
 
@@ -1075,5 +1078,71 @@ describe("copy.selection", () => {
       count: 2,
       unit: "rows",
     });
+  });
+});
+
+function printed(host: GridCommandHost): Parameters<GridCommandHost["print"]> {
+  const print = vi.mocked(host.print);
+  expect(print).toHaveBeenCalledOnce();
+  const [call] = print.mock.calls;
+  if (call === undefined) {
+    throw new Error("nothing printed");
+  }
+  return call;
+}
+
+describe("print", () => {
+  test("shows where the exports do, enabled while a column is shown", () => {
+    const controller = create();
+    const command = builtIn("print", controller, GRID);
+
+    expect(command.label()).toBe("Print");
+    expect(command.visible()).toBe(true);
+    expect(command.enabled()).toBe(true);
+    for (const target of [TOOLBAR, BODY, cell("1", "Id")]) {
+      expect(builtIn("print", controller, target).visible()).toBe(true);
+    }
+    for (const target of [header("Id"), group("Region")]) {
+      expect(builtIn("print", controller, target).visible()).toBe(false);
+    }
+
+    controller.setFilter([{ query: "%North%" }]);
+    expect(command.enabled()).toBe(true);
+
+    controller.hideColumns(["Id", "Region", "Amount"]);
+    expect(command.enabled()).toBe(false);
+  });
+
+  test("hands the host the view as a document titled with the grid's label", () => {
+    const command = builtIn("print", create({ label: "Orders" }), GRID);
+
+    expect(command.run()).toBe(true);
+    const [document, options] = printed(command.host);
+    expect(document).toMatchObject({
+      title: "Orders",
+      page: { orientation: "portrait", paperSize: "A4" },
+    });
+    expect(document.bodyHtml).toContain('<h1 class="print-title">Orders</h1>');
+    expect(options).toEqual({});
+  });
+
+  test("prints under the grid's print defaults, and passes them to the host", () => {
+    const print = {
+      title: "Q1",
+      columns: ["Id"],
+      paperSize: "Letter",
+      styles: "td { color: red }",
+    };
+    const command = builtIn("print", create({ label: "Orders", print }), GRID);
+    command.run();
+
+    const [document, options] = printed(command.host);
+    expect(document).toMatchObject({
+      title: "Q1",
+      page: { paperSize: "Letter" },
+    });
+    expect(document.bodyHtml).toContain(">Id</th>");
+    expect(document.bodyHtml).not.toContain("Sales region");
+    expect(options).toBe(print);
   });
 });
