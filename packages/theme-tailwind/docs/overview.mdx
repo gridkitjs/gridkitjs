@@ -158,7 +158,7 @@ The [column chooser](/docs/react/column-chooser) is an overlay too, in a `.gridk
 
 ### Filter menu
 
-A column's [filter menu](/docs/react/column-filter-menu) is an overlay too. Its buttons and fields are native, so a disabled button is `:disabled`; a sort entry for the direction the column sorts in is `[aria-pressed="true"]`, and a value box marked invalid `[aria-invalid="true"]`. No token names an error colour, so a marked box and its message take `--gridkit-accent` turned red, as light or dark as the accent.
+A column's [filter menu](/docs/react/column-filter-menu) is an overlay too. Its buttons and fields are native, so a disabled button is `:disabled`; a sort entry for the direction the column sorts in is `[aria-pressed="true"]`, a value box marked invalid `[aria-invalid="true"]`, and a checklist value `[aria-checked="true"]` while checked. No token names an error colour, so a marked box and its message take `--gridkit-accent` turned red, as light or dark as the accent.
 
 | Class                            | Element               | Description                                                                                                                 |
 | -------------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------- |
@@ -168,13 +168,23 @@ A column's [filter menu](/docs/react/column-filter-menu) is an overlay too. Its 
 | `.filter-menu-sort-item`         | `<button>`            | A sort entry, drawn as a menu item.                                                                                         |
 | `.filter-menu-sort-icon`         | `<span>`              | The icon before its label — empty for "Clear sort", so labels line up; in accent while pressed.                             |
 | `.filter-menu-conditions`        | `<div>`               | The simple editor: its conditions in a column, And/Or between them.                                                         |
-| `.filter-menu-custom`            | `<p>`                 | "Custom filter", above the conditions, for a filter the editor can't show. Muted.                                           |
+| `.filter-menu-custom`            | `<p>`                 | "Custom filter" above either editor, or "Filtered by condition" above the checklist: a filter the editor can't show. Muted. |
 | `.filter-menu-condition`         | `<div>`               | One condition (`role="group"`): its operator picker on a line of its own, its value boxes sharing the next.                 |
 | `.filter-menu-operator`          | `<select>`            | A condition's operator picker.                                                                                              |
 | `.filter-menu-value`             | `<input>`, `<select>` | A value box — a true/false `<select>` on a boolean column; a "Between" has two. Red-bordered while `[aria-invalid="true"]`. |
 | `.filter-menu-combinator`        | `<div>`               | And/Or (`role="radiogroup"`), between the two conditions.                                                                   |
 | `.filter-menu-combinator-option` | `<label>`             | One of its native radio buttons, with its text.                                                                             |
 | `.filter-menu-invalid`           | `<p>`                 | The message under the conditions while one is marked invalid, in red.                                                       |
+| `.filter-menu-values`            | `<div>`               | The excel editor: its search box, "Select all" and checklist in a column, with a note above or below when one applies.      |
+| `.filter-menu-search`            | `<input>`             | The excel editor's search box.                                                                                              |
+| `.filter-menu-select-all`        | `<label>`             | "Select all", a native checkbox and its label, lined up with the checklist's drawn checkboxes.                              |
+| `.filter-menu-checklist`         | `<div>`               | The values (`role="listbox"`): a fixed-height box that scrolls inside itself, only its visible values drawn.                |
+| `.filter-menu-option`            | `<div>`               | A value (`role="option"`), checked while `[aria-checked="true"]`; a ring while focused by the keyboard.                     |
+| `.filter-menu-option-check`      | `<span>`              | Its drawn checkbox: an outline, filled with the accent and ticked while the value is checked.                               |
+| `.filter-menu-option-label`      | `<span>`              | Its label, ending in an ellipsis when too long for the menu.                                                                |
+| `.filter-menu-option-count`      | `<span>`              | How many rows hold it, under `showCounts`. Muted, at the end of the line.                                                   |
+| `.filter-menu-search-first`      | `<p>`                 | "Type to search 12000 values", in the checklist's box while it waits for a search. Muted.                                   |
+| `.filter-menu-more`              | `<p>`                 | "250 more, refine the search" (`role="status"`), under a checklist the value limit cut short. Muted.                        |
 | `.filter-menu-actions`           | `<div>`               | The buttons: "Clear filter" at the start, Cancel and OK at the end.                                                         |
 | `.filter-menu-clear`             | `<button>`            | "Clear filter".                                                                                                             |
 | `.filter-menu-cancel`            | `<button>`            | Cancel.                                                                                                                     |

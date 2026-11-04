@@ -1463,7 +1463,10 @@
     gap: 0.5rem;
   }
 
-  /* "Custom filter": one the editor can't show, until conditions replace it. */
+  /*
+   * "Custom filter", or "Filtered by condition" above a checklist: a filter
+   * the editor can't show, until it applies one in its place.
+   */
   .filter-menu-custom {
     margin: 0;
     padding: 0.25rem 0.5rem;
@@ -1546,6 +1549,165 @@
   .filter-menu-combinator-option input:focus-visible {
     outline: 2px solid var(--gridkit-accent);
     outline-offset: 1px;
+  }
+
+  /*
+   * The excel editor: a search box, "Select all", then the checklist of the
+   * column's values, with a note above or below it when one applies.
+   */
+  .filter-menu-values {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .filter-menu-search {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 0.25rem 0.5rem;
+    font: inherit;
+    color: var(--gridkit-fg);
+    background-color: var(--gridkit-surface);
+    border: 1px solid var(--gridkit-line);
+    border-radius: 0.25rem;
+  }
+
+  .filter-menu-search::placeholder {
+    color: var(--gridkit-fg-muted);
+  }
+
+  .filter-menu-search:focus-visible {
+    outline: 2px solid var(--gridkit-accent);
+    outline-offset: 1px;
+  }
+
+  /* A native checkbox, in line with the drawn ones in the list below. */
+  .filter-menu-select-all {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem calc(0.5rem + 1px);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .filter-menu-select-all input {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
+    accent-color: var(--gridkit-accent);
+  }
+
+  .filter-menu-select-all input:focus-visible {
+    outline: 2px solid var(--gridkit-accent);
+    outline-offset: 1px;
+  }
+
+  /* Nothing to select: the search matches no value. */
+  .filter-menu-select-all:has(> input:disabled) {
+    color: var(--gridkit-fg-muted);
+    cursor: default;
+  }
+
+  /*
+   * The list scrolls inside itself, at a fixed height: the menu keeps its
+   * size as a search narrows the list, and the virtualizer windowing it
+   * knows from the start how many values it shows. "Type to search …"
+   * takes the same box while the list waits for a search.
+   */
+  .filter-menu-checklist,
+  .filter-menu-search-first {
+    box-sizing: border-box;
+    height: 12rem;
+    margin: 0;
+    border: 1px solid var(--gridkit-line);
+    border-radius: 0.25rem;
+  }
+
+  .filter-menu-checklist {
+    overflow-y: auto;
+  }
+
+  .filter-menu-search-first {
+    padding: 0.5rem;
+    color: var(--gridkit-fg-muted);
+  }
+
+  /* One value: a drawn checkbox, its label, and its count when shown. */
+  .filter-menu-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    line-height: 1.25rem;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .filter-menu-option:hover {
+    background-color: var(--gridkit-surface-muted);
+  }
+
+  .filter-menu-option:focus-visible {
+    outline: 2px solid var(--gridkit-accent);
+    outline-offset: -2px;
+  }
+
+  /*
+   * An outline, filled with the accent and ticked in the surface colour
+   * while the option is checked, as the native "Select all" above it is.
+   */
+  .filter-menu-option-check {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 1rem;
+    height: 1rem;
+    color: var(--gridkit-surface);
+    border: 1px solid var(--gridkit-fg-muted);
+    border-radius: 0.1875rem;
+  }
+
+  .filter-menu-option-check svg {
+    width: 0.75rem;
+    height: 0.75rem;
+    visibility: hidden;
+  }
+
+  .filter-menu-option[aria-checked="true"] .filter-menu-option-check {
+    background-color: var(--gridkit-accent);
+    border-color: var(--gridkit-accent);
+  }
+
+  .filter-menu-option[aria-checked="true"] .filter-menu-option-check svg {
+    visibility: visible;
+  }
+
+  /* A label too long for the menu ends in an ellipsis. */
+  .filter-menu-option-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* How many rows hold the value, muted at the end of its line. */
+  .filter-menu-option-count {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--gridkit-fg-muted);
+  }
+
+  /* "250 more, refine the search", under a list the value limit cut short. */
+  .filter-menu-more {
+    margin: 0;
+    padding: 0 0.5rem;
+    color: var(--gridkit-fg-muted);
   }
 
   /* "Clear filter" at the start; Cancel and OK at the end. */
