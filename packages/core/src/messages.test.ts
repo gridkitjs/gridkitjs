@@ -79,6 +79,23 @@ function rendered(messages: GridMessages): Record<keyof GridMessages, string> {
     filterBlanks: messages.filterBlanks,
     filterSearchFirst: messages.filterSearchFirst(12000),
     filterMoreValues: messages.filterMoreValues(250),
+    openFilter: messages.openFilter,
+    clearColumnFilter: messages.clearColumnFilter,
+    filterMenuLabel: messages.filterMenuLabel("Name"),
+    columnFiltered: messages.columnFiltered,
+    applyFilter: messages.applyFilter,
+    cancelFilter: messages.cancelFilter,
+    customFilter: messages.customFilter,
+    filterResults: messages.filterResults(3, 10),
+    filterConditionLabel: messages.filterConditionLabel(2),
+    filterOperatorFieldLabel: messages.filterOperatorFieldLabel,
+    filterValueLabel: messages.filterValueLabel,
+    filterFromLabel: messages.filterFromLabel,
+    filterToLabel: messages.filterToLabel,
+    filterCombinatorLabel: messages.filterCombinatorLabel,
+    filterAnd: messages.filterAnd,
+    filterOr: messages.filterOr,
+    filterValueInvalid: messages.filterValueInvalid("number"),
     exportMenu: messages.exportMenu,
     exportCsv: messages.exportCsv,
     exportJson: messages.exportJson,
@@ -171,6 +188,23 @@ describe("defaultMessages", () => {
       filterBlanks: "(Blanks)",
       filterSearchFirst: "Type to search 12000 values",
       filterMoreValues: "250 more, refine the search",
+      openFilter: "Filter…",
+      clearColumnFilter: "Clear filter",
+      filterMenuLabel: "Name filter",
+      columnFiltered: "Filtered",
+      applyFilter: "OK",
+      cancelFilter: "Cancel",
+      customFilter: "Custom filter",
+      filterResults: "3 of 10 rows",
+      filterConditionLabel: "Condition 2",
+      filterOperatorFieldLabel: "Operator",
+      filterValueLabel: "Value",
+      filterFromLabel: "From",
+      filterToLabel: "To",
+      filterCombinatorLabel: "Combine conditions",
+      filterAnd: "And",
+      filterOr: "Or",
+      filterValueInvalid: "Enter a number",
       exportMenu: "Export",
       exportCsv: "Export to CSV",
       exportJson: "Export to JSON",
@@ -293,6 +327,20 @@ describe("defaultMessages", () => {
     expect(defaultMessages.filterSearchFirst(20000)).toBe(
       "Type to search 20000 values",
     );
+  });
+
+  test("counts the rows a filter keeps of a total of one or many", () => {
+    expect(defaultMessages.filterResults(0, 1)).toBe("0 of 1 row");
+    expect(defaultMessages.filterResults(1, 1)).toBe("1 of 1 row");
+    expect(defaultMessages.filterResults(0, 12)).toBe("0 of 12 rows");
+  });
+
+  test("asks for the kind of value a condition's column holds", () => {
+    const { filterValueInvalid } = defaultMessages;
+    expect(filterValueInvalid("text")).toBe("Enter a value");
+    expect(filterValueInvalid("number")).toBe("Enter a number");
+    expect(filterValueInvalid("date")).toBe("Enter a date");
+    expect(filterValueInvalid("boolean")).toBe("Choose a value");
   });
 });
 

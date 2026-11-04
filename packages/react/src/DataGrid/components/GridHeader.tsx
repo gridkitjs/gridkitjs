@@ -2,17 +2,25 @@ import { createPortal } from "react-dom";
 import {
   buildKeyShortcuts,
   intentOf,
+  isColumnFiltered,
   KEYBOARD_STEP,
+  resolveColumnFilterMenu,
   sortDirectionFor,
   sortPriorityFor,
-  type ColumnSortState,
-  type GroupByState,
+  type GridMessages,
+  type GridState,
 } from "@gridkitjs/core";
 import type { ResolvedColumn } from "../DataGrid";
 import { ariaAttr } from "../ariaAttr";
 import { classNames } from "../classNames";
-import { ChevronsUpDownIcon, ChevronUpIcon, GroupIcon } from "../icons";
+import {
+  ChevronsUpDownIcon,
+  ChevronUpIcon,
+  FilterIcon,
+  GroupIcon,
+} from "../icons";
 import { isOwnEvent } from "../isOwnEvent";
+import type { GridPanelsApi } from "../panels/useGridPanels";
 import type { ColumnDragApi } from "../useColumnDrag";
 import type { ColumnResizeApi } from "../useColumnResize";
 import { HEADER_ROW, type GridNavigationApi } from "../useGridNavigation";
@@ -28,13 +36,16 @@ interface GridHeaderProps<Row> {
   drag: ColumnDragApi<Row>;
   /** What a header toggle changes — the sort and the group-by stack. */
   controller: DataGridController<Row>;
-  columnSort: ColumnSortState;
+  /** The state this render draws: the sort, grouping and filter the headers show. */
+  state: GridState<Row>;
   sortableColumns: boolean;
-  groupBy: GroupByState;
   groupableColumns: boolean;
   groupToggleIconColumns: boolean;
   /** Whether a header opens the grid's context menu, which its `aria-keyshortcuts` says. */
   headerMenu: boolean;
+  /** Where a header opens its column's filter menu. */
+  panels: GridPanelsApi;
+  messages: GridMessages;
   nav: GridNavigationApi;
   selection: GridSelectionApi;
 }
@@ -44,15 +55,17 @@ export default function GridHeader<Row>({
   resize,
   drag,
   controller,
-  columnSort,
+  state,
   sortableColumns,
-  groupBy,
   groupableColumns,
   groupToggleIconColumns,
   headerMenu,
+  panels,
+  messages,
   nav,
   selection,
 }: GridHeaderProps<Row>) {
+  const { columnSort, groupBy, filter } = state;
   // Only meaningful for the "column-order" branch — a drop headed for the
   // group-by bar instead (`kind: "group-by"`) draws no indicator here at
   // all; `GroupByBar` draws its own from the same `drag.dropTarget`.
@@ -62,6 +75,24 @@ export default function GridHeader<Row>({
       : undefined;
   const draggedEntry =
     columns.find((entry) => entry.id === drag.draggedColumnId) ?? null;
+
+  /**
+   * Opens the column's filter menu, or closes it when it is the one open: a
+   * press on the header it opened from leaves it open, so pressing its
+   * button again is the way back out.
+   */
+  function toggleFilterMenu(columnId: string): void {
+    const { panel } = panels;
+    if (
+      panel?.kind === "filter" &&
+      panel.target.area === "header" &&
+      panel.target.columnId === columnId
+    ) {
+      panels.close();
+    } else {
+      panels.open("filter", { area: "header", columnId });
+    }
+  }
 
   return (
     <thead>
@@ -91,12 +122,19 @@ export default function GridHeader<Row>({
           const isGrouped = groupBy.some(
             (level) => level.columnId === entry.id,
           );
+          const filterable =
+            resolveColumnFilterMenu(controller.getOptions(), column) !== null;
+          // Shown, and described, only where the header opens the menu that
+          // changes it: a grid filtering a column in code alone keeps its
+          // headers as they were.
+          const filtered = filterable && isColumnFiltered(filter, entry.id);
 
           const shortcuts = buildKeyShortcuts({
             reorderable: entry.reorderable,
             resizable: entry.resizable,
             sortable,
             groupable,
+            filterable,
             contextMenu: headerMenu,
           });
 
@@ -136,7 +174,8 @@ export default function GridHeader<Row>({
                   event.target instanceof Element &&
                   (event.target.closest(".header-resize-handle") !== null ||
                     event.target.closest(".header-sort-toggle") !== null ||
-                    event.target.closest(".header-group-toggle") !== null)
+                    event.target.closest(".header-group-toggle") !== null ||
+                    event.target.closest(".header-filter-toggle") !== null)
                 ) {
                   return;
                 }
@@ -172,7 +211,24 @@ export default function GridHeader<Row>({
                   });
                   return;
                 }
-                if (event.key === "ArrowDown" && event.altKey && groupable) {
+                // Shift sets the filter menu apart from grouping, which
+                // holds Alt+ArrowDown — the key Excel opens its filter with.
+                if (
+                  event.key === "ArrowDown" &&
+                  event.altKey &&
+                  event.shiftKey &&
+                  filterable
+                ) {
+                  event.preventDefault();
+                  toggleFilterMenu(entry.id);
+                  return;
+                }
+                if (
+                  event.key === "ArrowDown" &&
+                  event.altKey &&
+                  !event.shiftKey &&
+                  groupable
+                ) {
                   event.preventDefault();
                   controller.toggleGroupBy(entry.id);
                   return;
@@ -207,6 +263,11 @@ export default function GridHeader<Row>({
                 column.headerClassName ?? "",
               )}
               {...ariaAttr(shortcuts !== "", "aria-keyshortcuts", shortcuts)}
+              {...ariaAttr(
+                filtered,
+                "aria-description",
+                messages.columnFiltered,
+              )}
               {...ariaAttr<"aria-sort", "ascending" | "descending">(
                 sortable && sortDirection !== null,
                 "aria-sort",
@@ -287,6 +348,31 @@ export default function GridHeader<Row>({
                   {sortPriority !== null && sortPriority > 1 && (
                     <span className="header-sort-priority">{sortPriority}</span>
                   )}
+                </span>
+              )}
+              {filterable && (
+                /*
+                 * A pointer affordance only, like the sort toggle: the
+                 * keyboard opens the menu from the header itself, under
+                 * Alt+Shift+ArrowDown, and a screen reader hears the
+                 * filtered state as the header's description.
+                 */
+                <span
+                  className={classNames(
+                    "header-filter-toggle",
+                    filtered ? "is-filtered" : "",
+                  )}
+                  aria-hidden="true"
+                  tabIndex={-1}
+                  onPointerDown={(event) => {
+                    // See the sort toggle's own note.
+                    event.stopPropagation();
+                  }}
+                  onClick={() => {
+                    toggleFilterMenu(entry.id);
+                  }}
+                >
+                  <FilterIcon />
                 </span>
               )}
               {entry.resizable && (

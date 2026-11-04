@@ -49,3 +49,12 @@ export function GroupIcon() {
     </Icon>
   );
 }
+
+/** A funnel, standing in for "filter this column". */
+export function FilterIcon() {
+  return (
+    <Icon>
+      <path d="M22 3H2l8 9.46V19l4 2v-8.54z" />
+    </Icon>
+  );
+}

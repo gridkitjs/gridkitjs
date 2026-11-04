@@ -928,3 +928,104 @@ test("openColumnChooser opens the chooser at the grid's top-end corner, giving f
   await expect(chooser).toHaveCount(0);
   await expect(opener).toBeFocused();
 });
+
+test.describe("filter menu", () => {
+  test("openFilterMenu opens a column's filter menu below its header and says so; closeFilterMenu closes it", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={columns}
+        dataSource={buildRows(3)}
+        label="Open a filter menu"
+        filterableColumns
+        filterMenuColumnId="name"
+      />,
+    );
+    const header = root.getByRole("columnheader", {
+      name: "name",
+      exact: true,
+    });
+
+    await root.getByRole("button", { name: "open-filter-menu" }).click();
+
+    const filterMenu = page.getByRole("dialog", { name: "name filter" });
+    await expect(filterMenu).toBeVisible();
+    await expect(root.getByTestId("imperative-result")).toHaveText("true");
+    await expect(page.locator(".gridkit-overlay")).toHaveAttribute(
+      "data-gridkit-placement",
+      "bottom-start",
+    );
+    const [cell, panel] = await Promise.all([
+      header.boundingBox(),
+      filterMenu.boundingBox(),
+    ]);
+    if (cell === null || panel === null) throw new Error("not visible");
+    expect(panel.y).toBeCloseTo(cell.y + cell.height + ANCHOR_GAP, 0);
+
+    // Dispatched rather than clicked: a pointer down outside the menu would
+    // close it before the button's own click did.
+    await root
+      .getByRole("button", { name: "close-filter-menu" })
+      .dispatchEvent("click");
+
+    await expect(filterMenu).toHaveCount(0);
+    await expect(header).toBeFocused();
+  });
+
+  test("openFilterMenu opens nothing for a column without a filter menu, or one hidden", async ({
+    mount,
+    page,
+  }) => {
+    const props = {
+      columns,
+      dataSource: buildRows(3),
+      label: "No filter menu",
+      filterMenuColumnId: "name",
+    };
+    const root = await mountGrid(mount, <ImperativeApiGrid {...props} />);
+    const result = root.getByTestId("imperative-result");
+
+    await root.getByRole("button", { name: "open-filter-menu" }).click();
+    await expect(result).toHaveText("false");
+
+    await updateGrid(
+      root,
+      <ImperativeApiGrid
+        {...props}
+        filterableColumns
+        columnVisibility={{ name: false }}
+      />,
+    );
+    await root.getByRole("button", { name: "open-filter-menu" }).click();
+    await expect(result).toHaveText("false");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+
+  test("closeFilterMenu leaves the column chooser open", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={columns}
+        dataSource={buildRows(3)}
+        label="Keep the chooser"
+        filterableColumns
+      />,
+    );
+
+    await root.getByRole("button", { name: "open-column-chooser" }).click();
+    const chooser = page.getByRole("dialog", { name: "Columns" });
+    await expect(chooser).toBeVisible();
+
+    await root
+      .getByRole("button", { name: "close-filter-menu" })
+      .dispatchEvent("click");
+
+    await expect(chooser).toBeVisible();
+  });
+});

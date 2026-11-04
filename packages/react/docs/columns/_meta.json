@@ -7,6 +7,7 @@
     "column-reordering",
     "column-sorting",
     "column-filtering",
+    "column-filter-menu",
     "column-chooser",
     "column-selection"
   ]

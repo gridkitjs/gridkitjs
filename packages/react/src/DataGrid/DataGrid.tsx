@@ -67,6 +67,7 @@ import useContextMenu from "./contextMenu/useContextMenu";
 import { exportApi, type GridExportApi } from "./export/exportApi";
 import { isOwnEvent } from "./isOwnEvent";
 import GridPanels from "./panels/GridPanels";
+import { panelApi, type GridPanelApi } from "./panels/panelApi";
 import { printApi, type GridPrintApi } from "./print/printApi";
 import useGridPanels from "./panels/useGridPanels";
 import GridToolbar from "./toolbar/GridToolbar";
@@ -131,7 +132,8 @@ export type SelectionCallbacks<Row> = CoreSelectionCallbacks<Row, ReactNode>;
  * notify channel for state that changes; see
  * `packages/react/src/DataGrid/hooks/` for the public hooks built on it.
  */
-export interface DataGridApi<Row> extends GridExportApi, GridPrintApi {
+export interface DataGridApi<Row>
+  extends GridExportApi, GridPrintApi, GridPanelApi {
   /** The grid's scrollable viewport element. */
   readonly element: HTMLDivElement | null;
   /**
@@ -295,11 +297,6 @@ export interface DataGridApi<Row> extends GridExportApi, GridPrintApi {
   ): boolean;
   /** Closes the context menu, if one is open. */
   closeContextMenu(): void;
-  /**
-   * Opens the column chooser at the grid's top-end corner, in place of any
-   * panel open; it gives focus back to what had it when it closes.
-   */
-  openColumnChooser(): void;
   /**
    * Runs a command by id — a built-in or one of `commands` — on `target`,
    * `{ area: "grid" }` when left out, when it is visible and enabled there.
@@ -885,11 +882,9 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     },
     openContextMenu: contextMenu.open,
     closeContextMenu: contextMenu.close,
-    openColumnChooser: () => {
-      panels.open("columnChooser", { area: "grid" });
-    },
     ...exportApi(commands),
     ...printApi(commands),
+    ...panelApi(panels, controller),
     runCommand: (commandId, target = { area: "grid" }) =>
       commands.run(commandId, target, "api"),
     scrollToRow: (rowId, options) => {
@@ -1059,12 +1054,13 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
             resize={resize}
             drag={drag}
             controller={controller}
-            columnSort={state.columnSort}
+            state={state}
             sortableColumns={sortableColumns}
-            groupBy={state.groupBy}
             groupableColumns={groupableColumns}
             groupToggleIconColumns={groupToggleIconColumns}
             headerMenu={contextMenu.opens("header")}
+            panels={panels}
+            messages={messages}
             nav={nav}
             selection={selection}
           />
@@ -1132,7 +1128,12 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
         )}
       </div>
       <GridContextMenu contextMenu={contextMenu} />
-      <GridPanels panels={panels} controller={controller} messages={messages} />
+      <GridPanels
+        panels={panels}
+        controller={controller}
+        commands={commands}
+        messages={messages}
+      />
       {paginated &&
         (pager?.template ? (
           pager.template(pagerContext)

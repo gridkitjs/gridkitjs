@@ -160,6 +160,48 @@ export interface GridMessages {
   filterSearchFirst: (total: number) => string;
   /** Shown under a searched filter checklist `filterMenu.valueLimit` cut short: how many matches it left out. */
   filterMoreValues: (count: number) => string;
+  /** `filter.open`, which opens a column's filter menu. */
+  openFilter: string;
+  /** `filter.clear`, and the filter menu's button doing the same: clears one column's filter. */
+  clearColumnFilter: string;
+  /** A column's filter menu's accessible name. */
+  filterMenuLabel: (columnName: string) => string;
+  /** What a column header is described as while its column is filtered. */
+  columnFiltered: string;
+  /** The filter menu's button applying what it holds. */
+  applyFilter: string;
+  /** The filter menu's button closing it without applying. */
+  cancelFilter: string;
+  /**
+   * Shown in a filter menu for a filter its editor cannot show — a
+   * predicate, a text query, a group across columns — which applying
+   * replaces.
+   */
+  customFilter: string;
+  /** Announced when a filter menu applies: how many rows the filter keeps, of how many. */
+  filterResults: (shown: number, total: number) => string;
+  /** The accessible name of one of a filter menu's conditions. `position` counts from one. */
+  filterConditionLabel: (position: number) => string;
+  /** The accessible name of a condition's operator picker. */
+  filterOperatorFieldLabel: string;
+  /** The accessible name of a condition's value box. */
+  filterValueLabel: string;
+  /** The accessible name of a `between` condition's first value box, its lower end. */
+  filterFromLabel: string;
+  /** The accessible name of a `between` condition's second value box, its upper end. */
+  filterToLabel: string;
+  /** The accessible name of the choice joining a filter menu's two conditions. */
+  filterCombinatorLabel: string;
+  /** Joins two conditions: a row has to meet both. */
+  filterAnd: string;
+  /** Joins two conditions: a row has to meet either. */
+  filterOr: string;
+  /**
+   * Shown under a filter menu's conditions when one's value is missing or
+   * doesn't read as its column's `family` (`filterOperatorFamily`) — "Enter
+   * a number" on a number column.
+   */
+  filterValueInvalid: (family: FilterOperatorFamily) => string;
   /** The toolbar's `"export"` dropdown, listing the export commands. */
   exportMenu: string;
   /** `export.csv` */
@@ -264,6 +306,19 @@ function filterSearchFirst(total: number): string {
     : `Type to search ${String(total)} values`;
 }
 
+/** "3 of 10 rows", "1 of 1 row". */
+function filterResults(shown: number, total: number): string {
+  return `${String(shown)} of ${String(total)} ${total === 1 ? "row" : "rows"}`;
+}
+
+/** What a condition's value box asks for, by the kind of value its column holds. */
+const filterValueRequests: Readonly<Record<FilterOperatorFamily, string>> = {
+  text: "Enter a value",
+  number: "Enter a number",
+  date: "Enter a date",
+  boolean: "Choose a value",
+};
+
 /** "1 cell copied", "3 rows copied", "2 columns copied". */
 function copied(count: number, unit: "cells" | "rows" | "columns"): string {
   return count === 1
@@ -351,6 +406,23 @@ export const defaultMessages: GridMessages = {
   filterBlanks: "(Blanks)",
   filterSearchFirst,
   filterMoreValues: (count) => `${String(count)} more, refine the search`,
+  openFilter: "Filter…",
+  clearColumnFilter: "Clear filter",
+  filterMenuLabel: (columnName) => `${columnName} filter`,
+  columnFiltered: "Filtered",
+  applyFilter: "OK",
+  cancelFilter: "Cancel",
+  customFilter: "Custom filter",
+  filterResults,
+  filterConditionLabel: (position) => `Condition ${String(position)}`,
+  filterOperatorFieldLabel: "Operator",
+  filterValueLabel: "Value",
+  filterFromLabel: "From",
+  filterToLabel: "To",
+  filterCombinatorLabel: "Combine conditions",
+  filterAnd: "And",
+  filterOr: "Or",
+  filterValueInvalid: (family) => filterValueRequests[family],
   exportMenu: "Export",
   exportCsv: "Export to CSV",
   exportJson: "Export to JSON",

@@ -1,0 +1,911 @@
+// Coverage is only collected when tests import `test`/`expect` from
+// ./support/coverage rather than directly from the CT package — see that
+// file for why.
+import type { Locator, Page } from "@playwright/test";
+import type { MountResult } from "@playwright/experimental-ct-react";
+import { DataGrid } from "@gridkitjs/react";
+import { expect, test } from "./support/coverage";
+import FilterMenuGrid from "./support/FilterMenuGrid";
+import ImperativeApiGrid from "./support/ImperativeApiGrid";
+import { mountGrid, updateGrid } from "./support/mountGrid";
+
+/** DataGrid's space between a menu or panel and what it opens below. */
+const ANCHOR_GAP = 4;
+
+function header(root: MountResult, name: string): Locator {
+  return root.getByRole("columnheader", { name, exact: true });
+}
+
+/** A column's filter menu, which renders into `document.body`, outside `root`. */
+function filterMenuOf(page: Page, columnName: string): Locator {
+  return page.getByRole("dialog", { name: `${columnName} filter` });
+}
+
+function button(menu: Locator, name: string): Locator {
+  return menu.getByRole("button", { name, exact: true });
+}
+
+/** One of the simple editor's conditions, by its place from one. */
+function condition(menu: Locator, position: number): Locator {
+  return menu.getByRole("group", { name: `Condition ${String(position)}` });
+}
+
+function operatorOf(menu: Locator, position: number): Locator {
+  return condition(menu, position).getByLabel("Operator", { exact: true });
+}
+
+/** A condition's value box — or, named "From" or "To", a `between`'s end. */
+function valueOf(menu: Locator, position: number, name = "Value"): Locator {
+  return condition(menu, position).getByLabel(name, { exact: true });
+}
+
+/** A header's filter button — a pointer affordance only, hidden from assistive technology. */
+function filterButton(root: MountResult, columnName: string): Locator {
+  return header(root, columnName).locator(".header-filter-toggle");
+}
+
+function names(root: MountResult): Promise<string[]> {
+  return root.locator("tbody tr td:nth-child(2)").allTextContents();
+}
+
+/** Right-clicks a header and waits for its context menu. */
+async function headerMenuOf(
+  root: MountResult,
+  page: Page,
+  columnName: string,
+): Promise<Locator> {
+  await header(root, columnName).click({ button: "right" });
+  const menu = page.getByRole("menu", { name: `${columnName} column menu` });
+  await expect(menu).toBeVisible();
+  return menu;
+}
+
+/** Opens a column's filter menu from "Filter…" in its header's context menu. */
+async function openFromHeaderMenu(
+  root: MountResult,
+  page: Page,
+  columnName: string,
+): Promise<Locator> {
+  const menu = await headerMenuOf(root, page, columnName);
+  await menu.getByRole("menuitem", { name: "Filter…" }).click();
+  const filterMenu = filterMenuOf(page, columnName);
+  await expect(filterMenu).toBeVisible();
+  return filterMenu;
+}
+
+test.describe("filter menu", () => {
+  test("the header menu offers Filter… and Clear filter on a column with a filter menu only", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+
+    let menu = await headerMenuOf(root, page, "Name");
+    await expect(menu.locator("[data-gridkit-menu-item]")).toHaveText([
+      "Sort ascending",
+      "Sort descending",
+      "Clear sort",
+      "Filter…",
+      "Clear filter",
+      "Hide column",
+      "Choose columns",
+    ]);
+    await expect(
+      menu.getByRole("menuitem", { name: "Clear filter" }),
+    ).toHaveAttribute("aria-disabled", "true");
+    await page.keyboard.press("Escape");
+
+    menu = await headerMenuOf(root, page, "Id");
+    await expect(menu.getByRole("menuitem", { name: "Filter…" })).toHaveCount(
+      0,
+    );
+    await expect(
+      menu.getByRole("menuitem", { name: "Clear filter" }),
+    ).toHaveCount(0);
+  });
+
+  test("Filter… opens the column's filter menu below its header, on its first condition's value", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+
+    await expect(filterMenu).toHaveClass("gridkit-filter-menu");
+    await expect(valueOf(filterMenu, 1)).toBeFocused();
+    const overlay = page.locator(".gridkit-overlay");
+    await expect(overlay).toHaveAttribute(
+      "data-gridkit-placement",
+      "bottom-start",
+    );
+    const [cell, panel] = await Promise.all([
+      header(root, "Name").boundingBox(),
+      overlay.boundingBox(),
+    ]);
+    if (cell === null || panel === null) throw new Error("not visible");
+    expect(panel.x).toBeCloseTo(cell.x, 0);
+    expect(panel.y).toBeCloseTo(cell.y + cell.height + ANCHOR_GAP, 0);
+  });
+
+  test("Tab and Shift+Tab cycle inside it, past its disabled buttons", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+
+    await expect(button(filterMenu, "Clear sort")).toBeDisabled();
+    await expect(button(filterMenu, "Clear filter")).toBeDisabled();
+    await expect(valueOf(filterMenu, 1)).toBeFocused();
+    for (const control of [
+      filterMenu.getByRole("radio", { name: "And" }),
+      operatorOf(filterMenu, 2),
+      valueOf(filterMenu, 2),
+      button(filterMenu, "Cancel"),
+      button(filterMenu, "OK"),
+      button(filterMenu, "Sort ascending"),
+    ]) {
+      await page.keyboard.press("Tab");
+      await expect(control).toBeFocused();
+    }
+    await page.keyboard.press("Shift+Tab");
+    await expect(button(filterMenu, "OK")).toBeFocused();
+    await expect(filterMenu).toBeVisible();
+  });
+
+  test("Escape closes it unapplied, giving focus back to the header", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+
+    await page.keyboard.press("Escape");
+
+    await expect(filterMenu).toHaveCount(0);
+    await expect(header(root, "Name")).toBeFocused();
+    await expect(root.getByTestId("filter")).toHaveText("");
+  });
+
+  test("Cancel and OK close it, giving focus back to the header", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+
+    let filterMenu = await openFromHeaderMenu(root, page, "Name");
+    await button(filterMenu, "Cancel").click();
+    await expect(filterMenu).toHaveCount(0);
+    await expect(header(root, "Name")).toBeFocused();
+
+    filterMenu = await openFromHeaderMenu(root, page, "Name");
+    await button(filterMenu, "OK").click();
+    await expect(filterMenu).toHaveCount(0);
+    await expect(header(root, "Name")).toBeFocused();
+    await expect(root.getByTestId("filter")).toHaveText("");
+  });
+
+  test("a click outside closes it", async ({ mount, page }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+
+    await header(root, "Id").click();
+
+    await expect(filterMenu).toHaveCount(0);
+    await expect(header(root, "Id")).toBeFocused();
+  });
+
+  test("a sort entry sorts the column, reports it as the filter menu's, and closes it", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const heard = root.getByTestId("commands");
+
+    let filterMenu = await openFromHeaderMenu(root, page, "Name");
+    await expect(button(filterMenu, "Sort ascending")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    await button(filterMenu, "Sort descending").click();
+
+    await expect(filterMenu).toHaveCount(0);
+    await expect(header(root, "Name")).toBeFocused();
+    expect(await names(root)).toEqual(["Charlie", "Bravo", "Alice"]);
+    // "Filter…" itself ran from the context menu.
+    await expect(heard).toHaveText(
+      [
+        'contextMenu filter.open {"area":"header","columnId":"name"}',
+        'filterMenu sort.descending {"area":"header","columnId":"name"}',
+      ].join("; "),
+    );
+
+    filterMenu = await openFromHeaderMenu(root, page, "Name");
+    await expect(button(filterMenu, "Sort descending")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await button(filterMenu, "Clear sort").click();
+
+    expect(await names(root)).toEqual(["Charlie", "Alice", "Bravo"]);
+    await expect(heard).toContainText(
+      'filterMenu sort.clear {"area":"header","columnId":"name"}',
+    );
+  });
+
+  test("a column that cannot sort offers no sort entries", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Score");
+
+    await expect(button(filterMenu, "Sort ascending")).toHaveCount(0);
+    await expect(filterMenu.locator(".filter-menu-sort")).toHaveCount(0);
+    await expect(valueOf(filterMenu, 1)).toBeFocused();
+  });
+
+  test("Clear filter takes out the column's filter, keeping the rest, reports it and closes", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid
+        defaultFilter={[
+          { columnId: "name", operator: "eq", value: "Charlie" },
+          { columnId: "score", operator: "gt", value: 10 },
+        ]}
+      />,
+    );
+    expect(await names(root)).toEqual(["Charlie"]);
+
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+    await button(filterMenu, "Clear filter").click();
+
+    await expect(filterMenu).toHaveCount(0);
+    await expect(header(root, "Name")).toBeFocused();
+    expect(await names(root)).toEqual(["Charlie", "Bravo"]);
+    await expect(root.getByTestId("filter")).toHaveText(
+      '[{"columnId":"score","operator":"gt","value":10}]',
+    );
+    await expect(root.getByTestId("commands")).toContainText(
+      'filterMenu filter.clear {"area":"header","columnId":"name"}',
+    );
+  });
+
+  test("Clear filter in the header menu clears the column's filter too", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid
+        defaultFilter={[{ columnId: "name", operator: "eq", value: "Alice" }]}
+      />,
+    );
+
+    const menu = await headerMenuOf(root, page, "Name");
+    await menu.getByRole("menuitem", { name: "Clear filter" }).click();
+
+    expect(await names(root)).toEqual(["Charlie", "Alice", "Bravo"]);
+    await expect(root.getByTestId("commands")).toHaveText(
+      'contextMenu filter.clear {"area":"header","columnId":"name"}',
+    );
+  });
+
+  test("closes once its column no longer has a filter menu", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+
+    await updateGrid(root, <FilterMenuGrid filterableColumns={false} />);
+
+    await expect(filterMenu).toHaveCount(0);
+    await expect(header(root, "Name")).toBeFocused();
+  });
+});
+
+test.describe("filter menu from the header", () => {
+  test("a filterable header's button opens its menu, and closes it pressed again", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid selectable={{ columns: "single" }} />,
+    );
+    const filterMenu = filterMenuOf(page, "Name");
+
+    await expect(filterButton(root, "Id")).toHaveCount(0);
+    await expect(filterButton(root, "Name")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+
+    await filterButton(root, "Name").click();
+    await expect(filterMenu).toBeVisible();
+    await expect(valueOf(filterMenu, 1)).toBeFocused();
+    // The button opens the menu without selecting the column.
+    await expect(header(root, "Name")).not.toHaveClass(/is-selected/);
+
+    await filterButton(root, "Name").click();
+    await expect(filterMenu).toHaveCount(0);
+  });
+
+  test("a press on another header's button opens that header's menu in its place", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+
+    await filterButton(root, "Name").click();
+    await expect(filterMenuOf(page, "Name")).toBeVisible();
+    await filterButton(root, "Score").click();
+
+    await expect(filterMenuOf(page, "Score")).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(1);
+  });
+
+  test("Alt+Shift+ArrowDown on a focused header opens its filter menu; a header without one ignores it", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const name = header(root, "Name");
+
+    await expect(name).toHaveAttribute(
+      "aria-keyshortcuts",
+      "Alt+ArrowUp Alt+Shift+ArrowDown Shift+F10",
+    );
+    await name.focus();
+    await name.press("Alt+Shift+ArrowDown");
+
+    const filterMenu = filterMenuOf(page, "Name");
+    await expect(valueOf(filterMenu, 1)).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(name).toBeFocused();
+
+    const id = header(root, "Id");
+    await expect(id).toHaveAttribute(
+      "aria-keyshortcuts",
+      "Alt+ArrowUp Shift+F10",
+    );
+    await id.focus();
+    await id.press("Alt+Shift+ArrowDown");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(id).toBeFocused();
+  });
+
+  test("Alt+ArrowDown still groups, and Alt+Shift+ArrowDown no longer does", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid groupableColumns />);
+    const id = header(root, "Id");
+
+    // Groupable, with no filter menu: Shift makes the key mean nothing.
+    await id.focus();
+    await id.press("Alt+Shift+ArrowDown");
+    await expect(root.getByRole("grid")).toBeVisible();
+
+    const name = header(root, "Name");
+    await name.focus();
+    await name.press("Alt+Shift+ArrowDown");
+    await expect(filterMenuOf(page, "Name")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(root.getByRole("grid")).toBeVisible();
+
+    await name.press("Alt+ArrowDown");
+    await expect(root.getByRole("treegrid")).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+
+  test("the button and the header's description show the column filtered as setFilter changes it", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={[{ field: "id" }, { field: "name" }]}
+        dataSource={[
+          { id: "row-0", name: "Ada" },
+          { id: "row-1", name: "Grace" },
+        ]}
+        label="Filtered headers"
+        filterableColumns
+        filterToSet={[{ columnId: "name", operator: "contains", value: "a" }]}
+      />,
+    );
+    const name = header(root, "name");
+
+    await expect(filterButton(root, "name")).not.toHaveClass(/is-filtered/);
+    await expect(name).not.toHaveAttribute("aria-description");
+
+    await root.getByRole("button", { name: "set-filter" }).click();
+
+    await expect(filterButton(root, "name")).toHaveClass(
+      "header-filter-toggle is-filtered",
+    );
+    await expect(name).toHaveAttribute("aria-description", "Filtered");
+    await expect(header(root, "id")).not.toHaveAttribute("aria-description");
+    await expect(filterButton(root, "id")).not.toHaveClass(/is-filtered/);
+  });
+
+  test("the filtered state follows a controlled filter", async ({ mount }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid
+        filter={[{ columnId: "score", operator: "gt", value: 10 }]}
+      />,
+    );
+
+    await expect(filterButton(root, "Score")).toHaveClass(/is-filtered/);
+    await expect(header(root, "Score")).toHaveAttribute(
+      "aria-description",
+      "Filtered",
+    );
+
+    await updateGrid(root, <FilterMenuGrid filter={[]} />);
+
+    await expect(filterButton(root, "Score")).not.toHaveClass(/is-filtered/);
+    await expect(header(root, "Score")).not.toHaveAttribute("aria-description");
+  });
+
+  test("a column filtered in code with no filter menu shows no filtered state", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid
+        defaultFilter={[{ columnId: "id", operator: "eq", value: "row-a" }]}
+      />,
+    );
+
+    expect(await names(root)).toEqual(["Alice"]);
+    await expect(header(root, "Id")).not.toHaveAttribute("aria-description");
+  });
+});
+
+test.describe("the simple editor", () => {
+  /** What `onFilterChange` last reported, as JSON; empty before any change. */
+  function reported(root: MountResult): Locator {
+    return root.getByTestId("filter");
+  }
+
+  /** The grid's live region, which announcements are read from. */
+  function liveRegion(root: MountResult): Locator {
+    return root.locator('[role="status"]').first();
+  }
+
+  test("opens on two empty conditions, the first offering the column's operators in its type's words", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Joined");
+
+    await expect(operatorOf(filterMenu, 1)).toHaveValue("eq");
+    await expect(operatorOf(filterMenu, 1).locator("option")).toHaveText([
+      "Equals",
+      "Does not equal",
+      "Before",
+      "After",
+      "Between",
+      "Is blank",
+      "Is not blank",
+    ]);
+    await expect(valueOf(filterMenu, 1)).toHaveAttribute("type", "date");
+    await expect(valueOf(filterMenu, 1)).toHaveValue("");
+    await expect(valueOf(filterMenu, 2)).toHaveValue("");
+    await expect(filterMenu.getByRole("radio", { name: "And" })).toBeChecked();
+    await expect(filterMenu.getByText("Custom filter")).toHaveCount(0);
+  });
+
+  test("Enter in a text condition applies it, closing the menu", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+
+    await valueOf(filterMenu, 1).fill("li");
+    await page.keyboard.press("Enter");
+
+    await expect(filterMenu).toHaveCount(0);
+    await expect(header(root, "Name")).toBeFocused();
+    expect(await names(root)).toEqual(["Charlie", "Alice"]);
+    await expect(reported(root)).toHaveText(
+      '[{"columnId":"name","operator":"contains","value":"li"}]',
+    );
+  });
+
+  test("applying announces how many of the rows the filter keeps", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+
+    await valueOf(filterMenu, 1).fill("li");
+    await page.keyboard.press("Enter");
+
+    await expect(filterMenu).toHaveCount(0);
+    await expect(liveRegion(root)).toHaveText("2 of 3 rows");
+  });
+
+  test("a controlled filter that doesn't take what was applied announces nothing", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid filter={[]} />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+
+    await valueOf(filterMenu, 1).fill("li");
+    await page.keyboard.press("Enter");
+
+    await expect(reported(root)).toHaveText(
+      '[{"columnId":"name","operator":"contains","value":"li"}]',
+    );
+    expect(await names(root)).toEqual(["Charlie", "Alice", "Bravo"]);
+    await expect(liveRegion(root)).toHaveText("");
+  });
+
+  test("Enter on a picker applies too", async ({ mount, page }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Active");
+
+    await valueOf(filterMenu, 1).selectOption({ label: "true" });
+    await operatorOf(filterMenu, 1).press("Enter");
+
+    await expect(filterMenu).toHaveCount(0);
+    expect(await names(root)).toEqual(["Charlie", "Bravo"]);
+  });
+
+  test("Between takes a number at each end", async ({ mount, page }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Score");
+
+    await expect(valueOf(filterMenu, 1)).toHaveAttribute("type", "number");
+    await operatorOf(filterMenu, 1).selectOption({ label: "Between" });
+    await expect(valueOf(filterMenu, 1)).toHaveCount(0);
+    await valueOf(filterMenu, 1, "From").fill("10");
+    await valueOf(filterMenu, 1, "To").fill("25");
+    await button(filterMenu, "OK").click();
+
+    expect(await names(root)).toEqual(["Bravo"]);
+    await expect(reported(root)).toHaveText(
+      '[{"columnId":"score","operator":"between","value":[10,25]}]',
+    );
+  });
+
+  test("a date condition reads the day its box holds", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Joined");
+
+    await operatorOf(filterMenu, 1).selectOption({ label: "Before" });
+    await valueOf(filterMenu, 1).fill("2024-01-01");
+    await button(filterMenu, "OK").click();
+
+    expect(await names(root)).toEqual(["Alice"]);
+    await expect(reported(root)).toContainText('"operator":"lt"');
+  });
+
+  test("a boolean condition picks true or false", async ({ mount, page }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Active");
+
+    await expect(valueOf(filterMenu, 1).locator("option")).toHaveText([
+      "",
+      "true",
+      "false",
+    ]);
+    await valueOf(filterMenu, 1).selectOption({ label: "false" });
+    await button(filterMenu, "OK").click();
+
+    expect(await names(root)).toEqual(["Alice"]);
+    await expect(reported(root)).toHaveText(
+      '[{"columnId":"active","operator":"eq","value":false}]',
+    );
+  });
+
+  test("Is blank takes no value", async ({ mount, page }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Joined");
+
+    await operatorOf(filterMenu, 1).selectOption({ label: "Is blank" });
+    await expect(valueOf(filterMenu, 1)).toHaveCount(0);
+    await button(filterMenu, "OK").click();
+
+    expect(await names(root)).toEqual(["Bravo"]);
+    await expect(reported(root)).toHaveText(
+      '[{"columnId":"joined","operator":"isEmpty"}]',
+    );
+  });
+
+  test("a date-time column's box takes a day and a time", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <DataGrid
+        label="Visits"
+        filterableColumns
+        columns={[
+          { field: "id", header: "Id" },
+          { field: "seen", header: "Seen", type: "dateTime" },
+        ]}
+        dataSource={[
+          { id: "morning", seen: "2024-05-20T09:30" },
+          { id: "afternoon", seen: "2024-05-20T14:00" },
+        ]}
+      />,
+    );
+    await filterButton(root, "Seen").click();
+    const filterMenu = filterMenuOf(page, "Seen");
+
+    await expect(operatorOf(filterMenu, 1)).toHaveValue("lt");
+    await expect(valueOf(filterMenu, 1)).toHaveAttribute(
+      "type",
+      "datetime-local",
+    );
+    await valueOf(filterMenu, 1).fill("2024-05-20T12:00");
+    await button(filterMenu, "OK").click();
+
+    await expect(root.locator("tbody tr td:first-child")).toHaveText([
+      "morning",
+    ]);
+  });
+
+  test("two conditions join with Or, and open again as applied", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    let filterMenu = await openFromHeaderMenu(root, page, "Name");
+
+    await valueOf(filterMenu, 1).fill("Ch");
+    await filterMenu.getByRole("radio", { name: "Or" }).check();
+    await operatorOf(filterMenu, 2).selectOption({ label: "Starts with" });
+    await valueOf(filterMenu, 2).fill("Al");
+    await button(filterMenu, "OK").click();
+
+    expect(await names(root)).toEqual(["Charlie", "Alice"]);
+    await expect(reported(root)).toHaveText(
+      JSON.stringify([
+        {
+          combinator: "or",
+          entries: [
+            { columnId: "name", operator: "contains", value: "Ch" },
+            { columnId: "name", operator: "startsWith", value: "Al" },
+          ],
+        },
+      ]),
+    );
+
+    filterMenu = await openFromHeaderMenu(root, page, "Name");
+    await expect(operatorOf(filterMenu, 1)).toHaveValue("contains");
+    await expect(valueOf(filterMenu, 1)).toHaveValue("Ch");
+    await expect(filterMenu.getByRole("radio", { name: "Or" })).toBeChecked();
+    await expect(operatorOf(filterMenu, 2)).toHaveValue("startsWith");
+    await expect(valueOf(filterMenu, 2)).toHaveValue("Al");
+  });
+
+  test("a filter from defaultFilter opens filled in", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid
+        defaultFilter={[{ columnId: "score", operator: "gt", value: 10 }]}
+      />,
+    );
+    const filterMenu = await openFromHeaderMenu(root, page, "Score");
+
+    await expect(operatorOf(filterMenu, 1)).toHaveValue("gt");
+    await expect(valueOf(filterMenu, 1)).toHaveValue("10");
+    await expect(operatorOf(filterMenu, 2)).toHaveValue("eq");
+    await expect(valueOf(filterMenu, 2)).toHaveValue("");
+  });
+
+  test("a condition's operator the column doesn't offer is listed for it", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid
+        defaultFilter={[{ columnId: "name", operator: "gt", value: "B" }]}
+      />,
+    );
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+
+    await expect(operatorOf(filterMenu, 1)).toHaveValue("gt");
+    await expect(
+      operatorOf(filterMenu, 1).locator("option").first(),
+    ).toHaveText("Greater than");
+    await expect(
+      operatorOf(filterMenu, 2).getByRole("option", { name: "Greater than" }),
+    ).toHaveCount(0);
+  });
+
+  test("focus starts on the operator of a first condition that takes no value", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid
+        defaultFilter={[{ columnId: "joined", operator: "isNotEmpty" }]}
+      />,
+    );
+    const filterMenu = await openFromHeaderMenu(root, page, "Joined");
+
+    await expect(operatorOf(filterMenu, 1)).toBeFocused();
+  });
+
+  test("a condition missing its value keeps the menu open, marked and focused, until it is filled in", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Score");
+
+    await operatorOf(filterMenu, 1).selectOption({ label: "Greater than" });
+    await button(filterMenu, "OK").click();
+
+    await expect(filterMenu).toBeVisible();
+    await expect(valueOf(filterMenu, 1)).toBeFocused();
+    await expect(valueOf(filterMenu, 1)).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+    await expect(valueOf(filterMenu, 1)).toHaveAccessibleDescription(
+      "Enter a number",
+    );
+    await expect(valueOf(filterMenu, 2)).not.toHaveAttribute("aria-invalid");
+    await expect(reported(root)).toHaveText("");
+
+    await valueOf(filterMenu, 1).fill("20");
+    await expect(valueOf(filterMenu, 1)).not.toHaveAttribute("aria-invalid");
+    await expect(filterMenu.getByText("Enter a number")).toHaveCount(0);
+    await page.keyboard.press("Enter");
+
+    await expect(filterMenu).toHaveCount(0);
+    expect(await names(root)).toEqual(["Charlie", "Bravo"]);
+  });
+
+  test("a number the box can't read marks its condition, even the optional second", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Score");
+
+    await valueOf(filterMenu, 1).fill("9");
+    await valueOf(filterMenu, 2).pressSequentially("1e");
+    await button(filterMenu, "OK").click();
+
+    await expect(valueOf(filterMenu, 2)).toBeFocused();
+    await expect(valueOf(filterMenu, 2)).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+    await expect(valueOf(filterMenu, 1)).not.toHaveAttribute("aria-invalid");
+    await expect(reported(root)).toHaveText("");
+  });
+
+  test("a date missing its year marks its condition, though nothing else was changed", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Joined");
+
+    // The box reports no value, and no change, until the date is whole.
+    await page.keyboard.type("0315");
+    await page.keyboard.press("Enter");
+
+    await expect(filterMenu).toBeVisible();
+    await expect(valueOf(filterMenu, 1)).toHaveAccessibleDescription(
+      "Enter a date",
+    );
+    await expect(reported(root)).toHaveText("");
+  });
+
+  test("Between marks only the end left empty", async ({ mount, page }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Score");
+
+    await operatorOf(filterMenu, 1).selectOption({ label: "Between" });
+    await valueOf(filterMenu, 1, "From").fill("10");
+    await button(filterMenu, "OK").click();
+
+    await expect(valueOf(filterMenu, 1, "To")).toBeFocused();
+    await expect(valueOf(filterMenu, 1, "To")).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+    await expect(valueOf(filterMenu, 1, "From")).not.toHaveAttribute(
+      "aria-invalid",
+    );
+  });
+
+  test("a custom filter says so, stays through OK left alone, and is replaced once a condition is applied", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid defaultFilter={[{ columnId: "name", query: "%li%" }]} />,
+    );
+    expect(await names(root)).toEqual(["Charlie", "Alice"]);
+
+    let filterMenu = await openFromHeaderMenu(root, page, "Name");
+    await expect(filterMenu.getByText("Custom filter")).toBeVisible();
+    await expect(valueOf(filterMenu, 1)).toHaveValue("");
+    await button(filterMenu, "OK").click();
+    await expect(filterMenu).toHaveCount(0);
+    expect(await names(root)).toEqual(["Charlie", "Alice"]);
+    await expect(reported(root)).toHaveText("");
+
+    filterMenu = await openFromHeaderMenu(root, page, "Name");
+    await valueOf(filterMenu, 1).fill("Bra");
+    await button(filterMenu, "OK").click();
+
+    expect(await names(root)).toEqual(["Bravo"]);
+    await expect(reported(root)).toHaveText(
+      '[{"columnId":"name","operator":"contains","value":"Bra"}]',
+    );
+  });
+
+  test("a checklist's values read as a custom filter too", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid
+        defaultFilter={[
+          { columnId: "name", operator: "in", value: ["Alice", "Bravo"] },
+        ]}
+      />,
+    );
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+
+    await expect(filterMenu.getByText("Custom filter")).toBeVisible();
+    await expect(operatorOf(filterMenu, 1)).toHaveValue("contains");
+  });
+
+  test("Cancel drops what was typed", async ({ mount, page }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    let filterMenu = await openFromHeaderMenu(root, page, "Name");
+
+    await valueOf(filterMenu, 1).fill("li");
+    await button(filterMenu, "Cancel").click();
+
+    expect(await names(root)).toEqual(["Charlie", "Alice", "Bravo"]);
+    filterMenu = await openFromHeaderMenu(root, page, "Name");
+    await expect(valueOf(filterMenu, 1)).toHaveValue("");
+  });
+
+  test('ui: "excel" draws the simple editor for now', async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid filterMenu={{ ui: "excel" }} />,
+    );
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+
+    await expect(valueOf(filterMenu, 1)).toBeFocused();
+  });
+});
