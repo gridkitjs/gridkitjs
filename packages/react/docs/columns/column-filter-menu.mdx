@@ -30,6 +30,8 @@ A column with a filter menu opens a small dialog below its header for filtering 
 
 ## Opening it
 
+- **The header's filter button.** A filterable header shows a funnel at its end, beside the sort toggle — faint until the header is hovered or focused, and marked while the column is filtered. Pressing it opens the menu, and pressing it again closes it.
+- **The keyboard.** <Kbd>Alt</Kbd>+<Kbd>Shift</Kbd>+<Kbd>ArrowDown</Kbd> on a focused header opens it. The header's `aria-keyshortcuts` lists the key, as it does its others.
 - **A header's context menu.** With [`contextMenu`](/docs/react/context-menu) on, a filterable header's menu lists "Filter…" after its sort entries, then "Clear filter", which clears the column's filter without opening anything — disabled while the column is not filtered.
 - **The ref.** `openFilterMenu(columnId)` opens it, and returns whether it did: not for a column with no filter menu, nor a hidden one, which has no header to open below. `closeFilterMenu()` closes it, leaving the column chooser alone. `runCommand("filter.open", { area: "header", columnId })` opens it too, reporting to `onCommand` as the API's.
 
@@ -50,6 +52,10 @@ const gridRef = useRef<DataGridApi<Order>>(null);
 </button>;
 ```
 
+## The filtered state
+
+While a column with a filter menu is filtered — by the menu, `setFilter`, a controlled `filter` or anything else naming the column — its header's filter button stays shown, in accent, and the header carries `aria-description="Filtered"`, so a screen reader says so as it reads the header. A search across every column marks none, and a column without a filter menu shows no filtered state, however it is filtered.
+
 ## What it shows
 
 - **The column's sort entries** — "Sort ascending", "Sort descending" and "Clear sort", the header menu's own — while the column [sorts](/docs/react/column-sorting). Choosing one sorts the column and closes the menu; "Sort ascending" or "Sort descending" is pressed while the column sorts that way.
@@ -60,13 +66,14 @@ const gridRef = useRef<DataGridApi<Order>>(null);
 
 The menu is a dialog that holds a draft, so it keeps focus: tabbing out of it would drop the draft.
 
-| Key or action                                    | Does                                                                                          |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| Opening it                                       | Focus goes to its first control.                                                              |
-| <Kbd>Tab</Kbd> / <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd> | The next or previous control, wrapping round inside the menu. A disabled button is passed by. |
-| <Kbd>Enter</Kbd>                                 | In a field, applies, as OK does; on a button, presses it.                                     |
-| <Kbd>Escape</Kbd>                                | Closes it without applying, giving focus back to the header.                                  |
-| A click outside it, a scroll or a resize         | Closes it without applying.                                                                   |
+| Key or action                                                            | Does                                                                                          |
+| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| <Kbd>Alt</Kbd>+<Kbd>Shift</Kbd>+<Kbd>ArrowDown</Kbd> on a focused header | Opens its filter menu.                                                                        |
+| Opening it                                                               | Focus goes to its first control.                                                              |
+| <Kbd>Tab</Kbd> / <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd>                         | The next or previous control, wrapping round inside the menu. A disabled button is passed by. |
+| <Kbd>Enter</Kbd>                                                         | In a field, applies, as OK does; on a button, presses it.                                     |
+| <Kbd>Escape</Kbd>                                                        | Closes it without applying, giving focus back to the header.                                  |
+| A click outside it, a scroll or a resize                                 | Closes it without applying.                                                                   |
 
 <Kbd>Escape</Kbd> closes only the menu: it never reaches the grid, so the
 selection stays.
@@ -96,5 +103,6 @@ Every string the menu shows is a message — see [localization](/docs/react/loca
 | `openFilter`        | "Filter…" — `filter.open`'s label.                              |
 | `clearColumnFilter` | "Clear filter" — `filter.clear`'s label, and the menu's button. |
 | `filterMenuLabel`   | "Name filter" — the dialog's accessible name, after its column. |
+| `columnFiltered`    | "Filtered" — a filtered column's header's description.          |
 | `applyFilter`       | "OK"                                                            |
 | `cancelFilter`      | "Cancel"                                                        |

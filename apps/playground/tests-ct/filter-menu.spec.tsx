@@ -5,6 +5,7 @@ import type { Locator, Page } from "@playwright/test";
 import type { MountResult } from "@playwright/experimental-ct-react";
 import { expect, test } from "./support/coverage";
 import FilterMenuGrid from "./support/FilterMenuGrid";
+import ImperativeApiGrid from "./support/ImperativeApiGrid";
 import { mountGrid, updateGrid } from "./support/mountGrid";
 
 /** DataGrid's space between a menu or panel and what it opens below. */
@@ -21,6 +22,11 @@ function filterMenuOf(page: Page, columnName: string): Locator {
 
 function button(menu: Locator, name: string): Locator {
   return menu.getByRole("button", { name, exact: true });
+}
+
+/** A header's filter button — a pointer affordance only, hidden from assistive technology. */
+function filterButton(root: MountResult, columnName: string): Locator {
+  return header(root, columnName).locator(".header-filter-toggle");
 }
 
 function names(root: MountResult): Promise<string[]> {
@@ -276,5 +282,166 @@ test.describe("filter menu", () => {
 
     await expect(filterMenu).toHaveCount(0);
     await expect(header(root, "Name")).toBeFocused();
+  });
+});
+
+test.describe("filter menu from the header", () => {
+  test("a filterable header's button opens its menu, and closes it pressed again", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid selectable={{ columns: "single" }} />,
+    );
+    const filterMenu = filterMenuOf(page, "Name");
+
+    await expect(filterButton(root, "Id")).toHaveCount(0);
+    await expect(filterButton(root, "Name")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+
+    await filterButton(root, "Name").click();
+    await expect(filterMenu).toBeVisible();
+    await expect(button(filterMenu, "Sort ascending")).toBeFocused();
+    // The button opens the menu without selecting the column.
+    await expect(header(root, "Name")).not.toHaveClass(/is-selected/);
+
+    await filterButton(root, "Name").click();
+    await expect(filterMenu).toHaveCount(0);
+  });
+
+  test("a press on another header's button opens that header's menu in its place", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+
+    await filterButton(root, "Name").click();
+    await expect(filterMenuOf(page, "Name")).toBeVisible();
+    await filterButton(root, "Score").click();
+
+    await expect(filterMenuOf(page, "Score")).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(1);
+  });
+
+  test("Alt+Shift+ArrowDown on a focused header opens its filter menu; a header without one ignores it", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const name = header(root, "Name");
+
+    await expect(name).toHaveAttribute(
+      "aria-keyshortcuts",
+      "Alt+ArrowUp Alt+Shift+ArrowDown Shift+F10",
+    );
+    await name.focus();
+    await name.press("Alt+Shift+ArrowDown");
+
+    const filterMenu = filterMenuOf(page, "Name");
+    await expect(button(filterMenu, "Sort ascending")).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(name).toBeFocused();
+
+    const id = header(root, "Id");
+    await expect(id).toHaveAttribute(
+      "aria-keyshortcuts",
+      "Alt+ArrowUp Shift+F10",
+    );
+    await id.focus();
+    await id.press("Alt+Shift+ArrowDown");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(id).toBeFocused();
+  });
+
+  test("Alt+ArrowDown still groups, and Alt+Shift+ArrowDown no longer does", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid groupableColumns />);
+    const id = header(root, "Id");
+
+    // Groupable, with no filter menu: Shift makes the key mean nothing.
+    await id.focus();
+    await id.press("Alt+Shift+ArrowDown");
+    await expect(root.getByRole("grid")).toBeVisible();
+
+    const name = header(root, "Name");
+    await name.focus();
+    await name.press("Alt+Shift+ArrowDown");
+    await expect(filterMenuOf(page, "Name")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(root.getByRole("grid")).toBeVisible();
+
+    await name.press("Alt+ArrowDown");
+    await expect(root.getByRole("treegrid")).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+
+  test("the button and the header's description show the column filtered as setFilter changes it", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={[{ field: "id" }, { field: "name" }]}
+        dataSource={[
+          { id: "row-0", name: "Ada" },
+          { id: "row-1", name: "Grace" },
+        ]}
+        label="Filtered headers"
+        filterableColumns
+        filterToSet={[{ columnId: "name", operator: "contains", value: "a" }]}
+      />,
+    );
+    const name = header(root, "name");
+
+    await expect(filterButton(root, "name")).not.toHaveClass(/is-filtered/);
+    await expect(name).not.toHaveAttribute("aria-description");
+
+    await root.getByRole("button", { name: "set-filter" }).click();
+
+    await expect(filterButton(root, "name")).toHaveClass(
+      "header-filter-toggle is-filtered",
+    );
+    await expect(name).toHaveAttribute("aria-description", "Filtered");
+    await expect(header(root, "id")).not.toHaveAttribute("aria-description");
+    await expect(filterButton(root, "id")).not.toHaveClass(/is-filtered/);
+  });
+
+  test("the filtered state follows a controlled filter", async ({ mount }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid
+        filter={[{ columnId: "score", operator: "gt", value: 10 }]}
+      />,
+    );
+
+    await expect(filterButton(root, "Score")).toHaveClass(/is-filtered/);
+    await expect(header(root, "Score")).toHaveAttribute(
+      "aria-description",
+      "Filtered",
+    );
+
+    await updateGrid(root, <FilterMenuGrid filter={[]} />);
+
+    await expect(filterButton(root, "Score")).not.toHaveClass(/is-filtered/);
+    await expect(header(root, "Score")).not.toHaveAttribute("aria-description");
+  });
+
+  test("a column filtered in code with no filter menu shows no filtered state", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid
+        defaultFilter={[{ columnId: "id", operator: "eq", value: "row-a" }]}
+      />,
+    );
+
+    expect(await names(root)).toEqual(["Alice"]);
+    await expect(header(root, "Id")).not.toHaveAttribute("aria-description");
   });
 });

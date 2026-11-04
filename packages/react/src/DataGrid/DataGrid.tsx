@@ -1049,12 +1049,13 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
             resize={resize}
             drag={drag}
             controller={controller}
-            columnSort={state.columnSort}
+            state={state}
             sortableColumns={sortableColumns}
-            groupBy={state.groupBy}
             groupableColumns={groupableColumns}
             groupToggleIconColumns={groupToggleIconColumns}
             headerMenu={contextMenu.opens("header")}
+            panels={panels}
+            messages={messages}
             nav={nav}
             selection={selection}
           />
