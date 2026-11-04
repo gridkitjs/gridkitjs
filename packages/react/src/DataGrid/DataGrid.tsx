@@ -67,6 +67,7 @@ import useContextMenu from "./contextMenu/useContextMenu";
 import { exportApi, type GridExportApi } from "./export/exportApi";
 import { isOwnEvent } from "./isOwnEvent";
 import GridPanels from "./panels/GridPanels";
+import { printApi, type GridPrintApi } from "./print/printApi";
 import useGridPanels from "./panels/useGridPanels";
 import GridToolbar from "./toolbar/GridToolbar";
 import useColumnDrag from "./useColumnDrag";
@@ -130,7 +131,7 @@ export type SelectionCallbacks<Row> = CoreSelectionCallbacks<Row, ReactNode>;
  * notify channel for state that changes; see
  * `packages/react/src/DataGrid/hooks/` for the public hooks built on it.
  */
-export interface DataGridApi<Row> extends GridExportApi {
+export interface DataGridApi<Row> extends GridExportApi, GridPrintApi {
   /** The grid's scrollable viewport element. */
   readonly element: HTMLDivElement | null;
   /**
@@ -888,6 +889,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
       panels.open("columnChooser", { area: "grid" });
     },
     ...exportApi(commands),
+    ...printApi(commands),
     runCommand: (commandId, target = { area: "grid" }) =>
       commands.run(commandId, target, "api"),
     scrollToRow: (rowId, options) => {

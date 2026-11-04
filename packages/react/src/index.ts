@@ -90,3 +90,7 @@ export type {
   ExportWriter,
   GridExportOptions,
 } from "@gridkitjs/core";
+
+// Re-exported so typing the `print` option, or a call to `print`, needs no
+// import from core.
+export type { PrintOptions } from "@gridkitjs/core";
