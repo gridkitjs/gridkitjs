@@ -1,5 +1,73 @@
 # @gridkitjs/dom
 
+## 0.3.0
+
+### Minor Changes
+
+- ae1edc7: `attachChecklist(list, { onToggle, onFocusChange, scrollToIndex })` gives a
+  long, virtualized multi-select list one tab stop: the arrow keys, Home, End,
+  PageUp and PageDown move focus among its items, focusing one outside the
+  mounted window once it mounts, and Space or a click reports `onToggle(index)`.
+  Enter is left to the form around it. It returns `setCount(count)`,
+  `focusItem(index)` and `detach()`, and sets only `tabindex`; the renderer
+  draws the `listbox`/`option` roles and `aria-checked`.
+- 812d0b6: `downloadBlob(blob, fileName)` saves a `Blob` as a file through the browser's
+  own download, with nothing opened or navigated to — where a renderer's export
+  ends once it has made a `Blob` of the file `exportFile` wrote.
+- 0119cd3: `printDocument({ title, bodyHtml, styles })` prints a document through a
+  hidden, zero-size frame — its own page, so a print holds exactly what was
+  built, every row rather than what a virtualised grid has drawn — and resolves
+  once the print dialog has closed and the frame is removed. One print runs at a
+  time; a call while one is open resolves without printing. `printStyles(page)`
+  is the structural stylesheet the frame needs for a `PrintPage` from
+  `@gridkitjs/core`'s `buildPrintDocument`: paper size and orientation, a header
+  row repeated on every page, rows kept whole, neutral borders, indented group
+  headers, and page numbers where the browser draws `@page` margin boxes. Add
+  rules after it, or pass a stylesheet of your own as `styles`.
+- ebac1dd: `writeClipboard({ text, html })` puts a copy on the clipboard as both
+  `text/plain` and `text/html`, through the async Clipboard API with a
+  `ClipboardItem`, else its `writeText`, else the legacy `copy` event for a page
+  outside a secure context. It returns a promise that rejects only when every
+  way fails. `isNativeCopy(target)` says whether a copy key pressed there belongs
+  to the browser — in a text field, or with text highlighted on the page — so a
+  renderer copying on Ctrl+C can leave it alone.
+- ae1edc7: `attachOverlay` takes a `trapFocus` option for a dialog-like panel: Tab from
+  its last tabbable element moves to its first, and Shift+Tab from its first to
+  its last, instead of leaving the panel and dismissing it with `"blur"`. A
+  pointer down outside, or focus moved out by a script, still dismisses it.
+
+### Patch Changes
+
+- bd78d43: The package manifests and READMEs now point at the repository's current home, `github.com/gridkitjs/gridkitjs`.
+- Updated dependencies [7fc1b14]
+- Updated dependencies [7fc1b14]
+- Updated dependencies [ebac1dd]
+- Updated dependencies [7fc1b14]
+- Updated dependencies [812d0b6]
+- Updated dependencies [812d0b6]
+- Updated dependencies [812d0b6]
+- Updated dependencies [7fc1b14]
+- Updated dependencies [0119cd3]
+- Updated dependencies [812d0b6]
+- Updated dependencies [ebac1dd]
+- Updated dependencies [7fc1b14]
+- Updated dependencies [7fc1b14]
+- Updated dependencies [0119cd3]
+- Updated dependencies [0119cd3]
+- Updated dependencies [610d28a]
+- Updated dependencies [a5ace0c]
+- Updated dependencies [a5ace0c]
+- Updated dependencies [a5ace0c]
+- Updated dependencies [1026158]
+- Updated dependencies [1026158]
+- Updated dependencies [a5ace0c]
+- Updated dependencies [098fd6e]
+- Updated dependencies [610d28a]
+- Updated dependencies [a5ace0c]
+- Updated dependencies [a5ace0c]
+- Updated dependencies [bd78d43]
+  - @gridkitjs/core@0.13.0
+
 ## 0.2.1
 
 ### Patch Changes

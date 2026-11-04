@@ -1,5 +1,53 @@
 # @gridkitjs/theme-tailwind
 
+## 0.9.0
+
+### Minor Changes
+
+- 610d28a: Styles for the filter menu's excel editor. `.filter-menu-values` stacks its
+  `.filter-menu-search` box, the `.filter-menu-select-all` checkbox and the
+  `.filter-menu-checklist`, a fixed-height list that scrolls inside itself.
+  Each value is a `.filter-menu-option` whose `.filter-menu-option-check` is
+  drawn as a checkbox — filled with `--gridkit-accent` and ticked while
+  `[aria-checked="true"]` — beside its `.filter-menu-option-label`, ending in an
+  ellipsis when too long, and its muted `.filter-menu-option-count`. The muted
+  `.filter-menu-search-first` note takes the list's box while it waits for a
+  search, and `.filter-menu-more` sits under a list cut short.
+- 1026158: Styles for the filter menu's simple editor. `.filter-menu-condition` puts a
+  condition's `.filter-menu-operator` picker on a line of its own and its
+  `.filter-menu-value` boxes on the next, a "Between"'s two halving it;
+  `.filter-menu-combinator` lays out the And/Or radio buttons between the two
+  conditions, and `.filter-menu-custom` is the muted "Custom filter" note. A
+  value box marked `[aria-invalid="true"]`, and the `.filter-menu-invalid`
+  message under the conditions, take `--gridkit-accent` turned red — no token
+  names an error colour — over the text colour in a browser without relative
+  colour syntax.
+- 1026158: Styles for the column filter menu. `.header-filter-toggle`, a filterable
+  header's funnel, sits at the header's end with the sort toggle moved beside
+  it; it is hidden until the header is hovered or focused, and filled in accent
+  while `.is-filtered`. `.gridkit-filter-menu` is the popup: a fixed-width
+  panel like the column chooser, with its sort entries
+  (`.filter-menu-sort-item`) drawn as menu items and its buttons
+  (`.filter-menu-actions`) — "Clear filter" at the start, Cancel and a tinted
+  OK at the end — in both palettes.
+- 610d28a: Styles for the excel filter editor's operator submenu. `.filter-menu-submenu`,
+  the "Number filters" button, is drawn as a menu item — shaded while its menu
+  is open — with a `.filter-menu-submenu-icon` before its label, ticked in
+  `--gridkit-accent` while the column is filtered by conditions, and a
+  `.filter-menu-submenu-indicator` chevron at the end. `.filter-menu-back`,
+  "Back to values" above a condition the submenu chose, is drawn the same, its
+  `.filter-menu-back-icon` chevron before its label.
+- 0119cd3: Printing the page with the browser's own print (Ctrl+P) now shows the grid as
+  a plain table: an `@media print` block hides the toolbar, the group-by bar, the
+  pager and the resize handles, lets a `height`-bound grid's drawn rows flow
+  onto as many pages as they take, keeps header shading, and never splits a row
+  across two pages. It prints only the rows the grid has drawn; the grid's own
+  Print prints every row.
+
+### Patch Changes
+
+- bd78d43: The package manifests and READMEs now point at the repository's current home, `github.com/gridkitjs/gridkitjs`.
+
 ## 0.8.1
 
 ### Patch Changes
