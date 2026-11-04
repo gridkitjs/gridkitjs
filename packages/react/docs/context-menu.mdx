@@ -1,9 +1,9 @@
 ---
 title: "Context menu"
-description: "The grid's own menu on headers, rows and group rows — sort, group, select, autofit, hide and choose columns — opened by a right-click, a long-press, Shift+F10 or the ContextMenu key."
+description: "The grid's own menu on headers, rows and group rows — sort, group, copy, select, autofit, hide and choose columns — opened by a right-click, a long-press, Shift+F10 or the ContextMenu key."
 ---
 
-`contextMenu` gives the grid a menu of its own in place of the browser's. A right-click or a touch long-press on a column header, a data cell or a group row — or <Kbd>Shift</Kbd>+<Kbd>F10</Kbd> or the <Kbd>ContextMenu</Kbd> key on a focused one — opens a menu of what can be done there: sort the column, group by it, size it to its content, hide it or open the column chooser; select every row on the page or clear the selection; expand or collapse every group. It is off by default, like every other GridKit feature: without `contextMenu`, a right-click shows the browser's menu.
+`contextMenu` gives the grid a menu of its own in place of the browser's. A right-click or a touch long-press on a column header, a data cell or a group row — or <Kbd>Shift</Kbd>+<Kbd>F10</Kbd> or the <Kbd>ContextMenu</Kbd> key on a focused one — opens a menu of what can be done there: sort the column, group by it, size it to its content, hide it or open the column chooser; copy the cell, its row or the selection to the clipboard; select every row on the page or clear the selection; expand or collapse every group. It is off by default, like every other GridKit feature: without `contextMenu`, a right-click shows the browser's menu.
 
 ## Turning it on
 
@@ -54,10 +54,15 @@ The cell menu:
 
 | Item                | Command                   | Shown when                                                    |
 | ------------------- | ------------------------- | ------------------------------------------------------------- |
+| Copy cell           | `copy.cell`               | Always; disabled on a column with `exportable: false`.        |
+| Copy row            | `copy.row`                | Always. Copies the row's shown cells.                         |
+| Copy selection      | `copy.selection`          | Anything is selectable; disabled until something is selected. |
 | Select all rows     | `selection.selectAllRows` | `selectable.rows` is `"multiple"`; disabled with no rows.     |
 | Clear selection     | `selection.clear`         | Anything is selectable; disabled until something is selected. |
 | Expand all groups   | `group.expandAll`         | The grid is grouped.                                          |
 | Collapse all groups | `group.collapseAll`       | The grid is grouped.                                          |
+
+The copy items put the cell, the row or the selection on the clipboard — see [clipboard](/docs/react/clipboard).
 
 The group menu:
 
@@ -67,7 +72,7 @@ The group menu:
 | Collapse all groups       | `group.collapseAll` | Always.                                        |
 | Stop grouping by _column_ | `group.remove`      | Always: it stops grouping by the row's column. |
 
-Separators fall between the groups of items, and collapse when the items around them are hidden. A place whose menu would be empty — a cell in a grid with nothing selectable and nothing grouped, say — shows the browser's menu instead.
+Separators fall between the groups of items, and collapse when the items around them are hidden. A place whose menu would be empty — an area given only items that hide there, say — shows the browser's menu instead.
 
 ## Choosing the items
 
