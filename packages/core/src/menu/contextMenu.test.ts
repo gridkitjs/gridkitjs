@@ -26,7 +26,14 @@ function contextOn(target: GridCommandTarget) {
     }),
     target,
     messages: defaultMessages,
-    host: { autoFitColumns: vi.fn(), openPanel: vi.fn(), announce: vi.fn() },
+    host: {
+      autoFitColumns: vi.fn(),
+      openPanel: vi.fn(),
+      announce: vi.fn(),
+      saveFile: vi.fn(),
+      writeClipboard: vi.fn(),
+      print: vi.fn(),
+    },
   });
 }
 
@@ -74,7 +81,7 @@ describe("contextMenuEntries", () => {
       cell,
     );
 
-    expect(entries).toEqual(["separator", "selection.selectAllRows"]);
+    expect(entries).toEqual(["separator", "copy.cell"]);
     expect(requests).toEqual([
       {
         target: { area: "cell", rowId: "p-1", columnId: "name" },
@@ -136,8 +143,12 @@ describe("defaultContextMenu", () => {
     ]);
   });
 
-  test("a cell selects and expands or collapses, a group row also ungroups", () => {
+  test("a cell copies, selects and expands or collapses, a group row also ungroups", () => {
     expect(defaultContextMenu.cell).toEqual([
+      "copy.cell",
+      "copy.row",
+      "copy.selection",
+      "separator",
       "selection.selectAllRows",
       "selection.clear",
       "separator",

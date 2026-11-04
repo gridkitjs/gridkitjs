@@ -1,3 +1,12 @@
+import {
+  canCopySelection,
+  copyContent,
+  type CopyRequest,
+} from "../export/copy";
+import { exportFile } from "../export/exportFile";
+import { exportPrintDocument } from "../export/print";
+import { resolveExportWriters } from "../export/writer";
+import type { GridMessages } from "../messages";
 import { resolveColumnFilterMenu } from "../filterMenu/options";
 import type { DataColumn, SelectableConfig, SortDirection } from "../types";
 import { isColumnFiltered, touchesColumn } from "../util/filterEditor";
@@ -28,14 +37,31 @@ export type BuiltInCommandId =
   | "filter.clear"
   | "selection.selectAllRows"
   | "selection.clear"
-  | "filter.clearAll";
+  | "filter.clearAll"
+  | "export.csv"
+  | "export.json"
+  | "export.xlsx"
+  | "export.pdf"
+  | "exportSelection.csv"
+  | "exportSelection.json"
+  | "exportSelection.xlsx"
+  | "copy.cell"
+  | "copy.row"
+  | "copy.selection"
+  | "print";
 
 /**
  * The icon keys the built-ins carry, which a renderer draws as icons of its
  * own. An app command may use them too, to look like the built-ins.
  */
 export type BuiltInCommandIcon =
-  "sortAscending" | "sortDescending" | "group" | "hide" | "autoFit";
+  | "sortAscending"
+  | "sortDescending"
+  | "group"
+  | "hide"
+  | "autoFit"
+  | "copy"
+  | "print";
 
 type Area = GridCommandTarget["area"];
 type Column<Row> = DataColumn<Row, unknown>;
@@ -187,6 +213,118 @@ function columnCommand<Row>({
   };
 }
 
+/** What an export built-in says about itself. */
+interface ExportCommandSpec {
+  readonly id: BuiltInCommandId;
+  /** The writer it exports with, by format. */
+  readonly format: string;
+  readonly label: (messages: GridMessages) => string;
+  /** Whether it exports the selected rows only — and so shows only while some are. */
+  readonly selection?: boolean;
+}
+
+/**
+ * An export acts on the whole grid, so it shows wherever the grid as a
+ * whole can be asked for — a cell's menu included, but not a header's or a
+ * group's, which are about one column or one group.
+ */
+const EXPORT_AREAS: readonly Area[] = ["grid", "toolbar", "body", "cell"];
+
+/**
+ * A built-in exporting the grid as a file of `format`, under the grid's
+ * `export` defaults, and handing it to the host to save. Shown only once a
+ * writer for `format` is registered — CSV's and JSON's always are — and
+ * disabled while there is nothing to export, so the item still says what is
+ * possible.
+ */
+function exportCommand<Row>({
+  id,
+  format,
+  label,
+  selection = false,
+}: ExportCommandSpec): GridCommand<Row> {
+  return {
+    id,
+    label: ({ messages }) => label(messages),
+    isVisible: (context) =>
+      isOn(context, EXPORT_AREAS) &&
+      resolveExportWriters(context.options.exportWriters).has(format) &&
+      (!selection || context.state.rowSelection.length > 0),
+    isEnabled: (context) =>
+      (selection ? context.selectedRows() : context.view.rows).length > 0,
+    execute: (context) => {
+      const { export: defaults = {}, exportWriters } = context.options;
+      const file = exportFile(
+        context,
+        format,
+        selection ? { ...defaults, scope: "selection" } : defaults,
+        resolveExportWriters(exportWriters),
+      );
+      if (file !== null) {
+        context.host.saveFile(file);
+      }
+    },
+  };
+}
+
+/** What a copy built-in says about itself. */
+interface CopyCommandSpec<Row> {
+  readonly id: BuiltInCommandId;
+  readonly label: (messages: GridMessages) => string;
+  /** What it copies from here, or `null` where it does not show. */
+  readonly request: (context: Context<Row>) => CopyRequest | null;
+  /** Whether there is anything to copy, when that is cheaper to say than building the copy. */
+  readonly isEnabled?: (context: Context<Row>) => boolean;
+}
+
+/**
+ * The cell or row a cell target names — the copy a cell's menu offers, of
+ * the cell or row it opened on.
+ */
+function cellRequest<Row>(
+  context: Context<Row>,
+  kind: "cell" | "row",
+): CopyRequest | null {
+  const { target } = context;
+  if (target.area !== "cell") {
+    return null;
+  }
+  return kind === "cell"
+    ? { kind, rowId: target.rowId, columnId: target.columnId }
+    : { kind, rowId: target.rowId };
+}
+
+/**
+ * A built-in copying to the clipboard through the host, which writes the
+ * text and HTML and says it did. Disabled where nothing would be copied —
+ * a hidden or `exportable: false` column's cell, an empty selection — so
+ * the item still says what is possible.
+ */
+function copyCommand<Row>({
+  id,
+  label,
+  request,
+  isEnabled,
+}: CopyCommandSpec<Row>): GridCommand<Row> {
+  function contentFor(context: Context<Row>) {
+    const asked = request(context);
+    return asked === null ? null : copyContent(context, asked);
+  }
+  return {
+    id,
+    label: ({ messages }) => label(messages),
+    icon: "copy",
+    isVisible: (context) => request(context) !== null,
+    isEnabled: isEnabled ?? ((context) => contentFor(context) !== null),
+    execute: (context) => {
+      const content = contentFor(context);
+      if (content !== null) {
+        context.host.writeClipboard(content);
+      }
+    },
+  };
+}
+
 function sortCommand<Row>(direction: SortDirection): GridCommand<Row> {
   return columnCommand({
     id: direction === "asc" ? "sort.ascending" : "sort.descending",
@@ -204,8 +342,8 @@ function sortCommand<Row>(direction: SortDirection): GridCommand<Row> {
 
 /**
  * The grid's own commands, one per action its menus and toolbar offer —
- * sorting, grouping, hiding, fitting and choosing columns, selecting and
- * clearing.
+ * sorting, grouping, hiding, fitting and choosing columns, selecting,
+ * clearing, exporting, copying and printing.
  * Labels come from `messages`, so they follow the grid's language.
  *
  * A function rather than a constant so each comes typed for the caller's
@@ -385,6 +523,79 @@ export function builtInCommands<Row>(): readonly GridCommand<Row>[] {
       isEnabled: ({ state }) => state.filter.length > 0,
       execute: ({ actions }) => {
         actions.setFilter([]);
+      },
+    },
+    exportCommand({
+      id: "export.csv",
+      format: "csv",
+      label: ({ exportCsv }) => exportCsv,
+    }),
+    exportCommand({
+      id: "export.json",
+      format: "json",
+      label: ({ exportJson }) => exportJson,
+    }),
+    exportCommand({
+      id: "export.xlsx",
+      format: "xlsx",
+      label: ({ exportXlsx }) => exportXlsx,
+    }),
+    exportCommand({
+      id: "export.pdf",
+      format: "pdf",
+      label: ({ exportPdf }) => exportPdf,
+    }),
+    exportCommand({
+      id: "exportSelection.csv",
+      format: "csv",
+      label: ({ exportSelectionCsv }) => exportSelectionCsv,
+      selection: true,
+    }),
+    exportCommand({
+      id: "exportSelection.json",
+      format: "json",
+      label: ({ exportSelectionJson }) => exportSelectionJson,
+      selection: true,
+    }),
+    exportCommand({
+      id: "exportSelection.xlsx",
+      format: "xlsx",
+      label: ({ exportSelectionXlsx }) => exportSelectionXlsx,
+      selection: true,
+    }),
+    copyCommand({
+      id: "copy.cell",
+      label: ({ copyCell }) => copyCell,
+      request: (context) => cellRequest(context, "cell"),
+    }),
+    copyCommand({
+      id: "copy.row",
+      label: ({ copyRow }) => copyRow,
+      request: (context) => cellRequest(context, "row"),
+    }),
+    // Shown wherever the grid as a whole is asked for, as the exports are,
+    // once anything can be selected; enabled once something is.
+    copyCommand({
+      id: "copy.selection",
+      label: ({ copySelection }) => copySelection,
+      request: (context) =>
+        isOn(context, EXPORT_AREAS) &&
+        isAnythingSelectable(context.options.selectable)
+          ? { kind: "selection" }
+          : null,
+      isEnabled: canCopySelection,
+    }),
+    // Shown where the exports are, under the grid's `print` defaults. A grid
+    // with no rows still prints its header; one with no columns, nothing.
+    {
+      id: "print",
+      label: ({ messages }) => messages.print,
+      icon: "print",
+      isVisible: (context) => isOn(context, EXPORT_AREAS),
+      isEnabled: ({ view }) => view.columns.length > 0,
+      execute: (context) => {
+        const { print: options = {} } = context.options;
+        context.host.print(exportPrintDocument(context, options), options);
       },
     },
   ];

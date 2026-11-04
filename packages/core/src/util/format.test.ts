@@ -1,7 +1,11 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import type { ColumnDefinition, ColumnType } from "../types";
-import { formatAggregateValue, formatCellValue } from "./format";
+import {
+  formatAggregateValue,
+  formatCellValue,
+  formatGroupValue,
+} from "./format";
 
 interface SampleRow {
   Name: string;
@@ -361,5 +365,62 @@ describe("formatAggregateValue", () => {
         "en-US",
       ),
     ).toBe("1,234");
+  });
+});
+
+describe("formatGroupValue", () => {
+  const messages = {
+    booleanTrue: "Yes",
+    booleanFalse: "No",
+    blankGroupValue: "(none)",
+  };
+
+  test.each([null, undefined])(
+    "names a group of %s values blankGroupValue",
+    (value) => {
+      expect(
+        formatGroupValue(value, column("string"), undefined, messages),
+      ).toBe("(none)");
+    },
+  );
+
+  test("reads an empty string as the cells do, not as blank", () => {
+    expect(formatGroupValue("", column("string"), undefined, messages)).toBe(
+      "",
+    );
+  });
+
+  test("formats a value as the grouped column's cells do", () => {
+    expect(
+      formatGroupValue(
+        1234.5,
+        column("currency", { format: { currency: "EUR" } }),
+        "de-DE",
+        messages,
+      ),
+    ).toBe(
+      formatCellValue(
+        1234.5,
+        column("currency", { format: { currency: "EUR" } }),
+        "de-DE",
+      ),
+    );
+    expect(formatGroupValue(true, column("boolean"), undefined, messages)).toBe(
+      "Yes",
+    );
+  });
+
+  test("hands the column's valueFormatter no row", () => {
+    const valueFormatter = vi.fn((value: unknown) => `#${String(value)}`);
+
+    expect(
+      formatGroupValue(
+        7,
+        column("number", { valueFormatter }),
+        undefined,
+        messages,
+      ),
+    ).toBe("#7");
+    expect(valueFormatter).toHaveBeenCalledWith(7, undefined);
   });
 });
