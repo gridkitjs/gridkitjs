@@ -102,6 +102,21 @@ function rendered(messages: GridMessages): Record<keyof GridMessages, string> {
     filterByCondition: messages.filterByCondition,
     filterOperatorMenu: messages.filterOperatorMenu("date"),
     filterBackToValues: messages.filterBackToValues,
+    exportMenu: messages.exportMenu,
+    exportCsv: messages.exportCsv,
+    exportJson: messages.exportJson,
+    exportXlsx: messages.exportXlsx,
+    exportPdf: messages.exportPdf,
+    exportSelectionCsv: messages.exportSelectionCsv,
+    exportSelectionJson: messages.exportSelectionJson,
+    exportSelectionXlsx: messages.exportSelectionXlsx,
+    exportFailed: messages.exportFailed,
+    copyCell: messages.copyCell,
+    copyRow: messages.copyRow,
+    copySelection: messages.copySelection,
+    copied: messages.copied(3, "rows"),
+    copyFailed: messages.copyFailed,
+    print: messages.print,
   };
 }
 
@@ -202,6 +217,21 @@ describe("defaultMessages", () => {
       filterByCondition: "Filtered by condition",
       filterOperatorMenu: "Date filters",
       filterBackToValues: "Back to values",
+      exportMenu: "Export",
+      exportCsv: "Export to CSV",
+      exportJson: "Export to JSON",
+      exportXlsx: "Export to Excel",
+      exportPdf: "Export to PDF",
+      exportSelectionCsv: "Export selection to CSV",
+      exportSelectionJson: "Export selection to JSON",
+      exportSelectionXlsx: "Export selection to Excel",
+      exportFailed: "Export failed",
+      copyCell: "Copy cell",
+      copyRow: "Copy row",
+      copySelection: "Copy selection",
+      copied: "3 rows copied",
+      copyFailed: "Copy failed",
+      print: "Print",
     });
   });
 
@@ -233,6 +263,12 @@ describe("defaultMessages", () => {
     expect(defaultMessages.columnsShown(1)).toBe("1 column shown");
     expect(defaultMessages.columnsHidden(1)).toBe("1 column hidden");
     expect(defaultMessages.columnsHidden(4)).toBe("4 columns hidden");
+  });
+
+  test("counts a copy as one or many", () => {
+    expect(defaultMessages.copied(1, "cells")).toBe("1 cell copied");
+    expect(defaultMessages.copied(1, "rows")).toBe("1 row copied");
+    expect(defaultMessages.copied(2, "columns")).toBe("2 columns copied");
   });
 
   test("counts columns autofitted as one or many", () => {

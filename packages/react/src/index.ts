@@ -82,6 +82,19 @@ export { default as useColumnVisibilityState } from "./DataGrid/hooks/useColumnV
 export { default as useFilterState } from "./DataGrid/hooks/useFilterState";
 export type { FilterStateApi } from "./DataGrid/hooks/useFilterState";
 
+// Re-exported so typing an export — its options, a writer of the app's own,
+// the file a writer gives — needs no import from core.
+export type {
+  ExportFile,
+  ExportOptions,
+  ExportWriter,
+  GridExportOptions,
+} from "@gridkitjs/core";
+
+// Re-exported so typing the `print` option, or a call to `print`, needs no
+// import from core.
+export type { PrintOptions } from "@gridkitjs/core";
+
 // The filter popup in its Excel-style form, spread into `DataGrid`:
 // `<DataGrid {...excelFilter} />`.
 export { excelFilter } from "@gridkitjs/core";

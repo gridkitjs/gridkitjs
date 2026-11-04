@@ -25,11 +25,11 @@ export interface ToolbarCustomEntry {
  * command id, `"separator"`, an inline item, or a submenu, which the toolbar
  * draws as a dropdown button — plus the entries only a toolbar has:
  * `"search"`, the box searching every column; `"spacer"`, which takes up the
- * free space and so pushes what follows it to the far end; and a custom
- * entry.
+ * free space and so pushes what follows it to the far end; `"export"`, a
+ * dropdown of the export commands that show; and a custom entry.
  */
 export type ToolbarEntry<Row> =
-  MenuEntry<Row> | "search" | "spacer" | ToolbarCustomEntry;
+  MenuEntry<Row> | "search" | "spacer" | "export" | ToolbarCustomEntry;
 
 /**
  * A toolbar button ready to draw — a command, or an inline item — with

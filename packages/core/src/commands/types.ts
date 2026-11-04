@@ -1,4 +1,7 @@
 import type { GridController } from "../controller/gridController";
+import type { CopyContent } from "../export/copy";
+import type { PrintDocument, PrintOptions } from "../export/print";
+import type { ExportFile } from "../export/writer";
 import type { GridMessages } from "../messages";
 import type { GridOptions } from "../options";
 import type { DataColumn, GridState, GridView, ResolvedRow } from "../types";
@@ -61,6 +64,23 @@ export interface GridCommandHost {
   readonly openPanel: (kind: GridPanelKind, target: GridCommandTarget) => void;
   /** Reads `text` out through the grid's live region. */
   readonly announce: (text: string) => void;
+  /**
+   * Saves an export as a file — in a browser, a download. A promise is the
+   * file of a writer still writing; the host waits for it, and reports a
+   * rejected one rather than saving.
+   */
+  readonly saveFile: (file: ExportFile | Promise<ExportFile>) => void;
+  /**
+   * Puts a copy on the clipboard, as text and as HTML, and announces it —
+   * `count` and `unit` say what to announce — or that the browser refused.
+   */
+  readonly writeClipboard: (content: CopyContent) => void;
+  /**
+   * Puts a print document on paper — in a browser, through the print
+   * dialog. `options` are those it was built under, for what the host adds
+   * itself, such as `styles` over its print stylesheet.
+   */
+  readonly print: (document: PrintDocument, options: PrintOptions) => void;
 }
 
 /**

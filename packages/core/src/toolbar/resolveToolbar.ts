@@ -1,5 +1,6 @@
 import type { GridCommand, GridCommandContext } from "../commands/types";
 import { collapseSeparators, resolveMenuEntry } from "../menu/resolveMenu";
+import type { MenuSubmenuEntry } from "../menu/types";
 import type {
   GridToolbarTarget,
   ResolvedToolbarItem,
@@ -23,6 +24,31 @@ function isSpacer(entry: ResolvedToolbarItem): boolean {
 }
 
 /**
+ * What the `"export"` entry stands for: a dropdown of every export
+ * built-in, the selection exports after a separator. Each command hides
+ * where it cannot act — xlsx and PDF until a writer is registered, the
+ * selection exports while nothing is selected — so the dropdown lists what
+ * the grid can export now, and is left out when that is nothing.
+ */
+function exportMenu<Row>(): MenuSubmenuEntry<Row> {
+  return {
+    type: "submenu",
+    id: "export",
+    label: ({ messages }) => messages.exportMenu,
+    items: [
+      "export.csv",
+      "export.json",
+      "export.xlsx",
+      "export.pdf",
+      "separator",
+      "exportSelection.csv",
+      "exportSelection.json",
+      "exportSelection.xlsx",
+    ],
+  };
+}
+
+/**
  * A toolbar's entries resolved against the grid, ready to draw, by the
  * rules `resolveMenu` follows:
  *
@@ -31,7 +57,8 @@ function isSpacer(entry: ResolvedToolbarItem): boolean {
  *   hidden one is left out, and so is an id naming no command, reported
  *   once per command map through `console.error`.
  * - A submenu becomes a dropdown, its items resolved as a menu's, and is
- *   left out when nothing in it shows.
+ *   left out when nothing in it shows. `"export"` is one too, of the export
+ *   commands, keyed `"export"`.
  * - `"search"`, `"spacer"` and custom entries stay as they are.
  * - Separators never lead, trail, double up or sit next to a spacer, which
  *   already parts what is on either side of it.
@@ -61,11 +88,12 @@ export function resolveToolbar<Row>(
     if (entry === "separator") {
       return { type: "separator", key: `separator-${String(index)}` };
     }
-    const resolved = resolveMenuEntry(entry, index, {
+    const menuEntry = entry === "export" ? exportMenu<Row>() : entry;
+    const resolved = resolveMenuEntry(menuEntry, index, {
       commands,
       context: contextFor({
         area: "toolbar",
-        itemId: typeof entry === "string" ? entry : entry.id,
+        itemId: typeof menuEntry === "string" ? menuEntry : menuEntry.id,
       }),
     });
     if (resolved === null || resolved.type === "separator") {

@@ -41,6 +41,9 @@ const host: GridCommandHost = {
   autoFitColumns: vi.fn(),
   openPanel: vi.fn(),
   announce: vi.fn(),
+  saveFile: vi.fn(),
+  writeClipboard: vi.fn(),
+  print: vi.fn(),
 };
 
 function contextFor<Node>(
