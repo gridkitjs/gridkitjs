@@ -228,6 +228,18 @@ export function describeColumnFilter<Row>(
 }
 
 /**
+ * Whether `filter` filters `columnId` — whether `describeColumnFilter` reads
+ * it as anything but `"none"` — for a header to show its column as
+ * filtered. A global search filters every column alike, so it marks none.
+ */
+export function isColumnFiltered<Row>(
+  filter: FilterState<Row>,
+  columnId: string,
+): boolean {
+  return filter.some((entry) => touchesColumn(entry, columnId));
+}
+
+/**
  * A value a checklist can offer: an `in` entry can hold it. An object or an
  * array in a cell can't be, so it isn't offered.
  */

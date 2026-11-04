@@ -49,6 +49,8 @@ controller.setFilter(draftToFilter(draft, "Region", filter));
 
 An editor shows a custom filter as such; applying its draft replaces it.
 
+`isColumnFiltered(filter, columnId)` asks only whether that shape is anything but `"none"` — what a header reads to show its column as filtered. A global search filters every column alike, so it marks none.
+
 ## The values a checklist offers
 
 `columnValueOptions(rows, dataColumns, filter, columnId, { search?, limit?, locale?, messages? })` lists the column's distinct values, each with its `label` and the `count` of rows holding it:

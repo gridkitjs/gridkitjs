@@ -280,6 +280,7 @@ export {
   draftToFilter,
   filterEditorReducer,
   initialFilterEditorDraft,
+  isColumnFiltered,
   selectAllState,
   visibleFilterOptions,
 } from "./util/filterEditor";
