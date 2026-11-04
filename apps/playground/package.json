@@ -16,6 +16,7 @@
   "dependencies": {
     "@gridkitjs/core": "workspace:*",
     "@gridkitjs/dom": "workspace:*",
+    "@gridkitjs/export-xlsx": "workspace:*",
     "@gridkitjs/react": "workspace:*",
     "@gridkitjs/theme-tailwind": "workspace:*",
     "react": "^19.2.8",
@@ -30,6 +31,7 @@
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.0.5",
     "cross-env": "^10.1.0",
+    "fflate": "^0.8.3",
     "nyc": "^18.0.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",

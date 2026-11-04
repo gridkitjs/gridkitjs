@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import type { ColumnDefinition } from "@gridkitjs/core";
+import { xlsxWriter } from "@gridkitjs/export-xlsx";
 import {
   DataGrid,
   type DataGridApi,
@@ -72,6 +73,11 @@ const failingWriter: ExportWriter = {
   write: () => Promise.reject(new Error("the PDF library did not load")),
 };
 
+/** The real xlsx writer, made once as an app would. */
+const realWriters: readonly ExportWriter[] = [
+  xlsxWriter({ sheetName: "Players" }),
+];
+
 export interface ExportGridProps extends Omit<
   DataGridProps<Row>,
   "columns" | "dataSource" | "getRowId" | "exportWriters" | "ref"
@@ -82,6 +88,8 @@ export interface ExportGridProps extends Omit<
    * pressed, and a PDF one that always fails.
    */
   readonly withWriters?: boolean;
+  /** Registers the real xlsx writer, `@gridkitjs/export-xlsx`'s. */
+  readonly withXlsxWriter?: boolean;
   /** What "Export data" passes to `exportData`; `"csv"` when left out. */
   readonly dataFormat?: string;
   readonly dataOptions?: GridExportOptions;
@@ -97,6 +105,7 @@ export interface ExportGridProps extends Omit<
  */
 export default function ExportGrid({
   withWriters = false,
+  withXlsxWriter = false,
   dataFormat = "csv",
   dataOptions,
   ...props
@@ -147,7 +156,9 @@ export default function ExportGrid({
         columns={columns}
         dataSource={rows}
         getRowId={(row) => row.id}
-        exportWriters={withWriters ? writers : undefined}
+        exportWriters={
+          withXlsxWriter ? realWriters : withWriters ? writers : undefined
+        }
       />
       <button
         type="button"

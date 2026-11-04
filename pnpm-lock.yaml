@@ -41,6 +41,9 @@ importers:
       '@gridkitjs/dom':
         specifier: workspace:*
         version: link:../../packages/dom
+      '@gridkitjs/export-xlsx':
+        specifier: workspace:*
+        version: link:../../packages/export-xlsx
       '@gridkitjs/react':
         specifier: workspace:*
         version: link:../../packages/react
@@ -78,6 +81,9 @@ importers:
       cross-env:
         specifier: ^10.1.0
         version: 10.1.0
+      fflate:
+        specifier: ^0.8.3
+        version: 0.8.3
       nyc:
         specifier: ^18.0.0
         version: 18.0.0
