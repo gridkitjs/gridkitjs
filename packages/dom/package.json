@@ -4,10 +4,10 @@
   "description": "Framework-free browser behaviours for GridKit renderers: gestures, focus, observers, virtualization, overlays and announcements.",
   "license": "MIT",
   "author": "Blagoja Blazhevski",
-  "homepage": "https://github.com/blagojablazhevski/gridkit#readme",
+  "homepage": "https://github.com/gridkitjs/gridkitjs#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/blagojablazhevski/gridkit.git",
+    "url": "git+https://github.com/gridkitjs/gridkitjs.git",
     "directory": "packages/dom"
   },
   "keywords": [

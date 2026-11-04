@@ -4,10 +4,10 @@
   "description": "An Excel (.xlsx) export writer for GridKit: typed numbers and dates, number formats, a frozen header, column widths, groups and totals.",
   "license": "MIT",
   "author": "Blagoja Blazhevski",
-  "homepage": "https://github.com/blagojablazhevski/gridkit#readme",
+  "homepage": "https://github.com/gridkitjs/gridkitjs#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/blagojablazhevski/gridkit.git",
+    "url": "git+https://github.com/gridkitjs/gridkitjs.git",
     "directory": "packages/export-xlsx"
   },
   "keywords": [

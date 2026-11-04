@@ -4,10 +4,10 @@
   "description": "Tailwind v4 theme for GridKit — palette tokens, dark mode and grid styles.",
   "license": "MIT",
   "author": "Blagoja Blazhevski",
-  "homepage": "https://github.com/blagojablazhevski/gridkit#readme",
+  "homepage": "https://github.com/gridkitjs/gridkitjs#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/blagojablazhevski/gridkit.git",
+    "url": "git+https://github.com/gridkitjs/gridkitjs.git",
     "directory": "packages/theme-tailwind"
   },
   "keywords": [
