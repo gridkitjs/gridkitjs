@@ -5,6 +5,8 @@ import type {
   GridPanelKind,
 } from "@gridkitjs/core";
 import ColumnChooser from "../columnChooser/ColumnChooser";
+import type { GridCommandsApi } from "../commands/useGridCommands";
+import FilterMenu from "../filterMenu/FilterMenu";
 import Overlay, { ANCHOR_GAP } from "../overlay/Overlay";
 import type { DataGridController } from "../useGridController";
 import type { GridPanelsApi } from "./useGridPanels";
@@ -15,26 +17,37 @@ export interface GridPanelProps<Row> {
   readonly target: GridCommandTarget;
   /** Read for the grid's state as each render draws it, and acted on. */
   readonly controller: DataGridController<Row>;
+  /** The grid's commands, for a panel running one so `onCommand` hears it. */
+  readonly commands: GridCommandsApi<Row>;
   readonly messages: GridMessages;
+  /** Closes the panel, giving focus back to where it was opened from. */
+  readonly close: () => void;
+}
+
+/** How one kind of panel is drawn. */
+interface PanelKind {
+  readonly component: <Row>(props: GridPanelProps<Row>) => ReactNode;
+  /**
+   * Whether Tab stays inside the panel, as in a dialog. A panel holding a
+   * draft keeps it, since tabbing out would close it and drop the draft; one
+   * applying every change at once lets Tab leave.
+   */
+  readonly trapFocus: boolean;
 }
 
 /**
- * The component drawing each kind of panel. Keyed by `GridPanelKind`, so a
- * kind added there — the filter editor's — fails to compile until it has its
- * component here, and needs nothing else.
+ * Each kind of panel. Keyed by `GridPanelKind`, so a kind added there fails
+ * to compile until it has its entry here, and needs nothing else.
  */
-const panelComponents: {
-  readonly [Kind in GridPanelKind]: <Row>(
-    props: GridPanelProps<Row>,
-  ) => ReactNode;
-} = {
-  columnChooser: ColumnChooser,
-  filter: () => null,
+const panelKinds: { readonly [Kind in GridPanelKind]: PanelKind } = {
+  columnChooser: { component: ColumnChooser, trapFocus: false },
+  filter: { component: FilterMenu, trapFocus: true },
 };
 
 interface GridPanelsProps<Row> {
   panels: GridPanelsApi;
   controller: DataGridController<Row>;
+  commands: GridCommandsApi<Row>;
   messages: GridMessages;
 }
 
@@ -46,13 +59,14 @@ interface GridPanelsProps<Row> {
 export default function GridPanels<Row>({
   panels,
   controller,
+  commands,
   messages,
 }: GridPanelsProps<Row>) {
   const { panel, close } = panels;
   if (panel === null) {
     return null;
   }
-  const Panel = panelComponents[panel.kind];
+  const { component: Panel, trapFocus } = panelKinds[panel.kind];
   return (
     <Overlay
       key={panel.key}
@@ -62,13 +76,16 @@ export default function GridPanels<Row>({
       returnFocusTo={panel.returnFocusTo}
       // A column the chooser hides can scroll the grid back under it.
       ignoreScrollAfterInput
+      trapFocus={trapFocus}
       themeClassName={panel.themeClassName}
       onDismiss={close}
     >
       <Panel<Row>
         target={panel.target}
         controller={controller}
+        commands={commands}
         messages={messages}
+        close={close}
       />
     </Overlay>
   );

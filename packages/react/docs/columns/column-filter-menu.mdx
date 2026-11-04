@@ -1,0 +1,85 @@
+---
+title: "Column filter menu"
+description: "A filter popup per column, opened from its header — its sort entries, its editor, and Clear filter, Cancel and OK — turned on with filterableColumns."
+---
+
+A column with a filter menu opens a small dialog below its header for filtering that column: the column's sort entries at the top, an editor for its filter, and buttons to clear the filter, cancel or apply. It edits the grid's one [filter](/docs/react/column-filtering), so the menu, the toolbar's search box, `setFilter` and a controlled `filter` always agree.
+
+## Turning it on
+
+```tsx
+<DataGrid
+  columns={[
+    { field: "Id", filterable: false },
+    { field: "Customer" },
+    { field: "Amount", type: "number" },
+  ]}
+  dataSource={orders}
+  sortableColumns
+  filterableColumns
+  contextMenu
+/>
+```
+
+`filterableColumns` gives every column a filter menu unless the column's own `filterable` says otherwise; it is off by default, like `sortableColumns`. The filter applies either way: a column without a menu is still filtered by `defaultFilter`, `setFilter` or a search.
+
+| Prop                | Type      | Default | Description                                                        |
+| ------------------- | --------- | ------- | ------------------------------------------------------------------ |
+| `filterableColumns` | `boolean` | `false` | Whether columns get a filter menu, unless a column says otherwise. |
+| `column.filterable` | `boolean` |         | Per-column override of `filterableColumns`.                        |
+
+## Opening it
+
+- **A header's context menu.** With [`contextMenu`](/docs/react/context-menu) on, a filterable header's menu lists "Filter…" after its sort entries, then "Clear filter", which clears the column's filter without opening anything — disabled while the column is not filtered.
+- **A command.** `runCommand("filter.open", { area: "header", columnId })` on the ref opens it as "Filter…" does.
+
+It opens below the header and gives focus back to it when it closes. Only one panel is open at a time: opening a filter menu replaces the column chooser, or another column's filter menu.
+
+## What it shows
+
+- **The column's sort entries** — "Sort ascending", "Sort descending" and "Clear sort", the header menu's own — while the column [sorts](/docs/react/column-sorting). Choosing one sorts the column and closes the menu; "Sort ascending" or "Sort descending" is pressed while the column sorts that way.
+- **"Clear filter"**, which takes every entry about the column out of the filter and closes the menu — whichever editor wrote them, or none did, as with a predicate set in code. Disabled while the column is not filtered.
+- **Cancel** and **OK**. The editor edits a draft, so nothing filters until OK applies it; Cancel drops it.
+
+## Keyboard & pointer interactions
+
+The menu is a dialog that holds a draft, so it keeps focus: tabbing out of it would drop the draft.
+
+| Key or action                                    | Does                                                                                          |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| Opening it                                       | Focus goes to its first control.                                                              |
+| <Kbd>Tab</Kbd> / <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd> | The next or previous control, wrapping round inside the menu. A disabled button is passed by. |
+| <Kbd>Enter</Kbd>                                 | In a field, applies, as OK does; on a button, presses it.                                     |
+| <Kbd>Escape</Kbd>                                | Closes it without applying, giving focus back to the header.                                  |
+| A click outside it, a scroll or a resize         | Closes it without applying.                                                                   |
+
+<Kbd>Escape</Kbd> closes only the menu: it never reaches the grid, so the
+selection stays.
+
+## Commands and `onCommand`
+
+"Filter…" and "Clear filter" are the [built-in commands](/docs/core/commands#built-in-commands) `filter.open` and `filter.clear`, shown only on the header of a column with a filter menu. The menu's sort entries and its "Clear filter" run the same commands, so a [command of your own](/docs/react/context-menu#commands-of-your-own) with one of their ids replaces it inside the menu too, and `onCommand` hears each one with the source `"filterMenu"`:
+
+```tsx
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  filterableColumns
+  onCommand={({ commandId, target, source }) => {
+    // "filterMenu" for a sort entry or "Clear filter" chosen in the menu.
+    track(commandId, source);
+  }}
+/>
+```
+
+## Messages
+
+Every string the menu shows is a message — see [localization](/docs/react/localization):
+
+| Key                 | Default                                                         |
+| ------------------- | --------------------------------------------------------------- |
+| `openFilter`        | "Filter…" — `filter.open`'s label.                              |
+| `clearColumnFilter` | "Clear filter" — `filter.clear`'s label, and the menu's button. |
+| `filterMenuLabel`   | "Name filter" — the dialog's accessible name, after its column. |
+| `applyFilter`       | "OK"                                                            |
+| `cancelFilter`      | "Cancel"                                                        |

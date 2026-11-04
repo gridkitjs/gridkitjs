@@ -1128,7 +1128,12 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
         )}
       </div>
       <GridContextMenu contextMenu={contextMenu} />
-      <GridPanels panels={panels} controller={controller} messages={messages} />
+      <GridPanels
+        panels={panels}
+        controller={controller}
+        commands={commands}
+        messages={messages}
+      />
       {paginated &&
         (pager?.template ? (
           pager.template(pagerContext)

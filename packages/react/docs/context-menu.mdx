@@ -1,9 +1,9 @@
 ---
 title: "Context menu"
-description: "The grid's own menu on headers, rows and group rows — sort, group, select, autofit, hide and choose columns — opened by a right-click, a long-press, Shift+F10 or the ContextMenu key."
+description: "The grid's own menu on headers, rows and group rows — sort, filter, group, select, autofit, hide and choose columns — opened by a right-click, a long-press, Shift+F10 or the ContextMenu key."
 ---
 
-`contextMenu` gives the grid a menu of its own in place of the browser's. A right-click or a touch long-press on a column header, a data cell or a group row — or <Kbd>Shift</Kbd>+<Kbd>F10</Kbd> or the <Kbd>ContextMenu</Kbd> key on a focused one — opens a menu of what can be done there: sort the column, group by it, size it to its content, hide it or open the column chooser; select every row on the page or clear the selection; expand or collapse every group. It is off by default, like every other GridKit feature: without `contextMenu`, a right-click shows the browser's menu.
+`contextMenu` gives the grid a menu of its own in place of the browser's. A right-click or a touch long-press on a column header, a data cell or a group row — or <Kbd>Shift</Kbd>+<Kbd>F10</Kbd> or the <Kbd>ContextMenu</Kbd> key on a focused one — opens a menu of what can be done there: sort the column, filter it, group by it, size it to its content, hide it or open the column chooser; select every row on the page or clear the selection; expand or collapse every group. It is off by default, like every other GridKit feature: without `contextMenu`, a right-click shows the browser's menu.
 
 ## Turning it on
 
@@ -43,6 +43,8 @@ The header menu:
 | Sort ascending            | `sort.ascending`    | The column is sortable. Checked while it sorts ascending.                                    |
 | Sort descending           | `sort.descending`   | The column is sortable. Checked while it sorts descending.                                   |
 | Clear sort                | `sort.clear`        | The column is sortable; disabled until it is sorted. Leaves the rest of a multi-column sort. |
+| Filter…                   | `filter.open`       | The column is filterable. Opens its [filter menu](/docs/react/column-filter-menu).           |
+| Clear filter              | `filter.clear`      | The column is filterable; disabled until it is filtered.                                     |
 | Group by _column_         | `group.add`         | The column is groupable and not grouped.                                                     |
 | Stop grouping by _column_ | `group.remove`      | The column is grouped.                                                                       |
 | Autofit column            | `column.autoFit`    | The column is resizable.                                                                     |
