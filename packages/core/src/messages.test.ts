@@ -87,6 +87,15 @@ function rendered(messages: GridMessages): Record<keyof GridMessages, string> {
     cancelFilter: messages.cancelFilter,
     customFilter: messages.customFilter,
     filterResults: messages.filterResults(3, 10),
+    filterConditionLabel: messages.filterConditionLabel(2),
+    filterOperatorFieldLabel: messages.filterOperatorFieldLabel,
+    filterValueLabel: messages.filterValueLabel,
+    filterFromLabel: messages.filterFromLabel,
+    filterToLabel: messages.filterToLabel,
+    filterCombinatorLabel: messages.filterCombinatorLabel,
+    filterAnd: messages.filterAnd,
+    filterOr: messages.filterOr,
+    filterValueInvalid: messages.filterValueInvalid("number"),
   };
 }
 
@@ -172,6 +181,15 @@ describe("defaultMessages", () => {
       cancelFilter: "Cancel",
       customFilter: "Custom filter",
       filterResults: "3 of 10 rows",
+      filterConditionLabel: "Condition 2",
+      filterOperatorFieldLabel: "Operator",
+      filterValueLabel: "Value",
+      filterFromLabel: "From",
+      filterToLabel: "To",
+      filterCombinatorLabel: "Combine conditions",
+      filterAnd: "And",
+      filterOr: "Or",
+      filterValueInvalid: "Enter a number",
     });
   });
 
@@ -279,6 +297,14 @@ describe("defaultMessages", () => {
     expect(defaultMessages.filterResults(0, 1)).toBe("0 of 1 row");
     expect(defaultMessages.filterResults(1, 1)).toBe("1 of 1 row");
     expect(defaultMessages.filterResults(0, 12)).toBe("0 of 12 rows");
+  });
+
+  test("asks for the kind of value a condition's column holds", () => {
+    const { filterValueInvalid } = defaultMessages;
+    expect(filterValueInvalid("text")).toBe("Enter a value");
+    expect(filterValueInvalid("number")).toBe("Enter a number");
+    expect(filterValueInvalid("date")).toBe("Enter a date");
+    expect(filterValueInvalid("boolean")).toBe("Choose a value");
   });
 });
 

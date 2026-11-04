@@ -134,6 +134,15 @@ Functions are called with numbers that count from one, and receive a column by i
 | `cancelFilter`             | `string`                                           | "Cancel" — the filter menu's button closing it without applying.                                                                                                    |
 | `customFilter`             | `string`                                           | "Custom filter" — shown in the filter menu for a filter its editor cannot show, which applying replaces.                                                            |
 | `filterResults`            | `(shown, total) => string`                         | "3 of 10 rows", "1 of 1 row" — announced when the filter menu applies.                                                                                              |
+| `filterConditionLabel`     | `(position) => string`                             | "Condition 2" — the accessible name of one of the filter menu's conditions.                                                                                         |
+| `filterOperatorFieldLabel` | `string`                                           | "Operator" — a condition's operator picker's accessible name.                                                                                                       |
+| `filterValueLabel`         | `string`                                           | "Value" — a condition's value box's accessible name.                                                                                                                |
+| `filterFromLabel`          | `string`                                           | "From" — a "Between" condition's first value box, its lower end.                                                                                                    |
+| `filterToLabel`            | `string`                                           | "To" — a "Between" condition's second value box, its upper end.                                                                                                     |
+| `filterCombinatorLabel`    | `string`                                           | "Combine conditions" — the accessible name of the choice joining the filter menu's two conditions.                                                                  |
+| `filterAnd`                | `string`                                           | "And" — a row has to meet both conditions.                                                                                                                          |
+| `filterOr`                 | `string`                                           | "Or" — a row has to meet either condition.                                                                                                                          |
+| `filterValueInvalid`       | `(family) => string`                               | "Enter a number", "Enter a date", "Enter a value" or "Choose a value", by its column's kind — shown when a condition's value is missing or doesn't read.            |
 
 ## What messages don't cover
 

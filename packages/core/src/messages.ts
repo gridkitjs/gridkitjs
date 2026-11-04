@@ -180,6 +180,28 @@ export interface GridMessages {
   customFilter: string;
   /** Announced when a filter menu applies: how many rows the filter keeps, of how many. */
   filterResults: (shown: number, total: number) => string;
+  /** The accessible name of one of a filter menu's conditions. `position` counts from one. */
+  filterConditionLabel: (position: number) => string;
+  /** The accessible name of a condition's operator picker. */
+  filterOperatorFieldLabel: string;
+  /** The accessible name of a condition's value box. */
+  filterValueLabel: string;
+  /** The accessible name of a `between` condition's first value box, its lower end. */
+  filterFromLabel: string;
+  /** The accessible name of a `between` condition's second value box, its upper end. */
+  filterToLabel: string;
+  /** The accessible name of the choice joining a filter menu's two conditions. */
+  filterCombinatorLabel: string;
+  /** Joins two conditions: a row has to meet both. */
+  filterAnd: string;
+  /** Joins two conditions: a row has to meet either. */
+  filterOr: string;
+  /**
+   * Shown under a filter menu's conditions when one's value is missing or
+   * doesn't read as its column's `family` (`filterOperatorFamily`) — "Enter
+   * a number" on a number column.
+   */
+  filterValueInvalid: (family: FilterOperatorFamily) => string;
 }
 
 /** "3 columns hidden", "1 column shown", "2 columns autofitted". */
@@ -258,6 +280,14 @@ function filterSearchFirst(total: number): string {
 function filterResults(shown: number, total: number): string {
   return `${String(shown)} of ${String(total)} ${total === 1 ? "row" : "rows"}`;
 }
+
+/** What a condition's value box asks for, by the kind of value its column holds. */
+const filterValueRequests: Readonly<Record<FilterOperatorFamily, string>> = {
+  text: "Enter a value",
+  number: "Enter a number",
+  date: "Enter a date",
+  boolean: "Choose a value",
+};
 
 /** The grid's own English, which `messages` replaces key by key. */
 export const defaultMessages: GridMessages = {
@@ -347,6 +377,15 @@ export const defaultMessages: GridMessages = {
   cancelFilter: "Cancel",
   customFilter: "Custom filter",
   filterResults,
+  filterConditionLabel: (position) => `Condition ${String(position)}`,
+  filterOperatorFieldLabel: "Operator",
+  filterValueLabel: "Value",
+  filterFromLabel: "From",
+  filterToLabel: "To",
+  filterCombinatorLabel: "Combine conditions",
+  filterAnd: "And",
+  filterOr: "Or",
+  filterValueInvalid: (family) => filterValueRequests[family],
 };
 
 /**
