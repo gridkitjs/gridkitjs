@@ -111,6 +111,25 @@ async function upload() {
 
 A column decides its own part with `exportable` and `exportValue` — see [column definition](/docs/react/column-definition).
 
+## Excel
+
+Excel export ships as a package of its own, [@gridkitjs/export-xlsx](/docs/export-xlsx/overview), so that a grid which never exports to Excel carries none of it. Register its writer and "Export to Excel" appears in the dropdown, with "Export selection to Excel" while rows are selected:
+
+```tsx
+import { xlsxWriter } from "@gridkitjs/export-xlsx";
+
+const writers = [xlsxWriter({ sheetName: "Orders" })];
+
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  toolbar={{ items: ["export"] }}
+  exportWriters={writers}
+/>;
+```
+
+The workbook holds what a CSV would, with numbers, dates and booleans stored as Excel's own in a format read from each column's `type` and `format`, a bold header row frozen at the top, the columns' widths, and group headers above rows Excel's outline collapses. See its [overview](/docs/export-xlsx/overview) for the options and what maps to what.
+
 ## Formats of your own
 
 `exportWriters` registers further formats. A writer, an `ExportWriter`, turns the table the grid builds into the file's contents — text, bytes, or a promise of either — and says what the file is; the grid makes the `Blob` and downloads it. Registering one for `xlsx` shows "Export to Excel" in the dropdown, and one for a built-in's format replaces it.
