@@ -24,6 +24,8 @@ export interface OverlayHarnessProps {
    * `"open-child"` stands for passing the panel's "Open child" button.
    */
   initialFocus?: "first" | "panel" | "none" | "open-child" | undefined;
+  /** Passed as `trapFocus` to both the panel and the child above it. */
+  trapFocus?: boolean | undefined;
 }
 
 /**
@@ -49,6 +51,7 @@ export default function OverlayHarness({
   gap,
   point,
   initialFocus,
+  trapFocus,
 }: OverlayHarnessProps) {
   const anchorRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -86,12 +89,13 @@ export default function OverlayHarness({
       placement,
       gap,
       initialFocus: initialFocus === "open-child" ? childAnchor : initialFocus,
+      trapFocus,
       onDismiss: (reason) => {
         setDismissed(reason);
         setOpen(false);
       },
     });
-  }, [open, point, placement, gap, initialFocus]);
+  }, [open, point, placement, gap, initialFocus, trapFocus]);
 
   useLayoutEffect(() => {
     const anchor = childAnchorRef.current;
@@ -101,12 +105,13 @@ export default function OverlayHarness({
     }
     return attachOverlay(anchor, child, {
       placement: "right-start",
+      trapFocus,
       onDismiss: (reason) => {
         setChildDismissed(reason);
         setChildOpen(false);
       },
     });
-  }, [childOpen]);
+  }, [childOpen, trapFocus]);
 
   return (
     // Clear of every place the panel opens, so nothing here sits under it.
