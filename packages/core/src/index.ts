@@ -296,8 +296,16 @@ export {
 export type { FilterOperatorFamily } from "./filterMenu/operators";
 export {
   defaultFilterOperators,
+  filterOperandArity,
   filterOperatorFamily,
+  formatFilterOperand,
+  parseFilterOperand,
 } from "./filterMenu/operators";
+export type {
+  ConditionRowDraft,
+  ParsedConditionRows,
+} from "./filterMenu/conditions";
+export { conditionRowsFrom, conditionsFromRows } from "./filterMenu/conditions";
 export type { GridMessages } from "./messages";
 export { defaultMessages, resolveMessages } from "./messages";
 export type { FormatLocale } from "./util/format";

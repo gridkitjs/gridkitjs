@@ -1,6 +1,6 @@
 ---
 title: "Filter state and the editor model"
-description: "describeColumnFilter, columnValueOptions and filterEditorReducer: the headless model a column's filter editor is drawn over — and searchTextOf and setSearchText, a search box's."
+description: "describeColumnFilter, columnValueOptions and filterEditorReducer: the headless model a column's filter editor is drawn over, the filter menu's options, operators and condition rows — and searchTextOf and setSearchText, a search box's."
 ---
 
 A grid's filter is one `FilterState` — entries ANDed together, described with every entry kind on [Column filtering](/docs/react/column-filtering). A filter editor, whether a list of conditions or an Excel-style checklist of values, is a UI over one column's part of that state. Core holds everything such an editor decides, so a renderer only draws it and every renderer's editor behaves the same:
@@ -152,6 +152,63 @@ The conditions a filter menu offers depend on what the column holds. `filterOper
 A date-time or time cell is an instant, which a typed day or minute seldom equals to the millisecond, so those columns offer before, after and between rather than equals. `in` is never a condition: a list of values is the checklist's to pick. What each operator matches is on [Column filtering](/docs/react/column-filtering#the-fifth-kind-operators).
 
 A menu labels each operator with the `filterOperatorLabel(operator, family)` message, so a translation can word each family its own way. In English a date reads its order as time — `lt` is "Before", `gte` "On or after" — and every other family as size — "Less than", "Greater than or equal to"; `isEmpty` reads "Is blank".
+
+## Condition rows
+
+A simple editor shows a column's conditions as two rows — an operator and its operand each — joined by "and" or "or". Its inputs hold text, so a half-typed number or date stays as typed until the editor is applied. Three functions turn that text into operands and back, each reading the column's `type`:
+
+| Function                           | Type                        | Description                                                                                                        |
+| ---------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `filterOperandArity(operator)`     | `0 \| 1 \| 2`               | How many inputs a row shows: none for `isEmpty` and `isNotEmpty`, two for `between`'s ends, one for the rest.      |
+| `parseFilterOperand(text, type)`   | `FilterScalar \| undefined` | The operand `text` stands for on a column of `type`, or `undefined` when the text is empty or doesn't read as one. |
+| `formatFilterOperand(value, type)` | `string`                    | The text an input shows for an operand — `parseFilterOperand`'s inverse, for opening a condition already applied.  |
+
+| Family      | Reads                                                                                                                                                          | Writes back                                                                                                     |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `"text"`    | The text as typed, spaces and all.                                                                                                                             | The text.                                                                                                       |
+| `"number"`  | Digits with a `.` for decimals and an optional exponent, as a number input gives them. `"12abc"` and `"1,5"` read as nothing rather than as a guess.           | The number as `String` writes it.                                                                               |
+| `"date"`    | `yyyy-mm-dd`, as a date input gives it, at that day's local midnight; `yyyy-mm-ddThh:mm`, seconds optional, as a date-time input gives it, at that local time. | `yyyy-mm-dd` on a `"date"` column; `yyyy-mm-ddThh:mm` on a `"dateTime"` or `"time"` one, with seconds when set. |
+| `"boolean"` | `"true"` or `"false"`.                                                                                                                                         | `"true"` or `"false"`.                                                                                          |
+
+A row is a `ConditionRowDraft` — `{ operator, text, textTo }`, `textTo` holding `between`'s upper end:
+
+- `conditionRowsFrom(shape, operators, type)` opens the rows over the column's `describeColumnFilter` shape: its conditions, when its filter is conditions, and each row they don't fill at the first of `operators` with no text. A condition keeps its operator even when `operators` doesn't list it. With no operator to offer, only the rows the filter fills.
+- `conditionsFromRows(rows, columnId, type)` reads them back as `{ conditions, invalid }`. A row needs every operand its operator takes, or its index is listed in `invalid` for the editor to mark. A second row left empty is dropped, not invalid; an empty first row is invalid — clearing the filter is the editor's clear action, not an apply with nothing typed.
+
+Apply the conditions only once `invalid` is empty, through the draft, with the combinator the editor shows:
+
+```ts
+import {
+  conditionRowsFrom,
+  conditionsFromRows,
+  describeColumnFilter,
+  draftToFilter,
+  filterEditorReducer,
+} from "@gridkitjs/core";
+
+// When the editor opens, with `menu` from resolveColumnFilterMenu:
+let rows = conditionRowsFrom(
+  describeColumnFilter(filter, "Amount"),
+  menu.operators,
+  "number",
+);
+
+// The user picks "Between" and types both ends:
+rows = rows.with(0, { operator: "between", text: "10", textTo: "100" });
+
+// On apply:
+const { conditions, invalid } = conditionsFromRows(rows, "Amount", "number");
+if (invalid.length === 0) {
+  draft = filterEditorReducer(draft, {
+    type: "setConditions",
+    conditions,
+    combinator: "and",
+  });
+  controller.setFilter(draftToFilter(draft, "Amount", filter));
+}
+```
+
+What the rows apply, `describeColumnFilter` reads back as conditions, and `conditionRowsFrom` opens as the same rows.
 
 ## A search box
 
