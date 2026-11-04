@@ -66,6 +66,29 @@ export default tseslint.config(
     },
   },
   {
+    // The xlsx writer runs wherever core does, a Node script included, so
+    // it is held to core's rule; its tsconfig's `lib` is DOM-free too.
+    files: ["packages/export-xlsx/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "react",
+                "react-dom",
+                "@gridkitjs/react",
+                "@gridkitjs/dom",
+              ].flatMap((name) => [name, `${name}/*`]),
+              message: "export-xlsx is framework- and DOM-free, see AGENTS.md",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     languageOptions: {
       parserOptions: {
         // Resolves each file to its nearest tsconfig, which is what makes the
