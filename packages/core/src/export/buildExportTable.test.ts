@@ -608,6 +608,7 @@ describe("buildExportTable", () => {
         openPanel: () => {},
         announce: () => {},
         saveFile: () => {},
+        writeClipboard: () => {},
       },
     });
 

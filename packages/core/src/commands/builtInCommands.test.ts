@@ -70,6 +70,7 @@ function inertHost(): GridCommandHost {
     openPanel: vi.fn(),
     announce: vi.fn(),
     saveFile: vi.fn(),
+    writeClipboard: vi.fn(),
   };
 }
 
@@ -133,10 +134,13 @@ describe("builtInCommands", () => {
       "exportSelection.csv",
       "exportSelection.json",
       "exportSelection.xlsx",
+      "copy.cell",
+      "copy.row",
+      "copy.selection",
     ]);
   });
 
-  test("shows only the exports on empty body space, which act on the whole grid", () => {
+  test("shows only the exports and the selection copy on empty body space, which act on the whole grid", () => {
     const context = createCommandContext({
       controller: create({
         selectable: { rows: "multiple" },
@@ -152,10 +156,10 @@ describe("builtInCommands", () => {
       builtInCommands<Order>()
         .filter((command) => isCommandVisible(command, context))
         .map((command) => command.id),
-    ).toEqual(["export.csv", "export.json"]);
+    ).toEqual(["export.csv", "export.json", "copy.selection"]);
   });
 
-  test("gives the sort, group, hide and autofit commands icon keys", () => {
+  test("gives the sort, group, hide, autofit and copy commands icon keys", () => {
     const icons = Object.fromEntries(
       builtInCommands()
         .filter((command) => command.icon !== undefined)
@@ -170,6 +174,9 @@ describe("builtInCommands", () => {
       "column.hide": "hide",
       "column.autoFit": "autoFit",
       "column.autoFitAll": "autoFit",
+      "copy.cell": "copy",
+      "copy.row": "copy",
+      "copy.selection": "copy",
     });
   });
 
@@ -963,5 +970,110 @@ describe("exportSelection", () => {
     );
     expect(withXlsx.label()).toBe("Export selection to Excel");
     expect(withXlsx.visible()).toBe(true);
+  });
+});
+
+/** What a command's run handed its host to put on the clipboard. */
+function copied(host: GridCommandHost): unknown {
+  const write = vi.mocked(host.writeClipboard);
+  expect(write).toHaveBeenCalledOnce();
+  return write.mock.calls[0]?.[0];
+}
+
+describe("copy.cell", () => {
+  test("shows on a cell only, and hands the host the cell's text", () => {
+    const controller = create();
+    const command = builtIn("copy.cell", controller, cell("2", "Region"));
+
+    expect(command.label()).toBe("Copy cell");
+    expect(command.visible()).toBe(true);
+    expect(command.enabled()).toBe(true);
+    for (const target of [GRID, TOOLBAR, BODY, header("Id"), group("Region")]) {
+      expect(builtIn("copy.cell", controller, target).visible()).toBe(false);
+    }
+
+    expect(command.run()).toBe(true);
+    expect(copied(command.host)).toEqual({
+      text: "East",
+      html: '<table class="gridkit-export-table"><tbody><tr><td>East</td></tr></tbody></table>',
+      count: 1,
+      unit: "cells",
+    });
+  });
+
+  test("is disabled on a column that does not export", () => {
+    const command = builtIn(
+      "copy.cell",
+      create({
+        columns: [{ field: "Id" }, { field: "Notes", exportable: false }],
+      }),
+      cell("1", "Notes"),
+    );
+
+    expect(command.visible()).toBe(true);
+    expect(command.enabled()).toBe(false);
+    expect(command.run()).toBe(false);
+  });
+});
+
+describe("copy.row", () => {
+  test("shows on a cell only, and hands the host the row's shown cells", () => {
+    const controller = create();
+    const command = builtIn("copy.row", controller, cell("3", "Id"));
+
+    expect(command.label()).toBe("Copy row");
+    expect(command.visible()).toBe(true);
+    expect(builtIn("copy.row", controller, GRID).visible()).toBe(false);
+
+    command.run();
+    expect(copied(command.host)).toMatchObject({
+      text: "3\tWest\t30",
+      count: 1,
+      unit: "rows",
+    });
+  });
+});
+
+describe("copy.selection", () => {
+  test("shows where the exports do once anything is selectable, enabled once something is", () => {
+    expect(builtIn("copy.selection", create(), GRID).visible()).toBe(false);
+
+    const controller = create({ selectable: { cells: "single" } });
+    const command = builtIn("copy.selection", controller, cell("1", "Id"));
+
+    expect(command.label()).toBe("Copy selection");
+    expect(command.visible()).toBe(true);
+    expect(command.enabled()).toBe(false);
+    for (const target of [GRID, TOOLBAR, BODY]) {
+      expect(builtIn("copy.selection", controller, target).visible()).toBe(
+        true,
+      );
+    }
+    for (const target of [header("Id"), group("Region")]) {
+      expect(builtIn("copy.selection", controller, target).visible()).toBe(
+        false,
+      );
+    }
+
+    controller.setCellSelection({ rowId: "2", columnId: "Amount" });
+    expect(command.enabled()).toBe(true);
+  });
+
+  test("hands the host the selected rows under a header", () => {
+    const command = builtIn(
+      "copy.selection",
+      create({
+        selectable: { rows: "multiple" },
+        defaultRowSelection: ["3", "1"],
+      }),
+      GRID,
+    );
+
+    expect(command.run()).toBe(true);
+    expect(copied(command.host)).toMatchObject({
+      text: "Id\tSales region\tAmount\n1\tWest\t10\n3\tWest\t30",
+      count: 2,
+      unit: "rows",
+    });
   });
 });

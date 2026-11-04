@@ -25,7 +25,13 @@ const context = createCommandContext({
   controller,
   target: { area: "header", columnId: "Amount" },
   messages: defaultMessages,
-  host: { autoFitColumns() {}, openPanel() {}, announce() {}, saveFile() {} },
+  host: {
+    autoFitColumns() {},
+    openPanel() {},
+    announce() {},
+    saveFile() {},
+    writeClipboard() {},
+  },
 });
 
 const sortAscending = commands.get("sort.ascending");
@@ -93,6 +99,7 @@ A `GridCommandHost` holds what a command needs that only a renderer has. A calle
 | `openPanel(kind, target)`   | Opens one of the grid's [panels](#panels) anchored to the target. `kind` is a `GridPanelKind`: `"columnChooser"` for now.                                                       |
 | `announce(text)`            | Reads `text` out through the grid's live region.                                                                                                                                |
 | `saveFile(file)`            | Saves an [`ExportFile`](/docs/core/export#exporting-a-file) — in a browser, a download. Given a promise of one, it waits for it, and reports a rejected one rather than saving. |
+| `writeClipboard(content)`   | Puts a [`CopyContent`](/docs/core/export#copying) on the clipboard as text and HTML, and announces it — `messages.copied(count, unit)` — or `messages.copyFailed`.              |
 
 ## Built-in commands
 
@@ -123,14 +130,19 @@ A `GridCommandHost` holds what a command needs that only a renderer has. A calle
 | `exportSelection.csv`     | grid, toolbar, body, cell  | rows are selected                                    | a selected row passes the filter          | Saves the selected rows as CSV.                               | `exportSelectionCsv`  |
 | `exportSelection.json`    | grid, toolbar, body, cell  | rows are selected                                    | a selected row passes the filter          | Saves the selected rows as JSON.                              | `exportSelectionJson` |
 | `exportSelection.xlsx`    | grid, toolbar, body, cell  | rows are selected and an `xlsx` writer is registered | a selected row passes the filter          | Saves the selected rows with the `xlsx` writer.               | `exportSelectionXlsx` |
+| `copy.cell`               | cell                       | always                                               | the column is shown and exportable        | Copies the cell through `host.writeClipboard`.                | `copyCell`            |
+| `copy.row`                | cell                       | always                                               | a shown column is exportable              | Copies the row's shown, exportable cells, without a header.   | `copyRow`             |
+| `copy.selection`          | grid, toolbar, body, cell  | rows, columns or cells are selectable                | anything selected would copy              | Copies the selected rows, else columns, else cell.            | `copySelection`       |
 
 "Sortable" is the column's `sortable`, else the grid's `sortableColumns`; "groupable" the same with `groupable` and `groupableColumns`; "resizable" is the column as rendered, after `resizableColumns`. [`hideable`](/docs/core/column-definitions#column-definition-shape) defaults to `true` and, like `sortable`, gates only the user's ways to do it: `hideColumns` still hides a column that is not hideable.
 
-The sorting, grouping, hiding and autofit built-ins carry an `icon` key — a `BuiltInCommandIcon`: `sortAscending` and `sortDescending` on the two sorts, `group` on `group.add` and `group.remove`, `hide` on `column.hide`, and `autoFit` on both autofits. @gridkitjs/react draws each as an icon of its own; a command of yours may use the same keys to look like the built-ins, and a renderer of your own maps them to its icons or leaves them out.
+The sorting, grouping, hiding, autofit and copy built-ins carry an `icon` key — a `BuiltInCommandIcon`: `sortAscending` and `sortDescending` on the two sorts, `group` on `group.add` and `group.remove`, `hide` on `column.hide`, `autoFit` on both autofits, and `copy` on the three copies. @gridkitjs/react draws each as an icon of its own; a command of yours may use the same keys to look like the built-ins, and a renderer of your own maps them to its icons or leaves them out.
 
 The export built-ins write with the grid's [export writers](/docs/core/export#writers) — CSV and JSON built in, others registered through `exportWriters` — under its `export` defaults, as [`exportFile`](/docs/core/export#exporting-a-file) does, and hand the file to `host.saveFile`. The selection exports set `scope: "selection"` over those defaults. An export acts on the whole grid, so it shows wherever the grid as a whole is asked for, a cell's menu included. GridKit ships no PDF writer — the browser's print dialog saves a PDF — so `export.pdf` shows only for a `pdf` writer of your own.
 
-The ids `filter.open`, `copy.cell`, `copy.row`, `copy.selection`, `print` and `layout.reset` are reserved for built-ins still to come.
+The copy built-ins build their content with [`copyContent`](/docs/core/export#copying) — tab-separated text and an HTML table, read from the export model as an export is — and hand it to `host.writeClipboard`, which writes it and announces it. `copy.selection` copies what a selection holds, in order of precedence: the selected rows, else the selected columns, else the selected cell.
+
+The ids `filter.open`, `print` and `layout.reset` are reserved for built-ins still to come.
 
 ## Panels
 
@@ -333,7 +345,7 @@ A `GridContextMenuTarget` is a command target in one of these areas.
 | Area     | Defaults                                                                                                                                                                                         |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `header` | `sort.ascending`, `sort.descending`, `sort.clear`, a separator, `group.add`, `group.remove`, a separator, `column.autoFit`, `column.autoFitAll`, a separator, `column.hide` and `column.choose`. |
-| `cell`   | `selection.selectAllRows`, `selection.clear`, a separator, `group.expandAll` and `group.collapseAll`.                                                                                            |
+| `cell`   | `copy.cell`, `copy.row`, `copy.selection`, a separator, `selection.selectAllRows`, `selection.clear`, a separator, `group.expandAll` and `group.collapseAll`.                                    |
 | `group`  | `group.expandAll`, `group.collapseAll`, a separator and `group.remove` — which stops grouping by the row's column.                                                                               |
 | `body`   | None: empty space keeps the browser's menu until the grid lists entries for it.                                                                                                                  |
 

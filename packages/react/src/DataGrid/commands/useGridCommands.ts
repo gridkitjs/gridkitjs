@@ -90,6 +90,9 @@ export default function useGridCommands<Row>({
     openPanel,
     announce,
     saveFile,
+    writeClipboard: () => {
+      console.error("DataGrid: copying to the clipboard is not wired up yet.");
+    },
   };
 
   function contextFor(target: GridCommandTarget): GridCommandContext<Row> {

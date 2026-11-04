@@ -1,3 +1,8 @@
+import {
+  canCopySelection,
+  copyContent,
+  type CopyRequest,
+} from "../export/copy";
 import { exportFile } from "../export/exportFile";
 import { resolveExportWriters } from "../export/writer";
 import type { GridMessages } from "../messages";
@@ -34,14 +39,17 @@ export type BuiltInCommandId =
   | "export.pdf"
   | "exportSelection.csv"
   | "exportSelection.json"
-  | "exportSelection.xlsx";
+  | "exportSelection.xlsx"
+  | "copy.cell"
+  | "copy.row"
+  | "copy.selection";
 
 /**
  * The icon keys the built-ins carry, which a renderer draws as icons of its
  * own. An app command may use them too, to look like the built-ins.
  */
 export type BuiltInCommandIcon =
-  "sortAscending" | "sortDescending" | "group" | "hide" | "autoFit";
+  "sortAscending" | "sortDescending" | "group" | "hide" | "autoFit" | "copy";
 
 type Area = GridCommandTarget["area"];
 type Column<Row> = DataColumn<Row, unknown>;
@@ -238,6 +246,64 @@ function exportCommand<Row>({
   };
 }
 
+/** What a copy built-in says about itself. */
+interface CopyCommandSpec<Row> {
+  readonly id: BuiltInCommandId;
+  readonly label: (messages: GridMessages) => string;
+  /** What it copies from here, or `null` where it does not show. */
+  readonly request: (context: Context<Row>) => CopyRequest | null;
+  /** Whether there is anything to copy, when that is cheaper to say than building the copy. */
+  readonly isEnabled?: (context: Context<Row>) => boolean;
+}
+
+/**
+ * The cell or row a cell target names — the copy a cell's menu offers, of
+ * the cell or row it opened on.
+ */
+function cellRequest<Row>(
+  context: Context<Row>,
+  kind: "cell" | "row",
+): CopyRequest | null {
+  const { target } = context;
+  if (target.area !== "cell") {
+    return null;
+  }
+  return kind === "cell"
+    ? { kind, rowId: target.rowId, columnId: target.columnId }
+    : { kind, rowId: target.rowId };
+}
+
+/**
+ * A built-in copying to the clipboard through the host, which writes the
+ * text and HTML and says it did. Disabled where nothing would be copied —
+ * a hidden or `exportable: false` column's cell, an empty selection — so
+ * the item still says what is possible.
+ */
+function copyCommand<Row>({
+  id,
+  label,
+  request,
+  isEnabled,
+}: CopyCommandSpec<Row>): GridCommand<Row> {
+  function contentFor(context: Context<Row>) {
+    const asked = request(context);
+    return asked === null ? null : copyContent(context, asked);
+  }
+  return {
+    id,
+    label: ({ messages }) => label(messages),
+    icon: "copy",
+    isVisible: (context) => request(context) !== null,
+    isEnabled: isEnabled ?? ((context) => contentFor(context) !== null),
+    execute: (context) => {
+      const content = contentFor(context);
+      if (content !== null) {
+        context.host.writeClipboard(content);
+      }
+    },
+  };
+}
+
 function sortCommand<Row>(direction: SortDirection): GridCommand<Row> {
   return columnCommand({
     id: direction === "asc" ? "sort.ascending" : "sort.descending",
@@ -256,7 +322,7 @@ function sortCommand<Row>(direction: SortDirection): GridCommand<Row> {
 /**
  * The grid's own commands, one per action its menus and toolbar offer —
  * sorting, grouping, hiding, fitting and choosing columns, selecting,
- * clearing and exporting.
+ * clearing, exporting and copying.
  * Labels come from `messages`, so they follow the grid's language.
  *
  * A function rather than a constant so each comes typed for the caller's
@@ -451,6 +517,28 @@ export function builtInCommands<Row>(): readonly GridCommand<Row>[] {
       format: "xlsx",
       label: ({ exportSelectionXlsx }) => exportSelectionXlsx,
       selection: true,
+    }),
+    copyCommand({
+      id: "copy.cell",
+      label: ({ copyCell }) => copyCell,
+      request: (context) => cellRequest(context, "cell"),
+    }),
+    copyCommand({
+      id: "copy.row",
+      label: ({ copyRow }) => copyRow,
+      request: (context) => cellRequest(context, "row"),
+    }),
+    // Shown wherever the grid as a whole is asked for, as the exports are,
+    // once anything can be selected; enabled once something is.
+    copyCommand({
+      id: "copy.selection",
+      label: ({ copySelection }) => copySelection,
+      request: (context) =>
+        isOn(context, EXPORT_AREAS) &&
+        isAnythingSelectable(context.options.selectable)
+          ? { kind: "selection" }
+          : null,
+      isEnabled: canCopySelection,
     }),
   ];
 }

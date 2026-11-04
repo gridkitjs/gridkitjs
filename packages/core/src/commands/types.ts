@@ -1,4 +1,5 @@
 import type { GridController } from "../controller/gridController";
+import type { CopyContent } from "../export/copy";
 import type { ExportFile } from "../export/writer";
 import type { GridMessages } from "../messages";
 import type { GridOptions } from "../options";
@@ -64,6 +65,11 @@ export interface GridCommandHost {
    * rejected one rather than saving.
    */
   readonly saveFile: (file: ExportFile | Promise<ExportFile>) => void;
+  /**
+   * Puts a copy on the clipboard, as text and as HTML, and announces it —
+   * `count` and `unit` say what to announce — or that the browser refused.
+   */
+  readonly writeClipboard: (content: CopyContent) => void;
 }
 
 /**
