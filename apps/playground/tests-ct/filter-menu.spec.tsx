@@ -1633,4 +1633,60 @@ test.describe("the excel editor", () => {
     await expect(optionsOf(filterMenu)).toHaveText(["Alice"]);
     await expect(filterMenu.locator('[aria-haspopup="menu"]')).toHaveCount(0);
   });
+
+  test("switching filterMenu.ui at runtime keeps every filter, each editor opening on what it can show", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    let filterMenu = await openFromHeaderMenu(root, page, "Score");
+    await operatorOf(filterMenu, 1).selectOption("gt");
+    await valueOf(filterMenu, 1).fill("10");
+    await button(filterMenu, "OK").click();
+    expect(await names(root)).toEqual(["Charlie", "Bravo"]);
+
+    await updateGrid(root, <FilterMenuGrid filterMenu={{ ui: "excel" }} />);
+    expect(await names(root)).toEqual(["Charlie", "Bravo"]);
+    filterMenu = await openFromHeaderMenu(root, page, "Score");
+    await expect(filterMenu.getByText("Filtered by condition")).toBeVisible();
+    await button(filterMenu, "Number filters").click();
+    await expect(
+      operatorMenuOf(page, "Number filters").getByRole("menuitemcheckbox", {
+        name: "Greater than",
+        exact: true,
+      }),
+    ).toHaveAttribute("aria-checked", "true");
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Escape");
+
+    filterMenu = await openFromHeaderMenu(root, page, "Name");
+    await expect(optionsOf(filterMenu)).toHaveText(["Bravo", "Charlie"]);
+    await option(filterMenu, "Bravo").click();
+    await button(filterMenu, "OK").click();
+    expect(await names(root)).toEqual(["Charlie"]);
+
+    await updateGrid(root, <FilterMenuGrid />);
+    expect(await names(root)).toEqual(["Charlie"]);
+    filterMenu = await openFromHeaderMenu(root, page, "Score");
+    await expect(operatorOf(filterMenu, 1)).toHaveValue("gt");
+    await expect(valueOf(filterMenu, 1)).toHaveValue("10");
+    await page.keyboard.press("Escape");
+    filterMenu = await openFromHeaderMenu(root, page, "Name");
+    await expect(filterMenu.getByText("Custom filter")).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    await updateGrid(root, <FilterMenuGrid filterMenu={{ ui: "excel" }} />);
+    filterMenu = await openFromHeaderMenu(root, page, "Name");
+    await expect(option(filterMenu, "Bravo")).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    await expect(option(filterMenu, "Charlie")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(reported(root)).toHaveText(
+      '[{"columnId":"score","operator":"gt","value":10},{"columnId":"name","operator":"in","value":["Charlie"]}]',
+    );
+  });
 });
