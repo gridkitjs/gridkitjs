@@ -84,6 +84,15 @@ export function ChevronDownIcon() {
   );
 }
 
+/** Marks a button going back to what a panel showed before. */
+export function ChevronLeftIcon() {
+  return (
+    <Icon>
+      <path d="m15 18-6-6 6-6" />
+    </Icon>
+  );
+}
+
 /** Marks an item that opens a submenu. */
 export function ChevronRightIcon() {
   return (

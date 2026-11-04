@@ -202,6 +202,25 @@ export interface GridMessages {
    * a number" on a number column.
    */
   filterValueInvalid: (family: FilterOperatorFamily) => string;
+  /** The accessible name of a filter checklist's search box. */
+  filterSearchLabel: string;
+  /** The checkbox above a filter checklist checking every value its search shows. */
+  filterSelectAll: string;
+  /** The accessible name of a filter checklist's list of values. */
+  filterValuesLabel: string;
+  /**
+   * Shown above a filter checklist whose column is filtered by conditions,
+   * which checking values replaces.
+   */
+  filterByCondition: string;
+  /**
+   * The excel editor's button opening the conditions its column offers, and
+   * that menu's accessible name — "Number filters" on a number column, by
+   * its `family` (`filterOperatorFamily`).
+   */
+  filterOperatorMenu: (family: FilterOperatorFamily) => string;
+  /** The button taking the excel editor from a condition back to its checklist. */
+  filterBackToValues: string;
   /** The toolbar's `"export"` dropdown, listing the export commands. */
   exportMenu: string;
   /** `export.csv` */
@@ -319,6 +338,14 @@ const filterValueRequests: Readonly<Record<FilterOperatorFamily, string>> = {
   boolean: "Choose a value",
 };
 
+/** The excel editor's menu of conditions, by the kind of value its column holds. */
+const filterOperatorMenus: Readonly<Record<FilterOperatorFamily, string>> = {
+  text: "Text filters",
+  number: "Number filters",
+  date: "Date filters",
+  boolean: "Boolean filters",
+};
+
 /** "1 cell copied", "3 rows copied", "2 columns copied". */
 function copied(count: number, unit: "cells" | "rows" | "columns"): string {
   return count === 1
@@ -423,6 +450,12 @@ export const defaultMessages: GridMessages = {
   filterAnd: "And",
   filterOr: "Or",
   filterValueInvalid: (family) => filterValueRequests[family],
+  filterSearchLabel: "Search values",
+  filterSelectAll: "Select all",
+  filterValuesLabel: "Values",
+  filterByCondition: "Filtered by condition",
+  filterOperatorMenu: (family) => filterOperatorMenus[family],
+  filterBackToValues: "Back to values",
   exportMenu: "Export",
   exportCsv: "Export to CSV",
   exportJson: "Export to JSON",

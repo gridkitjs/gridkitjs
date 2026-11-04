@@ -96,6 +96,12 @@ function rendered(messages: GridMessages): Record<keyof GridMessages, string> {
     filterAnd: messages.filterAnd,
     filterOr: messages.filterOr,
     filterValueInvalid: messages.filterValueInvalid("number"),
+    filterSearchLabel: messages.filterSearchLabel,
+    filterSelectAll: messages.filterSelectAll,
+    filterValuesLabel: messages.filterValuesLabel,
+    filterByCondition: messages.filterByCondition,
+    filterOperatorMenu: messages.filterOperatorMenu("date"),
+    filterBackToValues: messages.filterBackToValues,
     exportMenu: messages.exportMenu,
     exportCsv: messages.exportCsv,
     exportJson: messages.exportJson,
@@ -205,6 +211,12 @@ describe("defaultMessages", () => {
       filterAnd: "And",
       filterOr: "Or",
       filterValueInvalid: "Enter a number",
+      filterSearchLabel: "Search values",
+      filterSelectAll: "Select all",
+      filterValuesLabel: "Values",
+      filterByCondition: "Filtered by condition",
+      filterOperatorMenu: "Date filters",
+      filterBackToValues: "Back to values",
       exportMenu: "Export",
       exportCsv: "Export to CSV",
       exportJson: "Export to JSON",
@@ -341,6 +353,14 @@ describe("defaultMessages", () => {
     expect(filterValueInvalid("number")).toBe("Enter a number");
     expect(filterValueInvalid("date")).toBe("Enter a date");
     expect(filterValueInvalid("boolean")).toBe("Choose a value");
+  });
+
+  test("names the menu of conditions after the kind of value its column holds", () => {
+    const { filterOperatorMenu } = defaultMessages;
+    expect(filterOperatorMenu("text")).toBe("Text filters");
+    expect(filterOperatorMenu("number")).toBe("Number filters");
+    expect(filterOperatorMenu("date")).toBe("Date filters");
+    expect(filterOperatorMenu("boolean")).toBe("Boolean filters");
   });
 });
 

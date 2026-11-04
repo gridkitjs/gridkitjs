@@ -14,4 +14,4 @@ focused; a filter the editor can't show reads "Custom filter" until
 conditions replace it.
 
 Focus now starts on the first condition's value box rather than the menu's
-first button. `filterMenu.ui: "excel"` opens the simple editor too, for now.
+first button.

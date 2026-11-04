@@ -10,6 +10,21 @@ export interface LargeRow {
 const regions = ["North", "South", "East", "West", "Central"];
 const statuses = ["Open", "Pending", "Closed", "Escalated"];
 
+/** The synthetic row at `index`, the same whichever set of rows holds it. */
+function largeRow(index: number): LargeRow {
+  const wraps = index % 5 === 0;
+  return {
+    Id: index + 1,
+    Name: `Item ${String(index + 1)}`,
+    Region: regions[index % regions.length] ?? "North",
+    Status: statuses[index % statuses.length] ?? "Open",
+    Amount: 10 + ((index * 47) % 4990),
+    Notes: wraps
+      ? `Row ${String(index + 1)} carries a longer note that wraps across more than one line once its column opts into wrapping, so this row measures taller than a single-line one around it.`
+      : `Note ${String(index + 1)}`,
+  };
+}
+
 /**
  * A few thousand synthetic rows — the smallest number that actually forces a
  * consumer to reach for `virtualized` rather than notice nothing. Every
@@ -23,17 +38,20 @@ const statuses = ["Open", "Pending", "Closed", "Escalated"];
  */
 export const largeRows: readonly LargeRow[] = Array.from(
   { length: 5000 },
-  (_unused, index) => {
-    const wraps = index % 5 === 0;
-    return {
-      Id: index + 1,
-      Name: `Item ${String(index + 1)}`,
-      Region: regions[index % regions.length] ?? "North",
-      Status: statuses[index % statuses.length] ?? "Open",
-      Amount: 10 + ((index * 47) % 4990),
-      Notes: wraps
-        ? `Row ${String(index + 1)} carries a longer note that wraps across more than one line once its column opts into wrapping, so this row measures taller than a single-line one around it.`
-        : `Note ${String(index + 1)}`,
-    };
-  },
+  (_unused, index) => largeRow(index),
 );
+
+let hundredThousand: readonly LargeRow[] | undefined;
+
+/**
+ * 100,000 of the same rows — `Name` different in every one, `Region` one of
+ * five — the scale a filter menu's checklist is measured at. Built on the
+ * first call rather than when this module loads, so a page using only
+ * `largeRows` does not pay for them before it first paints.
+ */
+export function hundredThousandRows(): readonly LargeRow[] {
+  hundredThousand ??= Array.from({ length: 100_000 }, (_unused, index) =>
+    largeRow(index),
+  );
+  return hundredThousand;
+}

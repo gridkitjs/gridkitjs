@@ -15,6 +15,7 @@ import {
   initialFilterEditorDraft,
   type ColumnValueOptions,
   type ConditionRowDraft,
+  type FilterOperator,
   type GridMessages,
   type OperatorFilterEntry,
 } from "@gridkitjs/core";
@@ -94,13 +95,23 @@ function CombinatorChoice({
   );
 }
 
+export interface SimpleFilterEditorProps<Row> extends FilterEditorProps<Row> {
+  /**
+   * The operator its first condition starts at, chosen from the excel
+   * editor's operator submenu — which shows this editor in place of its
+   * checklist. A checklist's values are that editor's to show, so they are
+   * not called a custom filter here then.
+   */
+  readonly operator?: FilterOperator | undefined;
+}
+
 /**
  * A filter menu's simple editor: one condition — an operator and its value —
  * and an optional second, joined to it by and/or. It opens on the column's
  * conditions, read by `@gridkitjs/core`'s `describeColumnFilter` and
- * `conditionRowsFrom`. On a filter it cannot show — a checklist's values, or
- * a custom filter — it says so above empty conditions, which replace it once
- * applied.
+ * `conditionRowsFrom`, its first at `operator` when given one. On a filter
+ * it cannot show — a checklist's values, or a custom filter — it says so
+ * above empty conditions, which replace it once applied.
  *
  * The conditions are text until applied, when `conditionsFromRows` reads
  * them as the column's type filters. A condition missing a value, or holding
@@ -116,18 +127,28 @@ export default function SimpleFilterEditor<Row>({
   messages,
   initialFocusRef,
   applyFilter,
+  operator,
   ref,
-}: FilterEditorProps<Row>) {
+}: SimpleFilterEditorProps<Row>) {
   const type = column.column.type;
   // Read once, as the menu opens: from then on the draft is the user's.
   const [opened] = useState(() => {
     const shape = describeColumnFilter(controller.getState().filter, column.id);
+    const rows = conditionRowsFrom(shape, menu.operators, type);
     const draft: Draft = {
-      rows: conditionRowsFrom(shape, menu.operators, type),
+      // Its typed values kept, as picking the operator in the row keeps them.
+      rows:
+        operator === undefined
+          ? rows
+          : rows.map((row, index) =>
+              index === 0 ? { ...row, operator } : row,
+            ),
       combinator: shape.kind === "conditions" ? shape.combinator : "and",
     };
     return {
-      custom: shape.kind === "values" || shape.kind === "custom",
+      custom:
+        shape.kind === "custom" ||
+        (shape.kind === "values" && operator === undefined),
       draft,
     };
   });
