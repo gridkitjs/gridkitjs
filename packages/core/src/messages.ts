@@ -157,6 +157,8 @@ export interface GridMessages {
   exportSelectionJson: string;
   /** `exportSelection.xlsx` */
   exportSelectionXlsx: string;
+  /** Announced when an export's writer fails, so no file is saved. */
+  exportFailed: string;
 }
 
 /** "3 columns hidden", "1 column shown", "2 columns autofitted". */
@@ -272,6 +274,7 @@ export const defaultMessages: GridMessages = {
   exportSelectionCsv: "Export selection to CSV",
   exportSelectionJson: "Export selection to JSON",
   exportSelectionXlsx: "Export selection to Excel",
+  exportFailed: "Export failed",
 };
 
 /**

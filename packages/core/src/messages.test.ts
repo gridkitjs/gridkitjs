@@ -78,6 +78,7 @@ function rendered(messages: GridMessages): Record<keyof GridMessages, string> {
     exportSelectionCsv: messages.exportSelectionCsv,
     exportSelectionJson: messages.exportSelectionJson,
     exportSelectionXlsx: messages.exportSelectionXlsx,
+    exportFailed: messages.exportFailed,
   };
 }
 
@@ -159,6 +160,7 @@ describe("defaultMessages", () => {
       exportSelectionCsv: "Export selection to CSV",
       exportSelectionJson: "Export selection to JSON",
       exportSelectionXlsx: "Export selection to Excel",
+      exportFailed: "Export failed",
     });
   });
 
