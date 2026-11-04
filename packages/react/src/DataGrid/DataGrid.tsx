@@ -65,6 +65,7 @@ import GridContextMenu from "./contextMenu/GridContextMenu";
 import useContextMenu from "./contextMenu/useContextMenu";
 import { isOwnEvent } from "./isOwnEvent";
 import GridPanels from "./panels/GridPanels";
+import { panelApi, type GridPanelApi } from "./panels/panelApi";
 import useGridPanels from "./panels/useGridPanels";
 import GridToolbar from "./toolbar/GridToolbar";
 import useColumnDrag from "./useColumnDrag";
@@ -128,7 +129,7 @@ export type SelectionCallbacks<Row> = CoreSelectionCallbacks<Row, ReactNode>;
  * notify channel for state that changes; see
  * `packages/react/src/DataGrid/hooks/` for the public hooks built on it.
  */
-export interface DataGridApi<Row> {
+export interface DataGridApi<Row> extends GridPanelApi {
   /** The grid's scrollable viewport element. */
   readonly element: HTMLDivElement | null;
   /**
@@ -292,11 +293,6 @@ export interface DataGridApi<Row> {
   ): boolean;
   /** Closes the context menu, if one is open. */
   closeContextMenu(): void;
-  /**
-   * Opens the column chooser at the grid's top-end corner, in place of any
-   * panel open; it gives focus back to what had it when it closes.
-   */
-  openColumnChooser(): void;
   /**
    * Runs a command by id — a built-in or one of `commands` — on `target`,
    * `{ area: "grid" }` when left out, when it is visible and enabled there.
@@ -881,9 +877,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     },
     openContextMenu: contextMenu.open,
     closeContextMenu: contextMenu.close,
-    openColumnChooser: () => {
-      panels.open("columnChooser", { area: "grid" });
-    },
+    ...panelApi(panels, controller),
     runCommand: (commandId, target = { area: "grid" }) =>
       commands.run(commandId, target, "api"),
     scrollToRow: (rowId, options) => {

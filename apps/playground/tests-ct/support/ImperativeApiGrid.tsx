@@ -44,6 +44,8 @@ export interface ImperativeApiGridProps<Row extends RowWithId> extends Omit<
   /** The command `run-command` runs, and where; `{ area: "grid" }` when left out. */
   commandId?: string;
   commandTarget?: GridCommandTarget;
+  /** The column `open-filter-menu` opens the filter menu of. */
+  filterMenuColumnId?: string;
 }
 
 /**
@@ -85,13 +87,14 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
   contextMenuPoint,
   commandId,
   commandTarget,
+  filterMenuColumnId,
   ...props
 }: ImperativeApiGridProps<Row>) {
   const gridRef = useRef<DataGridApi<Row>>(null);
   const [status, setStatus] = useState("");
   /** What `save-state` stored, as JSON — the way a real page would keep it. */
   const [savedState, setSavedState] = useState<string | null>(null);
-  /** What the last `openContextMenu` or `runCommand` call returned. */
+  /** What the last `openContextMenu`, `runCommand` or `openFilterMenu` call returned. */
   const [result, setResult] = useState("");
   /** Bumped by `open-in-effect`, whose effect then opens the menu. */
   const [effectOpenings, setEffectOpenings] = useState(0);
@@ -318,6 +321,25 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         }}
       >
         open-column-chooser
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          const api = gridRef.current;
+          if (api !== null && filterMenuColumnId !== undefined) {
+            setResult(String(api.openFilterMenu(filterMenuColumnId)));
+          }
+        }}
+      >
+        open-filter-menu
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          gridRef.current?.closeFilterMenu();
+        }}
+      >
+        close-filter-menu
       </button>
       <button
         type="button"

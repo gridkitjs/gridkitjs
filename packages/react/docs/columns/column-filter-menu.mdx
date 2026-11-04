@@ -31,9 +31,24 @@ A column with a filter menu opens a small dialog below its header for filtering 
 ## Opening it
 
 - **A header's context menu.** With [`contextMenu`](/docs/react/context-menu) on, a filterable header's menu lists "Filter…" after its sort entries, then "Clear filter", which clears the column's filter without opening anything — disabled while the column is not filtered.
-- **A command.** `runCommand("filter.open", { area: "header", columnId })` on the ref opens it as "Filter…" does.
+- **The ref.** `openFilterMenu(columnId)` opens it, and returns whether it did: not for a column with no filter menu, nor a hidden one, which has no header to open below. `closeFilterMenu()` closes it, leaving the column chooser alone. `runCommand("filter.open", { area: "header", columnId })` opens it too, reporting to `onCommand` as the API's.
 
 It opens below the header and gives focus back to it when it closes. Only one panel is open at a time: opening a filter menu replaces the column chooser, or another column's filter menu.
+
+```tsx
+const gridRef = useRef<DataGridApi<Order>>(null);
+
+<DataGrid
+  ref={gridRef}
+  columns={columns}
+  dataSource={orders}
+  filterableColumns
+/>;
+
+<button onClick={() => gridRef.current?.openFilterMenu("Customer")}>
+  Filter customers
+</button>;
+```
 
 ## What it shows
 
