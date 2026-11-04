@@ -4,6 +4,7 @@
 import { readFile } from "node:fs/promises";
 import type { Locator, Page } from "@playwright/test";
 import type { MountResult } from "@playwright/experimental-ct-react";
+import { strFromU8, unzipSync } from "fflate";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
 import ExportGrid from "./support/ExportGrid";
@@ -25,16 +26,25 @@ interface Downloaded {
   readonly text: string;
 }
 
-/** Runs `action` and reads the file it downloads. */
+/** Runs `action` and reads the bytes of the file it downloads. */
+async function downloadBytes(
+  page: Page,
+  action: () => Promise<void>,
+): Promise<{ readonly name: string; readonly bytes: Buffer }> {
+  const [file] = await Promise.all([page.waitForEvent("download"), action()]);
+  return {
+    name: file.suggestedFilename(),
+    bytes: await readFile(await file.path()),
+  };
+}
+
+/** Runs `action` and reads the file it downloads, as text. */
 async function download(
   page: Page,
   action: () => Promise<void>,
 ): Promise<Downloaded> {
-  const [file] = await Promise.all([page.waitForEvent("download"), action()]);
-  return {
-    name: file.suggestedFilename(),
-    text: await readFile(await file.path(), "utf8"),
-  };
+  const { name, bytes } = await downloadBytes(page, action);
+  return { name, text: bytes.toString("utf8") };
 }
 
 function exportButton(root: MountResult): Locator {
@@ -264,6 +274,42 @@ test.describe("export writers on the grid", () => {
       exportMenu(page).getByRole("menuitem", { name: "Export to CSV" }).click(),
     );
     expect(names).toEqual(["export.xlsx", "export.csv"]);
+  });
+
+  test("the xlsx writer shows Excel in the dropdown and downloads a workbook", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ExportGrid
+        withXlsxWriter
+        toolbar={{ items: ["export"] }}
+        defaultGroupBy={[{ columnId: "region" }]}
+      />,
+    );
+
+    expect(await exportItems(root, page)).toEqual([
+      "Export to CSV",
+      "Export to JSON",
+      "Export to Excel",
+    ]);
+    const xlsx = await downloadBytes(page, () =>
+      exportMenu(page)
+        .getByRole("menuitem", { name: "Export to Excel" })
+        .click(),
+    );
+
+    expect(xlsx.name).toBe("export.xlsx");
+    expect(xlsx.bytes.subarray(0, 2).toString("latin1")).toBe("PK");
+    const parts = unzipSync(xlsx.bytes);
+    const part = (path: string) => strFromU8(parts[path] ?? new Uint8Array());
+    expect(part("xl/workbook.xml")).toContain('<sheet name="Players"');
+    const sheet = part("xl/worksheets/sheet1.xml");
+    expect(sheet).toContain(">Region: West</t>");
+    expect(sheet).toContain(">Alice</t>");
+    expect(sheet).toContain("<v>30</v>");
+    expect(sheet).toContain('outlineLevel="1"');
   });
 
   test("a writer that fails is logged and announced, and saves nothing", async ({

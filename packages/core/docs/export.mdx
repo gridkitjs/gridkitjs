@@ -187,7 +187,7 @@ The markup carries semantic class names for a stylesheet and no styles of its ow
 
 ## Writers
 
-A writer is one export format as a file: an `ExportWriter` turns an `ExportTable` into the file's contents and says what the file is. CSV and JSON ship as `csvWriter` and `jsonWriter`; any other format — xlsx, or one of your own — is a writer you register on the grid through `exportWriters`, so the grid's export commands and its renderer's API reach it exactly as they reach CSV.
+A writer is one export format as a file: an `ExportWriter` turns an `ExportTable` into the file's contents and says what the file is. CSV and JSON ship as `csvWriter` and `jsonWriter`; any other format — xlsx, or one of your own — is a writer you register on the grid through `exportWriters`, so the grid's export commands and its renderer's API reach it exactly as they reach CSV. The reference xlsx writer is `xlsxWriter` from [@gridkitjs/export-xlsx](/docs/export-xlsx/overview), a package of its own so that core keeps no dependencies; it reads only the `ExportTable`, and runs in Node as in the browser.
 
 ```ts
 import type { ExportWriter } from "@gridkitjs/core";
