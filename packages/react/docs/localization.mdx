@@ -147,6 +147,8 @@ Functions are called with numbers that count from one, and receive a column by i
 | `filterSelectAll`          | `string`                                           | "Select all" — the checkbox above a filter checklist, checking every value its search shows.                                                                        |
 | `filterValuesLabel`        | `string`                                           | "Values" — the accessible name of a filter checklist's list of values.                                                                                              |
 | `filterByCondition`        | `string`                                           | "Filtered by condition" — shown above a filter checklist whose column is filtered by conditions, which checking values replaces.                                    |
+| `filterOperatorMenu`       | `(family) => string`                               | "Text filters", "Number filters", "Date filters" or "Boolean filters", by its column's kind — the excel editor's button opening its conditions, and that menu.      |
+| `filterBackToValues`       | `string`                                           | "Back to values" — the excel editor's button going from a condition back to its checklist.                                                                          |
 
 ## What messages don't cover
 

@@ -100,6 +100,8 @@ function rendered(messages: GridMessages): Record<keyof GridMessages, string> {
     filterSelectAll: messages.filterSelectAll,
     filterValuesLabel: messages.filterValuesLabel,
     filterByCondition: messages.filterByCondition,
+    filterOperatorMenu: messages.filterOperatorMenu("date"),
+    filterBackToValues: messages.filterBackToValues,
   };
 }
 
@@ -198,6 +200,8 @@ describe("defaultMessages", () => {
       filterSelectAll: "Select all",
       filterValuesLabel: "Values",
       filterByCondition: "Filtered by condition",
+      filterOperatorMenu: "Date filters",
+      filterBackToValues: "Back to values",
     });
   });
 
@@ -313,6 +317,14 @@ describe("defaultMessages", () => {
     expect(filterValueInvalid("number")).toBe("Enter a number");
     expect(filterValueInvalid("date")).toBe("Enter a date");
     expect(filterValueInvalid("boolean")).toBe("Choose a value");
+  });
+
+  test("names the menu of conditions after the kind of value its column holds", () => {
+    const { filterOperatorMenu } = defaultMessages;
+    expect(filterOperatorMenu("text")).toBe("Text filters");
+    expect(filterOperatorMenu("number")).toBe("Number filters");
+    expect(filterOperatorMenu("date")).toBe("Date filters");
+    expect(filterOperatorMenu("boolean")).toBe("Boolean filters");
   });
 });
 

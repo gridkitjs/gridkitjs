@@ -213,6 +213,14 @@ export interface GridMessages {
    * which checking values replaces.
    */
   filterByCondition: string;
+  /**
+   * The excel editor's button opening the conditions its column offers, and
+   * that menu's accessible name — "Number filters" on a number column, by
+   * its `family` (`filterOperatorFamily`).
+   */
+  filterOperatorMenu: (family: FilterOperatorFamily) => string;
+  /** The button taking the excel editor from a condition back to its checklist. */
+  filterBackToValues: string;
 }
 
 /** "3 columns hidden", "1 column shown", "2 columns autofitted". */
@@ -298,6 +306,14 @@ const filterValueRequests: Readonly<Record<FilterOperatorFamily, string>> = {
   number: "Enter a number",
   date: "Enter a date",
   boolean: "Choose a value",
+};
+
+/** The excel editor's menu of conditions, by the kind of value its column holds. */
+const filterOperatorMenus: Readonly<Record<FilterOperatorFamily, string>> = {
+  text: "Text filters",
+  number: "Number filters",
+  date: "Date filters",
+  boolean: "Boolean filters",
 };
 
 /** The grid's own English, which `messages` replaces key by key. */
@@ -401,6 +417,8 @@ export const defaultMessages: GridMessages = {
   filterSelectAll: "Select all",
   filterValuesLabel: "Values",
   filterByCondition: "Filtered by condition",
+  filterOperatorMenu: (family) => filterOperatorMenus[family],
+  filterBackToValues: "Back to values",
 };
 
 /**
