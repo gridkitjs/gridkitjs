@@ -167,6 +167,24 @@ Opened again, the menu shows the values checked as they are applied, whatever ap
 - **Conditions**, as the simple editor or `setFilter` writes them, open with every value checked under "Filtered by condition", the "Text filters" button ticked and the operators they use checked in its menu — choosing one opens the conditions as applied, the first at that operator, its value kept. **A filter the editor can't show** — a text query, a predicate, a group across columns — opens under "Custom filter". Either stays as it is until a value is checked or unchecked, or a condition applied, replacing it, or "Clear filter" takes it out.
 - **OK on checks left as they opened**, whatever was searched, just closes the menu.
 
+### Switching editors
+
+`filterMenu.ui` can change at any time — from a toggle in your app, say — and every filter stays as it is, since both editors edit the one filter. Each opens on as much of it as it can show: conditions in the simple editor, or through the excel editor's "Text filters" menu; checked values in the excel editor, which the simple editor reads as "Custom filter". A filter set in code — `defaultFilter`, `setFilter` or a controlled `filter` — shows in whichever editor is on.
+
+```tsx
+const [ui, setUi] = useState<"simple" | "excel">("simple");
+
+<button onClick={() => setUi(ui === "simple" ? "excel" : "simple")}>
+  Switch filter editor
+</button>;
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  filterableColumns
+  filterMenu={{ ui }}
+/>;
+```
+
 ## Keyboard & pointer interactions
 
 The menu is a dialog that holds a draft, so it keeps focus: tabbing out of it would drop the draft.
