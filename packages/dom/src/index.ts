@@ -21,6 +21,7 @@ export {
   startColumnResizeGesture,
   type ColumnResizeGestureHandlers,
 } from "./columnResize";
+export { downloadBlob } from "./download";
 export {
   NO_DRAG,
   startDragReorder,
