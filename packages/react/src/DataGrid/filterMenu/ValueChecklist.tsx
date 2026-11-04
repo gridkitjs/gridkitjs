@@ -25,11 +25,6 @@ const NO_RANGE: VisibleRange = {
   offsetAfter: 0,
 };
 
-/** What an item is measured with before the virtualizer exists. */
-function ignoreItem(): () => void {
-  return () => undefined;
-}
-
 interface ValueChecklistProps {
   /** Every item of the list, in order — only a window of them is mounted. */
   readonly items: readonly FilterChecklistItem[];
@@ -108,7 +103,6 @@ export default function ValueChecklist({
     checklistRef.current?.setCount(items.length);
   }, [virtualizer, items.length]);
 
-  const measureItem = virtualizer?.measureRow ?? ignoreItem;
   const shown = items.slice(range.startIndex, range.endIndex + 1);
 
   return (
@@ -125,7 +119,7 @@ export default function ValueChecklist({
         return (
           <div
             key={item.key}
-            ref={measureItem(index)}
+            ref={virtualizer?.measureRow(index)}
             role="option"
             data-gridkit-checklist-item=""
             data-gridkit-checklist-index={index}
