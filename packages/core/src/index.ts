@@ -319,7 +319,11 @@ export type {
 } from "./filterMenu/checklist";
 export { filterChecklist } from "./filterMenu/checklist";
 export type { GridMessages } from "./messages";
-export { defaultMessages, resolveMessages } from "./messages";
+export {
+  createDefaultMessages,
+  defaultMessages,
+  resolveMessages,
+} from "./messages";
 export type { FormatLocale } from "./util/format";
 export {
   formatAggregateValue,

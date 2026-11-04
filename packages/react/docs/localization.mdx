@@ -5,7 +5,7 @@ description: "Translating the grid's own strings with messages, and formatting v
 
 Two props put a grid into another language, and they divide the work:
 
-- **`locale`** formats values — dates and numbers in cells and aggregates, through `Intl`. See [formatting values](/docs/react/column-definition#formatting-values).
+- **`locale`** formats values — dates and numbers in cells and aggregates, through `Intl`, and the counts in the grid's own messages. See [formatting values](/docs/react/column-definition#formatting-values) and [counts](#counts).
 - **`messages`** replaces the grid's own strings — the pager's buttons, the group-by bar, the loading row, boolean and blank values, the labels of the [built-in commands](/docs/core/commands#built-in-commands), the names of its menus, the toolbar's search box and "More" button, the filter menu, and every [live announcement](/docs/react/accessibility#live-announcements) a screen reader hears.
 
 Text your data supplies — cell values, headers, `label` — is already yours to choose, so neither touches it.
@@ -55,7 +55,24 @@ const [language, setLanguage] = useState<keyof typeof translations>("de-DE");
 
 Define each set once, outside the component, as you would `columns`. A `messages` object rebuilt on every render still works — rows are not redrawn for it unless the boolean or blank-value text actually changes — but a stable one saves the grid re-reading it.
 
-`defaultMessages` and `resolveMessages` are exported from `@gridkitjs/core` for building on the English defaults, or for a renderer of your own.
+`defaultMessages`, `createDefaultMessages` and `resolveMessages` are exported from `@gridkitjs/core` for building on the English defaults, or for a renderer of your own.
+
+## Counts
+
+Every count the English defaults print goes through `Intl.NumberFormat` with the grid's `locale`, as a whole number — "1,204 of 10,000 rows" under `"en"`, "1.204 of 10.000 rows" under `"de-DE"`, "1 204 of 10 000 rows" under `"fr"`. Without a `locale` the runtime's own is used, so a count of a thousand or more is grouped even on a grid that formats no cell. Counts under a thousand read the same in most locales.
+
+A key you override is called with the plain number, as before, and prints it however you write it. To keep the grouping in a translation, format the count yourself:
+
+```ts
+const count = new Intl.NumberFormat("de-DE");
+
+const german: Partial<GridMessages> = {
+  filterResults: (shown, total) =>
+    `${count.format(shown)} von ${count.format(total)} Zeilen`,
+};
+```
+
+A renderer of your own gets the same defaults from `resolveMessages(messages, locale)`, or the English alone for a locale from `createDefaultMessages(locale)`; `defaultMessages` is the one for the runtime's locale.
 
 ## Every key
 
@@ -124,7 +141,7 @@ Functions are called with numbers that count from one, and receive a column by i
 | `noMatchingColumns`        | `string`                                           | "No matching columns" — shown when the chooser's search matches no column.                                                                                          |
 | `filterOperatorLabel`      | `(operator, family) => string`                     | "Before" for `lt` on a date column, "Less than" on a number — a condition's operator in the [filter menu](/docs/react/column-filter-menu).                          |
 | `filterBlanks`             | `string`                                           | "(Blanks)" — the filter checklist's item for blank cells.                                                                                                           |
-| `filterSearchFirst`        | `(total) => string`                                | "Type to search 12000 values" — shown in place of a checklist whose column holds more values than `filterMenu.valueLimit`.                                          |
+| `filterSearchFirst`        | `(total) => string`                                | "Type to search 12,000 values" — shown in place of a checklist whose column holds more values than `filterMenu.valueLimit`.                                         |
 | `filterMoreValues`         | `(count) => string`                                | "250 more, refine the search" — shown under a searched checklist `filterMenu.valueLimit` cut short.                                                                 |
 | `openFilter`               | `string`                                           | "Filter…" — `filter.open`, which opens a column's [filter menu](/docs/react/column-filter-menu).                                                                    |
 | `clearColumnFilter`        | `string`                                           | "Clear filter" — `filter.clear`, and the filter menu's button doing the same.                                                                                       |
@@ -133,7 +150,7 @@ Functions are called with numbers that count from one, and receive a column by i
 | `applyFilter`              | `string`                                           | "OK" — the filter menu's button applying what it holds.                                                                                                             |
 | `cancelFilter`             | `string`                                           | "Cancel" — the filter menu's button closing it without applying.                                                                                                    |
 | `customFilter`             | `string`                                           | "Custom filter" — shown in the filter menu for a filter its editor cannot show, which applying replaces.                                                            |
-| `filterResults`            | `(shown, total) => string`                         | "3 of 10 rows", "1 of 1 row" — announced when the filter menu applies.                                                                                              |
+| `filterResults`            | `(shown, total) => string`                         | "1,204 of 10,000 rows", "1 of 1 row" — announced when the filter menu applies.                                                                                      |
 | `filterConditionLabel`     | `(position) => string`                             | "Condition 2" — the accessible name of one of the filter menu's conditions.                                                                                         |
 | `filterOperatorFieldLabel` | `string`                                           | "Operator" — a condition's operator picker's accessible name.                                                                                                       |
 | `filterValueLabel`         | `string`                                           | "Value" — a condition's value box's accessible name.                                                                                                                |

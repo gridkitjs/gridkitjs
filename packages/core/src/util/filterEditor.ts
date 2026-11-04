@@ -317,7 +317,7 @@ export function columnValueOptions<Row>(
   }
 
   const { search = "", limit, locale } = query;
-  const messages = resolveMessages(query.messages);
+  const messages = resolveMessages(query.messages, locale);
   const options = [...buckets.values()]
     .sort((a, b) => compareValues(a.value, b.value, column.type))
     .map(({ value, row, count }) => ({

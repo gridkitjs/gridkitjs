@@ -4,6 +4,7 @@ import {
   filterOperatorFamily,
 } from "./filterMenu/operators";
 import {
+  createDefaultMessages,
   defaultMessages,
   resolveMessages,
   type GridMessages,
@@ -130,7 +131,7 @@ describe("defaultMessages", () => {
   });
 
   test("reads as the grid's own English", () => {
-    expect(rendered(defaultMessages)).toEqual({
+    expect(rendered(createDefaultMessages("en"))).toEqual({
       pagerLabel: "Pagination",
       previousPage: "Previous",
       nextPage: "Next",
@@ -192,7 +193,7 @@ describe("defaultMessages", () => {
       noMatchingColumns: "No matching columns",
       filterOperatorLabel: "Before",
       filterBlanks: "(Blanks)",
-      filterSearchFirst: "Type to search 12000 values",
+      filterSearchFirst: "Type to search 12,000 values",
       filterMoreValues: "250 more, refine the search",
       openFilter: "Filter…",
       clearColumnFilter: "Clear filter",
@@ -336,8 +337,8 @@ describe("defaultMessages", () => {
 
   test("counts the values a checklist waits to search as one or many", () => {
     expect(defaultMessages.filterSearchFirst(1)).toBe("Type to search 1 value");
-    expect(defaultMessages.filterSearchFirst(20000)).toBe(
-      "Type to search 20000 values",
+    expect(createDefaultMessages("en").filterSearchFirst(20000)).toBe(
+      "Type to search 20,000 values",
     );
   });
 
@@ -345,6 +346,13 @@ describe("defaultMessages", () => {
     expect(defaultMessages.filterResults(0, 1)).toBe("0 of 1 row");
     expect(defaultMessages.filterResults(1, 1)).toBe("1 of 1 row");
     expect(defaultMessages.filterResults(0, 12)).toBe("0 of 12 rows");
+  });
+
+  test("counts in the runtime's own digits", () => {
+    const digits = new Intl.NumberFormat();
+    expect(defaultMessages.filterResults(1204, 10000)).toBe(
+      `${digits.format(1204)} of ${digits.format(10000)} rows`,
+    );
   });
 
   test("asks for the kind of value a condition's column holds", () => {
@@ -364,9 +372,61 @@ describe("defaultMessages", () => {
   });
 });
 
+describe("createDefaultMessages", () => {
+  test("prints every count in the locale's digits", () => {
+    const en = createDefaultMessages("en");
+    expect(en.filterResults(1204, 10000)).toBe("1,204 of 10,000 rows");
+    expect(en.filterMoreValues(1500)).toBe("1,500 more, refine the search");
+    expect(en.copied(2048, "cells")).toBe("2,048 cells copied");
+    expect(en.selectedCount(1000, "rows")).toBe("1,000 rows selected");
+    expect(en.searchResults(4321)).toBe("4,321 rows found");
+    expect(en.columnsHidden(1200)).toBe("1,200 columns hidden");
+    expect(en.pageStatus(1000, 1250)).toBe("Page 1,000 of 1,250");
+    expect(en.pageButtonLabel(1000)).toBe("Page 1,000");
+    expect(en.cellSelected("Name", 1204)).toBe("Name, row 1,204, selected");
+    expect(en.columnResized("Name", 1200)).toBe("Name, 1,200 pixels wide");
+  });
+
+  test("follows the locale's separators", () => {
+    expect(createDefaultMessages("de-DE").filterResults(1204, 10000)).toBe(
+      "1.204 of 10.000 rows",
+    );
+    expect(createDefaultMessages(["mk"]).filterSearchFirst(12000)).toBe(
+      "Type to search 12.000 values",
+    );
+    expect(createDefaultMessages("fr").filterResults(1204, 10000)).toBe(
+      "1 204 of 10 000 rows",
+    );
+  });
+
+  test("leaves small counts as they were", () => {
+    expect(createDefaultMessages("de-DE").filterResults(3, 10)).toBe(
+      "3 of 10 rows",
+    );
+  });
+
+  test("prints a count whole", () => {
+    expect(createDefaultMessages("en").columnResized("Name", 120.6)).toBe(
+      "Name, 121 pixels wide",
+    );
+  });
+});
+
 describe("resolveMessages", () => {
   test("is the defaults themselves when given none", () => {
     expect(resolveMessages(undefined)).toBe(defaultMessages);
+  });
+
+  test("is the same defaults for the same locale", () => {
+    const de = resolveMessages(undefined, "de-DE");
+    expect(resolveMessages(undefined, "de-DE")).toBe(de);
+    expect(de.filterResults(1204, 10000)).toBe("1.204 of 10.000 rows");
+  });
+
+  test("lays the keys given over the locale's defaults", () => {
+    const messages = resolveMessages({ nextPage: "Weiter" }, "de-DE");
+    expect(messages.nextPage).toBe("Weiter");
+    expect(messages.copied(1500, "rows")).toBe("1.500 rows copied");
   });
 
   test("replaces only the keys given", () => {
