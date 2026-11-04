@@ -218,6 +218,8 @@ const htmlWriter: ExportWriter = {
 
 `resolveExportWriters(writers)` returns every writer a grid can export with, keyed by format: CSV and JSON, then `writers` — one with a built-in's format replacing it, as an app command replaces a built-in of the same id.
 
+GridKit ships no PDF writer. The `pdf` format is reserved for one of your own: register an `ExportWriter` with `format: "pdf"` and `export.pdf` and the Export dropdown's PDF item show. Without one, the browser's print dialog saves a PDF of the same table — see [Save as PDF](/docs/react/printing#save-as-pdf), and [PDF in code](/docs/react/export#pdf) for a writer's sketch.
+
 ## Exporting a file
 
 `exportFile(source, format, options, writers)` does the whole export: it builds the table `options` narrow, runs the format's writer from `writers`, and names the file. It returns an `ExportFile` — `{ fileName, mimeType, content }`, the contents a `string` or `Uint8Array` — or a promise of one when the writer returns a promise. `format` is a format id, or a writer to use as it is.

@@ -130,6 +130,34 @@ const writers = [xlsxWriter({ sheetName: "Orders" })];
 
 The workbook holds what a CSV would, with numbers, dates and booleans stored as Excel's own in a format read from each column's `type` and `format`, a bold header row frozen at the top, the columns' widths, and group headers above rows Excel's outline collapses. See its [overview](/docs/export-xlsx/overview) for the options and what maps to what.
 
+## PDF
+
+GridKit ships no PDF writer. To save a PDF, the user prints the grid and chooses "Save as PDF" in the print dialog — see [Save as PDF](/docs/react/printing#save-as-pdf). The browser draws the text itself, so every script reads correctly with no font to supply.
+
+A programmatic PDF is the app's own: register a writer with `format: "pdf"` and "Export to PDF" appears in the dropdown, with `export.pdf` running it. This sketch builds one on jsPDF and its autoTable plugin, named only as an example — any PDF library does. jsPDF's built-in fonts cover Latin text only, so for Cyrillic or other scripts the app must embed a font file of its own (`doc.addFileToVFS` and `doc.addFont`) and carry it in its bundle.
+
+```ts
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import type { ExportWriter } from "@gridkitjs/react";
+
+const pdfWriter: ExportWriter = {
+  format: "pdf",
+  fileExtension: "pdf",
+  mimeType: "application/pdf",
+  write: (table) => {
+    const doc = new jsPDF({ orientation: "landscape" });
+    autoTable(doc, {
+      head: [table.columns.map((column) => column.header)],
+      body: table.rows.map((row) => row.cells.map((cell) => cell.text)),
+    });
+    return new Uint8Array(doc.output("arraybuffer"));
+  },
+};
+
+<DataGrid columns={columns} dataSource={orders} exportWriters={[pdfWriter]} />;
+```
+
 ## Formats of your own
 
 `exportWriters` registers further formats. A writer, an `ExportWriter`, turns the table the grid builds into the file's contents — text, bytes, or a promise of either — and says what the file is; the grid makes the `Blob` and downloads it. Registering one for `xlsx` shows "Export to Excel" in the dropdown, and one for a built-in's format replaces it.

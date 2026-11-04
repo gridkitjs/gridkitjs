@@ -118,7 +118,34 @@ The heading is `header.gridkit-print-header` holding `h1.print-title`, `p.print-
 
 ## Save as PDF
 
-GridKit writes no PDF of its own: the print dialog does it. Choose "Save as PDF" (Chrome, Edge) or "Microsoft Print to PDF" (Windows) as the printer, and the browser writes the document — any script, Cyrillic and accented Latin alike, in the fonts it already has — with the title as the file's name. An `export.pdf` command shows only for a PDF writer of your own.
+GridKit's PDF is the browser's own: print, and choose to save instead of paying for paper. Nothing is downloaded or bundled for it, and because the browser draws the text with the fonts it already has, any script comes out right — Macedonian and Croatian, Greek, CJK — where a library that writes PDFs itself would need a font file embedded first.
+
+1. Run Print from the toolbar, the context menu or `ref.current.print()`.
+2. In the print dialog, choose "Save as PDF" as the destination: Chrome and Edge list it with the printers; Firefox lists "Save to PDF" (or "Microsoft Print to PDF" on Windows); Safari and macOS offer it in the PDF menu of the dialog.
+3. Save. The file is named after the document's title — `title`, else the grid's `label`.
+
+The wording of the destination varies by browser, operating system and version.
+
+The PDF holds what the print holds: the title, subtitle and timestamp above the table, the footer line at the end, the column headers repeated at the top of every page, rows kept whole across page breaks, and page numbers, "3 / 12", where the browser can draw them — see [browser support](#browser-support). The page size and orientation come from the `print` option's `paperSize` and `orientation`, which the dialog can still change. These are the options worth setting for a PDF:
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  label="Orders"
+  toolbar={{ items: ["print"] }}
+  print={{
+    title: "Orders, Q1",
+    timestamp: true,
+    paperSize: "A4",
+    orientation: "landscape",
+    fitToWidth: true,
+    pageNumbers: true,
+  }}
+/>
+```
+
+The grid shows no "Export to PDF" item of its own, because it writes no PDF. An app that must produce the file in code — to upload it, or to save it without a dialog — registers a `pdf` writer, and the Export dropdown and `export.pdf` then pick it up: see [PDF in code](/docs/react/export#pdf).
 
 ## Browser support
 
