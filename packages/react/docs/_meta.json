@@ -8,6 +8,7 @@
     "events",
     "context-menu",
     "toolbar",
+    "export",
     "imperative-handle",
     "columns",
     "rows",

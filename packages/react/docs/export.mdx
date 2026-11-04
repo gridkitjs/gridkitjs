@@ -1,0 +1,144 @@
+---
+title: "Export"
+description: "Download what the grid shows as CSV or JSON — from an Export dropdown in the toolbar, the context menu or the ref — and add formats of your own through export writers."
+---
+
+The grid exports what the user sees as a file: CSV or JSON out of the box, and any other format — Excel, or one of your own — through an export writer. The toolbar's Export dropdown, an export item in the context menu and `ref.current.runCommand("export.csv")` all run the same built-in commands and download the same file; `ref.current.exportData("csv")` hands you the file as a `Blob` instead, to upload or keep.
+
+An export is built from the grid's state, never from its page, so rows on another page, inside a collapsed group or scrolled out of a virtualized body still export. By default it holds every row the filter, search and sort leave, every group expanded, and the shown columns in their current order, each cell's text as the grid formats it. See @gridkitjs/core's [export model](/docs/core/export) for exactly what goes in and how each format writes it.
+
+## From the toolbar
+
+`"export"` in the toolbar's items is a dropdown, "Export", of the formats the grid can export now:
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  selectable={{ rows: "multiple" }}
+  toolbar={{ items: ["search", "spacer", "export"] }}
+/>
+```
+
+It lists "Export to CSV" and "Export to JSON", "Export to Excel" and "Export to PDF" once a writer for those formats is [registered](#formats-of-your-own), then — while rows are selected — the same exports of the selected rows alone. Choosing one downloads `export.csv`, `export.json`, and so on. The dropdown is not among the default toolbar's items, so `toolbar` alone does not show it; list it where you want it. For a different list — a single CSV button, or the exports in a dropdown of your own — list the command ids yourself: `"export.csv"` alone, or a [submenu](/docs/react/toolbar#items-of-your-own) of the ones you want.
+
+## From the context menu
+
+No default menu exports, so list the commands in the areas you want them — `cell` for a row's menu, `body` for the grid's empty space:
+
+```ts
+import { defaultContextMenu } from "@gridkitjs/core";
+
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  contextMenu={{
+    cell: [
+      ...defaultContextMenu.cell,
+      "separator",
+      "export.csv",
+      "exportSelection.csv",
+    ],
+  }}
+/>;
+```
+
+An export from a row's menu still exports the whole grid, not the row; `exportSelection.csv` exports the selected rows.
+
+## The commands
+
+| Command                | Item                      | Shown when                                     |
+| ---------------------- | ------------------------- | ---------------------------------------------- |
+| `export.csv`           | Export to CSV             | Always.                                        |
+| `export.json`          | Export to JSON            | Always.                                        |
+| `export.xlsx`          | Export to Excel           | An `xlsx` writer is registered.                |
+| `export.pdf`           | Export to PDF             | A `pdf` writer is registered.                  |
+| `exportSelection.csv`  | Export selection to CSV   | Rows are selected.                             |
+| `exportSelection.json` | Export selection to JSON  | Rows are selected.                             |
+| `exportSelection.xlsx` | Export selection to Excel | Rows are selected and an `xlsx` writer is too. |
+
+Each shows in the toolbar, a row's menu and the body's menu, never a header's or a group's, and is disabled while there is nothing to export. They report to `onCommand` like any command. See [built-in commands](/docs/core/commands#built-in-commands).
+
+One export downloads at a time: an export chosen while a slow writer is still writing the last one is dropped, and logged with a `console.error`. A writer that fails is logged, and a screen reader hears "Export failed" — `messages.exportFailed`.
+
+## From the ref
+
+`runCommand("export.csv")` downloads, as the toolbar does. `exportData(format, options?)` exports without downloading, and resolves to a `Blob` of the file:
+
+```ts
+const gridRef = useRef<DataGridApi<Order>>(null);
+
+async function upload() {
+  const blob = await gridRef.current?.exportData("csv", { scope: "selection" });
+  if (blob) await fetch("/api/orders/export", { method: "POST", body: blob });
+}
+```
+
+`format` is `"csv"`, `"json"`, a format registered through `exportWriters`, or a writer passed as it is, for one export only. `options` go over the grid's `export` option field by field, so a call need only say what differs. It rejects for a format with no writer — register one through `exportWriters` — and when the writer fails.
+
+| Method                         | Returns         | Description                                                                       |
+| ------------------------------ | --------------- | --------------------------------------------------------------------------------- |
+| `exportData(format, options?)` | `Promise<Blob>` | The grid's view as a file of `format`, under `export` with `options` over it.     |
+| `runCommand("export.csv")`     | `boolean`       | Downloads the export, as the toolbar does. Says whether it ran: not with no rows. |
+
+## Options
+
+`export` sets how the grid exports unless a call says otherwise — what goes in, what the file is called, and how CSV and JSON are written:
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  toolbar={{ items: ["export"] }}
+  export={{
+    fileName: "orders",
+    columns: "all",
+    csv: { delimiter: "auto" },
+  }}
+/>
+```
+
+| Option              | Type                                      | Default     | Description                                                                                                       |
+| ------------------- | ----------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------- |
+| `fileName`          | `string \| (format: string) => string`    | `"export"`  | The file's name; the format's extension is added unless it is already there.                                      |
+| `scope`             | `"all" \| "page" \| "selection"`          | `"all"`     | Every row the filter leaves, the current page's, or the selected rows.                                            |
+| `columns`           | `"visible" \| "all" \| readonly string[]` | `"visible"` | The shown columns, every column, or these ids in this order. A column with `exportable: false` never exports.     |
+| `includeGroups`     | `boolean`                                 | `true`      | Group header rows, when the grid is grouped.                                                                      |
+| `includeAggregates` | `boolean`                                 | `true`      | Aggregate values: group summaries and the grand total.                                                            |
+| `includeHeader`     | `boolean`                                 | `true`      | The column names as the first row.                                                                                |
+| `csv`               | `CsvOptions`                              |             | How CSV is written — `delimiter`, `bom`, `eol`, `neutralizeFormulas`, `values`. See [CSV](/docs/core/export#csv). |
+| `json`              | `JsonOptions`                             |             | How JSON is written — `keys`, `space`. See [JSON](/docs/core/export#json).                                        |
+
+A column decides its own part with `exportable` and `exportValue` — see [column definition](/docs/react/column-definition).
+
+## Formats of your own
+
+`exportWriters` registers further formats. A writer, an `ExportWriter`, turns the table the grid builds into the file's contents — text, bytes, or a promise of either — and says what the file is; the grid makes the `Blob` and downloads it. Registering one for `xlsx` shows "Export to Excel" in the dropdown, and one for a built-in's format replaces it.
+
+```ts
+import { toHtmlTable } from "@gridkitjs/core";
+import type { ExportWriter } from "@gridkitjs/react";
+
+const htmlWriter: ExportWriter = {
+  format: "html",
+  fileExtension: "html",
+  mimeType: "text/html;charset=utf-8",
+  write: (table) =>
+    `<!doctype html><meta charset="utf-8">${toHtmlTable(table)}`,
+};
+
+<DataGrid columns={columns} dataSource={orders} exportWriters={[htmlWriter]} />;
+
+await gridRef.current?.exportData("html"); // a Blob of the HTML page
+```
+
+A format with no built-in command of its own, like `html` here, is reached through `exportData`, or through a [command of your own](/docs/react/context-menu#commands-of-your-own) that runs it. See [writers](/docs/core/export#writers) for the contract.
+
+## Props
+
+| Prop            | Type                      | Default | Description                                                                  |
+| --------------- | ------------------------- | ------- | ---------------------------------------------------------------------------- |
+| `export`        | `GridExportOptions`       |         | How the grid exports unless a call says otherwise — see [options](#options). |
+| `exportWriters` | `readonly ExportWriter[]` |         | Formats beyond CSV and JSON, by `format`; one replaces a built-in's.         |
+
+The dropdown's name, every export item's label and the "Export failed" announcement are messages — `exportMenu`, `exportCsv`, `exportJson`, `exportXlsx`, `exportPdf`, `exportSelectionCsv`, `exportSelectionJson`, `exportSelectionXlsx` and `exportFailed` — see [localization](/docs/react/localization).
