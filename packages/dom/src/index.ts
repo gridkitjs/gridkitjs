@@ -21,6 +21,11 @@ export {
   startColumnResizeGesture,
   type ColumnResizeGestureHandlers,
 } from "./columnResize";
+export {
+  isNativeCopy,
+  writeClipboard,
+  type ClipboardContent,
+} from "./clipboard";
 export { downloadBlob } from "./download";
 export {
   NO_DRAG,
