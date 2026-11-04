@@ -313,3 +313,5 @@ export type { TsvOptions } from "./export/tsv";
 export { toTsv } from "./export/tsv";
 export type { JsonOptions } from "./export/json";
 export { toJson } from "./export/json";
+export type { HtmlTableOptions } from "./export/htmlTable";
+export { toHtmlTable } from "./export/htmlTable";
