@@ -79,7 +79,7 @@ const values = valueCache.get(rows, dataColumns, filter, "Region", {
 });
 ```
 
-`get(rows, dataColumns, filter, columnId, { locale?, messages? })` returns the column's whole list — no `search` or `limit`, which the draft applies — and hands back the very object it returned last time while nothing the list depends on has changed:
+`get(rows, dataColumns, filter, columnId, query?)` takes a `ColumnValueCacheQuery` — `{ locale?, messages? }` — and returns the column's whole list — no `search` or `limit`, which the draft applies — and hands back the very object it returned last time while nothing the list depends on has changed:
 
 - the `rows` and `dataColumns`, by identity;
 - the `locale` and `messages`, by identity — pass the grid's own, not an object made on each render;
@@ -108,7 +108,7 @@ A value or blanks action switches the draft to its checklist (`mode: "values"`);
 
 ## A checklist's window
 
-`filterChecklist(draft, { valueLimit, blanksLabel })` is the list a checklist editor draws under its search box and select-all — what each row says and whether it is checked:
+`filterChecklist(draft, options)`, with `FilterChecklistOptions` — `{ valueLimit, blanksLabel }` — is the list a checklist editor draws under its search box and select-all — what each row says and whether it is checked:
 
 ```ts
 import { filterChecklist } from "@gridkitjs/core";
@@ -156,7 +156,7 @@ A renderer draws a filter menu in each filterable column's header; these options
 | `column.filterable`     | `boolean`             |            | Per-column override of `filterableColumns`.                                                                                                         |
 | `column.filterMenu`     | `{ ui?, operators? }` |            | The column's own editor, over `filterMenu.ui`, and the operators its conditions offer, in place of its type's defaults.                             |
 
-Both editors edit the one `FilterState`, so switching `ui` at runtime keeps every filter, and a filter set in code shows in whichever editor is open. A column's `operators` drop `in`, the checklist's own operator; `[]` offers no condition, leaving the excel editor its checklist alone.
+`ui` is a `FilterMenuUi`, `"simple"` or `"excel"`. Both editors edit the one `FilterState`, so switching `ui` at runtime keeps every filter, and a filter set in code shows in whichever editor is open. A column's `operators` drop `in`, the checklist's own operator; `[]` offers no condition, leaving the excel editor its checklist alone.
 
 `resolveColumnFilterMenu(options, column)` settles all of this for one column — what a renderer draws from:
 
@@ -180,6 +180,19 @@ It returns `null` for a column with no filter menu, else a `ResolvedColumnFilter
 | `family`     | `FilterOperatorFamily`      | The family the column's `type` falls in, which its operators are labelled by.                       |
 | `showCounts` | `boolean`                   | The grid's `filterMenu.showCounts`, else `false`.                                                   |
 | `valueLimit` | `number`                    | The grid's `filterMenu.valueLimit`, else `DEFAULT_FILTER_VALUE_LIMIT` (10,000, Excel's own cap).    |
+
+## Presets
+
+`excelFilter` is the options for the Excel-style popup as one plain value — `{ filterableColumns: true, filterMenu: { ui: "excel", showCounts: true } }`. A preset is data, not a component or a hook, so any renderer takes it the way it takes its other options, and an option given after it wins. `filterMenu` is replaced whole, not merged: `{ ...excelFilter, filterMenu: { ui: "simple" } }` also drops `showCounts`.
+
+```ts
+import { excelFilter, resolveColumnFilterMenu } from "@gridkitjs/core";
+
+resolveColumnFilterMenu(excelFilter, { field: "Region" });
+// { ui: "excel", operators: [...], family: "text", showCounts: true, ... }
+```
+
+In React it is spread into the grid — see [Presets](/docs/react/column-filter-menu#presets).
 
 ## Operators by column type
 
@@ -226,7 +239,7 @@ A simple editor shows a column's conditions as two rows — an operator and its 
 A row is a `ConditionRowDraft` — `{ operator, text, textTo }`, `textTo` holding `between`'s upper end:
 
 - `conditionRowsFrom(shape, operators, type)` opens the rows over the column's `describeColumnFilter` shape: its conditions, when its filter is conditions, and each row they don't fill at the first of `operators` with no text. A condition keeps its operator even when `operators` doesn't list it. With no operator to offer, only the rows the filter fills.
-- `conditionsFromRows(rows, columnId, type)` reads them back as `{ conditions, invalid }`. A row needs every operand its operator takes, or its index is listed in `invalid` for the editor to mark. A second row left empty is dropped, not invalid; an empty first row is invalid — clearing the filter is the editor's clear action, not an apply with nothing typed.
+- `conditionsFromRows(rows, columnId, type)` reads them back as a `ParsedConditionRows` — `{ conditions, invalid }`. A row needs every operand its operator takes, or its index is listed in `invalid` for the editor to mark. A second row left empty is dropped, not invalid; an empty first row is invalid — clearing the filter is the editor's clear action, not an apply with nothing typed.
 
 Apply the conditions only once `invalid` is empty, through the draft, with the combinator the editor shows:
 

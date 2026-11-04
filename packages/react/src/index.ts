@@ -94,3 +94,7 @@ export type {
 // Re-exported so typing the `print` option, or a call to `print`, needs no
 // import from core.
 export type { PrintOptions } from "@gridkitjs/core";
+
+// The filter popup in its Excel-style form, spread into `DataGrid`:
+// `<DataGrid {...excelFilter} />`.
+export { excelFilter } from "@gridkitjs/core";

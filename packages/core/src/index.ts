@@ -369,3 +369,4 @@ export type {
   PrintSource,
 } from "./export/print";
 export { buildPrintDocument, exportPrintDocument } from "./export/print";
+export { excelFilter } from "./presets";

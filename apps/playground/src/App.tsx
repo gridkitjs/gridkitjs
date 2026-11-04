@@ -2,6 +2,7 @@ import { AggregatedGrid } from "./demos/AggregatedGrid";
 import { ContextMenuGrid } from "./demos/ContextMenuGrid";
 import { CustomPagerGrid } from "./demos/CustomPagerGrid";
 import { FilteredGrid } from "./demos/FilteredGrid";
+import { FilterMenuGrid } from "./demos/FilterMenuGrid";
 import { GroupedGrid } from "./demos/GroupedGrid";
 import { InfiniteScrollGrid } from "./demos/InfiniteScrollGrid";
 import { LiveMetricsGrid } from "./demos/LiveMetricsGrid";
@@ -36,6 +37,20 @@ export default function App() {
       </h2>
       <div className="mt-2">
         <FilteredGrid />
+      </div>
+      <h2 className="mt-8 text-lg font-bold">
+        <code>excelFilter</code>, over 100,000 rows
+      </h2>
+      <p className="mt-2 text-sm text-gray-600">
+        Click a header's filter button, or focus a header and press{" "}
+        <code>Alt+Shift+ArrowDown</code>, to open its filter popup. The excel
+        editor checks values off a searchable list with counts; the simple one
+        takes one or two conditions. Switch between them and the filters stay.{" "}
+        <code>Name</code> has 100,000 different values, and its list opens at
+        once.
+      </p>
+      <div className="mt-2">
+        <FilterMenuGrid />
       </div>
       <h2 className="mt-8 text-lg font-bold">
         <code>groupableColumns</code>, grouped by Status

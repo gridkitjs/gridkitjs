@@ -5,6 +5,8 @@ description: "A filter popup per column, opened from its header — its sort ent
 
 A column with a filter menu opens a small dialog below its header for filtering that column: the column's sort entries at the top, an editor for its filter, and buttons to clear the filter, cancel or apply. It edits the grid's one [filter](/docs/react/column-filtering), so the menu, the toolbar's search box, `setFilter` and a controlled `filter` always agree.
 
+Three things open it, each [described below](#opening-it): the funnel button in a filterable header, <Kbd>Alt</Kbd>+<Kbd>Shift</Kbd>+<Kbd>ArrowDown</Kbd> on a focused header, and "Filter…" in a header's context menu. `<DataGrid {...excelFilter} />` turns the whole feature on in its Excel-style form — see [presets](#presets).
+
 ## Turning it on
 
 ```tsx
@@ -184,6 +186,24 @@ const [ui, setUi] = useState<"simple" | "excel">("simple");
   filterMenu={{ ui }}
 />;
 ```
+
+## Presets
+
+`excelFilter` is the options for the excel editor as one plain value — `{ filterableColumns: true, filterMenu: { ui: "excel", showCounts: true } }` — so a grid takes the whole feature in a spread:
+
+```tsx
+import { DataGrid, excelFilter } from "@gridkitjs/react";
+
+<DataGrid {...excelFilter} columns={columns} dataSource={orders} />;
+```
+
+A prop written after the spread overrides the preset, and one written before it is overridden by it. `filterMenu` is replaced whole, not merged setting by setting, so `filterMenu={{ ui: "simple" }}` after the spread brings the simple editor back and also drops the counts. To change one setting and keep the rest, spread the preset's own:
+
+```tsx
+<DataGrid {...excelFilter} filterMenu={{ ...excelFilter.filterMenu, ui }} />
+```
+
+The preset is core's, with the same names in every renderer — see [filtering](/docs/core/filtering#presets).
 
 ## Keyboard & pointer interactions
 
