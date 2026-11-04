@@ -289,3 +289,4 @@ export type { FormatLocale } from "./util/format";
 export { formatAggregateValue, formatCellValue } from "./util/format";
 export type { RowHeights, VisibleRange } from "./util/virtualization";
 export { visibleRange } from "./util/virtualization";
+export type { ExportScalar } from "./export/types";

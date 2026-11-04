@@ -33,6 +33,8 @@ defineColumnsFromRows inspects your row data and infers a type and alignment per
 | `cellClassName`    | `string`                                                 | Extra class names appended to this column's td, on every row.                                                                                                                                          |
 | `hidden`           | `boolean`                                                | Whether the column starts out hidden. It still sorts, filters and groups; `columnVisibility` state overrides it. See [the view pipeline](/docs/core/view).                                             |
 | `hideable`         | `boolean`                                                | Whether the user may hide the column — the built-in [`column.hide` command](/docs/core/commands#built-in-commands) and the column chooser honour it. Defaults to `true`; `hideColumns` still hides it. |
+| `exportable`       | `boolean`                                                | Whether the column is written to an export, a clipboard copy or a print. Defaults to `true`; `false` keeps it out of all of them, even when an export names it by id.                                  |
+| `exportValue`      | `(value: unknown, row: Row) => ExportScalar`             | The typed value an export stores for a cell — a `string`, `number`, `boolean`, `Date` or `null` — where the raw value is not the one to keep. Text still comes from `formatCellValue`.                 |
 
 ## Formatting values
 
