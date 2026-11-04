@@ -24,7 +24,7 @@ const writers = [xlsxWriter({ sheetName: "Orders" })];
 <DataGrid
   columns={columns}
   dataSource={orders}
-  toolbar={["export"]}
+  toolbar={{ items: ["export"] }}
   exportWriters={writers}
 />;
 ```
