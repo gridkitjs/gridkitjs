@@ -129,7 +129,7 @@ export type SelectAllState = "checked" | "unchecked" | "mixed";
  * Whether `entry` is about `columnId`: names it, or is a group with an entry
  * anywhere inside that does. An entry across every column is about none.
  */
-function touchesColumn<Row>(
+export function touchesColumn<Row>(
   entry: FilterEntry<Row>,
   columnId: string,
 ): boolean {

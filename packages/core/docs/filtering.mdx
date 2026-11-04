@@ -1,6 +1,6 @@
 ---
 title: "Filter state and the editor model"
-description: "describeColumnFilter, columnValueOptions and filterEditorReducer: the headless model a column's filter editor is drawn over, the filter menu's options, operators and condition rows — and searchTextOf and setSearchText, a search box's."
+description: "describeColumnFilter, columnValueOptions and filterEditorReducer: the headless model a column's filter editor is drawn over, the filter menu's options, operators, condition rows and value cache — and searchTextOf and setSearchText, a search box's."
 ---
 
 A grid's filter is one `FilterState` — entries ANDed together, described with every entry kind on [Column filtering](/docs/react/column-filtering). A filter editor, whether a list of conditions or an Excel-style checklist of values, is a UI over one column's part of that state. Core holds everything such an editor decides, so a renderer only draws it and every renderer's editor behaves the same:
@@ -60,6 +60,30 @@ An editor shows a custom filter as such; applying its draft replaces it.
 - `search` keeps the values whose label contains it, ignoring case; `total` is how many matched. `limit` cuts the list after that many, and `truncated` says it did.
 
 `rows` are the grid's own rows, unfiltered — its `dataSource`. One call is a single pass over them: tens of milliseconds at 100k rows. Make it when the editor opens, not on every render, and hand the whole list to the draft, whose own search needs no recount.
+
+## Caching the value lists
+
+`createColumnValueOptionsCache()` remembers each column's list, so reopening a column's checklist doesn't count its values again. Hold one per grid and ask it in place of `columnValueOptions`:
+
+```ts
+import { createColumnValueOptionsCache } from "@gridkitjs/core";
+
+const valueCache = createColumnValueOptionsCache<Order>();
+
+// When a checklist opens:
+const values = valueCache.get(rows, dataColumns, filter, "Region", {
+  locale,
+  messages,
+});
+```
+
+`get(rows, dataColumns, filter, columnId, { locale?, messages? })` returns the column's whole list — no `search` or `limit`, which the draft applies — and hands back the very object it returned last time while nothing the list depends on has changed:
+
+- the `rows` and `dataColumns`, by identity;
+- the `locale` and `messages`, by identity — pass the grid's own, not an object made on each render;
+- the filter's entries **not about the column**, one by one, by identity. `draftToFilter` keeps every entry it doesn't replace as it was, so applying one column's filter leaves its own list cached — a column's list never depends on its own entries — and the other columns' lists recount when they next open.
+
+Each column keeps its latest list. New rows, columns, locale or messages drop every list, so the cache never holds on to rows the grid has let go of.
 
 ## The editor draft
 

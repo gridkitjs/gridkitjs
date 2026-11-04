@@ -306,6 +306,11 @@ export type {
   ParsedConditionRows,
 } from "./filterMenu/conditions";
 export { conditionRowsFrom, conditionsFromRows } from "./filterMenu/conditions";
+export type {
+  ColumnValueCacheQuery,
+  ColumnValueOptionsCache,
+} from "./filterMenu/valueCache";
+export { createColumnValueOptionsCache } from "./filterMenu/valueCache";
 export type { GridMessages } from "./messages";
 export { defaultMessages, resolveMessages } from "./messages";
 export type { FormatLocale } from "./util/format";
