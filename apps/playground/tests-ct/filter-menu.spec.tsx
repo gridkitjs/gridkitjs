@@ -932,6 +932,11 @@ test.describe("the excel editor", () => {
     return filterMenu;
   }
 
+  /** The menu of conditions a "… filters" button opens, outside the filter menu. */
+  function operatorMenuOf(page: Page, name: string): Locator {
+    return page.getByRole("menu", { name });
+  }
+
   test("opens on the column's values in its sort order, labelled as its cells print, every one checked", async ({
     mount,
     page,
@@ -1405,5 +1410,227 @@ test.describe("the excel editor", () => {
     await expect(last).not.toBeFocused();
     await page.keyboard.press("Home");
     await expect(first).toBeFocused();
+  });
+
+  test("the operator submenu, opened by the keyboard, shows the condition chosen in place of the checklist, and OK applies it", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid filterMenu={{ ui: "excel" }} />,
+    );
+    const filterMenu = await openFromHeaderMenu(root, page, "Score");
+    const submenuButton = button(filterMenu, "Number filters");
+    await expect(submenuButton).toHaveAttribute("aria-haspopup", "menu");
+    await expect(submenuButton).toHaveAttribute("aria-expanded", "false");
+
+    await page.keyboard.press("Shift+Tab");
+    await expect(submenuButton).toBeFocused();
+    await page.keyboard.press("Enter");
+    const operators = operatorMenuOf(page, "Number filters");
+    await expect(operators.getByRole("menuitem")).toHaveText([
+      "Equals",
+      "Does not equal",
+      "Greater than",
+      "Greater than or equal to",
+      "Less than",
+      "Less than or equal to",
+      "Between",
+      "Is blank",
+      "Is not blank",
+    ]);
+    await expect(submenuButton).toHaveAttribute("aria-expanded", "true");
+    await expect(
+      operators.getByRole("menuitem", { name: "Equals" }),
+    ).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowDown");
+    await expect(
+      operators.getByRole("menuitem", { name: "Greater than", exact: true }),
+    ).toBeFocused();
+    await page.keyboard.press("Enter");
+
+    await expect(operators).toHaveCount(0);
+    await expect(checklistOf(filterMenu)).toHaveCount(0);
+    await expect(submenuButton).toHaveCount(0);
+    await expect(operatorOf(filterMenu, 1)).toHaveValue("gt");
+    await expect(valueOf(filterMenu, 1)).toBeFocused();
+    await page.keyboard.type("10");
+    await page.keyboard.press("Enter");
+
+    await expect(filterMenu).toHaveCount(0);
+    expect(await names(root)).toEqual(["Charlie", "Bravo"]);
+    await expect(reported(root)).toHaveText(
+      '[{"columnId":"score","operator":"gt","value":10}]',
+    );
+    await expect(liveRegion(root)).toHaveText("2 of 3 rows");
+  });
+
+  test("Escape, a click elsewhere in the filter menu or the button pressed again closes only the operator submenu", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid filterMenu={{ ui: "excel" }} />,
+    );
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+    const submenuButton = button(filterMenu, "Text filters");
+    const operators = operatorMenuOf(page, "Text filters");
+
+    await submenuButton.click();
+    await expect(
+      operators.getByRole("menuitem", { name: "Contains" }),
+    ).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(operators).toHaveCount(0);
+    await expect(filterMenu).toBeVisible();
+    await expect(submenuButton).toBeFocused();
+    await expect(submenuButton).toHaveAttribute("aria-expanded", "false");
+
+    await page.keyboard.press("ArrowUp");
+    await expect(
+      operators.getByRole("menuitem", { name: "Is not blank" }),
+    ).toBeFocused();
+    await submenuButton.click();
+    await expect(operators).toHaveCount(0);
+
+    await submenuButton.click();
+    await expect(operators).toBeVisible();
+    await searchOf(filterMenu).click();
+    await expect(operators).toHaveCount(0);
+    await expect(filterMenu).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(filterMenu).toHaveCount(0);
+    await expect(header(root, "Name")).toBeFocused();
+  });
+
+  test("on a conditions filter the operator submenu checks its operators, and one chosen opens with the value applied", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid
+        filterMenu={{ ui: "excel" }}
+        defaultFilter={[{ columnId: "score", operator: "gt", value: 10 }]}
+      />,
+    );
+    const operators = operatorMenuOf(page, "Number filters");
+
+    let filterMenu = await openFromHeaderMenu(root, page, "Score");
+    await expect(filterMenu.getByText("Filtered by condition")).toBeVisible();
+    const submenuButton = button(filterMenu, "Number filters");
+    await expect(
+      submenuButton.locator(".filter-menu-submenu-icon svg"),
+    ).toHaveCount(1);
+    await submenuButton.click();
+    const greaterThan = operators.getByRole("menuitemcheckbox", {
+      name: "Greater than",
+      exact: true,
+    });
+    await expect(greaterThan).toHaveAttribute("aria-checked", "true");
+    await expect(
+      operators.getByRole("menuitemcheckbox", { name: "Equals" }),
+    ).toHaveAttribute("aria-checked", "false");
+    await greaterThan.click();
+    await expect(operatorOf(filterMenu, 1)).toHaveValue("gt");
+    await expect(valueOf(filterMenu, 1)).toHaveValue("10");
+    await page.keyboard.press("Escape");
+
+    // Another operator keeps the value, as picking it in the condition does.
+    filterMenu = await openFromHeaderMenu(root, page, "Score");
+    await button(filterMenu, "Number filters").click();
+    await operators
+      .getByRole("menuitemcheckbox", { name: "Less than", exact: true })
+      .click();
+    await expect(operatorOf(filterMenu, 1)).toHaveValue("lt");
+    await expect(valueOf(filterMenu, 1)).toHaveValue("10");
+    await button(filterMenu, "OK").click();
+
+    expect(await names(root)).toEqual(["Alice"]);
+    await expect(reported(root)).toHaveText(
+      '[{"columnId":"score","operator":"lt","value":10}]',
+    );
+    filterMenu = await openFromHeaderMenu(root, page, "Name");
+    await expect(
+      button(filterMenu, "Text filters").locator(
+        ".filter-menu-submenu-icon svg",
+      ),
+    ).toHaveCount(0);
+  });
+
+  test("Back to values brings the checklist back as it was left, and a condition applied replaces the checked values", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid
+        filterMenu={{ ui: "excel" }}
+        defaultFilter={[
+          { columnId: "name", operator: "in", value: ["Alice", "Bravo"] },
+        ]}
+      />,
+    );
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+    const submenuButton = button(filterMenu, "Text filters");
+    const contains = operatorMenuOf(page, "Text filters").getByRole(
+      "menuitem",
+      { name: "Contains", exact: true },
+    );
+    await searchOf(filterMenu).fill("li");
+    await option(filterMenu, "Charlie").click();
+
+    await submenuButton.click();
+    await contains.click();
+    await expect(valueOf(filterMenu, 1)).toBeFocused();
+    await expect(filterMenu.getByText("Custom filter")).toHaveCount(0);
+    await valueOf(filterMenu, 1).fill("ar");
+    await button(filterMenu, "Back to values").click();
+
+    await expect(submenuButton).toBeFocused();
+    await expect(searchOf(filterMenu)).toHaveValue("li");
+    await expect(optionsOf(filterMenu)).toHaveText(["Alice", "Charlie"]);
+    await expect(option(filterMenu, "Charlie")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+
+    await submenuButton.click();
+    await contains.click();
+    await expect(valueOf(filterMenu, 1)).toHaveValue("");
+    await valueOf(filterMenu, 1).fill("ar");
+    await page.keyboard.press("Enter");
+
+    await expect(filterMenu).toHaveCount(0);
+    expect(await names(root)).toEqual(["Charlie"]);
+    await expect(reported(root)).toHaveText(
+      '[{"columnId":"name","operator":"contains","value":"ar"}]',
+    );
+  });
+
+  test("a column offering no conditions has no operator submenu", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <DataGrid
+        label="Checklist only"
+        columns={[
+          { field: "name", header: "Name", filterMenu: { operators: [] } },
+        ]}
+        dataSource={[{ name: "Alice" }]}
+        filterableColumns
+        filterMenu={{ ui: "excel" }}
+      />,
+    );
+
+    const filterMenu = await openFromButton(root, page, "Name");
+    await expect(optionsOf(filterMenu)).toHaveText(["Alice"]);
+    await expect(filterMenu.locator('[aria-haspopup="menu"]')).toHaveCount(0);
   });
 });

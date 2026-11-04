@@ -138,6 +138,7 @@ With `filterMenu.ui: "excel"` — the grid's, or a column's own — the menu lis
 - **The search box** narrows the list to the values whose label holds what is typed, ignoring case.
 - **"Select all"** checks every value the search shows, or unchecks them once all are — "(Blanks)" too while nothing is searched. It is a native checkbox, shown mixed while only some are checked.
 - **A long list** draws only the values near its scroll position, so a column of thousands of values opens as quickly as one of ten. Past `filterMenu.valueLimit` values — 10,000 by default — it lists none until something is searched ("Type to search 12000 values"), and a search matching more lists the first of them, saying how many it left out ("250 more, refine the search"). "Select all" still covers every value meanwhile.
+- **"Text filters"** — "Number filters", "Date filters" or "Boolean filters", by the column's `type` — sits above the search box and opens a menu of the conditions the column offers, the simple editor's, beside the filter menu. Choosing one shows [the simple editor](#the-simple-editor) in place of the checklist, its first condition at the one chosen, under "Back to values", which brings the checklist back as it was left. A column whose `filterMenu.operators` is empty offers no menu.
 
 OK, or <Kbd>Enter</Kbd>, applies the checked values in place of every entry about the column, keeping every other column's. Every value checked is no filter at all; anything less is one `in` entry holding the values checked, OR-ed with "is blank" while "(Blanks)" stays checked:
 
@@ -159,9 +160,11 @@ OK, or <Kbd>Enter</Kbd>, applies the checked values in place of every entry abou
 
 The `in` entry holds the values checked rather than the ones left out, so a value that turns up later, in a new row, stays filtered out until it is checked. The rows the filter keeps are announced as [the simple editor's](#the-simple-editor) are.
 
+With a condition chosen from "Text filters", OK applies the conditions instead, as the simple editor does — in place of the values checked, since a column is filtered by its values or by conditions, never both, as in Excel.
+
 Opened again, the menu shows the values checked as they are applied, whatever applied them.
 
-- **Conditions**, as the simple editor or `setFilter` writes them, open with every value checked under "Filtered by condition", and **a filter the editor can't show** — a text query, a predicate, a group across columns — under "Custom filter". Either stays as it is until a value is checked or unchecked and applied, replacing it, or "Clear filter" takes it out.
+- **Conditions**, as the simple editor or `setFilter` writes them, open with every value checked under "Filtered by condition", the "Text filters" button ticked and the operators they use checked in its menu — choosing one opens the conditions as applied, the first at that operator, its value kept. **A filter the editor can't show** — a text query, a predicate, a group across columns — opens under "Custom filter". Either stays as it is until a value is checked or unchecked, or a condition applied, replacing it, or "Clear filter" takes it out.
 - **OK on checks left as they opened**, whatever was searched, just closes the menu.
 
 ## Keyboard & pointer interactions
@@ -178,6 +181,9 @@ The menu is a dialog that holds a draft, so it keeps focus: tabbing out of it wo
 | <Kbd>Home</Kbd> / <Kbd>End</Kbd> in the checklist                        | The first or last value, however long the list.                                               |
 | <Kbd>PageDown</Kbd> / <Kbd>PageUp</Kbd> in the checklist                 | As many values down or up as the list shows at once.                                          |
 | <Kbd>Space</Kbd> in the checklist, or a click on a value                 | Checks or unchecks the value.                                                                 |
+| <Kbd>Enter</Kbd> or <Kbd>ArrowDown</Kbd> on "Text filters"               | Opens its menu of conditions on the first; <Kbd>ArrowUp</Kbd> on the last.                    |
+| <Kbd>ArrowDown</Kbd> / <Kbd>ArrowUp</Kbd> in that menu                   | The next or previous condition. <Kbd>Enter</Kbd> chooses it, in place of the checklist.       |
+| <Kbd>Escape</Kbd> or <Kbd>Tab</Kbd> in that menu                         | Closes only the menu, giving focus back to "Text filters".                                    |
 | <Kbd>Enter</Kbd>                                                         | Anywhere but on a button — a box, a picker, a checkbox, the checklist — applies, as OK does.  |
 | <Kbd>Escape</Kbd>                                                        | Closes it without applying, giving focus back to the header.                                  |
 | A click outside it, a scroll or a resize                                 | Closes it without applying.                                                                   |
@@ -233,5 +239,7 @@ Every string the menu shows is a message — see [localization](/docs/react/loca
 | `filterSearchFirst`        | "Type to search 12000 values" — in place of a list past `valueLimit`.      |
 | `filterMoreValues`         | "250 more, refine the search" — under a search matching more.              |
 | `filterByCondition`        | "Filtered by condition" — above the checklist, for conditions.             |
+| `filterOperatorMenu`       | "Number filters" — the button opening the column's conditions, by type.    |
+| `filterBackToValues`       | "Back to values" — the button from a condition back to the checklist.      |
 
 The theme's classes for it are listed under [filter menu](/docs/theme-tailwind#filter-menu), and the header's filter button under [header](/docs/theme-tailwind#header).

@@ -1,6 +1,7 @@
 import {
   useImperativeHandle,
   useLayoutEffect,
+  useMemo,
   useReducer,
   useRef,
   useState,
@@ -15,8 +16,12 @@ import {
   type ColumnValueOptions,
   type FilterChecklistItem,
   type FilterEditorAction,
+  type FilterOperator,
 } from "@gridkitjs/core";
-import type { FilterEditorProps } from "./filterEditor";
+import { ChevronLeftIcon } from "../menu/menuIcons";
+import type { FilterEditorHandle, FilterEditorProps } from "./filterEditor";
+import OperatorMenuButton from "./OperatorMenuButton";
+import SimpleFilterEditor from "./SimpleFilterEditor";
 import ValueChecklist from "./ValueChecklist";
 
 export interface ExcelFilterEditorProps<Row> extends FilterEditorProps<Row> {
@@ -49,6 +54,12 @@ function toggleOf<Row>(item: FilterChecklistItem): FilterEditorAction<Row> {
  * draft through `draftToFilter`: everything checked is no filter, anything
  * less one `in` list, OR-ed with "is blank" while the blanks stay checked.
  *
+ * Above the search, a "Number filters" button opens a menu of the column's
+ * conditions. Choosing one shows the simple editor in place of the
+ * checklist, its first condition at the operator chosen, until "Back to
+ * values" brings the checklist back as it was left; OK there applies the
+ * conditions, which replace the column's values, as Excel's do.
+ *
  * Conditions or a custom filter open with every value checked, under a note
  * saying the column is filtered otherwise. OK leaves that filter be until a
  * value is checked or unchecked, as it leaves any filter whose values are as
@@ -68,17 +79,30 @@ export default function ExcelFilterEditor<Row>({
   const [opened] = useState(() => {
     const shape = describeColumnFilter(controller.getState().filter, column.id);
     return {
-      kind: shape.kind,
+      shape,
       draft: initialFilterEditorDraft(shape, columnValues(column.id)),
     };
   });
   const [draft, dispatch] = useReducer(filterEditorReducer<Row>, opened.draft);
+  /** The operator chosen from the menu, while its condition shows in place of the checklist. */
+  const [operator, setOperator] = useState<FilterOperator | null>(null);
+  const conditions = useRef<FilterEditorHandle>(null);
+  const conditionsFocus = useRef<HTMLElement | null>(null);
+  const operatorButton = useRef<HTMLButtonElement>(null);
+  /** Set as the editor switches to a condition or back, for focus to follow. */
+  const switched = useRef(false);
   const selectAllRef = useRef<HTMLInputElement>(null);
-  const selectAll = selectAllState(draft);
-  const checklist = filterChecklist(draft, {
-    valueLimit: menu.valueLimit,
-    blanksLabel: messages.filterBlanks,
-  });
+  // Each a pass over every value — tens of thousands of them on a large
+  // column — so worked out as the draft changes, not on every render.
+  const selectAll = useMemo(() => selectAllState(draft), [draft]);
+  const checklist = useMemo(
+    () =>
+      filterChecklist(draft, {
+        valueLimit: menu.valueLimit,
+        blanksLabel: messages.filterBlanks,
+      }),
+    [draft, menu.valueLimit, messages.filterBlanks],
+  );
 
   // A checkbox's mixed state has no attribute, only this property.
   useLayoutEffect(() => {
@@ -87,8 +111,28 @@ export default function ExcelFilterEditor<Row>({
     }
   });
 
+  // Once the other side is drawn: to the condition's first box, or back to
+  // the button whose menu chose it.
+  useLayoutEffect(() => {
+    if (switched.current) {
+      switched.current = false;
+      (operator === null
+        ? operatorButton.current
+        : conditionsFocus.current
+      )?.focus();
+    }
+  }, [operator]);
+
+  function showCondition(chosen: FilterOperator | null): void {
+    switched.current = true;
+    setOperator(chosen);
+  }
+
   useImperativeHandle(ref, () => ({
     apply: () => {
+      if (operator !== null) {
+        return conditions.current?.apply() ?? true;
+      }
       const picked =
         draft.checked !== opened.draft.checked ||
         draft.includeBlanks !== opened.draft.includeBlanks;
@@ -101,11 +145,56 @@ export default function ExcelFilterEditor<Row>({
     },
   }));
 
+  if (operator !== null) {
+    return (
+      <>
+        <button
+          type="button"
+          className="filter-menu-back"
+          onClick={() => {
+            showCondition(null);
+          }}
+        >
+          <span className="filter-menu-back-icon" aria-hidden="true">
+            <ChevronLeftIcon />
+          </span>
+          {messages.filterBackToValues}
+        </button>
+        <SimpleFilterEditor
+          ref={conditions}
+          column={column}
+          menu={menu}
+          controller={controller}
+          messages={messages}
+          initialFocusRef={(element) => {
+            conditionsFocus.current = element;
+          }}
+          applyFilter={applyFilter}
+          operator={operator}
+        />
+      </>
+    );
+  }
+
+  const { shape } = opened;
   return (
     <div className="filter-menu-values">
-      {(opened.kind === "conditions" || opened.kind === "custom") && (
+      {menu.operators.length > 0 && (
+        <OperatorMenuButton
+          ref={operatorButton}
+          menu={menu}
+          active={
+            shape.kind === "conditions"
+              ? shape.conditions.map((condition) => condition.operator)
+              : undefined
+          }
+          messages={messages}
+          onChoose={showCondition}
+        />
+      )}
+      {(shape.kind === "conditions" || shape.kind === "custom") && (
         <p className="filter-menu-custom">
-          {opened.kind === "conditions"
+          {shape.kind === "conditions"
             ? messages.filterByCondition
             : messages.customFilter}
         </p>
