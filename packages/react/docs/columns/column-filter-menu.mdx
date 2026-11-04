@@ -23,10 +23,24 @@ A column with a filter menu opens a small dialog below its header for filtering 
 
 `filterableColumns` gives every column a filter menu unless the column's own `filterable` says otherwise; it is off by default, like `sortableColumns`. The filter applies either way: a column without a menu is still filtered by `defaultFilter`, `setFilter` or a search.
 
-| Prop                | Type      | Default | Description                                                        |
-| ------------------- | --------- | ------- | ------------------------------------------------------------------ |
-| `filterableColumns` | `boolean` | `false` | Whether columns get a filter menu, unless a column says otherwise. |
-| `column.filterable` | `boolean` |         | Per-column override of `filterableColumns`.                        |
+| Prop                | Type                      | Default | Description                                                                     |
+| ------------------- | ------------------------- | ------- | ------------------------------------------------------------------------------- |
+| `filterableColumns` | `boolean`                 | `false` | Whether columns get a filter menu, unless a column says otherwise.              |
+| `column.filterable` | `boolean`                 |         | Per-column override of `filterableColumns`.                                     |
+| `filterMenu`        | `GridFilterMenuOptions`   |         | How the grid's filter menus look — see [options](#options).                     |
+| `column.filterMenu` | `ColumnFilterMenuOptions` |         | Per-column override of `filterMenu.ui`, and the operators its conditions offer. |
+
+### Options
+
+`filterMenu` sets every filter menu of the grid; a column's own `filterMenu` overrides it, setting by setting.
+
+| Option                        | Type                        | Default         | Description                                                                                                                                                                   |
+| ----------------------------- | --------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `filterMenu.ui`               | `"simple" \| "excel"`       | `"simple"`      | Which editor the menu opens. Every editor edits the one filter, so switching keeps it. `"excel"` names the checklist editor, which is not drawn yet: it opens the simple one. |
+| `filterMenu.showCounts`       | `boolean`                   | `false`         | For the checklist editor: whether each value shows how many rows hold it.                                                                                                     |
+| `filterMenu.valueLimit`       | `number`                    | `10000`         | For the checklist editor: how many values it lists before asking for a search first.                                                                                          |
+| `column.filterMenu.ui`        | `"simple" \| "excel"`       | `filterMenu.ui` | Which editor this column's menu opens.                                                                                                                                        |
+| `column.filterMenu.operators` | `readonly FilterOperator[]` | by `type`       | The conditions this column offers, in order, in place of its type's — see [the simple editor](#the-simple-editor). `in` is dropped, since only a checklist picks values.      |
 
 ## Opening it
 
@@ -59,8 +73,50 @@ While a column with a filter menu is filtered — by the menu, `setFilter`, a co
 ## What it shows
 
 - **The column's sort entries** — "Sort ascending", "Sort descending" and "Clear sort", the header menu's own — while the column [sorts](/docs/react/column-sorting). Choosing one sorts the column and closes the menu; "Sort ascending" or "Sort descending" is pressed while the column sorts that way.
+- **The editor**, for the column's filter — see [the simple editor](#the-simple-editor).
 - **"Clear filter"**, which takes every entry about the column out of the filter and closes the menu — whichever editor wrote them, or none did, as with a predicate set in code. Disabled while the column is not filtered.
 - **Cancel** and **OK**. The editor edits a draft, so nothing filters until OK applies it; Cancel drops it.
+
+## The simple editor
+
+One condition — an operator and a value — and an optional second, joined to the first by **And** or **Or**:
+
+- **The operator** lists the conditions the column offers, in its type's words: "Before" and "After" on a date column where a number reads "Less than" and "Greater than".
+- **The value** goes in a box made for the column's `type`: a number box, a date picker on a `"date"` column, a date-and-time picker on a `"dateTime"` or `"time"` one, a true/false choice on a `"boolean"` one, and a text box on the rest. "Between" takes two, From and To; "Is blank" and "Is not blank" take none.
+- **The second condition** is optional: left empty, it is dropped.
+
+| Column `type`          | Its conditions, by default                                                                                                        |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| text, and no `type`    | Contains, Does not contain, Equals, Does not equal, Starts with, Ends with, Is blank, Is not blank                                |
+| a number type          | Equals, Does not equal, Greater than, Greater than or equal to, Less than, Less than or equal to, Between, Is blank, Is not blank |
+| `"date"`               | Equals, Does not equal, Before, After, Between, Is blank, Is not blank                                                            |
+| `"dateTime"`, `"time"` | Before, After, Between, Is blank, Is not blank — a moment seldom equals a typed minute to the millisecond                         |
+| `"boolean"`            | Equals, Is blank, Is not blank                                                                                                    |
+
+A column's `filterMenu.operators` lists its own instead — `{ field: "Amount", type: "number", filterMenu: { operators: ["gt", "lt", "between"] } }`.
+
+OK, or <Kbd>Enter</Kbd>, applies the conditions in place of every entry about the column, keeping every other column's: one condition as one operator entry, two as a group with their combinator.
+
+```ts
+// "Score" between 10 and 25
+[{ columnId: "score", operator: "between", value: [10, 25] }];
+
+// "Name" contains "Ch" or starts with "Al"
+[
+  {
+    combinator: "or",
+    entries: [
+      { columnId: "name", operator: "contains", value: "Ch" },
+      { columnId: "name", operator: "startsWith", value: "Al" },
+    ],
+  },
+];
+```
+
+Opened again, the menu shows the conditions as they are applied, whatever applied them: the menu itself, `defaultFilter`, `setFilter` or a controlled `filter`. A condition set in code with an operator the column doesn't offer still shows, its operator listed for it.
+
+- **A value that doesn't read** — a condition left without one, a number the box can't read, a date missing its year, a "Between" missing an end — keeps the menu open. The box is marked invalid, described by a message ("Enter a number"), and takes focus. OK on conditions left as they opened, with nothing typed in them, just closes the menu.
+- **A filter the editor can't show** — a text query, a predicate, a group across columns, or a list of values — reads "Custom filter" above empty conditions. It stays as it is until conditions are applied in its place, or "Clear filter" takes it out.
 
 ## Keyboard & pointer interactions
 
@@ -69,9 +125,9 @@ The menu is a dialog that holds a draft, so it keeps focus: tabbing out of it wo
 | Key or action                                                            | Does                                                                                          |
 | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
 | <Kbd>Alt</Kbd>+<Kbd>Shift</Kbd>+<Kbd>ArrowDown</Kbd> on a focused header | Opens its filter menu.                                                                        |
-| Opening it                                                               | Focus goes to its first control.                                                              |
+| Opening it                                                               | Focus goes to the first condition's value box — or its operator, when that takes no value.    |
 | <Kbd>Tab</Kbd> / <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd>                         | The next or previous control, wrapping round inside the menu. A disabled button is passed by. |
-| <Kbd>Enter</Kbd>                                                         | In a field, applies, as OK does; on a button, presses it.                                     |
+| <Kbd>Enter</Kbd>                                                         | In a box, a picker or a radio button, applies, as OK does; on a button, presses it.           |
 | <Kbd>Escape</Kbd>                                                        | Closes it without applying, giving focus back to the header.                                  |
 | A click outside it, a scroll or a resize                                 | Closes it without applying.                                                                   |
 
@@ -98,13 +154,24 @@ selection stays.
 
 Every string the menu shows is a message — see [localization](/docs/react/localization):
 
-| Key                 | Default                                                         |
-| ------------------- | --------------------------------------------------------------- |
-| `openFilter`        | "Filter…" — `filter.open`'s label.                              |
-| `clearColumnFilter` | "Clear filter" — `filter.clear`'s label, and the menu's button. |
-| `filterMenuLabel`   | "Name filter" — the dialog's accessible name, after its column. |
-| `columnFiltered`    | "Filtered" — a filtered column's header's description.          |
-| `applyFilter`       | "OK"                                                            |
-| `cancelFilter`      | "Cancel"                                                        |
+| Key                        | Default                                                                     |
+| -------------------------- | --------------------------------------------------------------------------- |
+| `openFilter`               | "Filter…" — `filter.open`'s label.                                          |
+| `clearColumnFilter`        | "Clear filter" — `filter.clear`'s label, and the menu's button.             |
+| `filterMenuLabel`          | "Name filter" — the dialog's accessible name, after its column.             |
+| `columnFiltered`           | "Filtered" — a filtered column's header's description.                      |
+| `applyFilter`              | "OK"                                                                        |
+| `cancelFilter`             | "Cancel"                                                                    |
+| `filterOperatorLabel`      | "Before" — a condition's operator, in its column type's words.              |
+| `filterConditionLabel`     | "Condition 1" — a condition's accessible name.                              |
+| `filterOperatorFieldLabel` | "Operator" — its operator picker's accessible name.                         |
+| `filterValueLabel`         | "Value" — its value box's accessible name.                                  |
+| `filterFromLabel`          | "From" — a "Between" condition's first box.                                 |
+| `filterToLabel`            | "To" — its second box.                                                      |
+| `filterCombinatorLabel`    | "Combine conditions" — the And/Or choice's accessible name.                 |
+| `filterAnd`                | "And"                                                                       |
+| `filterOr`                 | "Or"                                                                        |
+| `filterValueInvalid`       | "Enter a number" — under a value that doesn't read, by the column's type.   |
+| `customFilter`             | "Custom filter" — above the conditions, for a filter the editor can't show. |
 
 The theme's classes for it are listed under [filter menu](/docs/theme-tailwind#filter-menu), and the header's filter button under [header](/docs/theme-tailwind#header).

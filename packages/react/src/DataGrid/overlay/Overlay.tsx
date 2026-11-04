@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import {
   attachOverlay,
@@ -20,7 +20,14 @@ interface OverlayProps {
   placement?: OverlayPlacement | undefined;
   gap?: number | undefined;
   offset?: number | undefined;
-  initialFocus?: OverlayInitialFocus | undefined;
+  /**
+   * Where focus goes on attaching — see `attachOverlay`'s option — or a ref
+   * to the control it goes to, read as the overlay attaches, once its
+   * children have mounted, so that it can be one of theirs. A ref holding
+   * nothing sends it to the first control.
+   */
+  initialFocus?:
+    OverlayInitialFocus | RefObject<HTMLElement | null> | undefined;
   returnFocusTo?: HTMLElement | null | undefined;
   /** See `attachOverlay`'s option: a panel whose controls change the grid under it. */
   ignoreScrollAfterInput?: boolean | undefined;
@@ -40,6 +47,15 @@ interface OverlayProps {
  * takes it.
  */
 export const ANCHOR_GAP = 4;
+
+/** `focus` as `attachOverlay` takes it, reading a ref's control now. */
+function attachedFocus(
+  focus: OverlayProps["initialFocus"],
+): OverlayInitialFocus | undefined {
+  return typeof focus === "object" && !(focus instanceof HTMLElement)
+    ? (focus.current ?? "first")
+    : focus;
+}
 
 /**
  * The palette class an overlay opened from `element` copies:
@@ -97,7 +113,7 @@ export default function Overlay({
       placement,
       gap,
       offset,
-      initialFocus,
+      initialFocus: attachedFocus(initialFocus),
       returnFocusTo,
       ignoreScrollAfterInput,
       trapFocus,

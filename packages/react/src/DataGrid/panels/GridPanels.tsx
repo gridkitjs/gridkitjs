@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useRef, type ReactNode, type RefCallback } from "react";
 import type {
   GridCommandTarget,
   GridMessages,
@@ -22,6 +22,12 @@ export interface GridPanelProps<Row> {
   readonly messages: GridMessages;
   /** Closes the panel, giving focus back to where it was opened from. */
   readonly close: () => void;
+  /**
+   * The `ref` of the control focus starts on as the panel opens — a filter
+   * editor's value box. A panel giving it to none starts on its first
+   * control.
+   */
+  readonly initialFocusRef: RefCallback<HTMLElement>;
 }
 
 /** How one kind of panel is drawn. */
@@ -62,6 +68,7 @@ export default function GridPanels<Row>({
   commands,
   messages,
 }: GridPanelsProps<Row>) {
+  const initialFocus = useRef<HTMLElement>(null);
   const { panel, close } = panels;
   if (panel === null) {
     return null;
@@ -73,6 +80,7 @@ export default function GridPanels<Row>({
       anchor={panel.anchor}
       placement={panel.placement}
       gap={panel.anchor instanceof Element ? ANCHOR_GAP : 0}
+      initialFocus={initialFocus}
       returnFocusTo={panel.returnFocusTo}
       // A column the chooser hides can scroll the grid back under it.
       ignoreScrollAfterInput
@@ -86,6 +94,9 @@ export default function GridPanels<Row>({
         commands={commands}
         messages={messages}
         close={close}
+        initialFocusRef={(element) => {
+          initialFocus.current = element;
+        }}
       />
     </Overlay>
   );

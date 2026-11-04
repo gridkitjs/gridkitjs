@@ -1,4 +1,4 @@
-import { useEffect, type SubmitEvent } from "react";
+import { useEffect, useRef, type SubmitEvent } from "react";
 import {
   resolveColumnFilterMenu,
   resolveColumnHeaderText,
@@ -10,6 +10,8 @@ import {
 import { ariaAttr } from "../ariaAttr";
 import { MenuIcon } from "../menu/menuIcons";
 import type { GridPanelProps } from "../panels/GridPanels";
+import type { FilterEditorHandle } from "./filterEditor";
+import SimpleFilterEditor from "./SimpleFilterEditor";
 
 /** The sort commands offered above the editor, each hidden where its column cannot sort. */
 const SORT_COMMANDS: readonly BuiltInCommandId[] = [
@@ -32,6 +34,8 @@ function isItem(entry: ResolvedMenuEntry): entry is ResolvedMenuItem {
  *
  * The editor edits a draft, so nothing filters until it is applied: OK, or
  * Enter in a field, applies it; Cancel, Escape or a click outside drops it.
+ * The menu closes once the editor has applied, and stays open while the
+ * editor marks what keeps it from applying.
  */
 export default function FilterMenu<Row>({
   target,
@@ -39,7 +43,9 @@ export default function FilterMenu<Row>({
   commands,
   messages,
   close,
+  initialFocusRef,
 }: GridPanelProps<Row>) {
+  const editor = useRef<FilterEditorHandle>(null);
   const column =
     target.area === "header"
       ? controller
@@ -79,7 +85,9 @@ export default function FilterMenu<Row>({
 
   function apply(event: SubmitEvent<HTMLFormElement>): void {
     event.preventDefault();
-    close();
+    if (editor.current?.apply() ?? true) {
+      close();
+    }
   }
 
   return (
@@ -95,7 +103,22 @@ export default function FilterMenu<Row>({
        * holds, so a `type="number"` input's whole-number step never blocks
        * an apply with a tooltip of the browser's own.
        */}
-      <form className="filter-menu-form" noValidate onSubmit={apply}>
+      <form
+        className="filter-menu-form"
+        noValidate
+        onSubmit={apply}
+        onKeyDown={(event) => {
+          // Enter submits a form from its text boxes but not from a picker;
+          // here it applies from either.
+          if (
+            event.key === "Enter" &&
+            event.target instanceof HTMLSelectElement
+          ) {
+            event.preventDefault();
+            event.currentTarget.requestSubmit();
+          }
+        }}
+      >
         {sortItems.length > 0 && (
           <div className="filter-menu-sort">
             {sortItems.map((item) => (
@@ -121,6 +144,18 @@ export default function FilterMenu<Row>({
             ))}
           </div>
         )}
+        {/*
+         * `menu.ui` picks the editor; the simple one is the only one so far,
+         * so every menu draws it.
+         */}
+        <SimpleFilterEditor
+          ref={editor}
+          column={column}
+          menu={menu}
+          controller={controller}
+          messages={messages}
+          initialFocusRef={initialFocusRef}
+        />
         <div className="filter-menu-actions">
           {clearItem !== undefined && (
             <button
