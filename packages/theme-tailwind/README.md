@@ -1,6 +1,6 @@
 # @gridkitjs/theme-tailwind
 
-Tailwind v4 theme for [GridKit](https://github.com/blagojablazhevski/gridkit) —
+Tailwind v4 theme for [GridKit](https://github.com/gridkitjs/gridkitjs) —
 palette tokens, dark mode and the grid's styles.
 
 > **Early development.** The API is still moving and may break between minor

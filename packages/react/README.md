@@ -70,7 +70,7 @@ announces, and `locale` formats dates and numbers.
 
 Requires React 19.
 
-Full documentation: [github.com/blagojablazhevski/gridkit](https://github.com/blagojablazhevski/gridkit#readme)
+Full documentation: [github.com/gridkitjs/gridkitjs](https://github.com/gridkitjs/gridkitjs#readme)
 
 ## License
 

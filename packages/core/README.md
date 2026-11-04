@@ -29,7 +29,7 @@ is handed rather than re-deriving it.
 
 For React, see [`@gridkitjs/react`](https://www.npmjs.com/package/@gridkitjs/react).
 
-Full documentation: [github.com/blagojablazhevski/gridkit](https://github.com/blagojablazhevski/gridkit#readme)
+Full documentation: [github.com/gridkitjs/gridkitjs](https://github.com/gridkitjs/gridkitjs#readme)
 
 ## License
 

@@ -57,7 +57,7 @@ Overlays stack in the order they attach: Escape and outside clicks reach the
 topmost first, and detaching one closes every overlay opened above it, so a
 submenu never outlives its menu.
 
-Full documentation: [github.com/blagojablazhevski/gridkit](https://github.com/blagojablazhevski/gridkit#readme)
+Full documentation: [github.com/gridkitjs/gridkitjs](https://github.com/gridkitjs/gridkitjs#readme)
 
 ## License
 

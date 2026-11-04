@@ -39,7 +39,7 @@ const writers = [xlsxWriter({ sheetName: "Orders" })];
 | `headerRows` | `string[]` or `(context) => string[]` | none       | Lines above the header row: a report's name, when it was exported.           |
 | `values`     | `"typed"` or `"text"`                 | `"typed"`  | Store numbers, dates and booleans as Excel's own, or every cell as its text. |
 
-Full documentation: [github.com/blagojablazhevski/gridkit](https://github.com/blagojablazhevski/gridkit#readme)
+Full documentation: [github.com/gridkitjs/gridkitjs](https://github.com/gridkitjs/gridkitjs#readme)
 
 ## License
 
