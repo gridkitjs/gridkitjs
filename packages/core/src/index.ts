@@ -311,6 +311,12 @@ export type {
   ColumnValueOptionsCache,
 } from "./filterMenu/valueCache";
 export { createColumnValueOptionsCache } from "./filterMenu/valueCache";
+export type {
+  FilterChecklist,
+  FilterChecklistItem,
+  FilterChecklistOptions,
+} from "./filterMenu/checklist";
+export { filterChecklist } from "./filterMenu/checklist";
 export type { GridMessages } from "./messages";
 export { defaultMessages, resolveMessages } from "./messages";
 export type { FormatLocale } from "./util/format";

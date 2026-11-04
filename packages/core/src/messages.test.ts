@@ -76,6 +76,9 @@ function rendered(messages: GridMessages): Record<keyof GridMessages, string> {
     showAllColumns: messages.showAllColumns,
     noMatchingColumns: messages.noMatchingColumns,
     filterOperatorLabel: messages.filterOperatorLabel("lt", "date"),
+    filterBlanks: messages.filterBlanks,
+    filterSearchFirst: messages.filterSearchFirst(12000),
+    filterMoreValues: messages.filterMoreValues(250),
   };
 }
 
@@ -150,6 +153,9 @@ describe("defaultMessages", () => {
       showAllColumns: "Show all",
       noMatchingColumns: "No matching columns",
       filterOperatorLabel: "Before",
+      filterBlanks: "(Blanks)",
+      filterSearchFirst: "Type to search 12000 values",
+      filterMoreValues: "250 more, refine the search",
     });
   });
 
@@ -244,6 +250,13 @@ describe("defaultMessages", () => {
     expect(filterOperatorLabel("gt", "text")).toBe("Greater than");
     expect(filterOperatorLabel("contains", "date")).toBe("Contains");
     expect(filterOperatorLabel("in", "text")).toBe("Is one of");
+  });
+
+  test("counts the values a checklist waits to search as one or many", () => {
+    expect(defaultMessages.filterSearchFirst(1)).toBe("Type to search 1 value");
+    expect(defaultMessages.filterSearchFirst(20000)).toBe(
+      "Type to search 20000 values",
+    );
   });
 });
 

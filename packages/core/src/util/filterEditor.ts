@@ -325,7 +325,7 @@ export function columnValueOptions<Row>(
 }
 
 /** The key `draft.checked` holds `value` under. */
-function keyOf<Row>(
+export function keyOf<Row>(
   draft: Pick<FilterEditorDraft<Row>, "columnType">,
   value: FilterScalar,
 ): string {
@@ -397,7 +397,9 @@ export function visibleFilterOptions<Row>(
 }
 
 /** Blanks count among what select-all covers only while nothing is searched. */
-function selectAllCoversBlanks<Row>(draft: FilterEditorDraft<Row>): boolean {
+export function selectAllCoversBlanks<Row>(
+  draft: FilterEditorDraft<Row>,
+): boolean {
   return draft.search === "" && draft.blanks > 0;
 }
 

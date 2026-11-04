@@ -151,6 +151,15 @@ export interface GridMessages {
     operator: FilterOperator,
     family: FilterOperatorFamily,
   ) => string;
+  /** A filter checklist's item for the column's blank cells. */
+  filterBlanks: string;
+  /**
+   * Shown in place of a filter checklist whose column holds more values
+   * than `filterMenu.valueLimit`, until something is searched.
+   */
+  filterSearchFirst: (total: number) => string;
+  /** Shown under a searched filter checklist `filterMenu.valueLimit` cut short: how many matches it left out. */
+  filterMoreValues: (count: number) => string;
 }
 
 /** "3 columns hidden", "1 column shown", "2 columns autofitted". */
@@ -216,6 +225,13 @@ function filterOperatorLabel(
     (family === "date" ? dateOperatorLabels[operator] : undefined) ??
     operatorLabels[operator]
   );
+}
+
+/** "Type to search 12000 values", "Type to search 1 value". */
+function filterSearchFirst(total: number): string {
+  return total === 1
+    ? "Type to search 1 value"
+    : `Type to search ${String(total)} values`;
 }
 
 /** The grid's own English, which `messages` replaces key by key. */
@@ -295,6 +311,9 @@ export const defaultMessages: GridMessages = {
   showAllColumns: "Show all",
   noMatchingColumns: "No matching columns",
   filterOperatorLabel,
+  filterBlanks: "(Blanks)",
+  filterSearchFirst,
+  filterMoreValues: (count) => `${String(count)} more, refine the search`,
 };
 
 /**
