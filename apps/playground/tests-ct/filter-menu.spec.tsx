@@ -6,6 +6,7 @@ import type { MountResult } from "@playwright/experimental-ct-react";
 import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import FilterMenuGrid from "./support/FilterMenuGrid";
+import HundredThousandRowsGrid from "./support/HundredThousandRowsGrid";
 import ImperativeApiGrid from "./support/ImperativeApiGrid";
 import ManyValuesGrid from "./support/ManyValuesGrid";
 import { mountGrid, updateGrid } from "./support/mountGrid";
@@ -1688,5 +1689,111 @@ test.describe("the excel editor", () => {
     await expect(reported(root)).toHaveText(
       '[{"columnId":"score","operator":"gt","value":10},{"columnId":"name","operator":"in","value":["Charlie"]}]',
     );
+  });
+
+  test.describe("on 100,000 rows", () => {
+    /**
+     * Clicks `target` in the page — or, given `text`, types it into the box
+     * in one go — and returns the milliseconds until the frame after the
+     * render it causes has painted: a timing to record, never to assert on.
+     */
+    function timed(
+      target: Locator,
+      text: string | null = null,
+    ): Promise<number> {
+      return target.evaluate(async (element: HTMLElement, typed) => {
+        const start = performance.now();
+        if (typed === null) {
+          element.click();
+        } else if (element instanceof HTMLInputElement) {
+          // The native setter, which React's tracking of the value lets
+          // through as typing.
+          Object.getOwnPropertyDescriptor(
+            HTMLInputElement.prototype,
+            "value",
+          )?.set?.call(element, typed);
+          element.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        await new Promise((resolve) => {
+          requestAnimationFrame(() => {
+            setTimeout(resolve);
+          });
+        });
+        return performance.now() - start;
+      }, text);
+    }
+
+    /** Records a timing on the test, for the report to show. */
+    function record(what: string, milliseconds: number): void {
+      test.info().annotations.push({
+        type: "timing",
+        description: `${what}: ${milliseconds.toFixed(0)} ms`,
+      });
+    }
+
+    test("a column of a value per row waits for a search, one of five lists them, and a pick of 1,000 applies", async ({
+      mount,
+      page,
+    }) => {
+      const root = await mountGrid(mount, <HundredThousandRowsGrid />);
+      const nameButton = filterButton(root, "Name");
+      const regionButton = filterButton(root, "Region");
+
+      record("first open, 100,000 values", await timed(nameButton));
+      let filterMenu = filterMenuOf(page, "Name");
+      await expect(
+        filterMenu.getByText("Type to search 100000 values"),
+      ).toBeVisible();
+      await page.keyboard.press("Escape");
+      record("reopen, 100,000 values", await timed(nameButton));
+      await expect(filterMenu).toBeVisible();
+      await page.keyboard.press("Escape");
+
+      record("first open, 5 values", await timed(regionButton));
+      filterMenu = filterMenuOf(page, "Region");
+      await expect(optionsOf(filterMenu)).toHaveText([
+        "Central 20000",
+        "East 20000",
+        "North 20000",
+        "South 20000",
+        "West 20000",
+      ]);
+      await page.keyboard.press("Escape");
+      record("reopen, 5 values", await timed(regionButton));
+      await expect(filterMenu).toBeVisible();
+      await page.keyboard.press("Escape");
+
+      // None of the names, then the 1,111 a search for "m 50" finds less the
+      // 111 "m 500" finds: "Item 50", "Item 501" to "Item 509" and so on.
+      await nameButton.click();
+      filterMenu = filterMenuOf(page, "Name");
+      record(
+        "Select all, 100,000 values",
+        await timed(selectAllOf(filterMenu)),
+      );
+      await expect(selectAllOf(filterMenu)).not.toBeChecked();
+      record(
+        "search, 100,000 values",
+        await timed(searchOf(filterMenu), "m 50"),
+      );
+      await expect(optionsOf(filterMenu).first()).toHaveAttribute(
+        "aria-setsize",
+        "1111",
+      );
+      await selectAllOf(filterMenu).click();
+      await searchOf(filterMenu).fill("m 500");
+      await expect(optionsOf(filterMenu).first()).toHaveAttribute(
+        "aria-setsize",
+        "111",
+      );
+      await selectAllOf(filterMenu).click();
+      record(
+        "apply, 1,000 values of 100,000",
+        await timed(button(filterMenu, "OK")),
+      );
+
+      await expect(filterMenu).toHaveCount(0);
+      await expect(liveRegion(root)).toHaveText("1000 of 100000 rows");
+    });
   });
 });
