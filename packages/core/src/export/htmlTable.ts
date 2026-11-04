@@ -24,7 +24,7 @@ const ENTITIES: Readonly<Record<string, string>> = {
  * `text` safe to place in markup, as content or as a quoted attribute: a
  * cell's text is data, and data can hold `<script>`.
  */
-function escapeHtml(text: string): string {
+export function escapeHtml(text: string): string {
   return text.replace(/[&<>"']/g, (char) => ENTITIES[char] ?? char);
 }
 
