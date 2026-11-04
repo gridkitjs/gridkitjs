@@ -9,6 +9,7 @@ import FilterMenuGrid from "./support/FilterMenuGrid";
 import HundredThousandRowsGrid from "./support/HundredThousandRowsGrid";
 import ImperativeApiGrid from "./support/ImperativeApiGrid";
 import ManyValuesGrid from "./support/ManyValuesGrid";
+import PresetGrid from "./support/PresetGrid";
 import { mountGrid, updateGrid } from "./support/mountGrid";
 
 /** DataGrid's space between a menu or panel and what it opens below. */
@@ -1215,6 +1216,23 @@ test.describe("the excel editor", () => {
     await expect(
       checklistOf(filterMenu).locator(".filter-menu-option-count"),
     ).toHaveCount(0);
+  });
+
+  test("the excelFilter preset opens the excel editor with counts, and a prop after it wins", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <PresetGrid />);
+
+    let filterMenu = await openFromHeaderMenu(root, page, "Active");
+    await expect(
+      checklistOf(filterMenu).locator(".filter-menu-option-count"),
+    ).toHaveText(["1", "2"]);
+    await page.keyboard.press("Escape");
+
+    await updateGrid(root, <PresetGrid simpleAfter />);
+    filterMenu = await openFromHeaderMenu(root, page, "Active");
+    await expect(checklistOf(filterMenu)).toHaveCount(0);
   });
 
   test("the values cascade from the other columns' filters", async ({
