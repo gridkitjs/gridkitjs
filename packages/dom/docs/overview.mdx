@@ -1,9 +1,9 @@
 ---
 title: "Overview"
-description: "Framework-free browser behaviours for GridKit renderers: gestures, focus, observers, virtualization, overlays, menus, toolbars and announcements."
+description: "Framework-free browser behaviours for GridKit renderers: gestures, focus, observers, virtualization, overlays, menus, checklists, toolbars and announcements."
 ---
 
-@gridkitjs/dom holds every browser behaviour a grid needs that is not drawing: pointer gestures, keyboard focus movement, the observers behind fit-to-width and infinite scroll, the row virtualizer's measuring, overlays and the menus shown in them, toolbars, and the live region it reports changes through. @gridkitjs/core decides what the grid does and runs without a DOM; @gridkitjs/dom does what needs one, with no framework; a renderer such as @gridkitjs/react draws the markup and attaches these behaviours to it. A second renderer — for Angular, Vue or Svelte — reuses both unchanged.
+@gridkitjs/dom holds every browser behaviour a grid needs that is not drawing: pointer gestures, keyboard focus movement, the observers behind fit-to-width and infinite scroll, the row virtualizer's measuring, overlays and the menus and checklists shown in them, toolbars, and the live region it reports changes through. @gridkitjs/core decides what the grid does and runs without a DOM; @gridkitjs/dom does what needs one, with no framework; a renderer such as @gridkitjs/react draws the markup and attaches these behaviours to it. A second renderer — for Angular, Vue or Svelte — reuses both unchanged.
 
 You only need this package to write a renderer of your own. @gridkitjs/react depends on it already, so installing that is enough to use the grid.
 
@@ -451,6 +451,69 @@ function showMenu(
   }
 }
 ```
+
+## Checklist
+
+`attachChecklist(list, options)` makes a long multi-select list the renderer has drawn — a filter's distinct values, thousands of them, usually virtualized so only a window is mounted — behave as one with a single tab stop, after the [WAI-ARIA listbox pattern](https://www.w3.org/WAI/ARIA/apg/patterns/listbox/). The keys move focus among its items, and <Kbd>Space</Kbd> or a click asks for an item to be toggled. It decides what each key does; the renderer flips the item in its own state and draws the result. It returns `setCount(count)`, `focusItem(index)` and `detach()`.
+
+The behaviour sets nothing on the markup but `tabindex`. The roles, the label and the checked state are the renderer's to draw:
+
+| Markup                                                        | On        | Meaning                                                                                                                     |
+| ------------------------------------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `role="listbox"`, `aria-multiselectable="true"`               | the list  | A list of values any number of which can be checked. Give it an `aria-label` or `aria-labelledby` too.                      |
+| `role="option"`, `aria-checked`                               | each item | A value, and whether it is checked — `"true"` or `"false"`, redrawn from the caller's state after each `onToggle`.          |
+| `aria-setsize`, `aria-posinset`                               | each item | How many items the whole list holds and this one's place in it, from 1, since only a window of them is in the page.         |
+| `data-gridkit-checklist-item`, `data-gridkit-checklist-index` | each item | What makes it an item, and its place in the whole list from 0 — the index every callback reports. Read afresh on every key. |
+
+The list is the element that scrolls — the virtualizer's scroll element — so put the spacers that stand in for unmounted items inside it with `role="presentation"`. One item at a time has `tabindex="0"` — the focused one, or the first mounted while the focused one is scrolled away — and the rest `-1`; an observer of the list keeps that so as items mount and unmount, so do not render a `tabindex` of your own.
+
+| Option          | Called                                                                                                                                        |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `onToggle`      | `(index)` — <Kbd>Space</Kbd> on an item, or a click on it. Flip it and draw its new `aria-checked`.                                           |
+| `onFocusChange` | `(index)` — focus moved to another item, by a key, a click, <Kbd>Tab</Kbd> or `focusItem`. Optional.                                          |
+| `scrollToIndex` | `(index)` — bring the item into view, mounting it if the window does not hold it. Forward it to the virtualizer, with `{ block: "nearest" }`. |
+
+| Key                                       | Does                                                                               |
+| ----------------------------------------- | ---------------------------------------------------------------------------------- |
+| <Kbd>ArrowDown</Kbd> / <Kbd>ArrowUp</Kbd> | Focuses the next or previous item, stopping at the ends.                           |
+| <Kbd>Home</Kbd> / <Kbd>End</Kbd>          | Focuses the first or last item of the whole list.                                  |
+| <Kbd>PageDown</Kbd> / <Kbd>PageUp</Kbd>   | Moves focus by as many items as the list shows whole.                              |
+| <Kbd>Space</Kbd>                          | `onToggle(index)` for the focused item, once however long it is held.              |
+| <Kbd>Enter</Kbd>                          | Not handled, so a form or panel around the list hears it — a filter popup applies. |
+| <Kbd>Escape</Kbd>                         | Not handled here: the [overlay stack](#stacking) closes the topmost overlay.       |
+
+A key pressed with <Kbd>Ctrl</Kbd>, <Kbd>Alt</Kbd>, <Kbd>Shift</Kbd> or <Kbd>Meta</Kbd> is left alone. A move to an item outside the window asks `scrollToIndex` for it and focuses it once it mounts, unless focus has gone elsewhere in the meantime. There is no typeahead: a checklist of values comes with a search box.
+
+`setCount(count)` says how many items the whole list holds. It starts at 0, so call it straight after attaching, and again whenever the list changes — a search narrowing it, say; a focused place past the new end moves back to the last item. `focusItem(index)` focuses an item from code, scrolling to it first.
+
+```ts
+import { attachChecklist, createRowVirtualizer } from "@gridkitjs/dom";
+
+// <div role="listbox" aria-multiselectable="true" aria-label="Values"
+//      style="height: 240px; overflow: auto">
+//   <div role="presentation" style="height: {offsetBefore}px"></div>
+//   <div role="option" aria-checked="false" aria-setsize="5000"
+//        aria-posinset="1" data-gridkit-checklist-item
+//        data-gridkit-checklist-index="0">(Blanks)</div>
+//   …the rest of the window…
+//   <div role="presentation" style="height: {offsetAfter}px"></div>
+// </div>
+const virtualizer = createRowVirtualizer(listElement, {
+  estimatedRowHeight: 28,
+  overscan: 4,
+  onRange: (range) => drawItems(range),
+});
+const checklist = attachChecklist(listElement, {
+  onToggle: (index) => toggleValue(index), // then redraw its aria-checked
+  scrollToIndex: (index) => {
+    virtualizer.scrollToIndex(index, { block: "nearest" });
+  },
+});
+virtualizer.setRowCount(items.length);
+checklist.setCount(items.length);
+```
+
+A "Select all" box belongs above the list as a native checkbox of its own, with its own tab stop and `indeterminate` while some items are checked, rather than as an option inside it.
 
 ## Toolbar
 
