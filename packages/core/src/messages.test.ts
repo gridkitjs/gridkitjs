@@ -79,6 +79,11 @@ function rendered(messages: GridMessages): Record<keyof GridMessages, string> {
     exportSelectionJson: messages.exportSelectionJson,
     exportSelectionXlsx: messages.exportSelectionXlsx,
     exportFailed: messages.exportFailed,
+    copyCell: messages.copyCell,
+    copyRow: messages.copyRow,
+    copySelection: messages.copySelection,
+    copied: messages.copied(3, "rows"),
+    copyFailed: messages.copyFailed,
   };
 }
 
@@ -161,6 +166,11 @@ describe("defaultMessages", () => {
       exportSelectionJson: "Export selection to JSON",
       exportSelectionXlsx: "Export selection to Excel",
       exportFailed: "Export failed",
+      copyCell: "Copy cell",
+      copyRow: "Copy row",
+      copySelection: "Copy selection",
+      copied: "3 rows copied",
+      copyFailed: "Copy failed",
     });
   });
 
@@ -192,6 +202,12 @@ describe("defaultMessages", () => {
     expect(defaultMessages.columnsShown(1)).toBe("1 column shown");
     expect(defaultMessages.columnsHidden(1)).toBe("1 column hidden");
     expect(defaultMessages.columnsHidden(4)).toBe("4 columns hidden");
+  });
+
+  test("counts a copy as one or many", () => {
+    expect(defaultMessages.copied(1, "cells")).toBe("1 cell copied");
+    expect(defaultMessages.copied(1, "rows")).toBe("1 row copied");
+    expect(defaultMessages.copied(2, "columns")).toBe("2 columns copied");
   });
 
   test("counts columns autofitted as one or many", () => {

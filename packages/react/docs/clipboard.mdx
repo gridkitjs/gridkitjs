@@ -1,0 +1,79 @@
+---
+title: "Clipboard"
+description: "Copy a cell, a row or the selection to the clipboard — from the context menu, Ctrl+C or the ref — as text a spreadsheet splits into cells and an HTML table a document keeps."
+---
+
+The grid copies what the user sees to the clipboard in two forms at once: tab-separated text, which a spreadsheet such as Excel or Google Sheets splits into cells when pasted, and an HTML table, which a word processor pastes as a table. The context menu's copy items, <Kbd>Ctrl</Kbd>+<Kbd>C</Kbd> and `ref.current.runCommand("copy.selection")` all run the same built-in commands.
+
+A copy is built from the grid's state, never from its page, the same way an [export](/docs/react/export) is: each cell's text as the grid formats it, the shown columns in their current order, and never a hidden column or one with `exportable: false`. Selected rows on another page or inside a collapsed group still copy. The text is exactly what the grid shows — no byte order mark, and no guard against formulas as a CSV export has — so what you copy is what you see. Group header rows and aggregates are not copied; a copy holds data rows only.
+
+## From the context menu
+
+The cell menu starts with three copy items whenever [`contextMenu`](/docs/react/context-menu) is on:
+
+```ts
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  selectable={{ rows: "multiple" }}
+  contextMenu
+/>
+```
+
+| Item           | Command          | Copies                                                                                                                         |
+| -------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Copy cell      | `copy.cell`      | The cell's text. Disabled on a column with `exportable: false`.                                                                |
+| Copy row       | `copy.row`       | The row's cells, without a header.                                                                                             |
+| Copy selection | `copy.selection` | What is selected, below. Shown once anything is [selectable](/docs/react/row-selection); disabled until something is selected. |
+
+Opening the menu on a row that is not selected selects it first, where rows are selectable, so Copy selection then copies that row.
+
+## The selection
+
+`copy.selection` copies, in order of precedence:
+
+1. **The selected rows** the filter leaves, in the order the grid shows them, under a header row once there are two or more.
+2. **The selected columns** over every row the filter leaves, under their header.
+3. **The selected cell**.
+
+## With the keyboard
+
+Pressing <Kbd>Ctrl</Kbd>+<Kbd>C</Kbd> — <Kbd>Cmd</Kbd>+<Kbd>C</Kbd> on a Mac — with focus anywhere in the grid copies the selection, or the focused cell when nothing is selected. It needs no `contextMenu`.
+
+It is left to the browser while focus is in a text field inside a cell, or while text is highlighted on the page — so highlighting part of a cell and pressing <Kbd>Ctrl</Kbd>+<Kbd>C</Kbd> copies that text, as it would anywhere else — and when there is nothing to copy, as on a header with nothing selected.
+
+## Announcements
+
+Nothing on screen shows that a copy happened, so a screen reader hears what was copied — "3 rows copied", "1 cell copied", "2 columns copied" — once it is on the clipboard. When the browser refuses the clipboard, as it may outside a secure (`https`) page or without the user's gesture, it hears "Copy failed" and the error is logged with a `console.error`.
+
+## From the ref
+
+`runCommand` copies from code, on a target of your choosing. Browsers only allow the clipboard during a user's gesture, so call it from a click or key handler:
+
+```ts
+const gridRef = useRef<DataGridApi<Order>>(null);
+
+<button onClick={() => gridRef.current?.runCommand("copy.selection")}>
+  Copy selected
+</button>;
+
+gridRef.current?.runCommand("copy.row", {
+  area: "cell",
+  rowId: "42",
+  columnId: "Name",
+});
+```
+
+`copy.cell` and `copy.row` take a `{ area: "cell", rowId, columnId }` target; `copy.selection` runs on the default `{ area: "grid" }`. Each returns whether it ran — not when there is nothing to copy.
+
+## Browser support
+
+The grid writes through the async Clipboard API with both formats where the browser has it, falls back to plain text alone where it cannot write HTML, and to the older `copy` event on a page outside a secure context. See @gridkitjs/dom's [`writeClipboard`](/docs/dom#clipboard).
+
+## Paste
+
+There is no paste: the grid copies out, but does not take clipboard content in.
+
+## Localization
+
+The item labels and announcements are messages — `copyCell`, `copyRow`, `copySelection`, `copied` and `copyFailed` — see [localization](/docs/react/localization).

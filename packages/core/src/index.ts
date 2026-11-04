@@ -324,3 +324,5 @@ export type {
 export { csvWriter, jsonWriter, resolveExportWriters } from "./export/writer";
 export type { ExportFileSource } from "./export/exportFile";
 export { exportFile } from "./export/exportFile";
+export type { CopyContent, CopyRequest, CopySource } from "./export/copy";
+export { copyContent } from "./export/copy";

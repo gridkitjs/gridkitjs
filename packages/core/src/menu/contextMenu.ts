@@ -91,6 +91,10 @@ export const defaultContextMenu: {
     "column.choose",
   ],
   cell: [
+    "copy.cell",
+    "copy.row",
+    "copy.selection",
+    "separator",
     "selection.selectAllRows",
     "selection.clear",
     "separator",

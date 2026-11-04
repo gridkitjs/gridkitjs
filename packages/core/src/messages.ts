@@ -159,6 +159,16 @@ export interface GridMessages {
   exportSelectionXlsx: string;
   /** Announced when an export's writer fails, so no file is saved. */
   exportFailed: string;
+  /** `copy.cell` */
+  copyCell: string;
+  /** `copy.row` */
+  copyRow: string;
+  /** `copy.selection` */
+  copySelection: string;
+  /** Announced once a copy is on the clipboard. */
+  copied: (count: number, unit: "cells" | "rows" | "columns") => string;
+  /** Announced when the browser refuses the clipboard, so nothing was copied. */
+  copyFailed: string;
 }
 
 /** "3 columns hidden", "1 column shown", "2 columns autofitted". */
@@ -188,6 +198,13 @@ function selectedCount(count: number, target: "rows" | "columns"): string {
   return count === 1
     ? `1 ${noun} selected`
     : `${String(count)} ${noun}s selected`;
+}
+
+/** "1 cell copied", "3 rows copied", "2 columns copied". */
+function copied(count: number, unit: "cells" | "rows" | "columns"): string {
+  return count === 1
+    ? `1 ${unit.slice(0, -1)} copied`
+    : `${String(count)} ${unit} copied`;
 }
 
 /** The grid's own English, which `messages` replaces key by key. */
@@ -275,6 +292,11 @@ export const defaultMessages: GridMessages = {
   exportSelectionJson: "Export selection to JSON",
   exportSelectionXlsx: "Export selection to Excel",
   exportFailed: "Export failed",
+  copyCell: "Copy cell",
+  copyRow: "Copy row",
+  copySelection: "Copy selection",
+  copied,
+  copyFailed: "Copy failed",
 };
 
 /**

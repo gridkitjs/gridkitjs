@@ -11,6 +11,7 @@ import {
   type GridMessages,
   type GridOptions,
 } from "@gridkitjs/core";
+import { copyToClipboard } from "../clipboard/copyToClipboard";
 import useSaveFile from "../export/useSaveFile";
 import type { ColumnResizeApi } from "../useColumnResize";
 import type { DataGridController } from "../useGridController";
@@ -57,7 +58,8 @@ export interface GridCommandsApi<Row> {
  * and the context they run in. Which command shows, is enabled or does what
  * is `@gridkitjs/core`'s; the grid lends them what needs a DOM — sizing a
  * column to its content, as double-clicking its resize handle does,
- * opening its panels and downloading an export — and its live region.
+ * opening its panels, downloading an export and writing the clipboard — and
+ * its live region.
  */
 export default function useGridCommands<Row>({
   controller,
@@ -90,6 +92,9 @@ export default function useGridCommands<Row>({
     openPanel,
     announce,
     saveFile,
+    writeClipboard: (content) => {
+      copyToClipboard(content, { messages, announce });
+    },
   };
 
   function contextFor(target: GridCommandTarget): GridCommandContext<Row> {

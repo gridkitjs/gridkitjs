@@ -266,3 +266,24 @@ A grid's `export` option, a `GridExportOptions`, says how it exports unless a ca
 ```
 
 The grid's export [commands](/docs/core/commands#built-in-commands) — `export.csv`, `export.json`, `export.xlsx` and `export.pdf`, and `exportSelection.csv`, `exportSelection.json` and `exportSelection.xlsx` for the selected rows — export under these defaults with the writers `exportWriters` registers, so a toolbar's [`"export"` dropdown](/docs/core/toolbar#the-export-dropdown), a context menu and a renderer's `runCommand` all write the same file. A command for a format shows only once a writer for it is registered, so `export.xlsx` appears with an xlsx writer.
+
+## Copying
+
+`copyContent(source, request)` builds what the clipboard carries from the same model: the [TSV](#tsv) text a spreadsheet splits into cells and the [HTML table](#html-table) a word processor keeps the columns of. The text has no byte order mark and no formula neutralising, so what is copied is exactly what the grid shows. Group header rows and aggregates stay behind; a copy holds data rows only.
+
+```ts
+import { copyContent } from "@gridkitjs/core";
+
+copyContent(context, { kind: "row", rowId: "42" });
+// { text: "42\tWest\t1,250.00", html: "<table …>…</table>", count: 1, unit: "rows" }
+```
+
+The source is a `CopySource<Row>`: an `ExportSource` whose `state` also holds `columnSelection` and `cellSelection`. A command's context is one as it stands. `request`, a `CopyRequest`, says what to copy:
+
+| Request                             | Copies                                                                                                                                                                                                      |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `{ kind: "cell", rowId, columnId }` | The cell's formatted text, and a one-cell table as HTML.                                                                                                                                                    |
+| `{ kind: "row", rowId }`            | The row's cells under the shown, exportable columns, without a header.                                                                                                                                      |
+| `{ kind: "selection" }`             | The selected rows the filter leaves, in the order shown, under a header once there are two or more; else the selected columns over every row the filter leaves, under their header; else the selected cell. |
+
+It returns a `CopyContent` — `{ text, html, count, unit }`, where `count` and `unit` (`"cells"`, `"rows"` or `"columns"`) say what it holds, for an announcement — or `null` when there is nothing to copy: a row the filter hides, a column hidden or marked `exportable: false`, or an empty selection. Writing it to the clipboard is the renderer's: @gridkitjs/dom's `writeClipboard` does it in a browser, and a grid's copy [commands](/docs/core/commands#built-in-commands) hand it to `host.writeClipboard`. There is no paste.

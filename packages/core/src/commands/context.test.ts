@@ -42,6 +42,7 @@ const host: GridCommandHost = {
   openPanel: vi.fn(),
   announce: vi.fn(),
   saveFile: vi.fn(),
+  writeClipboard: vi.fn(),
 };
 
 function contextFor<Node>(
