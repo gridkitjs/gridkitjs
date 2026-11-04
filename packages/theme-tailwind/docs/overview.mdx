@@ -158,19 +158,27 @@ The [column chooser](/docs/react/column-chooser) is an overlay too, in a `.gridk
 
 ### Filter menu
 
-A column's [filter menu](/docs/react/column-filter-menu) is an overlay too. Its buttons are native, so a disabled one is `:disabled`; a sort entry for the direction the column sorts in is `[aria-pressed="true"]`.
+A column's [filter menu](/docs/react/column-filter-menu) is an overlay too. Its buttons and fields are native, so a disabled button is `:disabled`; a sort entry for the direction the column sorts in is `[aria-pressed="true"]`, and a value box marked invalid `[aria-invalid="true"]`. No token names an error colour, so a marked box and its message take `--gridkit-accent` turned red, as light or dark as the accent.
 
-| Class                    | Element    | Description                                                                                       |
-| ------------------------ | ---------- | ------------------------------------------------------------------------------------------------- |
-| `.gridkit-filter-menu`   | `<div>`    | The menu (`role="dialog"`): a fixed width, its surface, border, shadow and padding.               |
-| `.filter-menu-form`      | `<form>`   | Everything inside it, in a column. Submitting it applies the editor.                              |
-| `.filter-menu-sort`      | `<div>`    | The column's sort entries, set apart from what follows. Left out for a column that does not sort. |
-| `.filter-menu-sort-item` | `<button>` | A sort entry, drawn as a menu item.                                                               |
-| `.filter-menu-sort-icon` | `<span>`   | The icon before its label — empty for "Clear sort", so labels line up; in accent while pressed.   |
-| `.filter-menu-actions`   | `<div>`    | The buttons: "Clear filter" at the start, Cancel and OK at the end.                               |
-| `.filter-menu-clear`     | `<button>` | "Clear filter".                                                                                   |
-| `.filter-menu-cancel`    | `<button>` | Cancel.                                                                                           |
-| `.filter-menu-apply`     | `<button>` | OK, the form's submit button, tinted.                                                             |
+| Class                            | Element               | Description                                                                                                                 |
+| -------------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `.gridkit-filter-menu`           | `<div>`               | The menu (`role="dialog"`): a fixed width, its surface, border, shadow and padding.                                         |
+| `.filter-menu-form`              | `<form>`              | Everything inside it, in a column. Submitting it applies the editor.                                                        |
+| `.filter-menu-sort`              | `<div>`               | The column's sort entries, set apart from what follows. Left out for a column that does not sort.                           |
+| `.filter-menu-sort-item`         | `<button>`            | A sort entry, drawn as a menu item.                                                                                         |
+| `.filter-menu-sort-icon`         | `<span>`              | The icon before its label — empty for "Clear sort", so labels line up; in accent while pressed.                             |
+| `.filter-menu-conditions`        | `<div>`               | The simple editor: its conditions in a column, And/Or between them.                                                         |
+| `.filter-menu-custom`            | `<p>`                 | "Custom filter", above the conditions, for a filter the editor can't show. Muted.                                           |
+| `.filter-menu-condition`         | `<div>`               | One condition (`role="group"`): its operator picker on a line of its own, its value boxes sharing the next.                 |
+| `.filter-menu-operator`          | `<select>`            | A condition's operator picker.                                                                                              |
+| `.filter-menu-value`             | `<input>`, `<select>` | A value box — a true/false `<select>` on a boolean column; a "Between" has two. Red-bordered while `[aria-invalid="true"]`. |
+| `.filter-menu-combinator`        | `<div>`               | And/Or (`role="radiogroup"`), between the two conditions.                                                                   |
+| `.filter-menu-combinator-option` | `<label>`             | One of its native radio buttons, with its text.                                                                             |
+| `.filter-menu-invalid`           | `<p>`                 | The message under the conditions while one is marked invalid, in red.                                                       |
+| `.filter-menu-actions`           | `<div>`               | The buttons: "Clear filter" at the start, Cancel and OK at the end.                                                         |
+| `.filter-menu-clear`             | `<button>`            | "Clear filter".                                                                                                             |
+| `.filter-menu-cancel`            | `<button>`            | Cancel.                                                                                                                     |
+| `.filter-menu-apply`             | `<button>`            | OK, the form's submit button, tinted.                                                                                       |
 
 ## Theme tokens
 

@@ -1453,6 +1453,101 @@
     color: var(--gridkit-accent);
   }
 
+  /*
+   * The simple editor: its conditions in a column, And/Or between them, and
+   * the message under them while one is marked invalid.
+   */
+  .filter-menu-conditions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* "Custom filter": one the editor can't show, until conditions replace it. */
+  .filter-menu-custom {
+    margin: 0;
+    padding: 0.25rem 0.5rem;
+    color: var(--gridkit-fg-muted);
+    background-color: var(--gridkit-surface-muted);
+    border-radius: 0.25rem;
+  }
+
+  /*
+   * The operator picker on a line of its own, the value boxes sharing the
+   * next: one fills it, and a "Between"'s two halve it.
+   */
+  .filter-menu-condition {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  .filter-menu-operator,
+  .filter-menu-value {
+    box-sizing: border-box;
+    min-width: 0;
+    padding: 0.25rem 0.5rem;
+    font: inherit;
+    color: var(--gridkit-fg);
+    background-color: var(--gridkit-surface);
+    border: 1px solid var(--gridkit-line);
+    border-radius: 0.25rem;
+  }
+
+  .filter-menu-operator {
+    flex-basis: 100%;
+  }
+
+  .filter-menu-value {
+    flex: 1 1 0;
+  }
+
+  .filter-menu-operator:focus-visible,
+  .filter-menu-value:focus-visible {
+    outline: 2px solid var(--gridkit-accent);
+    outline-offset: 1px;
+  }
+
+  /*
+   * No palette token names an error colour, so a marked box and its message
+   * take the accent turned red — as light or dark as the accent, in either
+   * palette — over the text colour where that syntax is not supported.
+   */
+  .filter-menu-value[aria-invalid="true"] {
+    border-color: var(--gridkit-fg);
+    border-color: oklch(from var(--gridkit-accent) l c 25);
+  }
+
+  .filter-menu-invalid {
+    margin: 0;
+    color: var(--gridkit-fg);
+    color: oklch(from var(--gridkit-accent) l c 25);
+  }
+
+  /* And/Or, native radio buttons between the two conditions. */
+  .filter-menu-combinator {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .filter-menu-combinator-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .filter-menu-combinator-option input {
+    margin: 0;
+    accent-color: var(--gridkit-accent);
+  }
+
+  .filter-menu-combinator-option input:focus-visible {
+    outline: 2px solid var(--gridkit-accent);
+    outline-offset: 1px;
+  }
+
   /* "Clear filter" at the start; Cancel and OK at the end. */
   .filter-menu-actions {
     display: flex;
