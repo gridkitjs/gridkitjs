@@ -603,7 +603,7 @@ test.describe("context menu", () => {
 
     const menu = page.getByRole("menu", { name: "Row menu" });
     await expect(
-      menu.getByRole("menuitem", { name: "Select all rows" }),
+      menu.getByRole("menuitem", { name: "Copy cell" }),
     ).toBeFocused();
     const box = await page.locator(".gridkit-overlay").boundingBox();
     expect(box?.x).toBeCloseTo(400, 0);
@@ -754,7 +754,7 @@ test.describe("context menu", () => {
 
     const first = page
       .getByRole("menu", { name: "Row menu" })
-      .getByRole("menuitem", { name: "Select all rows" });
+      .getByRole("menuitem", { name: "Copy cell" });
     await expect(first).toBeFocused();
     // A move of the grid's focus still waiting to be drawn would take it
     // back to the cell a frame or two later.

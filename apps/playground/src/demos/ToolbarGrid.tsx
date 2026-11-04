@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { ToolbarEntry } from "@gridkitjs/core";
+import { xlsxWriter } from "@gridkitjs/export-xlsx";
 import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
 
 interface Row {
@@ -33,13 +34,23 @@ const columns: readonly ColumnDefinition<Row>[] = [
   { field: "Notes", width: 140, hidden: true },
 ];
 
+/** Excel export, from the optional writer package. */
+const exportWriters = [
+  xlsxWriter({
+    sheetName: "Orders",
+    headerRows: () => ["Orders", `Exported ${new Date().toLocaleString()}`, ""],
+  }),
+];
+
 /**
  * The grid's own toolbar: the search box, "Clear all sorting", "Clear
  * filters" and "Choose columns" — where Id cannot be unchecked and Notes,
  * hidden to start with, can be shown — a "By region" toggle that groups the rows, a "Groups" dropdown
  * of the built-in group commands, an "Orders" dropdown of the app's own
- * actions — logged below — and, at the far end, a custom entry counting the
- * rows selected. Narrow the window to see items move into "More".
+ * actions — logged below — the built-in "Export" dropdown, downloading
+ * `orders.csv`, `orders.json` or `orders.xlsx`, "Print", printing all 24
+ * rows under a title and a timestamp, and, at the far end, a custom entry
+ * counting the rows selected. Narrow the window to see items move into "More".
  */
 export function ToolbarGrid() {
   const [selected, setSelected] = useState(0);
@@ -79,10 +90,12 @@ export function ToolbarGrid() {
       items: [
         {
           type: "item",
-          id: "orders.export",
-          label: "Export rows shown",
-          onSelect: ({ view }) => {
-            note(`Export ${String(view.rows.length)} orders`);
+          id: "orders.flag",
+          label: "Flag selected",
+          disabled: ({ state }) => state.rowSelection.length === 0,
+          onSelect: ({ selectedRows }) => {
+            const ids = selectedRows().map((entry) => entry.row.Id);
+            note(`Flag orders ${ids.join(", ")}`);
           },
         },
         {
@@ -97,6 +110,8 @@ export function ToolbarGrid() {
         },
       ],
     },
+    "export",
+    "print",
     "spacer",
     { type: "custom", id: "selection" },
   ];
@@ -114,6 +129,9 @@ export function ToolbarGrid() {
         selectable={{ rows: "multiple" }}
         height={320}
         toolbar={{ items }}
+        export={{ fileName: "orders" }}
+        exportWriters={exportWriters}
+        print={{ title: "Orders", subtitle: "All regions", timestamp: true }}
         renderToolbarItem={(id) =>
           id === "selection" ? (
             <span className="text-gray-500">{selected} selected</span>

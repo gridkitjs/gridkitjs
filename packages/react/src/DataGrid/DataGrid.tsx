@@ -60,11 +60,14 @@ import GroupByBar from "./components/GroupByBar";
 import { announcedCallbacks } from "./announcedCallbacks";
 import { ariaAttr } from "./ariaAttr";
 import { classNames } from "./classNames";
+import useGridCopy from "./clipboard/useGridCopy";
 import useGridCommands from "./commands/useGridCommands";
 import GridContextMenu from "./contextMenu/GridContextMenu";
 import useContextMenu from "./contextMenu/useContextMenu";
+import { exportApi, type GridExportApi } from "./export/exportApi";
 import { isOwnEvent } from "./isOwnEvent";
 import GridPanels from "./panels/GridPanels";
+import { printApi, type GridPrintApi } from "./print/printApi";
 import useGridPanels from "./panels/useGridPanels";
 import GridToolbar from "./toolbar/GridToolbar";
 import useColumnDrag from "./useColumnDrag";
@@ -128,7 +131,7 @@ export type SelectionCallbacks<Row> = CoreSelectionCallbacks<Row, ReactNode>;
  * notify channel for state that changes; see
  * `packages/react/src/DataGrid/hooks/` for the public hooks built on it.
  */
-export interface DataGridApi<Row> {
+export interface DataGridApi<Row> extends GridExportApi, GridPrintApi {
   /** The grid's scrollable viewport element. */
   readonly element: HTMLDivElement | null;
   /**
@@ -646,6 +649,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     resize,
     openPanel: panels.open,
   });
+  const handleCopyKey = useGridCopy({ controller, commands, nav });
 
   /**
    * Every id in display order, hidden ones included — the list a column
@@ -884,6 +888,8 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     openColumnChooser: () => {
       panels.open("columnChooser", { area: "grid" });
     },
+    ...exportApi(commands),
+    ...printApi(commands),
     runCommand: (commandId, target = { area: "grid" }) =>
       commands.run(commandId, target, "api"),
     scrollToRow: (rowId, options) => {
@@ -1016,12 +1022,10 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
           label,
         )}
         onKeyDown={(event) => {
-          /*
-           * The two keys that address the grid rather than a cell, and so are
-           * caught here where everything bubbles to rather than in each of
-           * them.
-           */
+          // The keys that address the grid rather than a cell, caught here
+          // where everything bubbles to rather than in each of them.
           if (!isOwnEvent(event)) return;
+          handleCopyKey(event);
           if (event.key === "Escape") {
             // A gesture in flight has its own use for Escape — cancelling —
             // and gets it first.
