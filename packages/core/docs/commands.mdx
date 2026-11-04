@@ -25,7 +25,7 @@ const context = createCommandContext({
   controller,
   target: { area: "header", columnId: "Amount" },
   messages: defaultMessages,
-  host: { autoFitColumns() {}, openPanel() {}, announce() {} },
+  host: { autoFitColumns() {}, openPanel() {}, announce() {}, saveFile() {} },
 });
 
 const sortAscending = commands.get("sort.ascending");
@@ -87,11 +87,12 @@ A context is a snapshot. A renderer builds one each time it resolves a menu or a
 
 A `GridCommandHost` holds what a command needs that only a renderer has. A caller with no renderer — a test, a script in Node — passes members that do nothing.
 
-| Member                      | Description                                                                                                               |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `autoFitColumns(columnIds)` | Sizes each column to fit its content, as double-clicking its resize handle does.                                          |
-| `openPanel(kind, target)`   | Opens one of the grid's [panels](#panels) anchored to the target. `kind` is a `GridPanelKind`: `"columnChooser"` for now. |
-| `announce(text)`            | Reads `text` out through the grid's live region.                                                                          |
+| Member                      | Description                                                                                                                                                                     |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `autoFitColumns(columnIds)` | Sizes each column to fit its content, as double-clicking its resize handle does.                                                                                                |
+| `openPanel(kind, target)`   | Opens one of the grid's [panels](#panels) anchored to the target. `kind` is a `GridPanelKind`: `"columnChooser"` for now.                                                       |
+| `announce(text)`            | Reads `text` out through the grid's live region.                                                                                                                                |
+| `saveFile(file)`            | Saves an [`ExportFile`](/docs/core/export#exporting-a-file) — in a browser, a download. Given a promise of one, it waits for it, and reports a rejected one rather than saving. |
 
 ## Built-in commands
 

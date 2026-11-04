@@ -607,6 +607,7 @@ describe("buildExportTable", () => {
         autoFitColumns: () => {},
         openPanel: () => {},
         announce: () => {},
+        saveFile: () => {},
       },
     });
 

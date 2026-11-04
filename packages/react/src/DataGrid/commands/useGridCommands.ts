@@ -87,6 +87,9 @@ export default function useGridCommands<Row>({
     },
     openPanel,
     announce,
+    saveFile: () => {
+      console.error("DataGrid: saving an export is not supported yet.");
+    },
   };
 
   function contextFor(target: GridCommandTarget): GridCommandContext<Row> {
