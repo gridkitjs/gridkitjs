@@ -141,6 +141,22 @@ export interface GridMessages {
   showAllColumns: string;
   /** Shown in the column chooser when its search matches no column. */
   noMatchingColumns: string;
+  /** The toolbar's `"export"` dropdown, listing the export commands. */
+  exportMenu: string;
+  /** `export.csv` */
+  exportCsv: string;
+  /** `export.json` */
+  exportJson: string;
+  /** `export.xlsx`, shown once an xlsx writer is registered. */
+  exportXlsx: string;
+  /** `export.pdf`, shown once a PDF writer is registered. */
+  exportPdf: string;
+  /** `exportSelection.csv`: the selected rows only. */
+  exportSelectionCsv: string;
+  /** `exportSelection.json` */
+  exportSelectionJson: string;
+  /** `exportSelection.xlsx` */
+  exportSelectionXlsx: string;
 }
 
 /** "3 columns hidden", "1 column shown", "2 columns autofitted". */
@@ -248,6 +264,14 @@ export const defaultMessages: GridMessages = {
   columnChooserSearchLabel: "Search columns",
   showAllColumns: "Show all",
   noMatchingColumns: "No matching columns",
+  exportMenu: "Export",
+  exportCsv: "Export to CSV",
+  exportJson: "Export to JSON",
+  exportXlsx: "Export to Excel",
+  exportPdf: "Export to PDF",
+  exportSelectionCsv: "Export selection to CSV",
+  exportSelectionJson: "Export selection to JSON",
+  exportSelectionXlsx: "Export selection to Excel",
 };
 
 /**

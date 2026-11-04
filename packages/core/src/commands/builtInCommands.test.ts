@@ -5,6 +5,7 @@ import type {
   GridController,
   GridControllerOptions,
 } from "../controller/gridController";
+import type { ExportWriter } from "../export/writer";
 import { defaultMessages } from "../messages";
 import type { ColumnDefinition } from "../types";
 import { builtInCommands, type BuiltInCommandId } from "./builtInCommands";
@@ -125,10 +126,17 @@ describe("builtInCommands", () => {
       "selection.selectAllRows",
       "selection.clear",
       "filter.clearAll",
+      "export.csv",
+      "export.json",
+      "export.xlsx",
+      "export.pdf",
+      "exportSelection.csv",
+      "exportSelection.json",
+      "exportSelection.xlsx",
     ]);
   });
 
-  test("hides every one on empty body space, which has nothing to act on", () => {
+  test("shows only the exports on empty body space, which act on the whole grid", () => {
     const context = createCommandContext({
       controller: create({
         selectable: { rows: "multiple" },
@@ -141,10 +149,10 @@ describe("builtInCommands", () => {
     });
 
     expect(
-      builtInCommands<Order>().filter((command) =>
-        isCommandVisible(command, context),
-      ),
-    ).toEqual([]);
+      builtInCommands<Order>()
+        .filter((command) => isCommandVisible(command, context))
+        .map((command) => command.id),
+    ).toEqual(["export.csv", "export.json"]);
   });
 
   test("gives the sort, group, hide and autofit commands icon keys", () => {
@@ -749,5 +757,211 @@ describe("filter.clearAll", () => {
     builtIn("filter.clearAll", controller, GRID).run();
 
     expect(controller.getState().filter).toEqual([]);
+  });
+});
+
+/** A writer of `format` writing each data row's id, after `wait` when asynchronous. */
+function idsWriter(format: string, wait = false): ExportWriter {
+  return {
+    format,
+    fileExtension: format,
+    mimeType: `application/x-${format}`,
+    write: (table) => {
+      const ids = table.rows.map((row) =>
+        row.kind === "data" ? row.rowId : "",
+      );
+      return wait ? Promise.resolve(ids.join(" ")) : ids.join(" ");
+    },
+  };
+}
+
+/** The file a command's run handed its host. */
+function savedFile(host: GridCommandHost): unknown {
+  const save = vi.mocked(host.saveFile);
+  expect(save).toHaveBeenCalledOnce();
+  return save.mock.calls[0]?.[0];
+}
+
+describe("export.csv", () => {
+  test("shows on the grid, the toolbar, the body and a cell, enabled while there are rows", () => {
+    const controller = create();
+    const command = builtIn("export.csv", controller, GRID);
+
+    expect(command.label()).toBe("Export to CSV");
+    expect(command.visible()).toBe(true);
+    expect(command.enabled()).toBe(true);
+    expect(command.checked()).toBeUndefined();
+    for (const target of [TOOLBAR, BODY, cell("1", "Id")]) {
+      expect(builtIn("export.csv", controller, target).visible()).toBe(true);
+    }
+    for (const target of [header("Id"), group("Region")]) {
+      expect(builtIn("export.csv", controller, target).visible()).toBe(false);
+    }
+
+    controller.setFilter([{ query: "%North%" }]);
+    expect(command.visible()).toBe(true);
+    expect(command.enabled()).toBe(false);
+  });
+
+  test("hands the host the view as a CSV file", () => {
+    const command = builtIn("export.csv", create(), GRID);
+
+    expect(command.run()).toBe(true);
+    expect(savedFile(command.host)).toEqual({
+      fileName: "export.csv",
+      mimeType: "text/csv;charset=utf-8",
+      content: `${String.fromCharCode(0xfeff)}Id,Sales region,Amount\r\n1,West,10\r\n2,East,20\r\n3,West,30`,
+    });
+  });
+
+  test("exports under the grid's export defaults", () => {
+    const command = builtIn(
+      "export.csv",
+      create({
+        export: {
+          fileName: "orders",
+          columns: ["Id"],
+          csv: { bom: false, eol: "\n" },
+        },
+      }),
+      GRID,
+    );
+    command.run();
+
+    expect(savedFile(command.host)).toMatchObject({
+      fileName: "orders.csv",
+      content: "Id\n1\n2\n3",
+    });
+  });
+
+  test("uses a csv writer the grid registers in place of the built-in", () => {
+    const command = builtIn(
+      "export.csv",
+      create({ exportWriters: [idsWriter("csv")] }),
+      GRID,
+    );
+    command.run();
+
+    expect(savedFile(command.host)).toMatchObject({ content: "1 2 3" });
+  });
+});
+
+describe("export.json", () => {
+  test("shows where export.csv does, and hands the host a JSON file", () => {
+    const controller = create();
+    const command = builtIn("export.json", controller, cell("1", "Id"));
+
+    expect(command.label()).toBe("Export to JSON");
+    expect(command.visible()).toBe(true);
+    expect(builtIn("export.json", controller, header("Id")).visible()).toBe(
+      false,
+    );
+    expect(command.run()).toBe(true);
+    expect(savedFile(command.host)).toEqual({
+      fileName: "export.json",
+      mimeType: "application/json",
+      content: JSON.stringify([
+        { Id: 1, Region: "West", Amount: 10 },
+        { Id: 2, Region: "East", Amount: 20 },
+        { Id: 3, Region: "West", Amount: 30 },
+      ]),
+    });
+  });
+});
+
+describe("export.xlsx and export.pdf", () => {
+  test("show only once a writer for their format is registered", () => {
+    for (const [id, format, label] of [
+      ["export.xlsx", "xlsx", "Export to Excel"],
+      ["export.pdf", "pdf", "Export to PDF"],
+    ] as const) {
+      expect(builtIn(id, create(), GRID).visible()).toBe(false);
+
+      const command = builtIn(
+        id,
+        create({ exportWriters: [idsWriter(format)] }),
+        TOOLBAR,
+      );
+      expect(command.label()).toBe(label);
+      expect(command.visible()).toBe(true);
+      expect(command.enabled()).toBe(true);
+    }
+  });
+
+  test("hand the host a promise of the file from an asynchronous writer", async () => {
+    const command = builtIn(
+      "export.xlsx",
+      create({ exportWriters: [idsWriter("xlsx", true)] }),
+      GRID,
+    );
+    command.run();
+
+    await expect(savedFile(command.host)).resolves.toEqual({
+      fileName: "export.xlsx",
+      mimeType: "application/x-xlsx",
+      content: "1 2 3",
+    });
+  });
+});
+
+describe("exportSelection", () => {
+  test("shows where the exports do while rows are selected, enabled while the filter leaves one", () => {
+    const controller = create({ selectable: { rows: "multiple" } });
+    const command = builtIn("exportSelection.csv", controller, cell("1", "Id"));
+
+    expect(command.label()).toBe("Export selection to CSV");
+    expect(command.visible()).toBe(false);
+
+    controller.setRowSelection(["2"]);
+    expect(command.visible()).toBe(true);
+    expect(command.enabled()).toBe(true);
+    expect(
+      builtIn("exportSelection.csv", controller, header("Id")).visible(),
+    ).toBe(false);
+
+    controller.setFilter([{ query: "%West%" }]);
+    expect(command.visible()).toBe(true);
+    expect(command.enabled()).toBe(false);
+  });
+
+  test("exports only the selected rows, whatever scope the grid's defaults give", () => {
+    const writer = idsWriter("csv");
+    const command = builtIn(
+      "exportSelection.csv",
+      create({
+        defaultRowSelection: ["3", "1"],
+        export: { scope: "page" },
+        exportWriters: [writer],
+      }),
+      GRID,
+    );
+    command.run();
+
+    expect(savedFile(command.host)).toMatchObject({ content: "1 3" });
+  });
+
+  test("labels JSON and Excel, Excel showing only with an xlsx writer", () => {
+    const controller = create({ defaultRowSelection: ["1"] });
+
+    expect(builtIn("exportSelection.json", controller, GRID).label()).toBe(
+      "Export selection to JSON",
+    );
+    expect(builtIn("exportSelection.json", controller, GRID).visible()).toBe(
+      true,
+    );
+    expect(builtIn("exportSelection.xlsx", controller, GRID).visible()).toBe(
+      false,
+    );
+
+    const withXlsx = builtIn(
+      "exportSelection.xlsx",
+      create({
+        defaultRowSelection: ["1"],
+        exportWriters: [idsWriter("xlsx")],
+      }),
+      GRID,
+    );
+    expect(withXlsx.label()).toBe("Export selection to Excel");
+    expect(withXlsx.visible()).toBe(true);
   });
 });

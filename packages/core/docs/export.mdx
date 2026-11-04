@@ -264,3 +264,5 @@ A grid's `export` option, a `GridExportOptions`, says how it exports unless a ca
   exportWriters={[htmlWriter]}
 />
 ```
+
+The grid's export [commands](/docs/core/commands#built-in-commands) — `export.csv`, `export.json`, `export.xlsx` and `export.pdf`, and `exportSelection.csv`, `exportSelection.json` and `exportSelection.xlsx` for the selected rows — export under these defaults with the writers `exportWriters` registers, so a toolbar's [`"export"` dropdown](/docs/core/toolbar#the-export-dropdown), a context menu and a renderer's `runCommand` all write the same file. A command for a format shows only once a writer for it is registered, so `export.xlsx` appears with an xlsx writer.

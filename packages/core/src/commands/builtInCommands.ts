@@ -1,3 +1,6 @@
+import { exportFile } from "../export/exportFile";
+import { resolveExportWriters } from "../export/writer";
+import type { GridMessages } from "../messages";
 import type { DataColumn, SelectableConfig, SortDirection } from "../types";
 import { resolveColumnHeaderText } from "../util/grid";
 import { sortDirectionFor } from "../util/sorting";
@@ -24,7 +27,14 @@ export type BuiltInCommandId =
   | "column.choose"
   | "selection.selectAllRows"
   | "selection.clear"
-  | "filter.clearAll";
+  | "filter.clearAll"
+  | "export.csv"
+  | "export.json"
+  | "export.xlsx"
+  | "export.pdf"
+  | "exportSelection.csv"
+  | "exportSelection.json"
+  | "exportSelection.xlsx";
 
 /**
  * The icon keys the built-ins carry, which a renderer draws as icons of its
@@ -174,6 +184,60 @@ function columnCommand<Row>({
   };
 }
 
+/** What an export built-in says about itself. */
+interface ExportCommandSpec {
+  readonly id: BuiltInCommandId;
+  /** The writer it exports with, by format. */
+  readonly format: string;
+  readonly label: (messages: GridMessages) => string;
+  /** Whether it exports the selected rows only — and so shows only while some are. */
+  readonly selection?: boolean;
+}
+
+/**
+ * An export acts on the whole grid, so it shows wherever the grid as a
+ * whole can be asked for — a cell's menu included, but not a header's or a
+ * group's, which are about one column or one group.
+ */
+const EXPORT_AREAS: readonly Area[] = ["grid", "toolbar", "body", "cell"];
+
+/**
+ * A built-in exporting the grid as a file of `format`, under the grid's
+ * `export` defaults, and handing it to the host to save. Shown only once a
+ * writer for `format` is registered — CSV's and JSON's always are — and
+ * disabled while there is nothing to export, so the item still says what is
+ * possible.
+ */
+function exportCommand<Row>({
+  id,
+  format,
+  label,
+  selection = false,
+}: ExportCommandSpec): GridCommand<Row> {
+  return {
+    id,
+    label: ({ messages }) => label(messages),
+    isVisible: (context) =>
+      isOn(context, EXPORT_AREAS) &&
+      resolveExportWriters(context.options.exportWriters).has(format) &&
+      (!selection || context.state.rowSelection.length > 0),
+    isEnabled: (context) =>
+      (selection ? context.selectedRows() : context.view.rows).length > 0,
+    execute: (context) => {
+      const { export: defaults = {}, exportWriters } = context.options;
+      const file = exportFile(
+        context,
+        format,
+        selection ? { ...defaults, scope: "selection" } : defaults,
+        resolveExportWriters(exportWriters),
+      );
+      if (file !== null) {
+        context.host.saveFile(file);
+      }
+    },
+  };
+}
+
 function sortCommand<Row>(direction: SortDirection): GridCommand<Row> {
   return columnCommand({
     id: direction === "asc" ? "sort.ascending" : "sort.descending",
@@ -191,8 +255,8 @@ function sortCommand<Row>(direction: SortDirection): GridCommand<Row> {
 
 /**
  * The grid's own commands, one per action its menus and toolbar offer —
- * sorting, grouping, hiding, fitting and choosing columns, selecting and
- * clearing.
+ * sorting, grouping, hiding, fitting and choosing columns, selecting,
+ * clearing and exporting.
  * Labels come from `messages`, so they follow the grid's language.
  *
  * A function rather than a constant so each comes typed for the caller's
@@ -350,5 +414,43 @@ export function builtInCommands<Row>(): readonly GridCommand<Row>[] {
         actions.setFilter([]);
       },
     },
+    exportCommand({
+      id: "export.csv",
+      format: "csv",
+      label: ({ exportCsv }) => exportCsv,
+    }),
+    exportCommand({
+      id: "export.json",
+      format: "json",
+      label: ({ exportJson }) => exportJson,
+    }),
+    exportCommand({
+      id: "export.xlsx",
+      format: "xlsx",
+      label: ({ exportXlsx }) => exportXlsx,
+    }),
+    exportCommand({
+      id: "export.pdf",
+      format: "pdf",
+      label: ({ exportPdf }) => exportPdf,
+    }),
+    exportCommand({
+      id: "exportSelection.csv",
+      format: "csv",
+      label: ({ exportSelectionCsv }) => exportSelectionCsv,
+      selection: true,
+    }),
+    exportCommand({
+      id: "exportSelection.json",
+      format: "json",
+      label: ({ exportSelectionJson }) => exportSelectionJson,
+      selection: true,
+    }),
+    exportCommand({
+      id: "exportSelection.xlsx",
+      format: "xlsx",
+      label: ({ exportSelectionXlsx }) => exportSelectionXlsx,
+      selection: true,
+    }),
   ];
 }

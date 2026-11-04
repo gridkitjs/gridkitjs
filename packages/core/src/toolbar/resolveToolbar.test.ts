@@ -6,6 +6,7 @@ import type { GridCommand } from "../commands/types";
 import { createGridController } from "../controller/createGridController";
 import type { GridControllerOptions } from "../controller/gridController";
 import type { MenuItemEntry } from "../menu/types";
+import type { ExportWriter } from "../export/writer";
 import { defaultMessages } from "../messages";
 import type { ColumnDefinition } from "../types";
 import { defaultToolbar, toolbarEntries } from "./options";
@@ -405,4 +406,95 @@ test("the default toolbar resolves to a search box, a spacer, Clear filters and 
     "filter.clearAll",
     "column.choose",
   ]);
+});
+
+describe("resolveToolbar: the export entry", () => {
+  /** A dropdown's items, as ids with `---` for a separator. */
+  function menuOutline(entry: ResolvedToolbarItem | undefined): string[] {
+    return entry?.type === "menu"
+      ? entry.items.map((item) => (item.type === "separator" ? "---" : item.id))
+      : [];
+  }
+
+  const xlsxWriter: ExportWriter = {
+    format: "xlsx",
+    fileExtension: "xlsx",
+    mimeType: "application/octet-stream",
+    write: () => new Uint8Array(),
+  };
+
+  test("is a dropdown keyed export, of the exports that show", () => {
+    const [menu] = resolve(["export"]);
+
+    expect(menu).toMatchObject({
+      type: "menu",
+      id: "export",
+      key: "export",
+      label: "Export",
+    });
+    expect(menuOutline(menu)).toEqual(["export.csv", "export.json"]);
+  });
+
+  test("lists xlsx with a writer for it, and the selection exports while rows are selected", () => {
+    const controller = create({
+      defaultRowSelection: ["2"],
+      exportWriters: [xlsxWriter],
+    });
+
+    expect(menuOutline(resolve(["export"], { controller })[0])).toEqual([
+      "export.csv",
+      "export.json",
+      "export.xlsx",
+      "---",
+      "exportSelection.csv",
+      "exportSelection.json",
+      "exportSelection.xlsx",
+    ]);
+  });
+
+  test("its items run with the dropdown as their target", () => {
+    const context = vi.fn((target: GridToolbarTarget) =>
+      createCommandContext({
+        controller: create(),
+        target,
+        messages: defaultMessages,
+        host,
+      }),
+    );
+    const [menu] = resolveToolbar<Order>(["export"], {
+      commands: resolveCommands(undefined),
+      contextFor: context,
+    });
+    const csv = menu?.type === "menu" ? menu.items[0] : undefined;
+
+    expect(context).toHaveBeenCalledExactlyOnceWith({
+      area: "toolbar",
+      itemId: "export",
+    });
+    expect(csv?.type === "item" && csv.run()).toBe(true);
+    expect(host.saveFile).toHaveBeenCalledWith(
+      expect.objectContaining({ fileName: "export.csv" }),
+    );
+  });
+
+  test("is left out when no export shows", () => {
+    const hiddenExport = (id: string): GridCommand<Order> => ({
+      id,
+      label: id,
+      isVisible: () => false,
+      execute: vi.fn(),
+    });
+    const commands = resolveCommands([
+      hiddenExport("export.csv"),
+      hiddenExport("export.json"),
+    ]);
+
+    expect(outline(resolve(["search", "export"], { commands }))).toEqual([
+      "search",
+    ]);
+  });
+
+  test("is not among the defaults", () => {
+    expect(defaultToolbar).not.toContain("export");
+  });
 });
