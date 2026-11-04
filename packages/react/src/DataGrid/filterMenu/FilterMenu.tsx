@@ -44,6 +44,7 @@ export default function FilterMenu<Row>({
   messages,
   close,
   initialFocusRef,
+  applyFilter,
 }: GridPanelProps<Row>) {
   const editor = useRef<FilterEditorHandle>(null);
   const column =
@@ -155,6 +156,7 @@ export default function FilterMenu<Row>({
           controller={controller}
           messages={messages}
           initialFocusRef={initialFocusRef}
+          applyFilter={applyFilter}
         />
         <div className="filter-menu-actions">
           {clearItem !== undefined && (

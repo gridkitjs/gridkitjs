@@ -1,5 +1,6 @@
 import { useRef, type ReactNode, type RefCallback } from "react";
 import type {
+  FilterState,
   GridCommandTarget,
   GridMessages,
   GridPanelKind,
@@ -7,6 +8,7 @@ import type {
 import ColumnChooser from "../columnChooser/ColumnChooser";
 import type { GridCommandsApi } from "../commands/useGridCommands";
 import FilterMenu from "../filterMenu/FilterMenu";
+import useApplyFilter from "../filterMenu/useApplyFilter";
 import Overlay, { ANCHOR_GAP } from "../overlay/Overlay";
 import type { DataGridController } from "../useGridController";
 import type { GridPanelsApi } from "./useGridPanels";
@@ -28,6 +30,11 @@ export interface GridPanelProps<Row> {
    * control.
    */
   readonly initialFocusRef: RefCallback<HTMLElement>;
+  /**
+   * Sets the grid's filter as a filter menu applies one, announcing the rows
+   * it keeps once they are drawn — even when the menu has closed by then.
+   */
+  readonly applyFilter: (filter: FilterState<Row>) => void;
 }
 
 /** How one kind of panel is drawn. */
@@ -69,6 +76,11 @@ export default function GridPanels<Row>({
   messages,
 }: GridPanelsProps<Row>) {
   const initialFocus = useRef<HTMLElement>(null);
+  const applyFilter = useApplyFilter(
+    controller,
+    messages,
+    commands.host.announce,
+  );
   const { panel, close } = panels;
   if (panel === null) {
     return null;
@@ -97,6 +109,7 @@ export default function GridPanels<Row>({
         initialFocusRef={(element) => {
           initialFocus.current = element;
         }}
+        applyFilter={applyFilter}
       />
     </Overlay>
   );

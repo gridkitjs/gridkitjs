@@ -1,6 +1,7 @@
 import type { ReactNode, Ref, RefCallback } from "react";
 import type {
   DataColumn,
+  FilterState,
   GridMessages,
   ResolvedColumnFilterMenu,
 } from "@gridkitjs/core";
@@ -23,6 +24,8 @@ export interface FilterEditorProps<Row> {
   readonly menu: ResolvedColumnFilterMenu;
   readonly controller: DataGridController<Row>;
   readonly messages: GridMessages;
+  /** Sets the filter the draft stands for, announcing the rows it keeps. */
+  readonly applyFilter: (filter: FilterState<Row>) => void;
   /** The `ref` of the control focus starts on as the menu opens. */
   readonly initialFocusRef: RefCallback<HTMLElement>;
   readonly ref: Ref<FilterEditorHandle>;

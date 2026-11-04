@@ -115,6 +115,7 @@ export default function SimpleFilterEditor<Row>({
   controller,
   messages,
   initialFocusRef,
+  applyFilter,
   ref,
 }: FilterEditorProps<Row>) {
   const type = column.column.type;
@@ -149,7 +150,7 @@ export default function SimpleFilterEditor<Row>({
       initialFilterEditorDraft<Row>({ kind: "none" }, NO_VALUES),
       { type: "setConditions", conditions, combinator: draft.combinator },
     );
-    controller.setFilter(
+    applyFilter(
       draftToFilter(applied, column.id, controller.getState().filter),
     );
   }

@@ -475,6 +475,11 @@ test.describe("the simple editor", () => {
     return root.getByTestId("filter");
   }
 
+  /** The grid's live region, which announcements are read from. */
+  function liveRegion(root: MountResult): Locator {
+    return root.locator('[role="status"]').first();
+  }
+
   test("opens on two empty conditions, the first offering the column's operators in its type's words", async ({
     mount,
     page,
@@ -515,6 +520,37 @@ test.describe("the simple editor", () => {
     await expect(reported(root)).toHaveText(
       '[{"columnId":"name","operator":"contains","value":"li"}]',
     );
+  });
+
+  test("applying announces how many of the rows the filter keeps", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+
+    await valueOf(filterMenu, 1).fill("li");
+    await page.keyboard.press("Enter");
+
+    await expect(filterMenu).toHaveCount(0);
+    await expect(liveRegion(root)).toHaveText("2 of 3 rows");
+  });
+
+  test("a controlled filter that doesn't take what was applied announces nothing", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid filter={[]} />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+
+    await valueOf(filterMenu, 1).fill("li");
+    await page.keyboard.press("Enter");
+
+    await expect(reported(root)).toHaveText(
+      '[{"columnId":"name","operator":"contains","value":"li"}]',
+    );
+    expect(await names(root)).toEqual(["Charlie", "Alice", "Bravo"]);
+    await expect(liveRegion(root)).toHaveText("");
   });
 
   test("Enter on a picker applies too", async ({ mount, page }) => {

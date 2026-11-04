@@ -113,6 +113,8 @@ OK, or <Kbd>Enter</Kbd>, applies the conditions in place of every entry about th
 ];
 ```
 
+Once the grid has drawn the rows the filter keeps, the live region announces how many of all the rows they are — "2 of 3 rows", the `filterResults` message — so a screen reader hears the result as focus returns to the header. A controlled `filter` that doesn't take the change announces nothing.
+
 Opened again, the menu shows the conditions as they are applied, whatever applied them: the menu itself, `defaultFilter`, `setFilter` or a controlled `filter`. A condition set in code with an operator the column doesn't offer still shows, its operator listed for it.
 
 - **A value that doesn't read** — a condition left without one, a number the box can't read, a date missing its year, a "Between" missing an end — keeps the menu open. The box is marked invalid, described by a message ("Enter a number"), and takes focus. OK on conditions left as they opened, with nothing typed in them, just closes the menu.
@@ -173,5 +175,6 @@ Every string the menu shows is a message — see [localization](/docs/react/loca
 | `filterOr`                 | "Or"                                                                        |
 | `filterValueInvalid`       | "Enter a number" — under a value that doesn't read, by the column's type.   |
 | `customFilter`             | "Custom filter" — above the conditions, for a filter the editor can't show. |
+| `filterResults`            | "2 of 3 rows" — announced once the rows an applied filter keeps are drawn.  |
 
 The theme's classes for it are listed under [filter menu](/docs/theme-tailwind#filter-menu), and the header's filter button under [header](/docs/theme-tailwind#header).
