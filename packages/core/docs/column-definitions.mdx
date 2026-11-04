@@ -33,6 +33,8 @@ defineColumnsFromRows inspects your row data and infers a type and alignment per
 | `cellClassName`    | `string`                                                 | Extra class names appended to this column's td, on every row.                                                                                                                                          |
 | `hidden`           | `boolean`                                                | Whether the column starts out hidden. It still sorts, filters and groups; `columnVisibility` state overrides it. See [the view pipeline](/docs/core/view).                                             |
 | `hideable`         | `boolean`                                                | Whether the user may hide the column — the built-in [`column.hide` command](/docs/core/commands#built-in-commands) and the column chooser honour it. Defaults to `true`; `hideColumns` still hides it. |
+| `exportable`       | `boolean`                                                | Whether the column is written to an export, a clipboard copy or a print. Defaults to `true`; `false` keeps it out of all of them, even when an export names it by id. See [export](/docs/core/export). |
+| `exportValue`      | `(value: unknown, row: Row) => ExportScalar`             | The typed value an export stores for a cell — a `string`, `number`, `boolean`, `Date` or `null` — where the raw value is not the one to keep. Text still comes from `formatCellValue`.                 |
 
 ## Formatting values
 
@@ -70,10 +72,11 @@ formatCellValue(1234.5, { field: "Price", type: "number" });
 // "1234.5" — no format, no locale
 ```
 
-| Function                                                   | Type     | Description                                                                                                                                                       |
-| ---------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `formatCellValue(value, column, locale?, row?, messages?)` | `string` | The text a value reads as in `column` — the default cell rendering, and what an export writes. `messages` gives a boolean's words (`booleanTrue`/`booleanFalse`). |
-| `formatAggregateValue(value, spec, column, locale?)`       | `string` | The text an aggregate result reads as. Counts read as plain numbers; everything else as one of the column's values.                                               |
+| Function                                                   | Type     | Description                                                                                                                                                                                             |
+| ---------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `formatCellValue(value, column, locale?, row?, messages?)` | `string` | The text a value reads as in `column` — the default cell rendering, and what an export writes. `messages` gives a boolean's words (`booleanTrue`/`booleanFalse`).                                       |
+| `formatAggregateValue(value, spec, column, locale?)`       | `string` | The text an aggregate result reads as. Counts read as plain numbers; everything else as one of the column's values.                                                                                     |
+| `formatGroupValue(value, column, locale, messages)`        | `string` | The text a group's own value reads as — a group header's name, and an export's group label. As the column's cells read it, except that `null`/`undefined` reads `messages.blankGroupValue` ("(blank)"). |
 
 Formatters are built once per type, locale and `format` object and reused, so keep a column's `format` defined once rather than recreating it per render.
 

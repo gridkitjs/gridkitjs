@@ -306,3 +306,24 @@ export function formatAggregateValue<Row>(
   }
   return formatCellValue(value, target, locale);
 }
+
+/**
+ * The text a group's own value reads as — a group header's name, and the
+ * label an export writes for it: as the grouped column's cells read it,
+ * except that a missing value reads `messages.blankGroupValue` ("(blank)"),
+ * since an empty label would leave the group looking unnamed rather than
+ * named "nothing".
+ */
+export function formatGroupValue<Row>(
+  value: unknown,
+  column: ColumnDefinition<Row, unknown>,
+  locale: FormatLocale,
+  messages: Pick<
+    GridMessages,
+    "booleanTrue" | "booleanFalse" | "blankGroupValue"
+  >,
+): string {
+  return value === null || value === undefined
+    ? messages.blankGroupValue
+    : formatCellValue(value, column, locale, undefined, messages);
+}

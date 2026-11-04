@@ -1,3 +1,5 @@
+import type { ExportScalar } from "./export/types";
+
 /**
  * Values a cell shows as-is instead of being drilled into. Arrays and `Date`s
  * are cell values rather than groups of columns, and `null` cannot be
@@ -222,6 +224,22 @@ export interface ColumnDefinition<Row, Node = string> {
    * ways to do it and nothing else: `hideColumns` still hides the column.
    */
   hideable?: boolean | undefined;
+  /**
+   * Whether this column is written to an export, a clipboard copy or a
+   * print. Defaults to `true`. `false` keeps it out of every one of them —
+   * even when an export names it by id — for a column whose cells mean
+   * nothing off screen, such as one of action buttons.
+   */
+  exportable?: boolean | undefined;
+  /**
+   * The typed value an export stores for this column's cells, where the raw
+   * value at `field` is not the one to keep — an id to resolve into a name,
+   * a string date to turn into a `Date`. Only a format that keeps typed
+   * values (a spreadsheet, JSON) reads it; the text every format writes
+   * still comes from `formatCellValue`, so what is exported reads as what
+   * is shown.
+   */
+  exportValue?: ((value: unknown, row: Row) => ExportScalar) | undefined;
 }
 
 /** Which parts of a column opt out of the grid's default single-line text. */

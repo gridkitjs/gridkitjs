@@ -1,0 +1,186 @@
+---
+title: "Export"
+description: "buildExportTable: the grid's view as data — columns, typed and formatted cells, group and aggregate rows — for any export format."
+---
+
+buildExportTable turns what the grid shows into an `ExportTable`: the columns, every row as typed and formatted cells, the group header and aggregate rows, and the grand total. Every export format, the clipboard and print are written from this one model, and it is built from the grid's view and state rather than from the page, so rows that are virtualised, on another page or inside a collapsed group still export, and no two outputs can disagree.
+
+```ts
+import {
+  buildExportTable,
+  createGridController,
+  defaultMessages,
+} from "@gridkitjs/core";
+
+const controller = createGridController({ dataSource: rows, columns });
+
+const table = buildExportTable({
+  view: controller.getView(),
+  state: controller.getState(),
+  options: controller.getOptions(),
+  messages: defaultMessages,
+});
+
+table.columns.map((column) => column.header); // ["Name", "Region", "Amount"]
+table.rows[0]; // { kind: "data", rowId: "0", cells: [{ value: 1234.5, text: "1234.5" }, …] }
+```
+
+A command's `GridCommandContext` already has every field the source needs, so a command passes its context as it is: `buildExportTable(context, { scope: "selection" })`.
+
+## What an export holds
+
+By default, what the user sees, minus what only hides it:
+
+- **Rows:** every row the filter, search and sort leave, in sorted order, across every page.
+- **Groups:** in a grouped grid, a header row per group, and every group expanded whatever its state on screen. Each group's rows follow its header, as on screen.
+- **Columns:** the visible columns in their current order. A column with `exportable: false` is always left out.
+- **Cells:** the text `formatCellValue` makes of each value — the column's `format`, `valueFormatter` and the grid's `locale` all apply, so the export reads as the screen does — beside a typed value for formats that keep types.
+- **Aggregates:** a group's aggregates where the grid shows them — under their columns in the group's header row for `groupAggregateDisplay: "inline"`, or in a summary row after the group for `"row"` — and the grand total as the footer.
+
+Groups, subtotals and the total are worked out from the exported rows, not copied from the screen, so under `scope: "selection"` a group counts and totals only the selected rows in it.
+
+## Options
+
+The second argument, an `ExportOptions`, narrows the export. Every field is optional.
+
+| Option              | Type                                      | Default     | Description                                                                                                                                          |
+| ------------------- | ----------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scope`             | `"all" \| "page" \| "selection"`          | `"all"`     | Which rows: every page, the data rows on the current page, or the selected rows the filter leaves.                                                   |
+| `columns`           | `"visible" \| "all" \| readonly string[]` | `"visible"` | Which columns: those shown, every column including hidden ones, or a list of column ids in the order given. An id the grid does not have is skipped. |
+| `includeGroups`     | `boolean`                                 | `true`      | Whether a grouped grid writes its group header rows. `false` keeps the rows in grouped order without the headers.                                    |
+| `includeAggregates` | `boolean`                                 | `true`      | Whether group aggregates, summary rows and the grand total are written.                                                                              |
+| `includeHeader`     | `boolean`                                 | `true`      | Whether a header row of column names leads the output. Sets `ExportTable.header`, which every format reads.                                          |
+
+## The model
+
+`ExportTable` is `{ columns, header, rows, footer }`. Every row has one cell per column, in the order of `columns`.
+
+| Type                    | Shape                                                      | Description                                                                                                                                                                                       |
+| ----------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ExportColumn`          | `{ id, header, type, format?, alignment, width }`          | `header` is the column's name as text (`resolveColumnHeaderText`), never header markup. `type` is `"string"` when the column has none. `width` is as rendered, or as a hidden column would start. |
+| `ExportCell`            | `{ value, text }`                                          | `text` is what the grid shows. `value` is an `ExportScalar` — `string \| number \| boolean \| Date \| null` — for a format that stores types, such as a spreadsheet.                              |
+| `ExportRow`             | `ExportDataRow \| ExportGroupRow \| ExportGroupSummaryRow` | A body row. Discriminate on `kind`.                                                                                                                                                               |
+| `ExportDataRow`         | `{ kind: "data", rowId, cells }`                           | One row of data.                                                                                                                                                                                  |
+| `ExportGroupRow`        | `{ kind: "group", level, groupId, label, count, cells }`   | A group header. `label` reads `"Region: West"`, a missing value as `messages.blankGroupValue`. `count` is the data rows under it, at every depth. `cells` hold its aggregates when shown inline.  |
+| `ExportGroupSummaryRow` | `{ kind: "groupSummary", level, cells }`                   | A group's aggregates as a row of their own, under `groupAggregateDisplay: "row"`.                                                                                                                 |
+| `ExportTotalRow`        | `{ kind: "total", cells }`                                 | The grand total, in `footer` — `null` when there are no aggregates.                                                                                                                               |
+
+A cell's `value` is the column's `exportValue(value, row)` when it has one, else the raw value when it is a string, number, boolean or `Date`. A missing value is `null`, and anything else — an object, an array — is stored as its text, so no writer ever meets a value it cannot represent. An aggregate cell's text is empty for an empty result rather than the dash the grid shows, and two aggregates on one column share the cell, comma-separated, as they do in the grid's footer.
+
+```ts
+const columns: readonly ColumnDefinition<Order>[] = [
+  { field: "Name" },
+  {
+    field: "CustomerId",
+    header: "Customer",
+    valueFormatter: (id) => customerNames.get(String(id)) ?? "",
+    exportValue: (id) => customerNames.get(String(id)) ?? null,
+  },
+  {
+    field: "Id",
+    id: "Actions",
+    exportable: false,
+    cellTemplate: renderActions,
+  },
+];
+```
+
+## Source
+
+The first argument is an `ExportSource<Row>`, the few fields of the grid an export reads:
+
+| Field      | Type                                                                    | Description                                                                               |
+| ---------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `view`     | `GridView<Row, unknown>`                                                | The view, from `resolveGridView` or a controller's `getView()`.                           |
+| `state`    | `{ groupBy, rowSelection, columnSizing }`                               | Any `GridState` serves.                                                                   |
+| `options`  | `{ locale?, aggregates?, groupAggregateDisplay?, columnSizeDefaults? }` | Any `GridOptions` serves.                                                                 |
+| `messages` | `{ booleanTrue, booleanFalse, blankGroupValue }`                        | The words for booleans and a blank group — any `GridMessages`, such as `defaultMessages`. |
+
+| Function                             | Type          | Description                                                |
+| ------------------------------------ | ------------- | ---------------------------------------------------------- |
+| `buildExportTable(source, options?)` | `ExportTable` | The grid's view as an export model, narrowed by `options`. |
+
+## Writing it out
+
+A serialiser turns an `ExportTable` into the text of one format. Each returns a `string` rather than a file, so core needs no browser: making a `Blob` of it and saving or copying it is the renderer's job.
+
+```ts
+import { buildExportTable, toCsv } from "@gridkitjs/core";
+
+const table = buildExportTable(source);
+const csv = toCsv(table, { delimiter: "auto", locale: "mk" });
+
+const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+```
+
+| Function                       | Returns  | Description                                                                 |
+| ------------------------------ | -------- | --------------------------------------------------------------------------- |
+| `toCsv(table, options?)`       | `string` | A CSV file a spreadsheet opens as it is, guarded against formula injection. |
+| `toTsv(table, options?)`       | `string` | Tab-separated text, the plain-text form the clipboard carries.              |
+| `toJson(table, options?)`      | `string` | The data rows as an array of objects with typed values.                     |
+| `toHtmlTable(table, options?)` | `string` | A `<table>`, escaped, for pasting into a spreadsheet or a document.         |
+
+The delimited formats lay the rows out the same way: the header row when `table.header` is `true`, then every body row, then the footer. A group row writes its label, `"Region: West"`, in the first column and any inline aggregates under their own columns after it — an aggregate under the first column gives way to the label there, and still appears in the footer. Summary rows and the footer write their aggregates under their columns and leave the rest empty.
+
+## CSV
+
+`toCsv` quotes per RFC 4180: a field is quoted when it holds the delimiter, a `"` or a line break, and a `"` inside it is doubled, so a cell with a line break in it stays one cell. Records end with `"\r\n"`, and the last one has no line break after it.
+
+| Option               | Type              | Default  | Description                                                                                                                                        |
+| -------------------- | ----------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `delimiter`          | `string`          | `","`    | The field separator. `"auto"` picks `";"` when `locale` writes a decimal with a comma and `","` otherwise.                                         |
+| `locale`             | `FormatLocale`    | —        | The locale `delimiter: "auto"` reads — pass the grid's `locale`. The runtime's own when absent.                                                    |
+| `eol`                | `string`          | `"\r\n"` | What ends each record.                                                                                                                             |
+| `bom`                | `boolean`         | `true`   | Whether the file starts with a UTF-8 byte order mark.                                                                                              |
+| `neutralizeFormulas` | `boolean`         | `true`   | Whether a field a spreadsheet would run as a formula gets a leading `'`.                                                                           |
+| `values`             | `"text" \| "raw"` | `"text"` | `"text"` writes each cell as the grid shows it; `"raw"` writes its typed value — numbers plain, dates in ISO 8601, booleans as `true` and `false`. |
+
+`"text"` makes a file that reads like the screen, with the column's `format` and the grid's `locale` applied: `1.234,50 €` rather than `1234.5`. Use `"raw"` for a file another program reads back, where a formatted number or a localised date would have to be parsed again.
+
+## CSV pitfalls
+
+A CSV file has no header of its own saying how to read it, and spreadsheets guess. The defaults are chosen so that Excel, the usual reader, gets each guess right.
+
+- **Encoding.** Without a byte order mark, Excel reads a CSV in the system's legacy code page, so `Ćirilica`, `ш` or `€` arrive garbled. `bom: true` writes one; turn it off only for a program that does not expect it.
+- **Delimiter.** Excel splits a CSV on the system's list separator, which is `;` wherever a decimal is written with a comma — most of Europe, Macedonian and Croatian included. A comma-separated file opens there as one column. `delimiter: "auto"` with the user's `locale` writes `;` in those locales and `,` elsewhere.
+- **Formula injection.** A spreadsheet runs a field that starts with `=`, `+`, `-` or `@` as a formula, and a leading tab or carriage return can hide such a start. A value a user typed into the data — `=HYPERLINK(…)`, or a call that runs a command — would then run on the machine of whoever opens the export. `neutralizeFormulas: true` writes such a field with a leading `'`, which the spreadsheet shows as text. A cell whose typed value is a number keeps a leading `-` or `+`, so `-5` stays a number; every other field, the header and group labels included, is guarded.
+
+## TSV
+
+`toTsv` writes the table tab-separated with `"\n"` between records: the form a spreadsheet splits into cells when text is pasted into it, which is what a clipboard copy carries. There is no quoting a paste target agrees on, so a tab or line break inside a cell becomes a space. Unlike CSV it writes no byte order mark and leaves formulas alone: what is copied is exactly what the grid shows. Its one option is `values`, `"text"` or `"raw"`, as for CSV.
+
+## JSON
+
+`toJson` writes the data rows as a JSON array of objects, one property per column holding the cell's typed value: a number stays a number, a boolean a boolean, a `Date` becomes its ISO 8601 string and a missing value `null`. Group headers, summary rows and the footer are left out — JSON is read by programs, which group and total for themselves.
+
+```ts
+toJson(table, { space: 2 });
+// [{ "Name": "Ana", "Amount": 1234.5, "Shipped": "2024-03-15T09:30:00.000Z" }, …]
+```
+
+| Option  | Type               | Default | Description                                                                                                                                                                    |
+| ------- | ------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `keys`  | `"id" \| "header"` | `"id"`  | What each property is named after: the column's id, which stays the same whatever the header says, or its header text. A repeated header is suffixed ` (2)`, ` (3)` and so on. |
+| `space` | `number \| string` | —       | Indentation, as `JSON.stringify` takes it. None by default.                                                                                                                    |
+
+## HTML table
+
+`toHtmlTable` writes the table as a `<table>` string: a `<thead>` of column names when `table.header` is `true`, every row in `<tbody>`, and the grand total in `<tfoot>`. Every piece of text is HTML-escaped, so a cell holding `<script>` prints as text. It is the form a clipboard copy carries for pasting into a spreadsheet or a document.
+
+```ts
+toHtmlTable(table, { caption: "Sales, Q1" });
+// <table class="gridkit-export-table"><caption>Sales, Q1</caption><thead>…</thead><tbody>…</tbody></table>
+```
+
+| Option    | Type     | Default | Description                                              |
+| --------- | -------- | ------- | -------------------------------------------------------- |
+| `caption` | `string` | —       | Text for a `<caption>` above the table. None by default. |
+
+The markup carries semantic class names for a stylesheet and no styles of its own, except each column's alignment:
+
+| Element                               | Marks                                                                                                                                     |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `table.gridkit-export-table`          | The table.                                                                                                                                |
+| `tr.export-group[data-level]`         | A group header, `data-level` its depth from `0`. Its label spans every column, or the columns before the first aggregate it shows inline. |
+| `tr.export-group-summary[data-level]` | A group's summary row.                                                                                                                    |
+| `style="text-align:right"` / `center` | A cell in a right- or centre-aligned column, numeric ones included. Inline, so the alignment survives a paste where no stylesheet goes.   |

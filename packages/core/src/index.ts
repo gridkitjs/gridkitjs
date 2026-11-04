@@ -286,6 +286,32 @@ export {
 export type { GridMessages } from "./messages";
 export { defaultMessages, resolveMessages } from "./messages";
 export type { FormatLocale } from "./util/format";
-export { formatAggregateValue, formatCellValue } from "./util/format";
+export {
+  formatAggregateValue,
+  formatCellValue,
+  formatGroupValue,
+} from "./util/format";
 export type { RowHeights, VisibleRange } from "./util/virtualization";
 export { visibleRange } from "./util/virtualization";
+export type {
+  ExportCell,
+  ExportColumn,
+  ExportDataRow,
+  ExportGroupRow,
+  ExportGroupSummaryRow,
+  ExportOptions,
+  ExportRow,
+  ExportScalar,
+  ExportTable,
+  ExportTotalRow,
+} from "./export/types";
+export type { ExportSource } from "./export/buildExportTable";
+export { buildExportTable } from "./export/buildExportTable";
+export type { CsvOptions } from "./export/csv";
+export { toCsv } from "./export/csv";
+export type { TsvOptions } from "./export/tsv";
+export { toTsv } from "./export/tsv";
+export type { JsonOptions } from "./export/json";
+export { toJson } from "./export/json";
+export type { HtmlTableOptions } from "./export/htmlTable";
+export { toHtmlTable } from "./export/htmlTable";

@@ -1,6 +1,6 @@
 import { memo, type Ref } from "react";
 import {
-  formatCellValue,
+  formatGroupValue,
   resolveColumnLabel,
   type AggregateResults,
   type AggregateState,
@@ -50,23 +50,6 @@ interface GridGroupRowProps<Row> {
     "booleanTrue" | "booleanFalse" | "blankGroupValue"
   >;
   ref?: Ref<HTMLTableRowElement> | undefined;
-}
-
-/**
- * How a group's own value renders in its header: as the grouped column's
- * cells show it, except that a missing value reads `blankGroupValue`
- * ("(blank)") — an empty label would leave the group looking unnamed rather
- * than named "nothing".
- */
-function formatGroupValue<Row>(
-  value: unknown,
-  column: ColumnDefinition<Row>,
-  locale: FormatLocale,
-  messages: GridGroupRowProps<Row>["cellMessages"],
-): string {
-  return value === null || value === undefined
-    ? messages.blankGroupValue
-    : formatCellValue(value, column, locale, undefined, messages);
 }
 
 function GridGroupRowComponent<Row>({
