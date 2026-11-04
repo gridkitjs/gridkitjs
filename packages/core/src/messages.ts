@@ -1,4 +1,5 @@
-import type { SortDirection } from "./types";
+import type { FilterOperatorFamily } from "./filterMenu/operators";
+import type { FilterOperator, SortDirection } from "./types";
 
 /**
  * Every string a grid shows or announces of its own — the pager, the group-by
@@ -141,6 +142,15 @@ export interface GridMessages {
   showAllColumns: string;
   /** Shown in the column chooser when its search matches no column. */
   noMatchingColumns: string;
+  /**
+   * A condition's operator, as a filter menu lists it. `family` is the
+   * column's (`filterOperatorFamily`), so a date can read `lt` as "Before"
+   * where a number reads "Less than".
+   */
+  filterOperatorLabel: (
+    operator: FilterOperator,
+    family: FilterOperatorFamily,
+  ) => string;
 }
 
 /** "3 columns hidden", "1 column shown", "2 columns autofitted". */
@@ -170,6 +180,42 @@ function selectedCount(count: number, target: "rows" | "columns"): string {
   return count === 1
     ? `1 ${noun} selected`
     : `${String(count)} ${noun}s selected`;
+}
+
+const operatorLabels: Readonly<Record<FilterOperator, string>> = {
+  eq: "Equals",
+  ne: "Does not equal",
+  contains: "Contains",
+  notContains: "Does not contain",
+  startsWith: "Starts with",
+  endsWith: "Ends with",
+  gt: "Greater than",
+  gte: "Greater than or equal to",
+  lt: "Less than",
+  lte: "Less than or equal to",
+  between: "Between",
+  in: "Is one of",
+  isEmpty: "Is blank",
+  isNotEmpty: "Is not blank",
+};
+
+/** Where a date's order reads as time rather than size. */
+const dateOperatorLabels: Readonly<Partial<Record<FilterOperator, string>>> = {
+  lt: "Before",
+  lte: "On or before",
+  gt: "After",
+  gte: "On or after",
+};
+
+/** "Before" on a date, "Less than" on a number, "Contains" on either. */
+function filterOperatorLabel(
+  operator: FilterOperator,
+  family: FilterOperatorFamily,
+): string {
+  return (
+    (family === "date" ? dateOperatorLabels[operator] : undefined) ??
+    operatorLabels[operator]
+  );
 }
 
 /** The grid's own English, which `messages` replaces key by key. */
@@ -248,6 +294,7 @@ export const defaultMessages: GridMessages = {
   columnChooserSearchLabel: "Search columns",
   showAllColumns: "Show all",
   noMatchingColumns: "No matching columns",
+  filterOperatorLabel,
 };
 
 /**

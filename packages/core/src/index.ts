@@ -283,6 +283,11 @@ export {
   selectAllState,
   visibleFilterOptions,
 } from "./util/filterEditor";
+export type { FilterOperatorFamily } from "./filterMenu/operators";
+export {
+  defaultFilterOperators,
+  filterOperatorFamily,
+} from "./filterMenu/operators";
 export type { GridMessages } from "./messages";
 export { defaultMessages, resolveMessages } from "./messages";
 export type { FormatLocale } from "./util/format";

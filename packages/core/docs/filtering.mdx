@@ -90,6 +90,31 @@ A value or blanks action switches the draft to its checklist (`mode: "values"`);
 
 What `draftToFilter` writes, `describeColumnFilter` reads back as the same shape. When nothing changes it returns `current` itself, and `setFilter` reports nothing for a filter equal to the one it has.
 
+## Operators by column type
+
+The conditions a filter menu offers depend on what the column holds. `filterOperatorFamily(type)` reads a column's `type` as one of four families — the filter engine's own reading, so a menu never offers a condition the column would compare differently:
+
+| Family      | Column types                                       |
+| ----------- | -------------------------------------------------- |
+| `"text"`    | `"string"`, or no `type`                           |
+| `"number"`  | `"number"`, `"decimal"`, `"currency"`, `"percent"` |
+| `"date"`    | `"date"`, `"dateTime"`, `"time"`                   |
+| `"boolean"` | `"boolean"`                                        |
+
+`defaultFilterOperators(type)` lists the operators a column offers, in order, unless it names its own:
+
+| Column type            | Operators                                                                                |
+| ---------------------- | ---------------------------------------------------------------------------------------- |
+| text                   | `contains`, `notContains`, `eq`, `ne`, `startsWith`, `endsWith`, `isEmpty`, `isNotEmpty` |
+| numeric                | `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `between`, `isEmpty`, `isNotEmpty`                 |
+| `"date"`               | `eq`, `ne`, `lt`, `gt`, `between`, `isEmpty`, `isNotEmpty`                               |
+| `"dateTime"`, `"time"` | `lt`, `gt`, `between`, `isEmpty`, `isNotEmpty`                                           |
+| `"boolean"`            | `eq`, `isEmpty`, `isNotEmpty`                                                            |
+
+A date-time or time cell is an instant, which a typed day or minute seldom equals to the millisecond, so those columns offer before, after and between rather than equals. `in` is never a condition: a list of values is the checklist's to pick. What each operator matches is on [Column filtering](/docs/react/column-filtering#the-fifth-kind-operators).
+
+A menu labels each operator with the `filterOperatorLabel(operator, family)` message, so a translation can word each family its own way. In English a date reads its order as time — `lt` is "Before", `gte` "On or after" — and every other family as size — "Less than", "Greater than or equal to"; `isEmpty` reads "Is blank".
+
 ## A search box
 
 A search box over every column is a UI over the filter's global text entry — the `{ query }` that names no column, matched against the raw value of every data column, hidden ones included. Two functions read and write it, so a box always shows what the filter holds — after a restored layout or `filter.clearAll`, too:
