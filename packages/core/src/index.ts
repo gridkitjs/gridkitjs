@@ -311,3 +311,5 @@ export type { CsvOptions } from "./export/csv";
 export { toCsv } from "./export/csv";
 export type { TsvOptions } from "./export/tsv";
 export { toTsv } from "./export/tsv";
+export type { JsonOptions } from "./export/json";
+export { toJson } from "./export/json";

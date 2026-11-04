@@ -113,10 +113,11 @@ const csv = toCsv(table, { delimiter: "auto", locale: "mk" });
 const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
 ```
 
-| Function                 | Returns  | Description                                                                 |
-| ------------------------ | -------- | --------------------------------------------------------------------------- |
-| `toCsv(table, options?)` | `string` | A CSV file a spreadsheet opens as it is, guarded against formula injection. |
-| `toTsv(table, options?)` | `string` | Tab-separated text, the plain-text form the clipboard carries.              |
+| Function                  | Returns  | Description                                                                 |
+| ------------------------- | -------- | --------------------------------------------------------------------------- |
+| `toCsv(table, options?)`  | `string` | A CSV file a spreadsheet opens as it is, guarded against formula injection. |
+| `toTsv(table, options?)`  | `string` | Tab-separated text, the plain-text form the clipboard carries.              |
+| `toJson(table, options?)` | `string` | The data rows as an array of objects with typed values.                     |
 
 The delimited formats lay the rows out the same way: the header row when `table.header` is `true`, then every body row, then the footer. A group row writes its label, `"Region: West"`, in the first column and any inline aggregates under their own columns after it — an aggregate under the first column gives way to the label there, and still appears in the footer. Summary rows and the footer write their aggregates under their columns and leave the rest empty.
 
@@ -146,3 +147,17 @@ A CSV file has no header of its own saying how to read it, and spreadsheets gues
 ## TSV
 
 `toTsv` writes the table tab-separated with `"\n"` between records: the form a spreadsheet splits into cells when text is pasted into it, which is what a clipboard copy carries. There is no quoting a paste target agrees on, so a tab or line break inside a cell becomes a space. Unlike CSV it writes no byte order mark and leaves formulas alone: what is copied is exactly what the grid shows. Its one option is `values`, `"text"` or `"raw"`, as for CSV.
+
+## JSON
+
+`toJson` writes the data rows as a JSON array of objects, one property per column holding the cell's typed value: a number stays a number, a boolean a boolean, a `Date` becomes its ISO 8601 string and a missing value `null`. Group headers, summary rows and the footer are left out — JSON is read by programs, which group and total for themselves.
+
+```ts
+toJson(table, { space: 2 });
+// [{ "Name": "Ana", "Amount": 1234.5, "Shipped": "2024-03-15T09:30:00.000Z" }, …]
+```
+
+| Option  | Type               | Default | Description                                                                                                                                                                    |
+| ------- | ------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `keys`  | `"id" \| "header"` | `"id"`  | What each property is named after: the column's id, which stays the same whatever the header says, or its header text. A repeated header is suffixed ` (2)`, ` (3)` and so on. |
+| `space` | `number \| string` | —       | Indentation, as `JSON.stringify` takes it. None by default.                                                                                                                    |
