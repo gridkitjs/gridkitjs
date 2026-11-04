@@ -293,4 +293,17 @@ export {
 } from "./util/format";
 export type { RowHeights, VisibleRange } from "./util/virtualization";
 export { visibleRange } from "./util/virtualization";
-export type { ExportScalar } from "./export/types";
+export type {
+  ExportCell,
+  ExportColumn,
+  ExportDataRow,
+  ExportGroupRow,
+  ExportGroupSummaryRow,
+  ExportOptions,
+  ExportRow,
+  ExportScalar,
+  ExportTable,
+  ExportTotalRow,
+} from "./export/types";
+export type { ExportSource } from "./export/buildExportTable";
+export { buildExportTable } from "./export/buildExportTable";
