@@ -81,3 +81,7 @@ export { default as useColumnOrderState } from "./DataGrid/hooks/useColumnOrderS
 export { default as useColumnVisibilityState } from "./DataGrid/hooks/useColumnVisibilityState";
 export { default as useFilterState } from "./DataGrid/hooks/useFilterState";
 export type { FilterStateApi } from "./DataGrid/hooks/useFilterState";
+
+// The filter popup in its Excel-style form, spread into `DataGrid`:
+// `<DataGrid {...excelFilter} />`.
+export { excelFilter } from "@gridkitjs/core";
