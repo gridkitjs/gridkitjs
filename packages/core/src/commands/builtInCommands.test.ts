@@ -5,6 +5,7 @@ import type {
   GridController,
   GridControllerOptions,
 } from "../controller/gridController";
+import type { ExportWriter } from "../export/writer";
 import { defaultMessages } from "../messages";
 import type { ColumnDefinition } from "../types";
 import { builtInCommands, type BuiltInCommandId } from "./builtInCommands";
@@ -64,7 +65,14 @@ function group(columnId: string): GridCommandTarget {
 }
 
 function inertHost(): GridCommandHost {
-  return { autoFitColumns: vi.fn(), openPanel: vi.fn(), announce: vi.fn() };
+  return {
+    autoFitColumns: vi.fn(),
+    openPanel: vi.fn(),
+    announce: vi.fn(),
+    saveFile: vi.fn(),
+    writeClipboard: vi.fn(),
+    print: vi.fn(),
+  };
 }
 
 /**
@@ -120,10 +128,21 @@ describe("builtInCommands", () => {
       "selection.selectAllRows",
       "selection.clear",
       "filter.clearAll",
+      "export.csv",
+      "export.json",
+      "export.xlsx",
+      "export.pdf",
+      "exportSelection.csv",
+      "exportSelection.json",
+      "exportSelection.xlsx",
+      "copy.cell",
+      "copy.row",
+      "copy.selection",
+      "print",
     ]);
   });
 
-  test("hides every one on empty body space, which has nothing to act on", () => {
+  test("shows only the exports, the selection copy and print on empty body space, which act on the whole grid", () => {
     const context = createCommandContext({
       controller: create({
         selectable: { rows: "multiple" },
@@ -136,13 +155,13 @@ describe("builtInCommands", () => {
     });
 
     expect(
-      builtInCommands<Order>().filter((command) =>
-        isCommandVisible(command, context),
-      ),
-    ).toEqual([]);
+      builtInCommands<Order>()
+        .filter((command) => isCommandVisible(command, context))
+        .map((command) => command.id),
+    ).toEqual(["export.csv", "export.json", "copy.selection", "print"]);
   });
 
-  test("gives the sort, group, hide and autofit commands icon keys", () => {
+  test("gives the sort, group, hide, autofit, copy and print commands icon keys", () => {
     const icons = Object.fromEntries(
       builtInCommands()
         .filter((command) => command.icon !== undefined)
@@ -157,6 +176,10 @@ describe("builtInCommands", () => {
       "column.hide": "hide",
       "column.autoFit": "autoFit",
       "column.autoFitAll": "autoFit",
+      "copy.cell": "copy",
+      "copy.row": "copy",
+      "copy.selection": "copy",
+      print: "print",
     });
   });
 
@@ -744,5 +767,382 @@ describe("filter.clearAll", () => {
     builtIn("filter.clearAll", controller, GRID).run();
 
     expect(controller.getState().filter).toEqual([]);
+  });
+});
+
+/** A writer of `format` writing each data row's id, after `wait` when asynchronous. */
+function idsWriter(format: string, wait = false): ExportWriter {
+  return {
+    format,
+    fileExtension: format,
+    mimeType: `application/x-${format}`,
+    write: (table) => {
+      const ids = table.rows.map((row) =>
+        row.kind === "data" ? row.rowId : "",
+      );
+      return wait ? Promise.resolve(ids.join(" ")) : ids.join(" ");
+    },
+  };
+}
+
+/** The file a command's run handed its host. */
+function savedFile(host: GridCommandHost): unknown {
+  const save = vi.mocked(host.saveFile);
+  expect(save).toHaveBeenCalledOnce();
+  return save.mock.calls[0]?.[0];
+}
+
+describe("export.csv", () => {
+  test("shows on the grid, the toolbar, the body and a cell, enabled while there are rows", () => {
+    const controller = create();
+    const command = builtIn("export.csv", controller, GRID);
+
+    expect(command.label()).toBe("Export to CSV");
+    expect(command.visible()).toBe(true);
+    expect(command.enabled()).toBe(true);
+    expect(command.checked()).toBeUndefined();
+    for (const target of [TOOLBAR, BODY, cell("1", "Id")]) {
+      expect(builtIn("export.csv", controller, target).visible()).toBe(true);
+    }
+    for (const target of [header("Id"), group("Region")]) {
+      expect(builtIn("export.csv", controller, target).visible()).toBe(false);
+    }
+
+    controller.setFilter([{ query: "%North%" }]);
+    expect(command.visible()).toBe(true);
+    expect(command.enabled()).toBe(false);
+  });
+
+  test("hands the host the view as a CSV file", () => {
+    const command = builtIn("export.csv", create(), GRID);
+
+    expect(command.run()).toBe(true);
+    expect(savedFile(command.host)).toEqual({
+      fileName: "export.csv",
+      mimeType: "text/csv;charset=utf-8",
+      content: `${String.fromCharCode(0xfeff)}Id,Sales region,Amount\r\n1,West,10\r\n2,East,20\r\n3,West,30`,
+    });
+  });
+
+  test("exports under the grid's export defaults", () => {
+    const command = builtIn(
+      "export.csv",
+      create({
+        export: {
+          fileName: "orders",
+          columns: ["Id"],
+          csv: { bom: false, eol: "\n" },
+        },
+      }),
+      GRID,
+    );
+    command.run();
+
+    expect(savedFile(command.host)).toMatchObject({
+      fileName: "orders.csv",
+      content: "Id\n1\n2\n3",
+    });
+  });
+
+  test("uses a csv writer the grid registers in place of the built-in", () => {
+    const command = builtIn(
+      "export.csv",
+      create({ exportWriters: [idsWriter("csv")] }),
+      GRID,
+    );
+    command.run();
+
+    expect(savedFile(command.host)).toMatchObject({ content: "1 2 3" });
+  });
+});
+
+describe("export.json", () => {
+  test("shows where export.csv does, and hands the host a JSON file", () => {
+    const controller = create();
+    const command = builtIn("export.json", controller, cell("1", "Id"));
+
+    expect(command.label()).toBe("Export to JSON");
+    expect(command.visible()).toBe(true);
+    expect(builtIn("export.json", controller, header("Id")).visible()).toBe(
+      false,
+    );
+    expect(command.run()).toBe(true);
+    expect(savedFile(command.host)).toEqual({
+      fileName: "export.json",
+      mimeType: "application/json",
+      content: JSON.stringify([
+        { Id: 1, Region: "West", Amount: 10 },
+        { Id: 2, Region: "East", Amount: 20 },
+        { Id: 3, Region: "West", Amount: 30 },
+      ]),
+    });
+  });
+});
+
+describe("export.xlsx and export.pdf", () => {
+  test("show only once a writer for their format is registered", () => {
+    for (const [id, format, label] of [
+      ["export.xlsx", "xlsx", "Export to Excel"],
+      ["export.pdf", "pdf", "Export to PDF"],
+    ] as const) {
+      expect(builtIn(id, create(), GRID).visible()).toBe(false);
+
+      const command = builtIn(
+        id,
+        create({ exportWriters: [idsWriter(format)] }),
+        TOOLBAR,
+      );
+      expect(command.label()).toBe(label);
+      expect(command.visible()).toBe(true);
+      expect(command.enabled()).toBe(true);
+    }
+  });
+
+  test("hand the host a promise of the file from an asynchronous writer", async () => {
+    const command = builtIn(
+      "export.xlsx",
+      create({ exportWriters: [idsWriter("xlsx", true)] }),
+      GRID,
+    );
+    command.run();
+
+    await expect(savedFile(command.host)).resolves.toEqual({
+      fileName: "export.xlsx",
+      mimeType: "application/x-xlsx",
+      content: "1 2 3",
+    });
+  });
+});
+
+describe("exportSelection", () => {
+  test("shows where the exports do while rows are selected, enabled while the filter leaves one", () => {
+    const controller = create({ selectable: { rows: "multiple" } });
+    const command = builtIn("exportSelection.csv", controller, cell("1", "Id"));
+
+    expect(command.label()).toBe("Export selection to CSV");
+    expect(command.visible()).toBe(false);
+
+    controller.setRowSelection(["2"]);
+    expect(command.visible()).toBe(true);
+    expect(command.enabled()).toBe(true);
+    expect(
+      builtIn("exportSelection.csv", controller, header("Id")).visible(),
+    ).toBe(false);
+
+    controller.setFilter([{ query: "%West%" }]);
+    expect(command.visible()).toBe(true);
+    expect(command.enabled()).toBe(false);
+  });
+
+  test("exports only the selected rows, whatever scope the grid's defaults give", () => {
+    const writer = idsWriter("csv");
+    const command = builtIn(
+      "exportSelection.csv",
+      create({
+        defaultRowSelection: ["3", "1"],
+        export: { scope: "page" },
+        exportWriters: [writer],
+      }),
+      GRID,
+    );
+    command.run();
+
+    expect(savedFile(command.host)).toMatchObject({ content: "1 3" });
+  });
+
+  test("labels JSON and Excel, Excel showing only with an xlsx writer", () => {
+    const controller = create({ defaultRowSelection: ["1"] });
+
+    expect(builtIn("exportSelection.json", controller, GRID).label()).toBe(
+      "Export selection to JSON",
+    );
+    expect(builtIn("exportSelection.json", controller, GRID).visible()).toBe(
+      true,
+    );
+    expect(builtIn("exportSelection.xlsx", controller, GRID).visible()).toBe(
+      false,
+    );
+
+    const withXlsx = builtIn(
+      "exportSelection.xlsx",
+      create({
+        defaultRowSelection: ["1"],
+        exportWriters: [idsWriter("xlsx")],
+      }),
+      GRID,
+    );
+    expect(withXlsx.label()).toBe("Export selection to Excel");
+    expect(withXlsx.visible()).toBe(true);
+  });
+});
+
+/** What a command's run handed its host to put on the clipboard. */
+function copied(host: GridCommandHost): unknown {
+  const write = vi.mocked(host.writeClipboard);
+  expect(write).toHaveBeenCalledOnce();
+  return write.mock.calls[0]?.[0];
+}
+
+describe("copy.cell", () => {
+  test("shows on a cell only, and hands the host the cell's text", () => {
+    const controller = create();
+    const command = builtIn("copy.cell", controller, cell("2", "Region"));
+
+    expect(command.label()).toBe("Copy cell");
+    expect(command.visible()).toBe(true);
+    expect(command.enabled()).toBe(true);
+    for (const target of [GRID, TOOLBAR, BODY, header("Id"), group("Region")]) {
+      expect(builtIn("copy.cell", controller, target).visible()).toBe(false);
+    }
+
+    expect(command.run()).toBe(true);
+    expect(copied(command.host)).toEqual({
+      text: "East",
+      html: '<table class="gridkit-export-table"><tbody><tr><td>East</td></tr></tbody></table>',
+      count: 1,
+      unit: "cells",
+    });
+  });
+
+  test("is disabled on a column that does not export", () => {
+    const command = builtIn(
+      "copy.cell",
+      create({
+        columns: [{ field: "Id" }, { field: "Notes", exportable: false }],
+      }),
+      cell("1", "Notes"),
+    );
+
+    expect(command.visible()).toBe(true);
+    expect(command.enabled()).toBe(false);
+    expect(command.run()).toBe(false);
+  });
+});
+
+describe("copy.row", () => {
+  test("shows on a cell only, and hands the host the row's shown cells", () => {
+    const controller = create();
+    const command = builtIn("copy.row", controller, cell("3", "Id"));
+
+    expect(command.label()).toBe("Copy row");
+    expect(command.visible()).toBe(true);
+    expect(builtIn("copy.row", controller, GRID).visible()).toBe(false);
+
+    command.run();
+    expect(copied(command.host)).toMatchObject({
+      text: "3\tWest\t30",
+      count: 1,
+      unit: "rows",
+    });
+  });
+});
+
+describe("copy.selection", () => {
+  test("shows where the exports do once anything is selectable, enabled once something is", () => {
+    expect(builtIn("copy.selection", create(), GRID).visible()).toBe(false);
+
+    const controller = create({ selectable: { cells: "single" } });
+    const command = builtIn("copy.selection", controller, cell("1", "Id"));
+
+    expect(command.label()).toBe("Copy selection");
+    expect(command.visible()).toBe(true);
+    expect(command.enabled()).toBe(false);
+    for (const target of [GRID, TOOLBAR, BODY]) {
+      expect(builtIn("copy.selection", controller, target).visible()).toBe(
+        true,
+      );
+    }
+    for (const target of [header("Id"), group("Region")]) {
+      expect(builtIn("copy.selection", controller, target).visible()).toBe(
+        false,
+      );
+    }
+
+    controller.setCellSelection({ rowId: "2", columnId: "Amount" });
+    expect(command.enabled()).toBe(true);
+  });
+
+  test("hands the host the selected rows under a header", () => {
+    const command = builtIn(
+      "copy.selection",
+      create({
+        selectable: { rows: "multiple" },
+        defaultRowSelection: ["3", "1"],
+      }),
+      GRID,
+    );
+
+    expect(command.run()).toBe(true);
+    expect(copied(command.host)).toMatchObject({
+      text: "Id\tSales region\tAmount\n1\tWest\t10\n3\tWest\t30",
+      count: 2,
+      unit: "rows",
+    });
+  });
+});
+
+function printed(host: GridCommandHost): Parameters<GridCommandHost["print"]> {
+  const print = vi.mocked(host.print);
+  expect(print).toHaveBeenCalledOnce();
+  const [call] = print.mock.calls;
+  if (call === undefined) {
+    throw new Error("nothing printed");
+  }
+  return call;
+}
+
+describe("print", () => {
+  test("shows where the exports do, enabled while a column is shown", () => {
+    const controller = create();
+    const command = builtIn("print", controller, GRID);
+
+    expect(command.label()).toBe("Print");
+    expect(command.visible()).toBe(true);
+    expect(command.enabled()).toBe(true);
+    for (const target of [TOOLBAR, BODY, cell("1", "Id")]) {
+      expect(builtIn("print", controller, target).visible()).toBe(true);
+    }
+    for (const target of [header("Id"), group("Region")]) {
+      expect(builtIn("print", controller, target).visible()).toBe(false);
+    }
+
+    controller.setFilter([{ query: "%North%" }]);
+    expect(command.enabled()).toBe(true);
+
+    controller.hideColumns(["Id", "Region", "Amount"]);
+    expect(command.enabled()).toBe(false);
+  });
+
+  test("hands the host the view as a document titled with the grid's label", () => {
+    const command = builtIn("print", create({ label: "Orders" }), GRID);
+
+    expect(command.run()).toBe(true);
+    const [document, options] = printed(command.host);
+    expect(document).toMatchObject({
+      title: "Orders",
+      page: { orientation: "portrait", paperSize: "A4" },
+    });
+    expect(document.bodyHtml).toContain('<h1 class="print-title">Orders</h1>');
+    expect(options).toEqual({});
+  });
+
+  test("prints under the grid's print defaults, and passes them to the host", () => {
+    const print = {
+      title: "Q1",
+      columns: ["Id"],
+      paperSize: "Letter",
+      styles: "td { color: red }",
+    };
+    const command = builtIn("print", create({ label: "Orders", print }), GRID);
+    command.run();
+
+    const [document, options] = printed(command.host);
+    expect(document).toMatchObject({
+      title: "Q1",
+      page: { paperSize: "Letter" },
+    });
+    expect(document.bodyHtml).toContain(">Id</th>");
+    expect(document.bodyHtml).not.toContain("Sales region");
+    expect(options).toBe(print);
   });
 });

@@ -103,6 +103,8 @@ Every getter reads the grid's state at the moment it is called, so a read straig
 | `closeContextMenu()`                 | Closes the context menu, if one is open.                                                                                                                          |
 | `openColumnChooser()`                | Opens the [column chooser](/docs/react/column-chooser) at the grid's top-end corner, in place of any panel open. Closing it gives focus back to what had it.      |
 | `runCommand(commandId, target?)`     | Runs a command by id on `target` — `{ area: "grid" }` by default — when it can run there, firing `onCommand`. Returns whether it ran.                             |
+| `exportData(format, options?)`       | Exports the grid's view as a file of `format` without downloading it, and resolves to a `Blob` of it. See [export](/docs/react/export#from-the-ref).              |
+| `print(options?)`                    | Prints the grid's view through the browser's print dialog, and resolves once it closes. See [printing](/docs/react/printing#from-the-ref).                        |
 
 `options` on `scrollToRow`/`scrollToColumn` is a standard
 [`ScrollIntoViewOptions`](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView),

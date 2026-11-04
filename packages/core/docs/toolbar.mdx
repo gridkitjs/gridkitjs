@@ -28,19 +28,30 @@ const toolbar: readonly ToolbarEntry<Order>[] = [
 
 A `ToolbarEntry<Row>` is any `MenuEntry<Row>` or one of the toolbar's own:
 
-| Entry                                      | Drawn as                                                                                                                        |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| `"filter.clearAll"`                        | A command's button. A checkable command is a toggle button, pressed while checked.                                              |
-| `{ type: "item", id, label, onSelect, … }` | A button of its own, with an inline item's fields; a toggle when it has `checked`.                                              |
-| `{ type: "submenu", id, label, items }`    | A dropdown button opening a menu of `items`.                                                                                    |
-| `"separator"`                              | A separator.                                                                                                                    |
-| `"search"`                                 | The search box, over the filter's global text entry — see [a search box](/docs/core/filtering#a-search-box).                    |
-| `"spacer"`                                 | The free space, pushing what follows it to the far end. Two spacers share it.                                                   |
-| `{ type: "custom", id }`                   | A `ToolbarCustomEntry`: a place the renderer fills with content of yours — in @gridkitjs/react, what `renderToolbarItem` draws. |
+| Entry                                      | Drawn as                                                                                                                            |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `"filter.clearAll"`                        | A command's button. A checkable command is a toggle button, pressed while checked.                                                  |
+| `{ type: "item", id, label, onSelect, … }` | A button of its own, with an inline item's fields; a toggle when it has `checked`.                                                  |
+| `{ type: "submenu", id, label, items }`    | A dropdown button opening a menu of `items`.                                                                                        |
+| `"separator"`                              | A separator.                                                                                                                        |
+| `"search"`                                 | The search box, over the filter's global text entry — see [a search box](/docs/core/filtering#a-search-box).                        |
+| `"spacer"`                                 | The free space, pushing what follows it to the far end. Two spacers share it.                                                       |
+| `"export"`                                 | An "Export" dropdown of the [export commands](/docs/core/commands#built-in-commands) that show — see [below](#the-export-dropdown). |
+| `{ type: "custom", id }`                   | A `ToolbarCustomEntry`: a place the renderer fills with content of yours — in @gridkitjs/react, what `renderToolbarItem` draws.     |
 
-Like `"separator"`, the strings `"search"` and `"spacer"` are the toolbar's own: a toolbar reads them as its entries, never as command ids.
+Like `"separator"`, the strings `"search"`, `"spacer"` and `"export"` are the toolbar's own: a toolbar reads them as its entries, never as command ids.
 
-The built-ins meant for a toolbar are `sort.clearAll`, `group.clearAll`, `group.expandAll`, `group.collapseAll`, `column.autoFitAll`, `column.choose` and `filter.clearAll` — see [built-in commands](/docs/core/commands#built-in-commands). The rest act on a column, a row or a group, which a toolbar has none of, so they never show in one.
+The built-ins meant for a toolbar are `sort.clearAll`, `group.clearAll`, `group.expandAll`, `group.collapseAll`, `column.autoFitAll`, `column.choose`, `filter.clearAll` and the exports — see [built-in commands](/docs/core/commands#built-in-commands). The rest act on a column, a row or a group, which a toolbar has none of, so they never show in one.
+
+### The export dropdown
+
+`"export"` stands for a dropdown, keyed and identified `"export"` and labelled `messages.exportMenu`, listing `export.csv`, `export.json`, `export.xlsx` and `export.pdf`, then a separator and `exportSelection.csv`, `exportSelection.json` and `exportSelection.xlsx`. Each hides where it cannot act — xlsx and PDF until a writer for them is registered, the selection exports while no row is selected — so the dropdown lists what the grid can export now: CSV and JSON on a grid with no writers of its own. With nothing to list it is left out, like any dropdown.
+
+```ts
+toolbar={{ items: ["search", "spacer", "export", "column.choose"] }}
+```
+
+For a different list — a single CSV button, or exports beside other actions — write the entries yourself: `"export.csv"` alone, or a `submenu` of the ids you want.
 
 ## The option
 
@@ -51,11 +62,11 @@ A grid's `toolbar` option — `boolean | GridToolbarOptions<Row>` — says wheth
 | `items` | `readonly ToolbarEntry<Row>[]` | The entries, in order. Defaults to the defaults. |
 | `label` | `string`                       | The toolbar's accessible name.                   |
 
-`defaultToolbar` is the search box, a spacer, `filter.clearAll` and `column.choose`: search on the left, "Clear filters" and "Choose columns" at the far end. `toolbarEntries(toolbar)` reads the option — no entries while it is off, else the defaults or its `items` — for `resolveToolbar` to resolve.
+`defaultToolbar` is the search box, a spacer, `filter.clearAll` and `column.choose`: search on the left, "Clear filters" and "Choose columns" at the far end. Exporting is not among the defaults; list `"export"` to add it. `toolbarEntries(toolbar)` reads the option — no entries while it is off, else the defaults or its `items` — for `resolveToolbar` to resolve.
 
 ## Resolving
 
-`resolveToolbar(entries, { commands, contextFor })` — a `ToolbarResolveOptions` — resolves a toolbar against the grid and returns the `ResolvedToolbarItem[]` to draw, by `resolveMenu`'s rules: hidden commands and items are left out, and so is an id naming no command, reported once per command map with a `console.error`; labels become strings and flags booleans; a dropdown whose items all hide is left out; and separators never lead, trail, double up — or sit beside a spacer, which already parts what is on either side of it.
+`resolveToolbar(entries, { commands, contextFor })` — a `ToolbarResolveOptions` — resolves a toolbar against the grid and returns the `ResolvedToolbarItem[]` to draw, by `resolveMenu`'s rules: hidden commands and items are left out, and so is an id naming no command, reported once per command map with a `console.error`; labels become strings and flags booleans; `"export"` becomes the [export dropdown](#the-export-dropdown); a dropdown whose items all hide is left out; and separators never lead, trail, double up — or sit beside a spacer, which already parts what is on either side of it.
 
 Each item resolves and runs in a context of its own, from `contextFor(target)`: its target is a `GridToolbarTarget`, `{ area: "toolbar", itemId }`, naming the item — or, for an item in a dropdown, the dropdown — so a command opening a [panel](/docs/core/commands#panels), as `column.choose` does, can anchor it there.
 

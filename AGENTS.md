@@ -10,6 +10,7 @@ Headless data-grid toolkit. pnpm monorepo, ESM-only, TypeScript 6.
 | `packages/dom` (`@gridkitjs/dom`)                       | Browser behaviours — gestures, focus, observers, overlays. Plain TypeScript with the DOM. No React.   |
 | `packages/react` (`@gridkitjs/react`)                   | React components. Renders semantic class names; carries no styles of its own. Consumes `core`, `dom`. |
 | `packages/theme-tailwind` (`@gridkitjs/theme-tailwind`) | The grid's stylesheet — palette tokens, dark mode, grid styles. Published.                            |
+| `packages/export-xlsx` (`@gridkitjs/export-xlsx`)       | Excel export writer, registered through `exportWriters`. Plain TypeScript, no DOM. Published.         |
 | `packages/theme-default`                                | Plain CSS for consumers not using Tailwind. Currently an empty stub. Private, unpublished.            |
 | `apps/playground`                                       | Vite app used to develop against. Private, never published.                                           |
 
@@ -22,6 +23,7 @@ DOM but not React, in `dom`; `react` only draws. The boundary is enforced, not
 just agreed: `core` compiles without the DOM `lib` and ESLint rejects any
 `react`, `react-dom`, `@gridkitjs/react` or `@gridkitjs/dom` import from it,
 and any `react`, `react-dom` or `@gridkitjs/react` import from `dom`.
+`export-xlsx` is held to `core`'s rule, so the writer runs in Node too.
 
 ## Development
 
@@ -139,7 +141,8 @@ drops below 80%.
 ### Versioning
 
 Every change that reaches a **published** package — `core`, `dom`, `react`,
-`theme-tailwind` — needs a changeset, in the same commit as the change:
+`theme-tailwind`, `export-xlsx` — needs a changeset, in the same commit as the
+change:
 
 ```bash
 pnpm changeset
@@ -292,8 +295,8 @@ Types: `feat`, `fix`, `docs`, `refactor`, `test`, `perf`, `build`, `ci`,
 `chore`, `revert`.
 
 Scope is the package without its namespace — `core`, `dom`, `react`,
-`theme-tailwind`, `theme-default`, `playground` — and is omitted for repo-wide
-changes.
+`theme-tailwind`, `export-xlsx`, `theme-default`, `playground` — and is omitted
+for repo-wide changes.
 
 Breaking changes take a `!` before the colon (`feat(core)!: ...`) plus a
 `BREAKING CHANGE:` footer.

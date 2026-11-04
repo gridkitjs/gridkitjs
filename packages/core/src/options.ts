@@ -42,6 +42,8 @@ import type {
 } from "./menu/contextMenu";
 import type { GridToolbarOptions } from "./toolbar/options";
 import type { FormatLocale } from "./util/format";
+import type { PrintOptions } from "./export/print";
+import type { ExportWriter, GridExportOptions } from "./export/writer";
 
 /** Which cell borders a grid draws. */
 export type Borders = "horizontal" | "vertical" | "all" | "none";
@@ -461,6 +463,26 @@ export interface GridOptions<Row> {
    * lists its `items` and may name it with `label` — see `ToolbarEntry`.
    */
   toolbar?: boolean | GridToolbarOptions<Row> | undefined;
+  /**
+   * How the grid exports unless a call says otherwise: which rows and
+   * columns, the file's name, and the CSV and JSON settings. Left out, an
+   * export holds what the user sees, across every page, in a file named
+   * `export` with the format's extension.
+   */
+  export?: GridExportOptions | undefined;
+  /**
+   * Export formats beyond CSV and JSON — an xlsx writer, or one of the
+   * app's own — each registered by its `format`, replacing a built-in
+   * writer of the same format. `export.xlsx` and `export.pdf` show only
+   * once a writer for their format is here — see `resolveExportWriters`.
+   */
+  exportWriters?: readonly ExportWriter[] | undefined;
+  /**
+   * How the grid prints unless a call says otherwise: the rows and columns,
+   * the title and text around the table, and the page. Left out, a print
+   * holds what an export does, titled with `label`, on an A4 page.
+   */
+  print?: PrintOptions | undefined;
 }
 
 /**

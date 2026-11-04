@@ -22,6 +22,12 @@ export {
   type ColumnResizeGestureHandlers,
 } from "./columnResize";
 export {
+  isNativeCopy,
+  writeClipboard,
+  type ClipboardContent,
+} from "./clipboard";
+export { downloadBlob } from "./download";
+export {
   NO_DRAG,
   startDragReorder,
   type DragReorderHandlers,
@@ -86,3 +92,8 @@ export {
   type ToolbarOverflowItem,
   type ToolbarOverflowOptions,
 } from "./toolbar/observeToolbarOverflow";
+export {
+  printDocument,
+  type PrintDocumentOptions,
+} from "./print/printDocument";
+export { printStyles } from "./print/styles";

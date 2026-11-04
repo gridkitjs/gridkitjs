@@ -1,0 +1,105 @@
+---
+title: "Overview"
+description: "Export a GridKit grid to Excel: a writer that stores numbers and dates typed, in each column's format, with a frozen header, column widths, an outline of the groups and the grand total."
+---
+
+@gridkitjs/export-xlsx turns what a grid shows into an Excel workbook. It is an [export writer](/docs/core/export#writers): you register it on the grid, and the grid's "Export to Excel" command appears — in the toolbar's [Export dropdown](/docs/react/export#from-the-toolbar), in the context menu where export commands are listed, and behind `ref.current.exportData("xlsx")`. The workbook is built from the same table as every other export, so it holds the rows, columns, groups and totals a CSV would, with the cells typed.
+
+It is a package of its own so that the grid stays free of dependencies for those who never export to Excel. It depends on @gridkitjs/core and [fflate](https://www.npmjs.com/package/fflate), a small zip library, and on no DOM: it runs in the browser, in Node, and under any renderer.
+
+## Install
+
+```bash
+npm install @gridkitjs/export-xlsx
+```
+
+## Register it
+
+```tsx
+import { DataGrid } from "@gridkitjs/react";
+import { xlsxWriter } from "@gridkitjs/export-xlsx";
+
+const writers = [xlsxWriter({ sheetName: "Orders" })];
+
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  toolbar={{ items: ["export"] }}
+  exportWriters={writers}
+/>;
+```
+
+Make the writer once, outside the component or in a `useMemo`, as you would any other prop that should not change on every render. Choosing "Export to Excel" downloads `export.xlsx` — the grid's [`export.fileName`](/docs/react/export#options) names it — and "Export selection to Excel" appears beside it while rows are selected.
+
+To get the file without downloading it, ask the ref:
+
+```ts
+const blob = await gridRef.current?.exportData("xlsx");
+```
+
+## Options
+
+| Option       | Type                                                  | Default    | Description                                                                                                                              |
+| ------------ | ----------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `sheetName`  | `string`                                              | `"Sheet1"` | The sheet's name. Excel allows 31 characters and none of `[ ] : * ? / \`, so a longer name is cut and those characters become `_`.       |
+| `headerRows` | `readonly string[] \| (context) => readonly string[]` | none       | Lines of text above the header row, each a row of its own in the first column. A function is asked per export with the writer's context. |
+| `values`     | `"typed" \| "text"`                                   | `"typed"`  | `"typed"` stores numbers, dates and booleans as Excel's own; `"text"` writes every cell as the text the grid shows, as CSV does.         |
+
+`headerRows` is where a report's title goes, with when it was exported and what it was run with. Given as a function, it is asked at each export, so the date is that export's:
+
+```ts
+xlsxWriter({
+  headerRows: ({ locale }) => [
+    "Orders by region",
+    `Exported ${new Date().toLocaleString(locale)}`,
+    "",
+  ],
+});
+```
+
+An empty string leaves a blank row. The title rows are frozen with the header row, so they stay in view as the sheet scrolls.
+
+## What goes where
+
+| In the grid                             | In the workbook                                                                                                   |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| The header row                          | The first row (after any `headerRows`), bold, frozen, and repeated at the top of every printed page.              |
+| A column's width                        | The column's width, at about 7px to Excel's character.                                                            |
+| A number                                | A number, in a format read from the column — see below.                                                           |
+| A `Date`                                | A date: the local calendar date and time the grid shows, in a date format — see below.                            |
+| A boolean                               | `TRUE` or `FALSE`.                                                                                                |
+| Text                                    | Text, as the grid shows it — a `valueFormatter`'s text rather than the raw value.                                 |
+| A group header                          | A bold row with the group's label, `Region: West`, in the first column and its aggregates under their columns.    |
+| The rows of a group                     | Outlined under their header, so Excel's outline buttons collapse and expand them; nested groups nest the outline. |
+| A group summary row and the grand total | Bold rows, the totals in their columns' formats.                                                                  |
+
+Every group is written expanded, and Excel's outline buttons sit beside each group header, above its rows, as the grid draws them.
+
+### Number and date formats
+
+The format follows the column's `type` and `format`, the options the grid formats its cells with, so a cell reads in Excel as it does on screen while holding a number a formula can sum:
+
+| Column                                                  | Excel format                                                                |
+| ------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `type: "number"` or `"decimal"`, no fraction digits set | General — the number as it is stored, as the grid prints it.                |
+| `"number"`/`"decimal"` with `maximumFractionDigits: 2`  | `#,##0.00` — or `0.00` with `useGrouping: false`.                           |
+| `type: "percent"`                                       | `0%`, or `0.0%` and so on for the fraction digits set. `0.25` reads as 25%. |
+| `type: "currency"` with `format.currency`               | The currency's symbol where the grid's `locale` puts it: `"€"#,##0.00`.     |
+| `type: "currency"` without one                          | `#,##0.00`.                                                                 |
+| `type: "date"`                                          | `yyyy-mm-dd`.                                                               |
+| `type: "time"`                                          | `hh:mm:ss`, or `hh:mm` when the column's `format` leaves the seconds out.   |
+| `type: "dateTime"`, or a `Date` in any other column     | `yyyy-mm-dd hh:mm:ss`, or `yyyy-mm-dd hh:mm` without seconds.               |
+
+A format the codes cannot follow — a compact or scientific notation, a unit — is General. Fraction digits are fixed: where the grid shows "up to two", Excel shows two. Dates are written in ISO order, which reads the same in every language; the grouping and decimal marks show as the reader's own Excel settings write them.
+
+An aggregate is written in its column's format — a sum of a currency column is currency — except a count, which is a number of rows whatever the column holds.
+
+## Limits
+
+- One sheet, holding the one table. No formulas: a total is its value, not a `SUM`.
+- No styling beyond bold and the number formats: no colours, borders or fonts from the theme.
+- Dates before 1 March 1900 or after 9999 are written as their text, since Excel's dates cannot hold them; so is a number that is not finite.
+- A cell holds at most 32,767 characters, Excel's limit; longer text is cut.
+- The outline goes seven groups deep, as far as Excel's does.
+
+To write something this writer does not, write a writer of your own: see [writers](/docs/core/export#writers).
