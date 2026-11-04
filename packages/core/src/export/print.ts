@@ -1,4 +1,5 @@
 import type { FormatLocale } from "../util/format";
+import { buildExportTable, type ExportSource } from "./buildExportTable";
 import { escapeHtml, toHtmlTable } from "./htmlTable";
 import type { ExportOptions, ExportTable } from "./types";
 
@@ -148,4 +149,32 @@ export function buildPrintDocument(
       fitToWidth: options.fitToWidth ?? false,
     },
   };
+}
+
+/**
+ * What `exportPrintDocument` prints from: an `ExportSource` that may carry
+ * the grid's `label`. A `GridCommandContext` is one as it stands.
+ */
+export interface PrintSource<Row> extends ExportSource<Row> {
+  readonly options: ExportSource<Row>["options"] & {
+    readonly label?: string | undefined;
+  };
+}
+
+/**
+ * The grid's view as a print document: the table `options` narrow, laid out
+ * as `buildPrintDocument` lays it out, with the timestamp in the grid's
+ * locale unless `options` name another. Given no `title`, it takes the
+ * grid's `label` — the name a screen reader already reads for it; `""`
+ * leaves it untitled.
+ */
+export function exportPrintDocument<Row>(
+  source: PrintSource<Row>,
+  options: PrintOptions = {},
+): PrintDocument {
+  return buildPrintDocument(buildExportTable(source, options), {
+    ...options,
+    title: options.title ?? source.options.label,
+    locale: options.locale ?? source.options.locale,
+  });
 }

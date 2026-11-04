@@ -338,3 +338,18 @@ Beside the [table's own class names](#html-table), the heading and footer carry 
 | `p.print-subtitle`            | The subtitle.                               |
 | `p.print-timestamp`           | The timestamp.                              |
 | `footer.gridkit-print-footer` | The footer line.                            |
+
+### Printing a grid
+
+`exportPrintDocument(source, options)` is `buildPrintDocument` over the grid's own view: it builds the table `options` narrow, as [`buildExportTable`](#source) does, and lays it out under the same options. The timestamp is written in the grid's `locale` unless `options` name another, and an untitled print takes the grid's `label` as its title — the name a screen reader already reads for it; `title: ""` leaves it untitled. Its source is a `PrintSource`: an `ExportSource` whose options may carry `label`, which a command context does.
+
+```ts
+import { exportPrintDocument } from "@gridkitjs/core";
+
+const document = exportPrintDocument(context, {
+  subtitle: "Q1",
+  fitToWidth: true,
+});
+```
+
+A grid's `print` option, a `PrintOptions`, says how it prints unless a call says otherwise. The `print` [command](/docs/core/commands#built-in-commands) prints under it, so a toolbar's Print button, a context menu and a renderer's `runCommand("print")` print the same document: it builds one with `exportPrintDocument` and hands it to the renderer's `host.print`, with the options, whose `styles` the renderer adds after its print stylesheet.

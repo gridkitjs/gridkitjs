@@ -25,6 +25,7 @@ function context(): GridCommandContext<Row> {
       announce: vi.fn(),
       saveFile: vi.fn(),
       writeClipboard: vi.fn(),
+      print: vi.fn(),
     },
   });
 }

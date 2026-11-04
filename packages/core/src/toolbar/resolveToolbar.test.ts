@@ -49,6 +49,7 @@ const host = {
   announce: vi.fn(),
   saveFile: vi.fn(),
   writeClipboard: vi.fn(),
+  print: vi.fn(),
 };
 
 function resolve(
@@ -497,5 +498,22 @@ describe("resolveToolbar: the export entry", () => {
 
   test("is not among the defaults", () => {
     expect(defaultToolbar).not.toContain("export");
+  });
+});
+
+describe("resolveToolbar: print", () => {
+  test("is a button of its own, opt-in, that hands the host a document", () => {
+    const [print] = resolve(["print"]);
+
+    expect(print).toMatchObject({
+      type: "button",
+      id: "print",
+      label: "Print",
+      icon: "print",
+      disabled: false,
+    });
+    expect(print?.type === "button" && print.run()).toBe(true);
+    expect(host.print).toHaveBeenCalledOnce();
+    expect(defaultToolbar).not.toContain("print");
   });
 });

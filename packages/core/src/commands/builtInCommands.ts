@@ -4,6 +4,7 @@ import {
   type CopyRequest,
 } from "../export/copy";
 import { exportFile } from "../export/exportFile";
+import { exportPrintDocument } from "../export/print";
 import { resolveExportWriters } from "../export/writer";
 import type { GridMessages } from "../messages";
 import type { DataColumn, SelectableConfig, SortDirection } from "../types";
@@ -42,14 +43,21 @@ export type BuiltInCommandId =
   | "exportSelection.xlsx"
   | "copy.cell"
   | "copy.row"
-  | "copy.selection";
+  | "copy.selection"
+  | "print";
 
 /**
  * The icon keys the built-ins carry, which a renderer draws as icons of its
  * own. An app command may use them too, to look like the built-ins.
  */
 export type BuiltInCommandIcon =
-  "sortAscending" | "sortDescending" | "group" | "hide" | "autoFit" | "copy";
+  | "sortAscending"
+  | "sortDescending"
+  | "group"
+  | "hide"
+  | "autoFit"
+  | "copy"
+  | "print";
 
 type Area = GridCommandTarget["area"];
 type Column<Row> = DataColumn<Row, unknown>;
@@ -322,7 +330,7 @@ function sortCommand<Row>(direction: SortDirection): GridCommand<Row> {
 /**
  * The grid's own commands, one per action its menus and toolbar offer —
  * sorting, grouping, hiding, fitting and choosing columns, selecting,
- * clearing, exporting and copying.
+ * clearing, exporting, copying and printing.
  * Labels come from `messages`, so they follow the grid's language.
  *
  * A function rather than a constant so each comes typed for the caller's
@@ -540,5 +548,18 @@ export function builtInCommands<Row>(): readonly GridCommand<Row>[] {
           : null,
       isEnabled: canCopySelection,
     }),
+    // Shown where the exports are, under the grid's `print` defaults. A grid
+    // with no rows still prints its header; one with no columns, nothing.
+    {
+      id: "print",
+      label: ({ messages }) => messages.print,
+      icon: "print",
+      isVisible: (context) => isOn(context, EXPORT_AREAS),
+      isEnabled: ({ view }) => view.columns.length > 0,
+      execute: (context) => {
+        const { print: options = {} } = context.options;
+        context.host.print(exportPrintDocument(context, options), options);
+      },
+    },
   ];
 }

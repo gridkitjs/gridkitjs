@@ -331,5 +331,6 @@ export type {
   PrintOptions,
   PrintOrientation,
   PrintPage,
+  PrintSource,
 } from "./export/print";
-export { buildPrintDocument } from "./export/print";
+export { buildPrintDocument, exportPrintDocument } from "./export/print";

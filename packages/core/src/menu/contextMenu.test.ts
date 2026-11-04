@@ -32,6 +32,7 @@ function contextOn(target: GridCommandTarget) {
       announce: vi.fn(),
       saveFile: vi.fn(),
       writeClipboard: vi.fn(),
+      print: vi.fn(),
     },
   });
 }

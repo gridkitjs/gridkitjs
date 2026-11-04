@@ -1,5 +1,6 @@
 import type { GridController } from "../controller/gridController";
 import type { CopyContent } from "../export/copy";
+import type { PrintDocument, PrintOptions } from "../export/print";
 import type { ExportFile } from "../export/writer";
 import type { GridMessages } from "../messages";
 import type { GridOptions } from "../options";
@@ -70,6 +71,12 @@ export interface GridCommandHost {
    * `count` and `unit` say what to announce — or that the browser refused.
    */
   readonly writeClipboard: (content: CopyContent) => void;
+  /**
+   * Puts a print document on paper — in a browser, through the print
+   * dialog. `options` are those it was built under, for what the host adds
+   * itself, such as `styles` over its print stylesheet.
+   */
+  readonly print: (document: PrintDocument, options: PrintOptions) => void;
 }
 
 /**

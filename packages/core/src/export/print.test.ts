@@ -1,7 +1,15 @@
 import { describe, expect, test } from "vitest";
 
+import { createGridController } from "../controller/createGridController";
+import type { GridControllerOptions } from "../controller/gridController";
+import { defaultMessages } from "../messages";
+import { buildExportTable } from "./buildExportTable";
 import { toHtmlTable } from "./htmlTable";
-import { buildPrintDocument } from "./print";
+import {
+  buildPrintDocument,
+  exportPrintDocument,
+  type PrintSource,
+} from "./print";
 import type { ExportColumn, ExportTable } from "./types";
 
 function column(id: string): ExportColumn {
@@ -208,5 +216,83 @@ describe("buildPrintDocument", () => {
     expect(buildPrintDocument(empty).bodyHtml).toBe(
       '<table class="gridkit-export-table"><tbody></tbody></table>',
     );
+  });
+});
+
+interface Order {
+  Id: number;
+  Region: string;
+  Secret: string;
+}
+
+function sourceFor(
+  options: GridControllerOptions<Order> = {},
+): PrintSource<Order> {
+  const controller = createGridController<Order>({
+    dataSource: [
+      { Id: 1, Region: "West", Secret: "s1" },
+      { Id: 2, Region: "East", Secret: "s2" },
+    ],
+    getRowId: (row) => String(row.Id),
+    columns: [
+      { field: "Id", type: "number" },
+      { field: "Region" },
+      { field: "Secret", exportable: false },
+    ],
+    ...options,
+  });
+  return {
+    view: controller.getView(),
+    state: controller.getState(),
+    options: controller.getOptions(),
+    messages: defaultMessages,
+  };
+}
+
+describe("exportPrintDocument", () => {
+  test("prints the table an export would hold, untitled without a label", () => {
+    const source = sourceFor();
+    expect(exportPrintDocument(source)).toEqual(
+      buildPrintDocument(buildExportTable(source)),
+    );
+  });
+
+  test("narrows the table by the export options", () => {
+    const source = sourceFor();
+    const { bodyHtml } = exportPrintDocument(source, {
+      columns: ["Region"],
+      scope: "page",
+    });
+    expect(bodyHtml).toBe(
+      toHtmlTable(buildExportTable(source, { columns: ["Region"] })),
+    );
+  });
+
+  test("takes the grid's label as its title, unless one is given", () => {
+    const source = sourceFor({ label: "Orders" });
+
+    expect(exportPrintDocument(source).title).toBe("Orders");
+    expect(exportPrintDocument(source, { title: "Q1" }).title).toBe("Q1");
+    expect(exportPrintDocument(source, { title: "" })).toMatchObject({
+      title: "",
+      bodyHtml: expect.not.stringContaining("print-title") as unknown,
+    });
+  });
+
+  test("writes the timestamp in the grid's locale, unless one is given", () => {
+    const timestamp = new Date(2026, 0, 15, 9, 30);
+    const source = sourceFor({ locale: "de-DE" });
+    const stamp = (locale: string) =>
+      new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(timestamp);
+
+    expect(exportPrintDocument(source, { timestamp }).bodyHtml).toContain(
+      stamp("de-DE"),
+    );
+    expect(
+      exportPrintDocument(source, { timestamp, locale: "en-US" }).bodyHtml,
+    ).toContain(stamp("en-US"));
   });
 });

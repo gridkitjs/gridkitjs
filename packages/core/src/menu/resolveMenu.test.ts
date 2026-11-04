@@ -50,6 +50,7 @@ function contextFor(
       announce: vi.fn(),
       saveFile: vi.fn(),
       writeClipboard: vi.fn(),
+      print: vi.fn(),
     },
   });
 }

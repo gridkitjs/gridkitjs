@@ -95,6 +95,9 @@ export default function useGridCommands<Row>({
     writeClipboard: (content) => {
       copyToClipboard(content, { messages, announce });
     },
+    print: () => {
+      console.error("DataGrid: printing is not wired up yet.");
+    },
   };
 
   function contextFor(target: GridCommandTarget): GridCommandContext<Row> {
