@@ -1,5 +1,296 @@
 # @gridkitjs/core
 
+## 0.13.0
+
+### Minor Changes
+
+- 7fc1b14: Columns take two new props for exporting. `exportable: false` keeps a column
+  — one of action buttons, say — out of every export, clipboard copy and print.
+  `exportValue(value, row)` returns the typed value an export stores for a cell
+  (a new `ExportScalar`: `string | number | boolean | Date | null`) where the raw
+  value is not the one to keep; the text every format writes still comes from
+  `formatCellValue`.
+- 7fc1b14: `buildExportTable(source, options?)` turns the grid's view into an
+  `ExportTable` — columns, every row as cells carrying both the formatted text
+  and a typed value, group header and summary rows, and the grand total — the
+  one model every export format, the clipboard and print are written from. It
+  reads the view and state, never the page, so rows on another page or inside a
+  collapsed group still export. By default it holds every filtered and sorted
+  row, every group expanded, and the visible columns less any with
+  `exportable: false`; `ExportOptions` narrows it with `scope`, `columns`,
+  `includeGroups`, `includeAggregates` and `includeHeader`. A command passes its
+  `GridCommandContext` as the source as it is.
+- ebac1dd: `copyContent(source, request)` builds what the clipboard carries from the
+  export model: tab-separated text (no byte order mark, no formula guard) and an
+  HTML table. `request` is a cell (`{ kind: "cell", rowId, columnId }`), a row
+  (`{ kind: "row", rowId }`) or the selection (`{ kind: "selection" }` — the
+  selected rows, else the selected columns, else the selected cell). Hidden and
+  `exportable: false` columns never copy, and a row the filter hides gives
+  `null`. Three new built-in commands use it: `copy.cell`, `copy.row` and
+  `copy.selection`, labelled by the new `messages` keys `copyCell`, `copyRow`
+  and `copySelection`, with the `copy` icon key. The default cell context menu
+  now starts with the three, then a separator. Two more keys, `copied(count,
+unit)` and `copyFailed`, are for a renderer's announcement.
+- 7fc1b14: `toCsv(table, options?)` and `toTsv(table, options?)` write an `ExportTable`
+  as text. CSV is quoted per RFC 4180 and by default starts with a UTF-8 byte
+  order mark, ends records with CRLF, writes each cell as the grid shows it, and
+  prefixes a field a spreadsheet would run as a formula (`=`, `+`, `-`, `@`, a
+  leading tab or carriage return) with `'` — a numeric cell keeps its sign.
+  `delimiter: "auto"` with a `locale` writes `;` where a decimal is written with
+  a comma, and `values: "raw"` writes typed values plainly instead. TSV, the
+  clipboard's plain-text form, is tab-separated with LF line ends, no byte order
+  mark and no formula guard. Both return a string; making a `Blob` is the
+  renderer's job.
+- 812d0b6: Exporting is a set of built-in commands. `export.csv` and `export.json` save
+  the grid's view through `host.saveFile`, under the grid's `export` defaults;
+  `export.xlsx` and `export.pdf` do the same and show only once a writer for
+  their format is registered through `exportWriters`. `exportSelection.csv`,
+  `exportSelection.json` and `exportSelection.xlsx` save the selected rows, and
+  show only while rows are selected. Each shows on the grid, toolbar, body and
+  cell targets, and is disabled while there is nothing to export. Their labels
+  are new `messages` keys: `exportCsv`, `exportJson`, `exportXlsx`, `exportPdf`,
+  `exportSelectionCsv`, `exportSelectionJson` and `exportSelectionXlsx`.
+
+  A toolbar takes a new entry, `"export"`: a dropdown, labelled
+  `messages.exportMenu` ("Export"), of the export commands that show — left out
+  when none do. It is not among the default toolbar's entries; list it to add
+  it:
+
+  ```ts
+  toolbar={{ items: ["search", "spacer", "export"] }}
+  ```
+
+- 812d0b6: A new `messages` key, `exportFailed` ("Export failed"), is what a renderer
+  announces when an export's writer fails and no file is saved.
+- 812d0b6: Export formats are pluggable. An `ExportWriter` — `{ format, fileExtension,
+mimeType, write(table, context) }`, `write` returning text, bytes or a promise
+  of either — turns an `ExportTable` into a file's contents; `csvWriter` and
+  `jsonWriter` ship built in. `exportFile(source, format, options, writers)`
+  builds the table, runs the format's writer and names the file, returning an
+  `ExportFile` (`{ fileName, mimeType, content }`), a promise of one for an
+  asynchronous writer, or `null` for a format with no writer.
+
+  Two new grid options go with it: `export`, a `GridExportOptions` holding the
+  grid's export defaults (every `ExportOptions` field, `fileName` — `"export"`
+  by default, the extension added — and `csv` / `json` settings), and
+  `exportWriters`, which registers further formats by `format` and replaces a
+  built-in writer of the same one. `resolveExportWriters(exportWriters)` gives
+  every writer a grid has, by format.
+
+- 7fc1b14: `formatGroupValue(value, column, locale, messages)` is exported from
+  `@gridkitjs/core`: the text a group's own value reads as, as the grouped
+  column's cells read it, with a missing value reading
+  `messages.blankGroupValue`. The React grid's group headers now use it, so a
+  header and an export name a group the same way; nothing changes on screen.
+- 0119cd3: **Breaking for a hand-built command host.** `GridCommandHost` has a new
+  required member, `print(document, options)`, which puts a `PrintDocument` on
+  paper — the `print` command hands it the document it built and the
+  `PrintOptions` it built it under. A host you build yourself, for a renderer of
+  your own or a test, has to add it; one that cannot print passes a member that
+  does nothing:
+
+  ```ts
+  // before
+  const host = {
+    autoFitColumns() {},
+    openPanel() {},
+    announce() {},
+    saveFile() {},
+    writeClipboard() {},
+  };
+
+  // after
+  const host = {
+    autoFitColumns() {},
+    openPanel() {},
+    announce() {},
+    saveFile() {},
+    writeClipboard() {},
+    print() {},
+  };
+  ```
+
+- 812d0b6: **Breaking for a hand-built command host.** `GridCommandHost` has a new
+  required member, `saveFile(file)`, which saves an `ExportFile` (or a promise of
+  one) — the export commands hand it the file they write. A host you build
+  yourself, for a renderer of your own or a test, has to add it; one with no
+  file to save to passes a member that does nothing:
+
+  ```ts
+  // before
+  const host = { autoFitColumns() {}, openPanel() {}, announce() {} };
+
+  // after
+  const host = {
+    autoFitColumns() {},
+    openPanel() {},
+    announce() {},
+    saveFile() {},
+  };
+  ```
+
+- ebac1dd: **Breaking for a hand-built command host.** `GridCommandHost` has a new
+  required member, `writeClipboard(content)`, which puts a `CopyContent` on the
+  clipboard and announces it — the copy commands hand it what they copy. A host
+  you build yourself, for a renderer of your own or a test, has to add it; one
+  with no clipboard passes a member that does nothing:
+
+  ```ts
+  // before
+  const host = {
+    autoFitColumns() {},
+    openPanel() {},
+    announce() {},
+    saveFile() {},
+  };
+
+  // after
+  const host = {
+    autoFitColumns() {},
+    openPanel() {},
+    announce() {},
+    saveFile() {},
+    writeClipboard() {},
+  };
+  ```
+
+- 7fc1b14: `toHtmlTable(table, options?)` writes an `ExportTable` as an HTML `<table>`
+  string — column names in `<thead>`, rows in `<tbody>`, the grand total in
+  `<tfoot>`, every text escaped. It carries the class names
+  `gridkit-export-table`, `export-group` (with `data-level`) and
+  `export-group-summary`, and each column's alignment inline so it survives a
+  paste into a spreadsheet or document. `caption` adds a `<caption>`.
+- 7fc1b14: `toJson(table, options?)` writes an `ExportTable`'s data rows as a JSON array
+  of objects, one property per column holding the cell's typed value — dates as
+  ISO 8601 strings. Group, summary and total rows are left out. Properties are
+  named by column id, or by header text under `keys: "header"`, where a
+  repeated header is suffixed ` (2)`; `space` indents the output.
+- 0119cd3: A built-in `print` command prints the grid's view — every row an export would
+  hold, across pages and collapsed groups — under a new `print` grid option, a
+  `PrintOptions`. It shows on the grid, the toolbar, the body and a cell, is
+  labelled by the new `print` message ("Print") with the new `print` icon key,
+  and hands the host the document `exportPrintDocument(source, options)` builds:
+  `buildPrintDocument` over the grid's own view, its timestamp in the grid's
+  locale and, given no `title`, titled with the grid's `label`. `print` is no
+  longer a reserved command id.
+- 0119cd3: `buildPrintDocument(table, options?)` lays an `ExportTable` out as a printable
+  document: a heading of the `title`, `subtitle` and `timestamp` set in a new
+  `PrintOptions`, the table as `toHtmlTable` writes it, and a `footer` line,
+  every piece of text escaped. It returns a `PrintDocument` — the document's
+  `title`, its `bodyHtml`, and the `page` it is laid out on with every default
+  settled: `paperSize` (`"A4"`), `orientation` (landscape for a table of more
+  than six columns, else portrait), `pageNumbers` (on) and `fitToWidth` (off).
+  It holds no styles; a renderer prints it.
+- 610d28a: `GridMessages` gains the filter checklist's strings: `filterSearchLabel`
+  ("Search values"), the accessible name of its search box; `filterSelectAll`
+  ("Select all"), the checkbox over every value the search shows;
+  `filterValuesLabel` ("Values"), the accessible name of its list; and
+  `filterByCondition` ("Filtered by condition"), shown above it while the
+  column is filtered by conditions.
+- a5ace0c: `filterChecklist(draft, { valueLimit, blanksLabel })` returns the list a
+  checklist filter editor draws: `items` — the values its search shows, in sort
+  order, cut to `valueLimit`, then a blanks item while nothing is searched —
+  each with its `key`, `label`, `count` and `checked`. A column with more values
+  than `valueLimit` lists nothing until something is searched (`needsSearch`),
+  and a search matching more lists the first of them, with the rest counted in
+  `hiddenCount`.
+
+  `GridMessages` gains `filterBlanks` ("(Blanks)"), `filterSearchFirst(total)`
+  ("Type to search 12000 values") and `filterMoreValues(count)` ("250 more,
+  refine the search").
+
+- a5ace0c: `isColumnFiltered(filter, columnId)` says whether any entry is about the
+  column — whether `describeColumnFilter` reads it as anything but `"none"` —
+  for a header to show its column as filtered. A global search marks no column.
+- a5ace0c: A condition model for a simple filter editor's rows, which hold text until
+  the editor is applied. `filterOperandArity(operator)` says how many inputs a
+  row shows. `parseFilterOperand(text, type)` reads a typed operand as the
+  column filters it — a number with a point for decimals, rejecting `"12abc"`
+  and `"1,5"`; a date as a date input (`yyyy-mm-dd`, local midnight) or a
+  date-time input (`yyyy-mm-ddThh:mm`) gives it — and `formatFilterOperand(value,
+type)` writes one back for its input.
+
+  `conditionRowsFrom(shape, operators, type)` opens a column's two rows over its
+  `describeColumnFilter` shape, as `ConditionRowDraft`s — `{ operator, text,
+textTo }`. `conditionsFromRows(rows, columnId, type)` reads them back as
+  `{ conditions, invalid }`: the conditions for `filterEditorReducer`'s
+  `setConditions`, and the indexes of rows whose operand is missing or doesn't
+  read. An empty second row is dropped rather than invalid.
+
+- 1026158: `GridMessages` gains the simple filter editor's strings:
+  `filterConditionLabel(position)` ("Condition 2"), `filterOperatorFieldLabel`
+  ("Operator"), `filterValueLabel` ("Value"), `filterFromLabel` ("From") and
+  `filterToLabel` ("To") for a `between` condition's two ends,
+  `filterCombinatorLabel` ("Combine conditions"), `filterAnd` ("And"),
+  `filterOr` ("Or"), and `filterValueInvalid(family)` — "Enter a number" on a
+  number column, "Enter a date", "Enter a value" or "Choose a value" on the
+  others.
+- 1026158: Two built-in commands for a column's filter menu, both shown on the header of
+  a column `resolveColumnFilterMenu` gives a menu: `filter.open` asks the host
+  to open it — `host.openPanel("filter", target)` — and `filter.clear`, enabled
+  while `isColumnFiltered`, takes every entry about the column out of the
+  filter. `defaultContextMenu.header` lists both after the sort commands.
+
+  `GridPanelKind` gains `"filter"`, and `GridCommandSource` gains
+  `"filterMenu"`, for the sort and clear commands a filter menu runs. A switch
+  over either that covers every member needs the new case.
+
+  `buildKeyShortcuts` takes `filterable`, naming `Alt+Shift+ArrowDown` — the key
+  that opens a header's filter menu.
+
+  `GridMessages` gains `openFilter` ("Filter…"), `clearColumnFilter` ("Clear
+  filter"), `filterMenuLabel(columnName)` ("Name filter"), `columnFiltered`
+  ("Filtered"), `applyFilter` ("OK"), `cancelFilter` ("Cancel"), `customFilter`
+  ("Custom filter") and `filterResults(shown, total)` ("3 of 10 rows").
+
+- a5ace0c: Filter menu options, for a renderer to draw a filter menu in each column's
+  header. `GridOptions` gains `filterableColumns` (off by default, like
+  `sortableColumns`) and `filterMenu` — `{ ui?: "simple" | "excel";
+showCounts?: boolean; valueLimit?: number }`. `ColumnDefinition` gains
+  `filterable` and `filterMenu` — `{ ui?, operators? }` — which override the
+  grid's, as `sortable` does.
+
+  `resolveColumnFilterMenu(options, column)` settles them for one column: `null`
+  when it has no filter menu, else a `ResolvedColumnFilterMenu` — its `ui`
+  (`"simple"` by default), the `operators` its conditions offer (the column's
+  own without `in`, else its type's `defaultFilterOperators`), its operator
+  `family`, `showCounts` (off by default) and `valueLimit`
+  (`DEFAULT_FILTER_VALUE_LIMIT`, 10,000, by default).
+
+- 098fd6e: New `excelFilter` preset: `{ filterableColumns: true, filterMenu: { ui: "excel",
+showCounts: true } }`, a plain `GridOptions` value that turns on the
+  Excel-style filter popup in one spread. Options given after it override it;
+  `filterMenu` is replaced whole, not merged.
+- 610d28a: `GridMessages` gains the excel filter editor's operator submenu strings:
+  `filterOperatorMenu(family)` ("Text filters", "Number filters", "Date
+  filters" or "Boolean filters", by the column's `filterOperatorFamily`), the
+  button opening the conditions a column offers and that menu's accessible
+  name; and `filterBackToValues` ("Back to values"), the button going from a
+  condition back to the checklist.
+- a5ace0c: Operators by column type, for a filter menu's conditions.
+  `filterOperatorFamily(type)` reads a column's `type` as the
+  `FilterOperatorFamily` it filters as — `"text"`, `"number"`, `"date"` or
+  `"boolean"` — and `defaultFilterOperators(type)` lists the operators a menu
+  offers on it: contains, equality, the ends and blanks on text; the orderings
+  and `between` on numbers; before, after and `between` on dates, with equality
+  left out on date-time and time columns, whose instants a typed value seldom
+  equals. `in` is never among them: the checklist is its editor.
+
+  `GridMessages` gains `filterOperatorLabel(operator, family)` — "Before" for
+  `lt` on a date, "Less than" on a number, "Is blank" for `isEmpty`.
+
+- a5ace0c: `createColumnValueOptionsCache()` remembers each column's checklist values, so
+  reopening a column's filter doesn't count its rows again. Its
+  `get(rows, dataColumns, filter, columnId, { locale?, messages? })` returns the
+  column's whole `columnValueOptions` list, and the same object again while the
+  rows, the columns, the locale, the messages and the filter's entries about
+  other columns keep their identity. A column's own entries don't count, so
+  applying its filter leaves its list cached.
+
+### Patch Changes
+
+- bd78d43: The package manifests and READMEs now point at the repository's current home, `github.com/gridkitjs/gridkitjs`.
+
 ## 0.12.1
 
 ### Patch Changes

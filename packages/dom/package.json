@@ -1,6 +1,6 @@
 {
   "name": "@gridkitjs/dom",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Framework-free browser behaviours for GridKit renderers: gestures, focus, observers, virtualization, overlays and announcements.",
   "license": "MIT",
   "author": "Blagoja Blazhevski",

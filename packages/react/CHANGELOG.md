@@ -1,5 +1,168 @@
 # @gridkitjs/react
 
+## 0.12.0
+
+### Minor Changes
+
+- 1026158: Applying a column's filter menu is announced: once the grid has drawn the rows
+  the filter keeps, the live region reads how many of all the rows they are —
+  "2 of 3 rows", the `filterResults` message. A controlled `filter` that doesn't
+  take the change announces nothing.
+- 610d28a: `filterMenu.ui: "excel"` — the grid's or a column's — now opens the excel
+  editor in place of the simple one: a search box, a tri-state "Select all"
+  checkbox and a checklist of the column's values, in its sort order and
+  labelled as its cells print, with "(Blanks)" last and, under
+  `filterMenu.showCounts`, how many rows hold each. The values cascade from the
+  other columns' filters. The search narrows the list and "Select all" acts on
+  what it shows; past `filterMenu.valueLimit` values (10,000 by default) the
+  list waits for a search, then lists the first matches and how many more there
+  are. The list is windowed, one `listbox` stop for Tab, moved through with the
+  arrow keys, Home, End, PageUp and PageDown, Space checking a value.
+
+  OK, or Enter anywhere but on a button, applies the checked values: every value
+  checked removes the column's filter, anything less sets one `in` entry, OR-ed
+  with `isEmpty` while "(Blanks)" stays checked. Conditions or a custom filter
+  open with every value checked under a note, and stay until a value is changed
+  and applied. Reopening a column's menu reuses the values it counted until the
+  rows, the columns or another column's filter change.
+
+- 1026158: A filterable header shows a filter button beside its sort toggle, which opens
+  the column's filter menu and closes it pressed again, and
+  `Alt+Shift+ArrowDown` on a focused header opens it too, listed in the
+  header's `aria-keyshortcuts`. While the column is filtered the button carries
+  `is-filtered` and the header `aria-description="Filtered"` (the
+  `columnFiltered` message), whatever set the filter. A column without a filter
+  menu shows neither, however it is filtered.
+
+  `Alt+Shift+ArrowDown` on a groupable header no longer groups it: grouping
+  takes `Alt+ArrowDown` alone, as its `aria-keyshortcuts` always said.
+
+- 098fd6e: `excelFilter` is exported from `@gridkitjs/react`, so the Excel-style filter
+  popup turns on with `<DataGrid {...excelFilter} />`. A prop written after the
+  spread overrides it, e.g. `filterMenu={{ ui: "simple" }}`.
+- 1026158: `DataGridApi` gains `openFilterMenu(columnId)`, which opens a shown column's
+  filter menu below its header and returns whether it did — `false` for a
+  column with no filter menu — and `closeFilterMenu()`, which closes it and
+  leaves the column chooser open.
+- 1026158: A column with a filter menu — every column under `filterableColumns`, or one
+  whose own `filterable` is `true` — opens it from "Filter…" in its header's
+  context menu: a dialog below the header, named after its column ("Name
+  filter"), with the column's sort entries while it sorts, then "Clear filter",
+  Cancel and OK. Tab stays inside it; Escape or a click outside closes it,
+  giving focus back to the header. Its sort entries and "Clear filter" run the
+  `sort.*` and `filter.clear` commands, so `onCommand` hears them with the
+  source `"filterMenu"`.
+- 1026158: The column filter menu has an editor: one condition — an operator and a value
+  — and an optional second, joined by And or Or. The operators are the column
+  type's, or its own `filterMenu.operators`, and the value box suits the type: a
+  number box, a date picker on a `"date"` column, a date-and-time picker on a
+  `"dateTime"` or `"time"` one, a true/false choice on a `"boolean"` one, text
+  otherwise. OK, or Enter, applies the conditions in place of the column's
+  filter; reopened, the menu shows them, however they were set. A value missing
+  or not reading keeps the menu open, its box marked `aria-invalid` and
+  focused; a filter the editor can't show reads "Custom filter" until
+  conditions replace it.
+
+  Focus now starts on the first condition's value box rather than the menu's
+  first button.
+
+- 610d28a: The excel filter editor has an operator submenu: a "Text filters" button —
+  "Number filters", "Date filters" or "Boolean filters", by the column's type —
+  above its search box opens a menu of the conditions the column offers,
+  beside the filter menu. Choosing one shows the simple editor's conditions in
+  place of the checklist, the first at the operator chosen, under a "Back to
+  values" button that brings the checklist back as it was left; OK there
+  applies the conditions in place of the column's checked values. While the
+  column is filtered by conditions, the button is ticked and the operators in
+  use are checked in its menu; choosing one opens the conditions as applied.
+  The button follows the menu button pattern (Enter, Space or ArrowDown opens
+  the menu on its first item, ArrowUp on its last), and Escape or Tab in the
+  menu closes it alone. A column whose `filterMenu.operators` is empty offers
+  no menu.
+
+  Switching `filterMenu.ui` at runtime keeps every filter: conditions show in
+  the simple editor or through this menu, checked values in the excel editor.
+
+- ebac1dd: The grid copies to the clipboard, as tab-separated text and an HTML table, so
+  a paste into a spreadsheet keeps the columns. With `contextMenu` on, the cell
+  menu now starts with Copy cell, Copy row and Copy selection. Ctrl+C (Cmd+C on
+  a Mac) in the grid copies the selection, else the focused cell — but not in a
+  text field inside a cell or while text is highlighted on the page, which stay
+  the browser's. `runCommand("copy.selection")` copies from code. A screen reader
+  hears what was copied ("3 rows copied") or "Copy failed".
+- 812d0b6: The grid exports. The toolbar's `"export"` entry draws an Export dropdown, and
+  the export commands — `export.csv`, `export.json`, `exportSelection.csv` and
+  the rest — download their file from the toolbar, a context menu or
+  `runCommand`; none is shown by default, so list them where you want them:
+
+  ```tsx
+  <DataGrid toolbar={{ items: ["search", "spacer", "export"] }} />
+  ```
+
+  One export downloads at a time — one asked for while an asynchronous writer
+  is still writing is dropped and logged — and a writer that fails is logged
+  and announced as `messages.exportFailed`.
+
+  The ref gains `exportData(format, options?)`, which resolves to a `Blob` of
+  the export instead of downloading it, under the grid's `export` option with
+  `options` over it. It rejects for a format no writer is registered for.
+  `ExportFile`, `ExportOptions`, `ExportWriter` and `GridExportOptions` are
+  re-exported from `@gridkitjs/react`.
+
+- 0119cd3: The grid prints. `"print"` in the toolbar's items is a Print button, `print`
+  in a context menu area a Print item, and `ref.current.print(options?)` prints
+  from code, resolving once the print dialog has closed. Each prints every row
+  the filter leaves — across every page and inside collapsed groups, not only
+  the rows drawn — through a hidden frame, titled with the grid's `label`, with
+  the header row repeated on every page and page numbers where the browser
+  supports them. A new `print` prop, a `PrintOptions`, sets the title, subtitle,
+  footer, timestamp, page and extra `styles`; a call's options go over it.
+  `PrintOptions` is re-exported. Print stays opt-in: `toolbar` alone does not
+  show the button.
+
+### Patch Changes
+
+- 7fc1b14: `formatGroupValue(value, column, locale, messages)` is exported from
+  `@gridkitjs/core`: the text a group's own value reads as, as the grouped
+  column's cells read it, with a missing value reading
+  `messages.blankGroupValue`. The React grid's group headers now use it, so a
+  header and an export name a group the same way; nothing changes on screen.
+- bd78d43: The package manifests and READMEs now point at the repository's current home, `github.com/gridkitjs/gridkitjs`.
+- Updated dependencies [7fc1b14]
+- Updated dependencies [7fc1b14]
+- Updated dependencies [ebac1dd]
+- Updated dependencies [7fc1b14]
+- Updated dependencies [812d0b6]
+- Updated dependencies [812d0b6]
+- Updated dependencies [812d0b6]
+- Updated dependencies [7fc1b14]
+- Updated dependencies [0119cd3]
+- Updated dependencies [812d0b6]
+- Updated dependencies [ebac1dd]
+- Updated dependencies [7fc1b14]
+- Updated dependencies [7fc1b14]
+- Updated dependencies [0119cd3]
+- Updated dependencies [0119cd3]
+- Updated dependencies [ae1edc7]
+- Updated dependencies [812d0b6]
+- Updated dependencies [0119cd3]
+- Updated dependencies [ebac1dd]
+- Updated dependencies [610d28a]
+- Updated dependencies [a5ace0c]
+- Updated dependencies [a5ace0c]
+- Updated dependencies [a5ace0c]
+- Updated dependencies [1026158]
+- Updated dependencies [1026158]
+- Updated dependencies [a5ace0c]
+- Updated dependencies [098fd6e]
+- Updated dependencies [610d28a]
+- Updated dependencies [a5ace0c]
+- Updated dependencies [a5ace0c]
+- Updated dependencies [ae1edc7]
+- Updated dependencies [bd78d43]
+  - @gridkitjs/core@0.13.0
+  - @gridkitjs/dom@0.3.0
+
 ## 0.11.1
 
 ### Patch Changes
