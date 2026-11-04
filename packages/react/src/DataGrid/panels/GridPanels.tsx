@@ -1,5 +1,6 @@
 import { useRef, type ReactNode, type RefCallback } from "react";
 import type {
+  ColumnValueOptions,
   FilterState,
   GridCommandTarget,
   GridMessages,
@@ -9,6 +10,7 @@ import ColumnChooser from "../columnChooser/ColumnChooser";
 import type { GridCommandsApi } from "../commands/useGridCommands";
 import FilterMenu from "../filterMenu/FilterMenu";
 import useApplyFilter from "../filterMenu/useApplyFilter";
+import useFilterValueCache from "../filterMenu/useFilterValueCache";
 import Overlay, { ANCHOR_GAP } from "../overlay/Overlay";
 import type { DataGridController } from "../useGridController";
 import type { GridPanelsApi } from "./useGridPanels";
@@ -35,6 +37,12 @@ export interface GridPanelProps<Row> {
    * it keeps once they are drawn — even when the menu has closed by then.
    */
   readonly applyFilter: (filter: FilterState<Row>) => void;
+  /**
+   * The values a filter checklist lists for a column, counted once and
+   * handed back again while nothing they are counted from changes — kept
+   * by the panel host, so reopening a column's menu reuses its list.
+   */
+  readonly columnValues: (columnId: string) => ColumnValueOptions;
 }
 
 /** How one kind of panel is drawn. */
@@ -81,6 +89,7 @@ export default function GridPanels<Row>({
     messages,
     commands.host.announce,
   );
+  const columnValues = useFilterValueCache(controller, messages);
   const { panel, close } = panels;
   if (panel === null) {
     return null;
@@ -110,6 +119,7 @@ export default function GridPanels<Row>({
           initialFocus.current = element;
         }}
         applyFilter={applyFilter}
+        columnValues={columnValues}
       />
     </Overlay>
   );

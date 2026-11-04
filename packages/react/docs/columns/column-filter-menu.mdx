@@ -36,7 +36,7 @@ A column with a filter menu opens a small dialog below its header for filtering 
 
 | Option                        | Type                        | Default         | Description                                                                                                                                                                   |
 | ----------------------------- | --------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `filterMenu.ui`               | `"simple" \| "excel"`       | `"simple"`      | Which editor the menu opens. Every editor edits the one filter, so switching keeps it. `"excel"` names the checklist editor, which is not drawn yet: it opens the simple one. |
+| `filterMenu.ui`               | `"simple" \| "excel"`       | `"simple"`      | Which editor the menu opens: [conditions](#the-simple-editor) or a [checklist of values](#the-excel-editor). Every editor edits the one filter, so switching keeps it intact. |
 | `filterMenu.showCounts`       | `boolean`                   | `false`         | For the checklist editor: whether each value shows how many rows hold it.                                                                                                     |
 | `filterMenu.valueLimit`       | `number`                    | `10000`         | For the checklist editor: how many values it lists before asking for a search first.                                                                                          |
 | `column.filterMenu.ui`        | `"simple" \| "excel"`       | `filterMenu.ui` | Which editor this column's menu opens.                                                                                                                                        |
@@ -73,7 +73,7 @@ While a column with a filter menu is filtered — by the menu, `setFilter`, a co
 ## What it shows
 
 - **The column's sort entries** — "Sort ascending", "Sort descending" and "Clear sort", the header menu's own — while the column [sorts](/docs/react/column-sorting). Choosing one sorts the column and closes the menu; "Sort ascending" or "Sort descending" is pressed while the column sorts that way.
-- **The editor**, for the column's filter — see [the simple editor](#the-simple-editor).
+- **The editor**, for the column's filter — [the simple editor](#the-simple-editor), or with `filterMenu.ui: "excel"` [the excel editor](#the-excel-editor).
 - **"Clear filter"**, which takes every entry about the column out of the filter and closes the menu — whichever editor wrote them, or none did, as with a predicate set in code. Disabled while the column is not filtered.
 - **Cancel** and **OK**. The editor edits a draft, so nothing filters until OK applies it; Cancel drops it.
 
@@ -120,6 +120,50 @@ Opened again, the menu shows the conditions as they are applied, whatever applie
 - **A value that doesn't read** — a condition left without one, a number the box can't read, a date missing its year, a "Between" missing an end — keeps the menu open. The box is marked invalid, described by a message ("Enter a number"), and takes focus. OK on conditions left as they opened, with nothing typed in them, just closes the menu.
 - **A filter the editor can't show** — a text query, a predicate, a group across columns, or a list of values — reads "Custom filter" above empty conditions. It stays as it is until conditions are applied in its place, or "Clear filter" takes it out.
 
+## The excel editor
+
+With `filterMenu.ui: "excel"` — the grid's, or a column's own — the menu lists the values the column holds, each with a checkbox, as a spreadsheet's filter does:
+
+```tsx
+<DataGrid
+  columns={columns}
+  dataSource={orders}
+  filterableColumns
+  filterMenu={{ ui: "excel", showCounts: true }}
+/>
+```
+
+- **The values** are the column's distinct values, in the order the column sorts, labelled as its cells print them — a date as the column formats it, a boolean in the `booleanTrue` and `booleanFalse` words. With `showCounts`, each shows how many rows hold it. Blank cells — `null`, `undefined` or `""` — are one item of their own, "(Blanks)", last.
+- **They cascade.** The list holds the values of the rows the _other_ columns' filters keep, so with "Region" filtered to "North", "Customer" lists only the customers in the north. A column's own filter never hides its values: the ones it leaves out stay listed, to be checked again.
+- **The search box** narrows the list to the values whose label holds what is typed, ignoring case.
+- **"Select all"** checks every value the search shows, or unchecks them once all are — "(Blanks)" too while nothing is searched. It is a native checkbox, shown mixed while only some are checked.
+- **A long list** draws only the values near its scroll position, so a column of thousands of values opens as quickly as one of ten. Past `filterMenu.valueLimit` values — 10,000 by default — it lists none until something is searched ("Type to search 12000 values"), and a search matching more lists the first of them, saying how many it left out ("250 more, refine the search"). "Select all" still covers every value meanwhile.
+
+OK, or <Kbd>Enter</Kbd>, applies the checked values in place of every entry about the column, keeping every other column's. Every value checked is no filter at all; anything less is one `in` entry holding the values checked, OR-ed with "is blank" while "(Blanks)" stays checked:
+
+```ts
+// "Name": Alice and Bravo checked
+[{ columnId: "name", operator: "in", value: ["Alice", "Bravo"] }];
+
+// "Joined": one day and the blanks checked
+[
+  {
+    combinator: "or",
+    entries: [
+      { columnId: "joined", operator: "in", value: [new Date(2024, 4, 20)] },
+      { columnId: "joined", operator: "isEmpty" },
+    ],
+  },
+];
+```
+
+The `in` entry holds the values checked rather than the ones left out, so a value that turns up later, in a new row, stays filtered out until it is checked. The rows the filter keeps are announced as [the simple editor's](#the-simple-editor) are.
+
+Opened again, the menu shows the values checked as they are applied, whatever applied them.
+
+- **Conditions**, as the simple editor or `setFilter` writes them, open with every value checked under "Filtered by condition", and **a filter the editor can't show** — a text query, a predicate, a group across columns — under "Custom filter". Either stays as it is until a value is checked or unchecked and applied, replacing it, or "Clear filter" takes it out.
+- **OK on checks left as they opened**, whatever was searched, just closes the menu.
+
 ## Keyboard & pointer interactions
 
 The menu is a dialog that holds a draft, so it keeps focus: tabbing out of it would drop the draft.
@@ -128,8 +172,13 @@ The menu is a dialog that holds a draft, so it keeps focus: tabbing out of it wo
 | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
 | <Kbd>Alt</Kbd>+<Kbd>Shift</Kbd>+<Kbd>ArrowDown</Kbd> on a focused header | Opens its filter menu.                                                                        |
 | Opening it                                                               | Focus goes to the first condition's value box — or its operator, when that takes no value.    |
+| Opening the excel editor                                                 | Focus goes to its search box.                                                                 |
 | <Kbd>Tab</Kbd> / <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd>                         | The next or previous control, wrapping round inside the menu. A disabled button is passed by. |
-| <Kbd>Enter</Kbd>                                                         | In a box, a picker or a radio button, applies, as OK does; on a button, presses it.           |
+| <Kbd>ArrowDown</Kbd> / <Kbd>ArrowUp</Kbd> in the checklist               | The next or previous value. The checklist is one stop for <Kbd>Tab</Kbd>.                     |
+| <Kbd>Home</Kbd> / <Kbd>End</Kbd> in the checklist                        | The first or last value, however long the list.                                               |
+| <Kbd>PageDown</Kbd> / <Kbd>PageUp</Kbd> in the checklist                 | As many values down or up as the list shows at once.                                          |
+| <Kbd>Space</Kbd> in the checklist, or a click on a value                 | Checks or unchecks the value.                                                                 |
+| <Kbd>Enter</Kbd>                                                         | Anywhere but on a button — a box, a picker, a checkbox, the checklist — applies, as OK does.  |
 | <Kbd>Escape</Kbd>                                                        | Closes it without applying, giving focus back to the header.                                  |
 | A click outside it, a scroll or a resize                                 | Closes it without applying.                                                                   |
 
@@ -156,25 +205,33 @@ selection stays.
 
 Every string the menu shows is a message — see [localization](/docs/react/localization):
 
-| Key                        | Default                                                                     |
-| -------------------------- | --------------------------------------------------------------------------- |
-| `openFilter`               | "Filter…" — `filter.open`'s label.                                          |
-| `clearColumnFilter`        | "Clear filter" — `filter.clear`'s label, and the menu's button.             |
-| `filterMenuLabel`          | "Name filter" — the dialog's accessible name, after its column.             |
-| `columnFiltered`           | "Filtered" — a filtered column's header's description.                      |
-| `applyFilter`              | "OK"                                                                        |
-| `cancelFilter`             | "Cancel"                                                                    |
-| `filterOperatorLabel`      | "Before" — a condition's operator, in its column type's words.              |
-| `filterConditionLabel`     | "Condition 1" — a condition's accessible name.                              |
-| `filterOperatorFieldLabel` | "Operator" — its operator picker's accessible name.                         |
-| `filterValueLabel`         | "Value" — its value box's accessible name.                                  |
-| `filterFromLabel`          | "From" — a "Between" condition's first box.                                 |
-| `filterToLabel`            | "To" — its second box.                                                      |
-| `filterCombinatorLabel`    | "Combine conditions" — the And/Or choice's accessible name.                 |
-| `filterAnd`                | "And"                                                                       |
-| `filterOr`                 | "Or"                                                                        |
-| `filterValueInvalid`       | "Enter a number" — under a value that doesn't read, by the column's type.   |
-| `customFilter`             | "Custom filter" — above the conditions, for a filter the editor can't show. |
-| `filterResults`            | "2 of 3 rows" — announced once the rows an applied filter keeps are drawn.  |
+| Key                        | Default                                                                    |
+| -------------------------- | -------------------------------------------------------------------------- |
+| `openFilter`               | "Filter…" — `filter.open`'s label.                                         |
+| `clearColumnFilter`        | "Clear filter" — `filter.clear`'s label, and the menu's button.            |
+| `filterMenuLabel`          | "Name filter" — the dialog's accessible name, after its column.            |
+| `columnFiltered`           | "Filtered" — a filtered column's header's description.                     |
+| `applyFilter`              | "OK"                                                                       |
+| `cancelFilter`             | "Cancel"                                                                   |
+| `filterOperatorLabel`      | "Before" — a condition's operator, in its column type's words.             |
+| `filterConditionLabel`     | "Condition 1" — a condition's accessible name.                             |
+| `filterOperatorFieldLabel` | "Operator" — its operator picker's accessible name.                        |
+| `filterValueLabel`         | "Value" — its value box's accessible name.                                 |
+| `filterFromLabel`          | "From" — a "Between" condition's first box.                                |
+| `filterToLabel`            | "To" — its second box.                                                     |
+| `filterCombinatorLabel`    | "Combine conditions" — the And/Or choice's accessible name.                |
+| `filterAnd`                | "And"                                                                      |
+| `filterOr`                 | "Or"                                                                       |
+| `filterValueInvalid`       | "Enter a number" — under a value that doesn't read, by the column's type.  |
+| `customFilter`             | "Custom filter" — above either editor, for a filter it can't show itself.  |
+| `filterResults`            | "2 of 3 rows" — announced once the rows an applied filter keeps are drawn. |
+| `filterSearchLabel`        | "Search values" — the excel editor's search box's accessible name.         |
+| `searchPlaceholder`        | "Search…" — its placeholder, shared with the toolbar's search box.         |
+| `filterSelectAll`          | "Select all" — the checkbox over the values the search shows.              |
+| `filterValuesLabel`        | "Values" — the checklist's accessible name.                                |
+| `filterBlanks`             | "(Blanks)" — the checklist's item for blank cells.                         |
+| `filterSearchFirst`        | "Type to search 12000 values" — in place of a list past `valueLimit`.      |
+| `filterMoreValues`         | "250 more, refine the search" — under a search matching more.              |
+| `filterByCondition`        | "Filtered by condition" — above the checklist, for conditions.             |
 
 The theme's classes for it are listed under [filter menu](/docs/theme-tailwind#filter-menu), and the header's filter button under [header](/docs/theme-tailwind#header).

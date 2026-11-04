@@ -10,7 +10,8 @@ import {
 import { ariaAttr } from "../ariaAttr";
 import { MenuIcon } from "../menu/menuIcons";
 import type { GridPanelProps } from "../panels/GridPanels";
-import type { FilterEditorHandle } from "./filterEditor";
+import ExcelFilterEditor from "./ExcelFilterEditor";
+import type { FilterEditorHandle, FilterEditorProps } from "./filterEditor";
 import SimpleFilterEditor from "./SimpleFilterEditor";
 
 /** The sort commands offered above the editor, each hidden where its column cannot sort. */
@@ -26,8 +27,9 @@ function isItem(entry: ResolvedMenuEntry): entry is ResolvedMenuItem {
 
 /**
  * A column's filter menu: a dialog below its header holding the column's
- * sort commands, its filter editor, and buttons that clear the filter,
- * cancel or apply. Which sort entries show and whether "Clear filter" can
+ * sort commands, its filter editor — the conditions, or the checklist where
+ * its `ui` is `"excel"` — and buttons that clear the filter, cancel or
+ * apply. Which sort entries show and whether "Clear filter" can
  * run are the commands' own, resolved by `@gridkitjs/core`'s `resolveMenu`;
  * each runs through the grid's commands, so `onCommand` hears it with the
  * source `"filterMenu"`, and closes the menu, as choosing a menu item does.
@@ -45,6 +47,7 @@ export default function FilterMenu<Row>({
   close,
   initialFocusRef,
   applyFilter,
+  columnValues,
 }: GridPanelProps<Row>) {
   const editor = useRef<FilterEditorHandle>(null);
   const column =
@@ -84,6 +87,16 @@ export default function FilterMenu<Row>({
     close();
   }
 
+  const editorProps: FilterEditorProps<Row> = {
+    ref: editor,
+    column,
+    menu,
+    controller,
+    messages,
+    initialFocusRef,
+    applyFilter,
+  };
+
   function apply(event: SubmitEvent<HTMLFormElement>): void {
     event.preventDefault();
     if (editor.current?.apply() ?? true) {
@@ -109,11 +122,12 @@ export default function FilterMenu<Row>({
         noValidate
         onSubmit={apply}
         onKeyDown={(event) => {
-          // Enter submits a form from its text boxes but not from a picker;
-          // here it applies from either.
+          // Enter submits a form from its text boxes but not from a picker —
+          // a select, or a checklist's list; here it applies from any.
           if (
             event.key === "Enter" &&
-            event.target instanceof HTMLSelectElement
+            event.target instanceof Element &&
+            event.target.closest("select, [role=listbox]") !== null
           ) {
             event.preventDefault();
             event.currentTarget.requestSubmit();
@@ -145,19 +159,11 @@ export default function FilterMenu<Row>({
             ))}
           </div>
         )}
-        {/*
-         * `menu.ui` picks the editor; the simple one is the only one so far,
-         * so every menu draws it.
-         */}
-        <SimpleFilterEditor
-          ref={editor}
-          column={column}
-          menu={menu}
-          controller={controller}
-          messages={messages}
-          initialFocusRef={initialFocusRef}
-          applyFilter={applyFilter}
-        />
+        {menu.ui === "excel" ? (
+          <ExcelFilterEditor {...editorProps} columnValues={columnValues} />
+        ) : (
+          <SimpleFilterEditor {...editorProps} />
+        )}
         <div className="filter-menu-actions">
           {clearItem !== undefined && (
             <button
