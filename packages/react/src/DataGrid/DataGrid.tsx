@@ -521,8 +521,8 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   const announce = useLiveAnnouncer(viewportRef);
   /** Every string the grid shows or announces, `messages` over the English defaults. */
   const messages = useMemo(
-    () => resolveMessages(messageOverrides),
-    [messageOverrides],
+    () => resolveMessages(messageOverrides, locale),
+    [messageOverrides, locale],
   );
 
   /**
