@@ -72,10 +72,11 @@ formatCellValue(1234.5, { field: "Price", type: "number" });
 // "1234.5" — no format, no locale
 ```
 
-| Function                                                   | Type     | Description                                                                                                                                                       |
-| ---------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `formatCellValue(value, column, locale?, row?, messages?)` | `string` | The text a value reads as in `column` — the default cell rendering, and what an export writes. `messages` gives a boolean's words (`booleanTrue`/`booleanFalse`). |
-| `formatAggregateValue(value, spec, column, locale?)`       | `string` | The text an aggregate result reads as. Counts read as plain numbers; everything else as one of the column's values.                                               |
+| Function                                                   | Type     | Description                                                                                                                                                                                             |
+| ---------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `formatCellValue(value, column, locale?, row?, messages?)` | `string` | The text a value reads as in `column` — the default cell rendering, and what an export writes. `messages` gives a boolean's words (`booleanTrue`/`booleanFalse`).                                       |
+| `formatAggregateValue(value, spec, column, locale?)`       | `string` | The text an aggregate result reads as. Counts read as plain numbers; everything else as one of the column's values.                                                                                     |
+| `formatGroupValue(value, column, locale, messages)`        | `string` | The text a group's own value reads as — a group header's name, and an export's group label. As the column's cells read it, except that `null`/`undefined` reads `messages.blankGroupValue` ("(blank)"). |
 
 Formatters are built once per type, locale and `format` object and reused, so keep a column's `format` defined once rather than recreating it per render.
 

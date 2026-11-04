@@ -286,7 +286,11 @@ export {
 export type { GridMessages } from "./messages";
 export { defaultMessages, resolveMessages } from "./messages";
 export type { FormatLocale } from "./util/format";
-export { formatAggregateValue, formatCellValue } from "./util/format";
+export {
+  formatAggregateValue,
+  formatCellValue,
+  formatGroupValue,
+} from "./util/format";
 export type { RowHeights, VisibleRange } from "./util/virtualization";
 export { visibleRange } from "./util/virtualization";
 export type { ExportScalar } from "./export/types";
