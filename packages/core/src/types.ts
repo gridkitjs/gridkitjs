@@ -1,3 +1,4 @@
+import type { ColumnFilterMenuOptions } from "./filterMenu/options";
 import type { ExportScalar } from "./export/types";
 
 /**
@@ -171,6 +172,17 @@ export interface ColumnDefinition<Row, Node = string> {
   reorderable?: boolean;
   /** Whether this column can be sorted, overriding the grid-level default. */
   sortable?: boolean;
+  /**
+   * Whether this column has a filter menu, overriding the grid-level
+   * `filterableColumns`. Like `sortable`, it gates the user's way in and
+   * nothing else: a filter on the column set in code still applies.
+   */
+  filterable?: boolean | undefined;
+  /**
+   * This column's own filter menu settings — its editor and the operators
+   * its conditions offer — over the grid's `filterMenu`.
+   */
+  filterMenu?: ColumnFilterMenuOptions | undefined;
   /** Whether this column can be grouped by, overriding the grid-level default. */
   groupable?: boolean;
   /**

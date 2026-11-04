@@ -1,9 +1,14 @@
 import { describe, expect, test } from "vitest";
 import {
+  defaultFilterOperators,
+  filterOperatorFamily,
+} from "./filterMenu/operators";
+import {
   defaultMessages,
   resolveMessages,
   type GridMessages,
 } from "./messages";
+import type { ColumnType } from "./types";
 
 /**
  * Every message rendered to text, functions called with sample arguments, so
@@ -70,6 +75,10 @@ function rendered(messages: GridMessages): Record<keyof GridMessages, string> {
     columnChooserSearchLabel: messages.columnChooserSearchLabel,
     showAllColumns: messages.showAllColumns,
     noMatchingColumns: messages.noMatchingColumns,
+    filterOperatorLabel: messages.filterOperatorLabel("lt", "date"),
+    filterBlanks: messages.filterBlanks,
+    filterSearchFirst: messages.filterSearchFirst(12000),
+    filterMoreValues: messages.filterMoreValues(250),
     exportMenu: messages.exportMenu,
     exportCsv: messages.exportCsv,
     exportJson: messages.exportJson,
@@ -158,6 +167,10 @@ describe("defaultMessages", () => {
       columnChooserSearchLabel: "Search columns",
       showAllColumns: "Show all",
       noMatchingColumns: "No matching columns",
+      filterOperatorLabel: "Before",
+      filterBlanks: "(Blanks)",
+      filterSearchFirst: "Type to search 12000 values",
+      filterMoreValues: "250 more, refine the search",
       exportMenu: "Export",
       exportCsv: "Export to CSV",
       exportJson: "Export to JSON",
@@ -215,6 +228,71 @@ describe("defaultMessages", () => {
   test("counts columns autofitted as one or many", () => {
     expect(defaultMessages.columnsAutoFitted(1)).toBe("1 column autofitted");
     expect(defaultMessages.columnsAutoFitted(3)).toBe("3 columns autofitted");
+  });
+
+  test("labels every operator a filter menu offers by default", () => {
+    const labels = (type: ColumnType) =>
+      defaultFilterOperators(type).map((operator) =>
+        defaultMessages.filterOperatorLabel(
+          operator,
+          filterOperatorFamily(type),
+        ),
+      );
+    expect(labels("string")).toEqual([
+      "Contains",
+      "Does not contain",
+      "Equals",
+      "Does not equal",
+      "Starts with",
+      "Ends with",
+      "Is blank",
+      "Is not blank",
+    ]);
+    expect(labels("number")).toEqual([
+      "Equals",
+      "Does not equal",
+      "Greater than",
+      "Greater than or equal to",
+      "Less than",
+      "Less than or equal to",
+      "Between",
+      "Is blank",
+      "Is not blank",
+    ]);
+    expect(labels("date")).toEqual([
+      "Equals",
+      "Does not equal",
+      "Before",
+      "After",
+      "Between",
+      "Is blank",
+      "Is not blank",
+    ]);
+    expect(labels("dateTime")).toEqual([
+      "Before",
+      "After",
+      "Between",
+      "Is blank",
+      "Is not blank",
+    ]);
+    expect(labels("boolean")).toEqual(["Equals", "Is blank", "Is not blank"]);
+  });
+
+  test("reads a date's order as time and every other family's as size", () => {
+    const { filterOperatorLabel } = defaultMessages;
+    expect(filterOperatorLabel("lte", "date")).toBe("On or before");
+    expect(filterOperatorLabel("gte", "date")).toBe("On or after");
+    expect(filterOperatorLabel("lt", "number")).toBe("Less than");
+    expect(filterOperatorLabel("gt", "text")).toBe("Greater than");
+    expect(filterOperatorLabel("contains", "date")).toBe("Contains");
+    expect(filterOperatorLabel("in", "text")).toBe("Is one of");
+  });
+
+  test("counts the values a checklist waits to search as one or many", () => {
+    expect(defaultMessages.filterSearchFirst(1)).toBe("Type to search 1 value");
+    expect(defaultMessages.filterSearchFirst(20000)).toBe(
+      "Type to search 20000 values",
+    );
   });
 });
 

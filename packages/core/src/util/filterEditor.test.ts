@@ -16,6 +16,7 @@ import {
   draftToFilter,
   filterEditorReducer,
   initialFilterEditorDraft,
+  isColumnFiltered,
   selectAllState,
   visibleFilterOptions,
 } from "./filterEditor";
@@ -773,5 +774,44 @@ describe("draftToFilter", () => {
 
     expect(next).toEqual(filter);
     expect(describeColumnFilter(next, "Region")).toEqual(shape);
+  });
+});
+
+describe("isColumnFiltered", () => {
+  test("an entry about the column marks it, whatever its shape", () => {
+    const filtered = (filter: FilterState<SampleRow>) =>
+      isColumnFiltered(filter, "Region");
+
+    expect(filtered([regionIn(["West"])])).toBe(true);
+    expect(filtered([regionBlank, amountAbove])).toBe(true);
+    expect(filtered([{ columnId: "Region", query: "%we%" }])).toBe(true);
+    expect(
+      filtered([{ combinator: "or", entries: [amountAbove, regionBlank] }]),
+    ).toBe(true);
+  });
+
+  test("entries on other columns and a global search don't", () => {
+    expect(isColumnFiltered<SampleRow>([], "Region")).toBe(false);
+    expect(
+      isColumnFiltered<SampleRow>(
+        [amountAbove, amountBelow, { query: "%west%" }],
+        "Region",
+      ),
+    ).toBe(false);
+  });
+
+  test("agrees with describeColumnFilter", () => {
+    const filters: readonly FilterState<SampleRow>[] = [
+      [],
+      [{ query: "%west%" }],
+      [amountAbove],
+      [regionIn(["West"]), amountAbove],
+      [{ combinator: "and", entries: [regionBlank, amountBelow] }],
+    ];
+    for (const filter of filters) {
+      expect(isColumnFiltered(filter, "Region")).toBe(
+        describeColumnFilter(filter, "Region").kind !== "none",
+      );
+    }
   });
 });

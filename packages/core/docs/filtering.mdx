@@ -1,6 +1,6 @@
 ---
 title: "Filter state and the editor model"
-description: "describeColumnFilter, columnValueOptions and filterEditorReducer: the headless model a column's filter editor is drawn over — and searchTextOf and setSearchText, a search box's."
+description: "describeColumnFilter, columnValueOptions and filterEditorReducer: the headless model a column's filter editor is drawn over, the filter menu's options, operators, condition rows, value cache and checklist window — and searchTextOf and setSearchText, a search box's."
 ---
 
 A grid's filter is one `FilterState` — entries ANDed together, described with every entry kind on [Column filtering](/docs/react/column-filtering). A filter editor, whether a list of conditions or an Excel-style checklist of values, is a UI over one column's part of that state. Core holds everything such an editor decides, so a renderer only draws it and every renderer's editor behaves the same:
@@ -49,6 +49,8 @@ controller.setFilter(draftToFilter(draft, "Region", filter));
 
 An editor shows a custom filter as such; applying its draft replaces it.
 
+`isColumnFiltered(filter, columnId)` asks only whether that shape is anything but `"none"` — what a header reads to show its column as filtered. A global search filters every column alike, so it marks none.
+
 ## The values a checklist offers
 
 `columnValueOptions(rows, dataColumns, filter, columnId, { search?, limit?, locale?, messages? })` lists the column's distinct values, each with its `label` and the `count` of rows holding it:
@@ -60,6 +62,30 @@ An editor shows a custom filter as such; applying its draft replaces it.
 - `search` keeps the values whose label contains it, ignoring case; `total` is how many matched. `limit` cuts the list after that many, and `truncated` says it did.
 
 `rows` are the grid's own rows, unfiltered — its `dataSource`. One call is a single pass over them: tens of milliseconds at 100k rows. Make it when the editor opens, not on every render, and hand the whole list to the draft, whose own search needs no recount.
+
+## Caching the value lists
+
+`createColumnValueOptionsCache()` remembers each column's list, so reopening a column's checklist doesn't count its values again. Hold one per grid and ask it in place of `columnValueOptions`:
+
+```ts
+import { createColumnValueOptionsCache } from "@gridkitjs/core";
+
+const valueCache = createColumnValueOptionsCache<Order>();
+
+// When a checklist opens:
+const values = valueCache.get(rows, dataColumns, filter, "Region", {
+  locale,
+  messages,
+});
+```
+
+`get(rows, dataColumns, filter, columnId, { locale?, messages? })` returns the column's whole list — no `search` or `limit`, which the draft applies — and hands back the very object it returned last time while nothing the list depends on has changed:
+
+- the `rows` and `dataColumns`, by identity;
+- the `locale` and `messages`, by identity — pass the grid's own, not an object made on each render;
+- the filter's entries **not about the column**, one by one, by identity. `draftToFilter` keeps every entry it doesn't replace as it was, so applying one column's filter leaves its own list cached — a column's list never depends on its own entries — and the other columns' lists recount when they next open.
+
+Each column keeps its latest list. New rows, columns, locale or messages drop every list, so the cache never holds on to rows the grid has let go of.
 
 ## The editor draft
 
@@ -80,6 +106,33 @@ The draft keys its checked values the way the column's `in` entry matches them, 
 
 A value or blanks action switches the draft to its checklist (`mode: "values"`); `setConditions` switches it to its conditions. `visibleFilterOptions(draft)` returns the values the search shows, and `selectAllState(draft)` the select-all checkbox's `"checked"`, `"unchecked"` or `"mixed"` over them.
 
+## A checklist's window
+
+`filterChecklist(draft, { valueLimit, blanksLabel })` is the list a checklist editor draws under its search box and select-all — what each row says and whether it is checked:
+
+```ts
+import { filterChecklist } from "@gridkitjs/core";
+
+// With `menu` from resolveColumnFilterMenu and the grid's resolved messages:
+const { items, needsSearch, hiddenCount, total } = filterChecklist(draft, {
+  valueLimit: menu.valueLimit,
+  blanksLabel: messages.filterBlanks,
+});
+```
+
+| Field         | Type                             | Description                                                                                                                                                         |
+| ------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `items`       | `readonly FilterChecklistItem[]` | The values the search shows, in sort order, cut to `valueLimit`; then the blanks, while nothing is searched and some cells are blank. Empty while `needsSearch`.    |
+| `needsSearch` | `boolean`                        | The column holds more than `valueLimit` values and nothing is searched yet: show `filterSearchFirst(total)` — "Type to search 12000 values" — in place of the list. |
+| `hiddenCount` | `number`                         | How many of a search's matches `valueLimit` left out: show `filterMoreValues(hiddenCount)` — "250 more, refine the search". `0` while `needsSearch`.                |
+| `total`       | `number`                         | How many values the search matches — every value while nothing is searched. Blanks aside.                                                                           |
+
+Each item is `{ kind, key, label, count, checked }`. A `kind: "value"` item carries its `value`, toggled with `{ type: "toggleValue", value }`; the `kind: "blanks"` item stands for the column's blank cells, labelled `blanksLabel`, and is toggled with `{ type: "setIncludeBlanks", includeBlanks: !checked }`. `key` tells the items apart: a value's is the key the draft checks it under, and the blanks have their own.
+
+A column can hold far more values than a list is worth scrolling, so the list stops at `valueLimit` — 10,000 by default, Excel's own cap. Past that it waits for a search, while every value stays in the draft and select-all still checks or unchecks them all; a search matching more than `valueLimit` lists the first of its matches. `Infinity` lists everything.
+
+The blanks item comes last, as in Excel, and only while nothing is searched — exactly when select-all counts the blanks, so the checkbox acts on what the list shows.
+
 ## Applying a draft
 
 `draftToFilter(draft, columnId, current)` returns `current` with the column's entries replaced by the draft's, in the place of the first one so the others keep their order:
@@ -89,6 +142,126 @@ A value or blanks action switches the draft to its checklist (`mode: "values"`);
 - One condition is stored as itself, two or more as one group with the draft's combinator; no conditions is no filter.
 
 What `draftToFilter` writes, `describeColumnFilter` reads back as the same shape. When nothing changes it returns `current` itself, and `setFilter` reports nothing for a filter equal to the one it has.
+
+## Filter menu options
+
+A renderer draws a filter menu in each filterable column's header; these options say which columns get one and what it opens. They follow the grid's other column features: a grid-level default that a column overrides, as `sortableColumns` and `sortable` do.
+
+| Option                  | Type                  | Default    | Description                                                                                                                                         |
+| ----------------------- | --------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `filterableColumns`     | `boolean`             | `false`    | Whether columns get a filter menu. The filter applies either way — from `defaultFilter`, `setFilter` or a search box.                               |
+| `filterMenu.ui`         | `"simple" \| "excel"` | `"simple"` | Which editor the menu opens: one or two conditions joined by and/or, or a search box over a checklist of values with the conditions a submenu away. |
+| `filterMenu.showCounts` | `boolean`             | `false`    | Whether the checklist shows how many rows hold each value.                                                                                          |
+| `filterMenu.valueLimit` | `number`              | `10000`    | How many distinct values the checklist lists before it asks for a search first — `DEFAULT_FILTER_VALUE_LIMIT`.                                      |
+| `column.filterable`     | `boolean`             |            | Per-column override of `filterableColumns`.                                                                                                         |
+| `column.filterMenu`     | `{ ui?, operators? }` |            | The column's own editor, over `filterMenu.ui`, and the operators its conditions offer, in place of its type's defaults.                             |
+
+Both editors edit the one `FilterState`, so switching `ui` at runtime keeps every filter, and a filter set in code shows in whichever editor is open. A column's `operators` drop `in`, the checklist's own operator; `[]` offers no condition, leaving the excel editor its checklist alone.
+
+`resolveColumnFilterMenu(options, column)` settles all of this for one column — what a renderer draws from:
+
+```ts
+import { resolveColumnFilterMenu } from "@gridkitjs/core";
+
+const menu = resolveColumnFilterMenu(
+  { filterableColumns: true, filterMenu: { ui: "excel", showCounts: true } },
+  { field: "Placed", type: "dateTime" },
+);
+// { ui: "excel", operators: ["lt", "gt", "between", "isEmpty", "isNotEmpty"],
+//   family: "date", showCounts: true, valueLimit: 10000 }
+```
+
+It returns `null` for a column with no filter menu, else a `ResolvedColumnFilterMenu`:
+
+| Field        | Type                        | Description                                                                                         |
+| ------------ | --------------------------- | --------------------------------------------------------------------------------------------------- |
+| `ui`         | `"simple" \| "excel"`       | The column's `filterMenu.ui`, else the grid's, else `"simple"`.                                     |
+| `operators`  | `readonly FilterOperator[]` | The column's `filterMenu.operators` without `in`, else its type's `defaultFilterOperators` (below). |
+| `family`     | `FilterOperatorFamily`      | The family the column's `type` falls in, which its operators are labelled by.                       |
+| `showCounts` | `boolean`                   | The grid's `filterMenu.showCounts`, else `false`.                                                   |
+| `valueLimit` | `number`                    | The grid's `filterMenu.valueLimit`, else `DEFAULT_FILTER_VALUE_LIMIT` (10,000, Excel's own cap).    |
+
+## Operators by column type
+
+The conditions a filter menu offers depend on what the column holds. `filterOperatorFamily(type)` reads a column's `type` as one of four families — the filter engine's own reading, so a menu never offers a condition the column would compare differently:
+
+| Family      | Column types                                       |
+| ----------- | -------------------------------------------------- |
+| `"text"`    | `"string"`, or no `type`                           |
+| `"number"`  | `"number"`, `"decimal"`, `"currency"`, `"percent"` |
+| `"date"`    | `"date"`, `"dateTime"`, `"time"`                   |
+| `"boolean"` | `"boolean"`                                        |
+
+`defaultFilterOperators(type)` lists the operators a column offers, in order, unless it names its own:
+
+| Column type            | Operators                                                                                |
+| ---------------------- | ---------------------------------------------------------------------------------------- |
+| text                   | `contains`, `notContains`, `eq`, `ne`, `startsWith`, `endsWith`, `isEmpty`, `isNotEmpty` |
+| numeric                | `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `between`, `isEmpty`, `isNotEmpty`                 |
+| `"date"`               | `eq`, `ne`, `lt`, `gt`, `between`, `isEmpty`, `isNotEmpty`                               |
+| `"dateTime"`, `"time"` | `lt`, `gt`, `between`, `isEmpty`, `isNotEmpty`                                           |
+| `"boolean"`            | `eq`, `isEmpty`, `isNotEmpty`                                                            |
+
+A date-time or time cell is an instant, which a typed day or minute seldom equals to the millisecond, so those columns offer before, after and between rather than equals. `in` is never a condition: a list of values is the checklist's to pick. What each operator matches is on [Column filtering](/docs/react/column-filtering#the-fifth-kind-operators).
+
+A menu labels each operator with the `filterOperatorLabel(operator, family)` message, so a translation can word each family its own way. In English a date reads its order as time — `lt` is "Before", `gte` "On or after" — and every other family as size — "Less than", "Greater than or equal to"; `isEmpty` reads "Is blank".
+
+## Condition rows
+
+A simple editor shows a column's conditions as two rows — an operator and its operand each — joined by "and" or "or". Its inputs hold text, so a half-typed number or date stays as typed until the editor is applied. Three functions turn that text into operands and back, each reading the column's `type`:
+
+| Function                           | Type                        | Description                                                                                                        |
+| ---------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `filterOperandArity(operator)`     | `0 \| 1 \| 2`               | How many inputs a row shows: none for `isEmpty` and `isNotEmpty`, two for `between`'s ends, one for the rest.      |
+| `parseFilterOperand(text, type)`   | `FilterScalar \| undefined` | The operand `text` stands for on a column of `type`, or `undefined` when the text is empty or doesn't read as one. |
+| `formatFilterOperand(value, type)` | `string`                    | The text an input shows for an operand — `parseFilterOperand`'s inverse, for opening a condition already applied.  |
+
+| Family      | Reads                                                                                                                                                          | Writes back                                                                                                     |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `"text"`    | The text as typed, spaces and all.                                                                                                                             | The text.                                                                                                       |
+| `"number"`  | Digits with a `.` for decimals and an optional exponent, as a number input gives them. `"12abc"` and `"1,5"` read as nothing rather than as a guess.           | The number as `String` writes it.                                                                               |
+| `"date"`    | `yyyy-mm-dd`, as a date input gives it, at that day's local midnight; `yyyy-mm-ddThh:mm`, seconds optional, as a date-time input gives it, at that local time. | `yyyy-mm-dd` on a `"date"` column; `yyyy-mm-ddThh:mm` on a `"dateTime"` or `"time"` one, with seconds when set. |
+| `"boolean"` | `"true"` or `"false"`.                                                                                                                                         | `"true"` or `"false"`.                                                                                          |
+
+A row is a `ConditionRowDraft` — `{ operator, text, textTo }`, `textTo` holding `between`'s upper end:
+
+- `conditionRowsFrom(shape, operators, type)` opens the rows over the column's `describeColumnFilter` shape: its conditions, when its filter is conditions, and each row they don't fill at the first of `operators` with no text. A condition keeps its operator even when `operators` doesn't list it. With no operator to offer, only the rows the filter fills.
+- `conditionsFromRows(rows, columnId, type)` reads them back as `{ conditions, invalid }`. A row needs every operand its operator takes, or its index is listed in `invalid` for the editor to mark. A second row left empty is dropped, not invalid; an empty first row is invalid — clearing the filter is the editor's clear action, not an apply with nothing typed.
+
+Apply the conditions only once `invalid` is empty, through the draft, with the combinator the editor shows:
+
+```ts
+import {
+  conditionRowsFrom,
+  conditionsFromRows,
+  describeColumnFilter,
+  draftToFilter,
+  filterEditorReducer,
+} from "@gridkitjs/core";
+
+// When the editor opens, with `menu` from resolveColumnFilterMenu:
+let rows = conditionRowsFrom(
+  describeColumnFilter(filter, "Amount"),
+  menu.operators,
+  "number",
+);
+
+// The user picks "Between" and types both ends:
+rows = rows.with(0, { operator: "between", text: "10", textTo: "100" });
+
+// On apply:
+const { conditions, invalid } = conditionsFromRows(rows, "Amount", "number");
+if (invalid.length === 0) {
+  draft = filterEditorReducer(draft, {
+    type: "setConditions",
+    conditions,
+    combinator: "and",
+  });
+  controller.setFilter(draftToFilter(draft, "Amount", filter));
+}
+```
+
+What the rows apply, `describeColumnFilter` reads back as conditions, and `conditionRowsFrom` opens as the same rows.
 
 ## A search box
 

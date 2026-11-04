@@ -280,9 +280,44 @@ export {
   draftToFilter,
   filterEditorReducer,
   initialFilterEditorDraft,
+  isColumnFiltered,
   selectAllState,
   visibleFilterOptions,
 } from "./util/filterEditor";
+export type {
+  ColumnFilterMenuOptions,
+  FilterMenuUi,
+  GridFilterMenuOptions,
+  ResolvedColumnFilterMenu,
+} from "./filterMenu/options";
+export {
+  DEFAULT_FILTER_VALUE_LIMIT,
+  resolveColumnFilterMenu,
+} from "./filterMenu/options";
+export type { FilterOperatorFamily } from "./filterMenu/operators";
+export {
+  defaultFilterOperators,
+  filterOperandArity,
+  filterOperatorFamily,
+  formatFilterOperand,
+  parseFilterOperand,
+} from "./filterMenu/operators";
+export type {
+  ConditionRowDraft,
+  ParsedConditionRows,
+} from "./filterMenu/conditions";
+export { conditionRowsFrom, conditionsFromRows } from "./filterMenu/conditions";
+export type {
+  ColumnValueCacheQuery,
+  ColumnValueOptionsCache,
+} from "./filterMenu/valueCache";
+export { createColumnValueOptionsCache } from "./filterMenu/valueCache";
+export type {
+  FilterChecklist,
+  FilterChecklistItem,
+  FilterChecklistOptions,
+} from "./filterMenu/checklist";
+export { filterChecklist } from "./filterMenu/checklist";
 export type { GridMessages } from "./messages";
 export { defaultMessages, resolveMessages } from "./messages";
 export type { FormatLocale } from "./util/format";

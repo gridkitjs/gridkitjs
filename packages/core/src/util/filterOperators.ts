@@ -14,11 +14,16 @@ type Operand = OperatorFilterEntry<unknown>["value"];
 type Comparison = (value: unknown) => number | undefined;
 
 /** How a column's values compare, which decides what an operand must be. */
-type ValueKind = "number" | "boolean" | "date" | "text";
+export type ValueKind = "number" | "boolean" | "date" | "text";
 
 const matchNothing: CellTest = () => false;
 
-function kindOf(type: ColumnType | undefined): ValueKind {
+/**
+ * The kind a column of `type` compares as. A filter menu's operator family
+ * is this same kind (`filterOperatorFamily`), so the operators it offers and
+ * the operands it parses are the ones the column filters by.
+ */
+export function kindOf(type: ColumnType | undefined): ValueKind {
   switch (type) {
     case "number":
     case "decimal":

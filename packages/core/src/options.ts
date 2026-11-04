@@ -34,6 +34,7 @@ import type {
   SelectionState,
 } from "./types";
 import type { GridCommand, GridCommandEvent } from "./commands/types";
+import type { GridFilterMenuOptions } from "./filterMenu/options";
 import type { GridMessages } from "./messages";
 import type {
   ContextMenuOpenChangeEvent,
@@ -309,6 +310,21 @@ export interface GridOptions<Row> {
    * `filter.clearAll` command, `setFilter` or a restored state.
    */
   onFilterChange?: ((event: FilterChangeEvent<Row>) => void) | undefined;
+  /**
+   * Whether columns get a filter menu, opened from their header, unless a
+   * column says otherwise. Off by default, like `sortableColumns`; the
+   * filter itself applies either way, from `defaultFilter`, `setFilter` or a
+   * search box. A renderer draws the menu from what
+   * `resolveColumnFilterMenu` settles.
+   */
+  filterableColumns?: boolean | undefined;
+  /**
+   * How the filter menus look: which editor they open — `"simple"`
+   * conditions or an `"excel"` checklist — and the checklist's counts and
+   * value limit. A column's own `filterMenu` wins over it. Switching `ui`
+   * keeps every filter, since both editors edit the one `filter`.
+   */
+  filterMenu?: GridFilterMenuOptions | undefined;
   /**
    * Whether the grid's rows are split into pages. A page's unit is a
    * top-level group or a bare data row, never a leaf row — a group is never
