@@ -84,7 +84,10 @@ export default function ExcelFilterEditor<Row>({
     };
   });
   const [draft, dispatch] = useReducer(filterEditorReducer<Row>, opened.draft);
-  /** The operator chosen from the menu, while its condition shows in place of the checklist. */
+  /**
+   * The operator chosen from the menu, while a condition at it shows in place
+   * of the checklist.
+   */
   const [operator, setOperator] = useState<FilterOperator | null>(null);
   const conditions = useRef<FilterEditorHandle>(null);
   const conditionsFocus = useRef<HTMLElement | null>(null);
@@ -93,7 +96,8 @@ export default function ExcelFilterEditor<Row>({
   const switched = useRef(false);
   const selectAllRef = useRef<HTMLInputElement>(null);
   // Each a pass over every value — tens of thousands of them on a large
-  // column — so worked out as the draft changes, not on every render.
+  // column — so worked out as the draft changes, not again as the editor
+  // switches to a condition and back.
   const selectAll = useMemo(() => selectAllState(draft), [draft]);
   const checklist = useMemo(
     () =>
@@ -123,7 +127,11 @@ export default function ExcelFilterEditor<Row>({
     }
   }, [operator]);
 
-  function showCondition(chosen: FilterOperator | null): void {
+  /**
+   * Shows a condition at `chosen` in place of the checklist, or — given
+   * `null` — the checklist again.
+   */
+  function switchTo(chosen: FilterOperator | null): void {
     switched.current = true;
     setOperator(chosen);
   }
@@ -152,7 +160,7 @@ export default function ExcelFilterEditor<Row>({
           type="button"
           className="filter-menu-back"
           onClick={() => {
-            showCondition(null);
+            switchTo(null);
           }}
         >
           <span className="filter-menu-back-icon" aria-hidden="true">
@@ -189,7 +197,7 @@ export default function ExcelFilterEditor<Row>({
               : undefined
           }
           messages={messages}
-          onChoose={showCondition}
+          onChoose={switchTo}
         />
       )}
       {(shape.kind === "conditions" || shape.kind === "custom") && (
