@@ -85,13 +85,13 @@ One condition — an operator and a value — and an optional second, joined to 
 - **The value** goes in a box made for the column's `type`: a number box, a date picker on a `"date"` column, a date-and-time picker on a `"dateTime"` or `"time"` one, a true/false choice on a `"boolean"` one, and a text box on the rest. "Between" takes two, From and To; "Is blank" and "Is not blank" take none.
 - **The second condition** is optional: left empty, it is dropped.
 
-| Column `type`          | Its conditions, by default                                                                                                        |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| text, and no `type`    | Contains, Does not contain, Equals, Does not equal, Starts with, Ends with, Is blank, Is not blank                                |
-| a number type          | Equals, Does not equal, Greater than, Greater than or equal to, Less than, Less than or equal to, Between, Is blank, Is not blank |
-| `"date"`               | Equals, Does not equal, Before, After, Between, Is blank, Is not blank                                                            |
-| `"dateTime"`, `"time"` | Before, After, Between, Is blank, Is not blank — a moment seldom equals a typed minute to the millisecond                         |
-| `"boolean"`            | Equals, Is blank, Is not blank                                                                                                    |
+| Column `type`                                      | Its conditions, by default                                                                                                        |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `"string"`, or none                                | Contains, Does not contain, Equals, Does not equal, Starts with, Ends with, Is blank, Is not blank                                |
+| `"number"`, `"decimal"`, `"currency"`, `"percent"` | Equals, Does not equal, Greater than, Greater than or equal to, Less than, Less than or equal to, Between, Is blank, Is not blank |
+| `"date"`                                           | Equals, Does not equal, Before, After, Between, Is blank, Is not blank                                                            |
+| `"dateTime"`, `"time"`                             | Before, After, Between, Is blank, Is not blank — a moment seldom equals a typed minute to the millisecond                         |
+| `"boolean"`                                        | Equals, Is blank, Is not blank                                                                                                    |
 
 A column's `filterMenu.operators` lists its own instead — `{ field: "Amount", type: "number", filterMenu: { operators: ["gt", "lt", "between"] } }`.
 
