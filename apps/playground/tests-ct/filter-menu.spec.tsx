@@ -166,9 +166,10 @@ test.describe("filter menu", () => {
     const root = await mountGrid(mount, <FilterMenuGrid />);
     const filterMenu = await openFromHeaderMenu(root, page, "Name");
 
-    await root.getByTestId("commands").click({ force: true });
+    await header(root, "Id").click();
 
     await expect(filterMenu).toHaveCount(0);
+    await expect(header(root, "Id")).toBeFocused();
   });
 
   test("a sort entry sorts the column, reports it as the filter menu's, and closes it", async ({
