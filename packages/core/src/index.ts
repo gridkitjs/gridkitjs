@@ -307,3 +307,7 @@ export type {
 } from "./export/types";
 export type { ExportSource } from "./export/buildExportTable";
 export { buildExportTable } from "./export/buildExportTable";
+export type { CsvOptions } from "./export/csv";
+export { toCsv } from "./export/csv";
+export type { TsvOptions } from "./export/tsv";
+export { toTsv } from "./export/tsv";

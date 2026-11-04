@@ -99,3 +99,50 @@ The first argument is an `ExportSource<Row>`, the few fields of the grid an expo
 | Function                             | Type          | Description                                                |
 | ------------------------------------ | ------------- | ---------------------------------------------------------- |
 | `buildExportTable(source, options?)` | `ExportTable` | The grid's view as an export model, narrowed by `options`. |
+
+## Writing it out
+
+A serialiser turns an `ExportTable` into the text of one format. Each returns a `string` rather than a file, so core needs no browser: making a `Blob` of it and saving or copying it is the renderer's job.
+
+```ts
+import { buildExportTable, toCsv } from "@gridkitjs/core";
+
+const table = buildExportTable(source);
+const csv = toCsv(table, { delimiter: "auto", locale: "mk" });
+
+const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+```
+
+| Function                 | Returns  | Description                                                                 |
+| ------------------------ | -------- | --------------------------------------------------------------------------- |
+| `toCsv(table, options?)` | `string` | A CSV file a spreadsheet opens as it is, guarded against formula injection. |
+| `toTsv(table, options?)` | `string` | Tab-separated text, the plain-text form the clipboard carries.              |
+
+The delimited formats lay the rows out the same way: the header row when `table.header` is `true`, then every body row, then the footer. A group row writes its label, `"Region: West"`, in the first column and any inline aggregates under their own columns after it — an aggregate under the first column gives way to the label there, and still appears in the footer. Summary rows and the footer write their aggregates under their columns and leave the rest empty.
+
+## CSV
+
+`toCsv` quotes per RFC 4180: a field is quoted when it holds the delimiter, a `"` or a line break, and a `"` inside it is doubled, so a cell with a line break in it stays one cell. Records end with `"\r\n"`, and the last one has no line break after it.
+
+| Option               | Type              | Default  | Description                                                                                                                                        |
+| -------------------- | ----------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `delimiter`          | `string`          | `","`    | The field separator. `"auto"` picks `";"` when `locale` writes a decimal with a comma and `","` otherwise.                                         |
+| `locale`             | `FormatLocale`    | —        | The locale `delimiter: "auto"` reads — pass the grid's `locale`. The runtime's own when absent.                                                    |
+| `eol`                | `string`          | `"\r\n"` | What ends each record.                                                                                                                             |
+| `bom`                | `boolean`         | `true`   | Whether the file starts with a UTF-8 byte order mark.                                                                                              |
+| `neutralizeFormulas` | `boolean`         | `true`   | Whether a field a spreadsheet would run as a formula gets a leading `'`.                                                                           |
+| `values`             | `"text" \| "raw"` | `"text"` | `"text"` writes each cell as the grid shows it; `"raw"` writes its typed value — numbers plain, dates in ISO 8601, booleans as `true` and `false`. |
+
+`"text"` makes a file that reads like the screen, with the column's `format` and the grid's `locale` applied: `1.234,50 €` rather than `1234.5`. Use `"raw"` for a file another program reads back, where a formatted number or a localised date would have to be parsed again.
+
+## CSV pitfalls
+
+A CSV file has no header of its own saying how to read it, and spreadsheets guess. The defaults are chosen so that Excel, the usual reader, gets each guess right.
+
+- **Encoding.** Without a byte order mark, Excel reads a CSV in the system's legacy code page, so `Ćirilica`, `ш` or `€` arrive garbled. `bom: true` writes one; turn it off only for a program that does not expect it.
+- **Delimiter.** Excel splits a CSV on the system's list separator, which is `;` wherever a decimal is written with a comma — most of Europe, Macedonian and Croatian included. A comma-separated file opens there as one column. `delimiter: "auto"` with the user's `locale` writes `;` in those locales and `,` elsewhere.
+- **Formula injection.** A spreadsheet runs a field that starts with `=`, `+`, `-` or `@` as a formula, and a leading tab or carriage return can hide such a start. A value a user typed into the data — `=HYPERLINK(…)`, or a call that runs a command — would then run on the machine of whoever opens the export. `neutralizeFormulas: true` writes such a field with a leading `'`, which the spreadsheet shows as text. A cell whose typed value is a number keeps a leading `-` or `+`, so `-5` stays a number; every other field, the header and group labels included, is guarded.
+
+## TSV
+
+`toTsv` writes the table tab-separated with `"\n"` between records: the form a spreadsheet splits into cells when text is pasted into it, which is what a clipboard copy carries. There is no quoting a paste target agrees on, so a tab or line break inside a cell becomes a space. Unlike CSV it writes no byte order mark and leaves formulas alone: what is copied is exactly what the grid shows. Its one option is `values`, `"text"` or `"raw"`, as for CSV.
