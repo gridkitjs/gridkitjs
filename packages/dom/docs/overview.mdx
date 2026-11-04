@@ -1,9 +1,9 @@
 ---
 title: "Overview"
-description: "Framework-free browser behaviours for GridKit renderers: gestures, focus, observers, virtualization, overlays, menus, checklists, toolbars and announcements."
+description: "Framework-free browser behaviours for GridKit renderers: gestures, focus, observers, virtualization, overlays, menus, checklists, toolbars, announcements, downloads, the clipboard and printing."
 ---
 
-@gridkitjs/dom holds every browser behaviour a grid needs that is not drawing: pointer gestures, keyboard focus movement, the observers behind fit-to-width and infinite scroll, the row virtualizer's measuring, overlays and the menus and checklists shown in them, toolbars, and the live region it reports changes through. @gridkitjs/core decides what the grid does and runs without a DOM; @gridkitjs/dom does what needs one, with no framework; a renderer such as @gridkitjs/react draws the markup and attaches these behaviours to it. A second renderer — for Angular, Vue or Svelte — reuses both unchanged.
+@gridkitjs/dom holds every browser behaviour a grid needs that is not drawing: pointer gestures, keyboard focus movement, the observers behind fit-to-width and infinite scroll, the row virtualizer's measuring, overlays and the menus and checklists shown in them, toolbars, the live region it reports changes through, the download an export ends in, the clipboard a copy goes to, and the hidden frame a print goes through. @gridkitjs/core decides what the grid does and runs without a DOM; @gridkitjs/dom does what needs one, with no framework; a renderer such as @gridkitjs/react draws the markup and attaches these behaviours to it. A second renderer — for Angular, Vue or Svelte — reuses both unchanged.
 
 You only need this package to write a renderer of your own. @gridkitjs/react depends on it already, so installing that is enough to use the grid.
 
@@ -579,3 +579,83 @@ overflow.update({
   onChange: (count) => draw(splitToolbarItems(items, count)),
 });
 ```
+
+## Download
+
+`downloadBlob(blob, fileName)` saves `blob` as a file named `fileName` through the browser's own download — a hidden link with a `download` attribute, clicked and removed — so nothing opens or navigates. It is where an export ends: @gridkitjs/core writes the file's contents, the renderer makes a `Blob` of them, and this saves it.
+
+```ts
+import { exportFile, resolveExportWriters } from "@gridkitjs/core";
+import { downloadBlob } from "@gridkitjs/dom";
+
+const writers = resolveExportWriters(context.options.exportWriters);
+const file = await exportFile(context, "csv", {}, writers);
+if (file !== null) {
+  downloadBlob(
+    new Blob([file.content], { type: file.mimeType }),
+    file.fileName,
+  );
+}
+```
+
+The link's object URL is revoked a moment after the click, not during it: Safari reads the file from the URL once the click has returned.
+
+## Clipboard
+
+`writeClipboard({ text, html })` puts one copy on the clipboard as both `text/plain` and `text/html`, so a paste into a spreadsheet splits into cells and a paste into a word processor keeps its table. It returns a promise that resolves once the copy is written and rejects when the browser refuses. Call it from a user's gesture — a key press or a menu choice — as browsers only allow the clipboard then.
+
+```ts
+import { copyContent } from "@gridkitjs/core";
+import { writeClipboard } from "@gridkitjs/dom";
+
+const content = copyContent(context, { kind: "selection" });
+if (content !== null) {
+  writeClipboard(content).then(
+    () => announce(messages.copied(content.count, content.unit)),
+    () => announce(messages.copyFailed),
+  );
+}
+```
+
+It tries each way a browser offers, best first:
+
+1. The async Clipboard API with a `ClipboardItem` holding both types.
+2. Its `writeText`, plain text alone, where `ClipboardItem` is missing or refused.
+3. The legacy `copy` event, for a page outside a secure context where the async API is missing: a one-shot listener sets both types on the event's `clipboardData`, fired by `document.execCommand("copy")` from an off-screen field, and focus goes back where it was.
+
+`isNativeCopy(target)` says whether a copy key pressed at `target` belongs to the browser: pressed in a text field (a text `input`, a `textarea` or editable content), or with text highlighted anywhere on the page. A grid that copies on <Kbd>Ctrl</Kbd>+<Kbd>C</Kbd> checks it first and leaves such a press alone, so the user gets the text they highlighted rather than the cell.
+
+## Print
+
+`printDocument({ title, bodyHtml, styles })` prints a document through a hidden frame: a page of its own holding only `bodyHtml` under `styles`, so what is printed is exactly what was built — every row, not the slice a virtualised grid has drawn — and nothing of the page around it. It returns a promise that resolves once the print dialog has closed and the frame is gone. A frame rather than a new window, which a popup blocker would stop.
+
+```ts
+import { buildExportTable, buildPrintDocument } from "@gridkitjs/core";
+import { printDocument, printStyles } from "@gridkitjs/dom";
+
+const { title, bodyHtml, page } = buildPrintDocument(
+  buildExportTable(context),
+  { title: "Orders", timestamp: true },
+);
+await printDocument({
+  title,
+  bodyHtml,
+  styles: printStyles(page) + ".print-title { color: navy; }",
+});
+```
+
+The frame is zero-size and `aria-hidden`, appended to `document.body`. Its title and stylesheet are set through the DOM rather than written into its markup, so neither needs escaping. It waits for the document to load and its fonts to be ready, opens the dialog, and is removed on the frame's `afterprint` — or, should a browser never fire it, the next time the user presses a key or the pointer, which a modal print dialog allows only once it has closed. Focus goes back where it was. One print at a time: a call while a print is open resolves at once without printing.
+
+`printStyles(page)` is the stylesheet the frame needs, for a `PrintPage` from `buildPrintDocument`. The frame sees none of the page's CSS, so it carries what makes a table read on paper and nothing of a theme. Pass it as `styles` as it is, add your own rules after it to restyle, or pass a stylesheet of your own in its place.
+
+| Rule                                                                   | What it does                                                                                      |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `@page { size: <paperSize> <orientation>; margin: 12mm }`              | The paper and which way it is turned.                                                             |
+| `@bottom-right { content: counter(page) " / " counter(pages) }`        | Page numbers, "3 / 12", when `pageNumbers` is on, where the browser draws `@page` margin boxes.   |
+| `thead { display: table-header-group }`                                | The header row repeated at the top of every page.                                                 |
+| `tfoot { display: table-row-group }`                                   | The grand total once, after the last row, rather than repeated at the foot of every page.         |
+| `tr { break-inside: avoid }`                                           | No row split across a page break.                                                                 |
+| `table { width: 100%; border-collapse: collapse }`, 1px `#bbb` borders | The table across the page, with neutral borders.                                                  |
+| `.export-group[data-level]`                                            | Group headers shaded and bold, each level stepped in under its parent, as far as six levels deep. |
+| `print-color-adjust: exact`                                            | Header and group shading printed as it is, not dropped to save ink.                               |
+| `table-layout: fixed`, 8pt, `overflow-wrap: anywhere`                  | For `fitToWidth`: a wide table squeezed onto the page, its columns wrapping their text.           |

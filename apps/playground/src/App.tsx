@@ -111,7 +111,8 @@ export default function App() {
         it. "Choose columns" opens the column chooser: Id cannot be hidden, and
         Notes starts hidden. "By region" is a toggle that groups the rows,
         "Groups" and "Orders" are dropdowns — the second of the app's own
-        actions, logged below — and the count at the end is a custom entry. Tab
+        actions, logged below — "Export" downloads the rows as CSV or JSON, or
+        only the selected ones, and the count at the end is a custom entry. Tab
         to the toolbar and move with the arrow keys; narrow the window to see
         items move into "More".
       </p>

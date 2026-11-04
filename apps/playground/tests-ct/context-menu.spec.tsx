@@ -643,6 +643,9 @@ test.describe("cell menu", () => {
     const menu = await openMenuOn(page, bodyCell(root, 2, 1), "Row menu");
 
     await expect(menu.locator("[data-gridkit-menu-item]")).toHaveText([
+      "Copy cell",
+      "Copy row",
+      "Copy selection",
       "Select all rows",
       "Clear selection",
     ]);
@@ -708,7 +711,7 @@ test.describe("cell menu", () => {
       await cell.press(key);
 
       const menu = page.getByRole("menu", { name: "Row menu" });
-      await expect(item(menu, "Select all rows")).toBeFocused();
+      await expect(item(menu, "Copy cell")).toBeFocused();
       const cellBox = await cell.boundingBox();
       const menuBox = await page.locator(".gridkit-overlay").boundingBox();
       expect(menuBox?.y).toBeCloseTo(
@@ -737,8 +740,11 @@ test.describe("cell menu", () => {
     mount,
     page,
   }) => {
-    // Nothing to select and nothing grouped: every default is hidden.
-    const root = await mountGrid(mount, grid({ contextMenu: { header: [] } }));
+    // Nothing to select: the one item listed is hidden.
+    const root = await mountGrid(
+      mount,
+      grid({ contextMenu: { cell: ["selection.clear"] } }),
+    );
     const body = await recordContextMenu(page);
 
     await bodyCell(root, 0, 1).click({ button: "right" });
@@ -796,6 +802,8 @@ test.describe("group menu", () => {
     const menu = await openMenuOn(page, row.locator("td").first(), "Row menu");
 
     await expect(menu.locator("[data-gridkit-menu-item]")).toHaveText([
+      "Copy cell",
+      "Copy row",
       "Expand all groups",
       "Collapse all groups",
     ]);
@@ -890,6 +898,8 @@ test.describe("menus worked out per request", () => {
     const menu = await openMenuOn(page, bodyCell(root, 1, 1), "Row menu");
     await expect(menu.locator("[data-gridkit-menu-item]")).toHaveText([
       "Open row",
+      "Copy cell",
+      "Copy row",
     ]);
     await item(menu, "Open row").click();
 
@@ -1244,7 +1254,7 @@ test.describe("long-press", () => {
     const point = await touchDown(cell);
 
     const menu = page.getByRole("menu", { name: "Row menu" });
-    await expect(item(menu, "Select all rows")).toBeFocused();
+    await expect(item(menu, "Copy cell")).toBeFocused();
     const box = await page.locator(".gridkit-overlay").boundingBox();
     expect(box?.x).toBeCloseTo(point.x, 0);
     expect(box?.y).toBeCloseTo(point.y, 0);
@@ -1253,7 +1263,7 @@ test.describe("long-press", () => {
     // A click reaching the row would toggle it off again.
     await touchUp(cell, point);
     await expect(row).toHaveAttribute("aria-selected", "true");
-    await expect(item(menu, "Select all rows")).toBeFocused();
+    await expect(item(menu, "Copy cell")).toBeFocused();
   });
 });
 

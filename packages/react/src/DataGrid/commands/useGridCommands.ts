@@ -11,6 +11,9 @@ import {
   type GridMessages,
   type GridOptions,
 } from "@gridkitjs/core";
+import { copyToClipboard } from "../clipboard/copyToClipboard";
+import useSaveFile from "../export/useSaveFile";
+import { printGrid } from "../print/printApi";
 import type { ColumnResizeApi } from "../useColumnResize";
 import type { DataGridController } from "../useGridController";
 
@@ -55,8 +58,9 @@ export interface GridCommandsApi<Row> {
  * The commands behind the grid's menus — the built-ins and the app's own —
  * and the context they run in. Which command shows, is enabled or does what
  * is `@gridkitjs/core`'s; the grid lends them what needs a DOM — sizing a
- * column to its content, as double-clicking its resize handle does, and
- * opening its panels — and its live region.
+ * column to its content, as double-clicking its resize handle does,
+ * opening its panels, downloading an export, writing the clipboard and
+ * printing — and its live region.
  */
 export default function useGridCommands<Row>({
   controller,
@@ -68,6 +72,7 @@ export default function useGridCommands<Row>({
   openPanel,
 }: UseGridCommandsOptions<Row>): GridCommandsApi<Row> {
   const commands = useMemo(() => resolveCommands(appCommands), [appCommands]);
+  const saveFile = useSaveFile({ messages, announce });
 
   const host: GridCommandHost = {
     autoFitColumns: (columnIds) => {
@@ -87,6 +92,15 @@ export default function useGridCommands<Row>({
     },
     openPanel,
     announce,
+    saveFile,
+    writeClipboard: (content) => {
+      copyToClipboard(content, { messages, announce });
+    },
+    print: (document, options) => {
+      printGrid(document, options).catch((error: unknown) => {
+        console.error("DataGrid: the print failed.", error);
+      });
+    },
   };
 
   function contextFor(target: GridCommandTarget): GridCommandContext<Row> {

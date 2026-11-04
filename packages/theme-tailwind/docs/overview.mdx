@@ -180,6 +180,18 @@ A column's [filter menu](/docs/react/column-filter-menu) is an overlay too. Its 
 | `.filter-menu-cancel`            | `<button>`            | Cancel.                                                                                                                     |
 | `.filter-menu-apply`             | `<button>`            | OK, the form's submit button, tinted.                                                                                       |
 
+## Printing
+
+An `@media print` block makes the browser's own print of the page — <Kbd>Ctrl</Kbd>+<Kbd>P</Kbd>, or <Kbd>Cmd</Kbd>+<Kbd>P</Kbd> on a Mac — read as a plain table. Inside `.gridkit-data-grid-viewport`, it:
+
+- hides the toolbar, the group-by bar, the built-in pager and the resize handles;
+- drops a `height` bound and the inner scrolling, so every row the grid has drawn flows onto as many pages as it takes;
+- drops the focus ring;
+- prints the header's and selected rows' shading as it is (`print-color-adjust: exact`) rather than dropping it to save ink;
+- keeps each row whole rather than splitting it across two pages.
+
+It prints only what the grid has drawn: not the rows on another page, nor those a virtualized grid has not mounted. The grid's own [Print](/docs/react/printing) is the supported way to print every row. It prints a separate document in a hidden frame, which sees none of the page's CSS — this stylesheet included — and carries a print stylesheet of its own; restyle it through the `print` option's `styles`, not here.
+
 ## Theme tokens
 
 | Token                       | Type    | Description                                                               |

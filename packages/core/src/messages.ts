@@ -202,6 +202,36 @@ export interface GridMessages {
    * a number" on a number column.
    */
   filterValueInvalid: (family: FilterOperatorFamily) => string;
+  /** The toolbar's `"export"` dropdown, listing the export commands. */
+  exportMenu: string;
+  /** `export.csv` */
+  exportCsv: string;
+  /** `export.json` */
+  exportJson: string;
+  /** `export.xlsx`, shown once an xlsx writer is registered. */
+  exportXlsx: string;
+  /** `export.pdf`, shown once a PDF writer is registered. */
+  exportPdf: string;
+  /** `exportSelection.csv`: the selected rows only. */
+  exportSelectionCsv: string;
+  /** `exportSelection.json` */
+  exportSelectionJson: string;
+  /** `exportSelection.xlsx` */
+  exportSelectionXlsx: string;
+  /** Announced when an export's writer fails, so no file is saved. */
+  exportFailed: string;
+  /** `copy.cell` */
+  copyCell: string;
+  /** `copy.row` */
+  copyRow: string;
+  /** `copy.selection` */
+  copySelection: string;
+  /** Announced once a copy is on the clipboard. */
+  copied: (count: number, unit: "cells" | "rows" | "columns") => string;
+  /** Announced when the browser refuses the clipboard, so nothing was copied. */
+  copyFailed: string;
+  /** `print` */
+  print: string;
 }
 
 /** "3 columns hidden", "1 column shown", "2 columns autofitted". */
@@ -288,6 +318,13 @@ const filterValueRequests: Readonly<Record<FilterOperatorFamily, string>> = {
   date: "Enter a date",
   boolean: "Choose a value",
 };
+
+/** "1 cell copied", "3 rows copied", "2 columns copied". */
+function copied(count: number, unit: "cells" | "rows" | "columns"): string {
+  return count === 1
+    ? `1 ${unit.slice(0, -1)} copied`
+    : `${String(count)} ${unit} copied`;
+}
 
 /** The grid's own English, which `messages` replaces key by key. */
 export const defaultMessages: GridMessages = {
@@ -386,6 +423,21 @@ export const defaultMessages: GridMessages = {
   filterAnd: "And",
   filterOr: "Or",
   filterValueInvalid: (family) => filterValueRequests[family],
+  exportMenu: "Export",
+  exportCsv: "Export to CSV",
+  exportJson: "Export to JSON",
+  exportXlsx: "Export to Excel",
+  exportPdf: "Export to PDF",
+  exportSelectionCsv: "Export selection to CSV",
+  exportSelectionJson: "Export selection to JSON",
+  exportSelectionXlsx: "Export selection to Excel",
+  exportFailed: "Export failed",
+  copyCell: "Copy cell",
+  copyRow: "Copy row",
+  copySelection: "Copy selection",
+  copied,
+  copyFailed: "Copy failed",
+  print: "Print",
 };
 
 /**
