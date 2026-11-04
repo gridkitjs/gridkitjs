@@ -293,6 +293,106 @@ test.describe("dismissal", () => {
   });
 });
 
+test.describe("focus trap", () => {
+  test("Tab from the last control wraps to the first, Shift+Tab back to the last", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<OverlayHarness trapFocus />);
+    const panel = await openPanel(root, page);
+    const first = panel.getByRole("button", { name: "First" });
+    const last = panel.getByRole("button", { name: "Drop anchor" });
+    await expect(first).toBeFocused();
+
+    await page.keyboard.press("Shift+Tab");
+    await expect(last).toBeFocused();
+
+    await page.keyboard.press("Tab");
+    await expect(first).toBeFocused();
+    await expect(panel).toBeVisible();
+    await expect(root.getByTestId("dismissed")).toHaveText("none");
+  });
+
+  test("Tab between the ends moves as the browser moves it", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(
+      <OverlayHarness trapFocus initialFocus="open-child" />,
+    );
+    const panel = await openPanel(root, page);
+
+    await page.keyboard.press("Tab");
+    await expect(panel.getByRole("button", { name: "Shrink" })).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
+    await expect(
+      panel.getByRole("button", { name: "Open child" }),
+    ).toBeFocused();
+  });
+
+  test("Shift+Tab from the focused panel itself wraps to its last control", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<OverlayHarness trapFocus initialFocus="panel" />);
+    const panel = await openPanel(root, page);
+    await expect(panel).toBeFocused();
+
+    await page.keyboard.press("Shift+Tab");
+
+    await expect(
+      panel.getByRole("button", { name: "Drop anchor" }),
+    ).toBeFocused();
+    await expect(root.getByTestId("dismissed")).toHaveText("none");
+  });
+
+  test("a pointer down outside still dismisses it", async ({ mount, page }) => {
+    const root = await mount(<OverlayHarness trapFocus />);
+    const panel = await openPanel(root, page);
+
+    await root.getByRole("button", { name: "Elsewhere" }).click();
+
+    await expect(panel).toBeHidden();
+    await expect(root.getByTestId("dismissed")).toHaveText("outside");
+  });
+
+  test("focus moved outside by a script still dismisses it", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<OverlayHarness trapFocus />);
+    const panel = await openPanel(root, page);
+
+    await root.getByRole("button", { name: "Elsewhere" }).focus();
+
+    await expect(panel).toBeHidden();
+    await expect(root.getByTestId("dismissed")).toHaveText("blur");
+  });
+
+  test("an overlay above keeps its own Tab, and the panel stays open", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<OverlayHarness trapFocus />);
+    const panel = await openPanel(root, page);
+    await panel.getByRole("button", { name: "Open child" }).click();
+    const child = page.getByRole("dialog", { name: "Child" });
+    const childItem = child.getByRole("button", { name: "Child item" });
+    await expect(childItem).toBeFocused();
+
+    await page.keyboard.press("Shift+Tab");
+    await expect(
+      child.getByRole("button", { name: "Close panel" }),
+    ).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(childItem).toBeFocused();
+
+    await expect(panel).toBeVisible();
+    await expect(root.getByTestId("child-dismissed")).toHaveText("none");
+    await expect(root.getByTestId("dismissed")).toHaveText("none");
+  });
+});
+
 test.describe("stacking", () => {
   /** Opens the panel, then the child panel above it. */
   async function openChild(root: MountResult, page: Page) {

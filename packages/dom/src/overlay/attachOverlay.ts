@@ -57,11 +57,33 @@ export interface OverlayOptions extends OverlayPlacementOptions {
    * Defaults to `false`, where every scroll outside the panel dismisses it.
    */
   readonly ignoreScrollAfterInput?: boolean | undefined;
+  /**
+   * Whether Tab and Shift+Tab stay inside the panel: from its last tabbable
+   * element Tab moves to its first, and Shift+Tab from its first to its last,
+   * as a dialog keeps them. Defaults to `false`, where tabbing out of the
+   * panel moves focus outside it, which dismisses it with `"blur"`. Only
+   * the keys are kept: a pointer down outside still dismisses it, and so
+   * does focus moved out by any other route.
+   */
+  readonly trapFocus?: boolean | undefined;
 }
 
 /** Everything focusable by script, so a menu's `tabindex="-1"` items count. */
 const FOCUSABLE =
   "a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]";
+
+/**
+ * What Tab stops on in `panel`, in document order: what is focusable without
+ * a negative `tabindex`, enabled and shown.
+ */
+function tabbables(panel: HTMLElement): HTMLElement[] {
+  return Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+    (element) =>
+      element.tabIndex >= 0 &&
+      !element.matches(":disabled") &&
+      element.checkVisibility({ visibilityProperty: true }),
+  );
+}
 
 function anchorRect(anchor: OverlayAnchor): OverlayRect {
   if (anchor instanceof Element) {
@@ -214,6 +236,44 @@ export function attachOverlay(
     }
   }
 
+  // Only the moves that would leave the panel are made here — Tab with
+  // nothing tabbable after the focused element, Shift+Tab with nothing before
+  // it — and every other Tab is the browser's own, in its own order. What is
+  // tabbable is read on each key, so controls drawn since attaching count; an
+  // overlay above that sits inside the panel keeps its own Tab.
+  function onTrapKeyDown(event: KeyboardEvent): void {
+    if (
+      event.key !== "Tab" ||
+      event.defaultPrevented ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      !(event.target instanceof Node) ||
+      isInsideOverlayAbove(stacked, event.target)
+    ) {
+      return;
+    }
+    const stops = tabbables(panel).filter(
+      (element) => !isInsideOverlayAbove(stacked, element),
+    );
+    const first = stops[0];
+    const last = stops.at(-1);
+    if (first === undefined || last === undefined) {
+      event.preventDefault();
+      return;
+    }
+    const position = event.target.compareDocumentPosition(
+      event.shiftKey ? first : last,
+    );
+    const leaving = event.shiftKey
+      ? (position & Node.DOCUMENT_POSITION_PRECEDING) === 0
+      : (position & Node.DOCUMENT_POSITION_FOLLOWING) === 0;
+    if (leaving) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+    }
+  }
+
   function onWindowBlur(): void {
     onDismiss("blur");
   }
@@ -272,6 +332,9 @@ export function attachOverlay(
   window.addEventListener("resize", onResize);
   window.addEventListener("blur", onWindowBlur);
   panel.addEventListener("focusout", onFocusOut);
+  if (options.trapFocus === true) {
+    panel.addEventListener("keydown", onTrapKeyDown);
+  }
   if (options.ignoreScrollAfterInput === true) {
     panel.addEventListener("input", onInput);
     panel.addEventListener("change", onInput);
@@ -295,6 +358,7 @@ export function attachOverlay(
     window.removeEventListener("resize", onResize);
     window.removeEventListener("blur", onWindowBlur);
     panel.removeEventListener("focusout", onFocusOut);
+    panel.removeEventListener("keydown", onTrapKeyDown);
     panel.removeEventListener("input", onInput);
     panel.removeEventListener("change", onInput);
     if (settlingFrame !== null) {

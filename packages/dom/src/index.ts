@@ -11,6 +11,11 @@ export {
   type GroupRowTarget,
 } from "./bodyTargets";
 export {
+  attachChecklist,
+  type AttachedChecklist,
+  type ChecklistOptions,
+} from "./checklist/attachChecklist";
+export {
   attachContextMenuTrigger,
   type ContextMenuRequest,
   type ContextMenuSource,
