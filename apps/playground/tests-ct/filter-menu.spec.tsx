@@ -1408,7 +1408,7 @@ test.describe("the excel editor", () => {
     const filterMenu = await openFromButton(root, page, "Value");
 
     await expect(
-      filterMenu.getByText("Type to search 20000 values"),
+      filterMenu.getByText("Type to search 20,000 values"),
     ).toBeVisible();
 
     await searchOf(filterMenu).fill("Value 1");
@@ -1760,7 +1760,7 @@ test.describe("the excel editor", () => {
       record("first open, 100,000 values", await timed(nameButton));
       let filterMenu = filterMenuOf(page, "Name");
       await expect(
-        filterMenu.getByText("Type to search 100000 values"),
+        filterMenu.getByText("Type to search 100,000 values"),
       ).toBeVisible();
       await page.keyboard.press("Escape");
       record("reopen, 100,000 values", await timed(nameButton));
@@ -1811,7 +1811,7 @@ test.describe("the excel editor", () => {
       );
 
       await expect(filterMenu).toHaveCount(0);
-      await expect(liveRegion(root)).toHaveText("1000 of 100000 rows");
+      await expect(liveRegion(root)).toHaveText("1,000 of 100,000 rows");
     });
   });
 });

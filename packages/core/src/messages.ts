@@ -1,5 +1,6 @@
 import type { FilterOperatorFamily } from "./filterMenu/operators";
 import type { FilterOperator, SortDirection } from "./types";
+import type { FormatLocale } from "./util/format";
 
 /**
  * Every string a grid shows or announces of its own — the pager, the group-by
@@ -13,7 +14,8 @@ import type { FilterOperator, SortDirection } from "./types";
  *
  * Text the data supplies (cells, headers, labels) is not here: it is already
  * the app's to choose. Nor is formatting — dates and numbers follow
- * `locale`.
+ * `locale`, and so do the counts the defaults print: "1,204 of 10,000 rows"
+ * under `"en"`, "1.204 of 10.000 rows" under `"de-DE"`.
  */
 export interface GridMessages {
   /** The pager's accessible name. */
@@ -253,33 +255,61 @@ export interface GridMessages {
   print: string;
 }
 
+/** Prints a count — "1,204" under `"en"`, "1.204" under `"de-DE"`. */
+type CountFormat = (count: number) => string;
+
+function localeKey(locale: FormatLocale): string {
+  return typeof locale === "string" ? locale : (locale?.join(",") ?? "");
+}
+
+/**
+ * Count formats already built, one per locale: building an
+ * `Intl.NumberFormat` costs far more than using one.
+ */
+const countFormats = new Map<string, CountFormat>();
+
+/** A count in `locale`'s digits and separators, whole — a count has no fraction. */
+function countFormat(locale: FormatLocale): CountFormat {
+  const key = localeKey(locale);
+  let format = countFormats.get(key);
+  if (format === undefined) {
+    const numberFormat = new Intl.NumberFormat(locale, {
+      maximumFractionDigits: 0,
+    });
+    format = (count) => numberFormat.format(count);
+    countFormats.set(key, format);
+  }
+  return format;
+}
+
 /** "3 columns hidden", "1 column shown", "2 columns autofitted". */
 function columnCount(
+  n: CountFormat,
   count: number,
   change: "hidden" | "shown" | "autofitted",
 ): string {
-  return count === 1
-    ? `1 column ${change}`
-    : `${String(count)} columns ${change}`;
+  return count === 1 ? `1 column ${change}` : `${n(count)} columns ${change}`;
 }
 
 /** "3 rows found", "1 row found", "No rows found". */
-function searchResults(count: number): string {
+function searchResults(n: CountFormat, count: number): string {
   if (count === 0) {
     return "No rows found";
   }
-  return count === 1 ? "1 row found" : `${String(count)} rows found`;
+  return count === 1 ? "1 row found" : `${n(count)} rows found`;
 }
 
 /** "3 rows selected", "1 column selected", "No rows selected". */
-function selectedCount(count: number, target: "rows" | "columns"): string {
+function selectedCount(
+  n: CountFormat,
+  count: number,
+  target: "rows" | "columns",
+): string {
   const noun = target === "rows" ? "row" : "column";
   if (count === 0) {
     return `No ${noun}s selected`;
   }
-  return count === 1
-    ? `1 ${noun} selected`
-    : `${String(count)} ${noun}s selected`;
+  return count === 1 ? `1 ${noun} selected` : `${n(count)} ${noun}s selected`;
 }
 
 const operatorLabels: Readonly<Record<FilterOperator, string>> = {
@@ -318,16 +348,16 @@ function filterOperatorLabel(
   );
 }
 
-/** "Type to search 12000 values", "Type to search 1 value". */
-function filterSearchFirst(total: number): string {
+/** "Type to search 12,000 values", "Type to search 1 value". */
+function filterSearchFirst(n: CountFormat, total: number): string {
   return total === 1
     ? "Type to search 1 value"
-    : `Type to search ${String(total)} values`;
+    : `Type to search ${n(total)} values`;
 }
 
-/** "3 of 10 rows", "1 of 1 row". */
-function filterResults(shown: number, total: number): string {
-  return `${String(shown)} of ${String(total)} ${total === 1 ? "row" : "rows"}`;
+/** "1,204 of 10,000 rows", "1 of 1 row". */
+function filterResults(n: CountFormat, shown: number, total: number): string {
+  return `${n(shown)} of ${n(total)} ${total === 1 ? "row" : "rows"}`;
 }
 
 /** What a condition's value box asks for, by the kind of value its column holds. */
@@ -347,141 +377,172 @@ const filterOperatorMenus: Readonly<Record<FilterOperatorFamily, string>> = {
 };
 
 /** "1 cell copied", "3 rows copied", "2 columns copied". */
-function copied(count: number, unit: "cells" | "rows" | "columns"): string {
+function copied(
+  n: CountFormat,
+  count: number,
+  unit: "cells" | "rows" | "columns",
+): string {
   return count === 1
     ? `1 ${unit.slice(0, -1)} copied`
-    : `${String(count)} ${unit} copied`;
+    : `${n(count)} ${unit} copied`;
+}
+
+/**
+ * The grid's own English, its counts printed in `locale`'s digits —
+ * "1,204 of 10,000 rows" under `"en"`, "1.204 of 10.000 rows" under
+ * `"de-DE"`. Without a locale, the runtime's own; that one is
+ * `defaultMessages`.
+ */
+export function createDefaultMessages(locale?: FormatLocale): GridMessages {
+  const n = countFormat(locale);
+  return {
+    pagerLabel: "Pagination",
+    previousPage: "Previous",
+    nextPage: "Next",
+    pageSizeLabel: "Rows per page",
+    pageButtonLabel: (page) => `Page ${n(page)}`,
+    pageStatus: (page, pageCount) => `Page ${n(page)} of ${n(pageCount)}`,
+    loadingMore: "Loading more…",
+    booleanTrue: "true",
+    booleanFalse: "false",
+    blankGroupValue: "(blank)",
+    groupByBarLabel: "Grouped by",
+    groupByBarPlaceholder: "Drag a column here to group by it",
+    groupByChipLabel: (columnName, level, levelCount) =>
+      levelCount > 1
+        ? `${columnName}, level ${n(level)} of ${n(levelCount)}`
+        : columnName,
+    removeGroupBy: (columnName) => `Stop grouping by ${columnName}`,
+    columnResized: (columnName, width) =>
+      `${columnName}, ${n(width)} pixels wide`,
+    columnMoved: (columnName, position, columnCount) =>
+      `${columnName}, column ${n(position)} of ${n(columnCount)}`,
+    columnSorted: (columnName, direction, key, keyCount) => {
+      const sorted = `${columnName} sorted ${direction === "asc" ? "ascending" : "descending"}`;
+      return keyCount > 1
+        ? `${sorted}, key ${n(key)} of ${n(keyCount)}`
+        : sorted;
+    },
+    sortCleared: (columnName) => `${columnName}, sort cleared`,
+    groupedBy: (columnName, level, levelCount) =>
+      levelCount > 1
+        ? `Grouped by ${columnName}, level ${n(level)} of ${n(levelCount)}`
+        : `Grouped by ${columnName}`,
+    groupingRemoved: (columnName) => `${columnName}, grouping removed`,
+    groupExpanded: "Group expanded",
+    groupCollapsed: "Group collapsed",
+    allGroupsExpanded: "All groups expanded",
+    allGroupsCollapsed: "All groups collapsed",
+    selectedCount: (count, target) => selectedCount(n, count, target),
+    cellSelected: (columnName, rowNumber) =>
+      `${columnName}, row ${n(rowNumber)}, selected`,
+    columnHidden: (columnName) => `${columnName}, column hidden`,
+    columnShown: (columnName) => `${columnName}, column shown`,
+    columnsHidden: (count) => columnCount(n, count, "hidden"),
+    columnsShown: (count) => columnCount(n, count, "shown"),
+    columnsAutoFitted: (count) => columnCount(n, count, "autofitted"),
+    headerMenuLabel: (columnName) => `${columnName} column menu`,
+    cellMenuLabel: "Row menu",
+    groupMenuLabel: "Group menu",
+    bodyMenuLabel: "Grid menu",
+    sortAscending: "Sort ascending",
+    sortDescending: "Sort descending",
+    clearSort: "Clear sort",
+    clearAllSorting: "Clear all sorting",
+    groupByColumn: (columnName) => `Group by ${columnName}`,
+    ungroupAll: "Ungroup all",
+    expandAllGroups: "Expand all groups",
+    collapseAllGroups: "Collapse all groups",
+    hideColumn: "Hide column",
+    autoFitColumn: "Autofit column",
+    autoFitAllColumns: "Autofit all columns",
+    selectAllRows: "Select all rows",
+    clearSelection: "Clear selection",
+    clearFilters: "Clear filters",
+    chooseColumns: "Choose columns",
+    toolbarLabel: "Grid toolbar",
+    searchLabel: "Search",
+    searchPlaceholder: "Search…",
+    moreToolbarItems: "More",
+    searchResults: (count) => searchResults(n, count),
+    columnChooserLabel: "Columns",
+    columnChooserSearchLabel: "Search columns",
+    showAllColumns: "Show all",
+    noMatchingColumns: "No matching columns",
+    filterOperatorLabel,
+    filterBlanks: "(Blanks)",
+    filterSearchFirst: (total) => filterSearchFirst(n, total),
+    filterMoreValues: (count) => `${n(count)} more, refine the search`,
+    openFilter: "Filter…",
+    clearColumnFilter: "Clear filter",
+    filterMenuLabel: (columnName) => `${columnName} filter`,
+    columnFiltered: "Filtered",
+    applyFilter: "OK",
+    cancelFilter: "Cancel",
+    customFilter: "Custom filter",
+    filterResults: (shown, total) => filterResults(n, shown, total),
+    filterConditionLabel: (position) => `Condition ${n(position)}`,
+    filterOperatorFieldLabel: "Operator",
+    filterValueLabel: "Value",
+    filterFromLabel: "From",
+    filterToLabel: "To",
+    filterCombinatorLabel: "Combine conditions",
+    filterAnd: "And",
+    filterOr: "Or",
+    filterValueInvalid: (family) => filterValueRequests[family],
+    filterSearchLabel: "Search values",
+    filterSelectAll: "Select all",
+    filterValuesLabel: "Values",
+    filterByCondition: "Filtered by condition",
+    filterOperatorMenu: (family) => filterOperatorMenus[family],
+    filterBackToValues: "Back to values",
+    exportMenu: "Export",
+    exportCsv: "Export to CSV",
+    exportJson: "Export to JSON",
+    exportXlsx: "Export to Excel",
+    exportPdf: "Export to PDF",
+    exportSelectionCsv: "Export selection to CSV",
+    exportSelectionJson: "Export selection to JSON",
+    exportSelectionXlsx: "Export selection to Excel",
+    exportFailed: "Export failed",
+    copyCell: "Copy cell",
+    copyRow: "Copy row",
+    copySelection: "Copy selection",
+    copied: (count, unit) => copied(n, count, unit),
+    copyFailed: "Copy failed",
+    print: "Print",
+  };
 }
 
 /** The grid's own English, which `messages` replaces key by key. */
-export const defaultMessages: GridMessages = {
-  pagerLabel: "Pagination",
-  previousPage: "Previous",
-  nextPage: "Next",
-  pageSizeLabel: "Rows per page",
-  pageButtonLabel: (page) => `Page ${String(page)}`,
-  pageStatus: (page, pageCount) =>
-    `Page ${String(page)} of ${String(pageCount)}`,
-  loadingMore: "Loading more…",
-  booleanTrue: "true",
-  booleanFalse: "false",
-  blankGroupValue: "(blank)",
-  groupByBarLabel: "Grouped by",
-  groupByBarPlaceholder: "Drag a column here to group by it",
-  groupByChipLabel: (columnName, level, levelCount) =>
-    levelCount > 1
-      ? `${columnName}, level ${String(level)} of ${String(levelCount)}`
-      : columnName,
-  removeGroupBy: (columnName) => `Stop grouping by ${columnName}`,
-  columnResized: (columnName, width) =>
-    `${columnName}, ${String(width)} pixels wide`,
-  columnMoved: (columnName, position, columnCount) =>
-    `${columnName}, column ${String(position)} of ${String(columnCount)}`,
-  columnSorted: (columnName, direction, key, keyCount) => {
-    const sorted = `${columnName} sorted ${direction === "asc" ? "ascending" : "descending"}`;
-    return keyCount > 1
-      ? `${sorted}, key ${String(key)} of ${String(keyCount)}`
-      : sorted;
-  },
-  sortCleared: (columnName) => `${columnName}, sort cleared`,
-  groupedBy: (columnName, level, levelCount) =>
-    levelCount > 1
-      ? `Grouped by ${columnName}, level ${String(level)} of ${String(levelCount)}`
-      : `Grouped by ${columnName}`,
-  groupingRemoved: (columnName) => `${columnName}, grouping removed`,
-  groupExpanded: "Group expanded",
-  groupCollapsed: "Group collapsed",
-  allGroupsExpanded: "All groups expanded",
-  allGroupsCollapsed: "All groups collapsed",
-  selectedCount,
-  cellSelected: (columnName, rowNumber) =>
-    `${columnName}, row ${String(rowNumber)}, selected`,
-  columnHidden: (columnName) => `${columnName}, column hidden`,
-  columnShown: (columnName) => `${columnName}, column shown`,
-  columnsHidden: (count) => columnCount(count, "hidden"),
-  columnsShown: (count) => columnCount(count, "shown"),
-  columnsAutoFitted: (count) => columnCount(count, "autofitted"),
-  headerMenuLabel: (columnName) => `${columnName} column menu`,
-  cellMenuLabel: "Row menu",
-  groupMenuLabel: "Group menu",
-  bodyMenuLabel: "Grid menu",
-  sortAscending: "Sort ascending",
-  sortDescending: "Sort descending",
-  clearSort: "Clear sort",
-  clearAllSorting: "Clear all sorting",
-  groupByColumn: (columnName) => `Group by ${columnName}`,
-  ungroupAll: "Ungroup all",
-  expandAllGroups: "Expand all groups",
-  collapseAllGroups: "Collapse all groups",
-  hideColumn: "Hide column",
-  autoFitColumn: "Autofit column",
-  autoFitAllColumns: "Autofit all columns",
-  selectAllRows: "Select all rows",
-  clearSelection: "Clear selection",
-  clearFilters: "Clear filters",
-  chooseColumns: "Choose columns",
-  toolbarLabel: "Grid toolbar",
-  searchLabel: "Search",
-  searchPlaceholder: "Search…",
-  moreToolbarItems: "More",
-  searchResults,
-  columnChooserLabel: "Columns",
-  columnChooserSearchLabel: "Search columns",
-  showAllColumns: "Show all",
-  noMatchingColumns: "No matching columns",
-  filterOperatorLabel,
-  filterBlanks: "(Blanks)",
-  filterSearchFirst,
-  filterMoreValues: (count) => `${String(count)} more, refine the search`,
-  openFilter: "Filter…",
-  clearColumnFilter: "Clear filter",
-  filterMenuLabel: (columnName) => `${columnName} filter`,
-  columnFiltered: "Filtered",
-  applyFilter: "OK",
-  cancelFilter: "Cancel",
-  customFilter: "Custom filter",
-  filterResults,
-  filterConditionLabel: (position) => `Condition ${String(position)}`,
-  filterOperatorFieldLabel: "Operator",
-  filterValueLabel: "Value",
-  filterFromLabel: "From",
-  filterToLabel: "To",
-  filterCombinatorLabel: "Combine conditions",
-  filterAnd: "And",
-  filterOr: "Or",
-  filterValueInvalid: (family) => filterValueRequests[family],
-  filterSearchLabel: "Search values",
-  filterSelectAll: "Select all",
-  filterValuesLabel: "Values",
-  filterByCondition: "Filtered by condition",
-  filterOperatorMenu: (family) => filterOperatorMenus[family],
-  filterBackToValues: "Back to values",
-  exportMenu: "Export",
-  exportCsv: "Export to CSV",
-  exportJson: "Export to JSON",
-  exportXlsx: "Export to Excel",
-  exportPdf: "Export to PDF",
-  exportSelectionCsv: "Export selection to CSV",
-  exportSelectionJson: "Export selection to JSON",
-  exportSelectionXlsx: "Export selection to Excel",
-  exportFailed: "Export failed",
-  copyCell: "Copy cell",
-  copyRow: "Copy row",
-  copySelection: "Copy selection",
-  copied,
-  copyFailed: "Copy failed",
-  print: "Print",
-};
+export const defaultMessages: GridMessages = createDefaultMessages();
+
+/** The defaults made for each `locale` so far — one object per locale. */
+const localeDefaults = new Map<string, GridMessages>();
+
+function defaultsFor(locale: FormatLocale): GridMessages {
+  if (locale === undefined) {
+    return defaultMessages;
+  }
+  const key = localeKey(locale);
+  let defaults = localeDefaults.get(key);
+  if (defaults === undefined) {
+    defaults = createDefaultMessages(locale);
+    localeDefaults.set(key, defaults);
+  }
+  return defaults;
+}
 
 /**
- * `messages` over the defaults — every key the grid needs, whichever the
- * caller gave. The defaults themselves, same object, when it gave none, so a
- * renderer memoising on the result does not see a change that is not one.
+ * `messages` over the defaults for `locale` — every key the grid needs,
+ * whichever the caller gave, the defaults counting in `locale`'s digits. The
+ * defaults themselves, same object for the same locale, when it gave none, so
+ * a renderer memoising on the result does not see a change that is not one.
  */
 export function resolveMessages(
   messages: Partial<GridMessages> | undefined,
+  locale?: FormatLocale,
 ): GridMessages {
-  return messages === undefined
-    ? defaultMessages
-    : { ...defaultMessages, ...messages };
+  const defaults = defaultsFor(locale);
+  return messages === undefined ? defaults : { ...defaults, ...messages };
 }

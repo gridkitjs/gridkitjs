@@ -120,12 +120,12 @@ const { items, needsSearch, hiddenCount, total } = filterChecklist(draft, {
 });
 ```
 
-| Field         | Type                             | Description                                                                                                                                                         |
-| ------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `items`       | `readonly FilterChecklistItem[]` | The values the search shows, in sort order, cut to `valueLimit`; then the blanks, while nothing is searched and some cells are blank. Empty while `needsSearch`.    |
-| `needsSearch` | `boolean`                        | The column holds more than `valueLimit` values and nothing is searched yet: show `filterSearchFirst(total)` — "Type to search 12000 values" — in place of the list. |
-| `hiddenCount` | `number`                         | How many of a search's matches `valueLimit` left out: show `filterMoreValues(hiddenCount)` — "250 more, refine the search". `0` while `needsSearch`.                |
-| `total`       | `number`                         | How many values the search matches — every value while nothing is searched. Blanks aside.                                                                           |
+| Field         | Type                             | Description                                                                                                                                                          |
+| ------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `items`       | `readonly FilterChecklistItem[]` | The values the search shows, in sort order, cut to `valueLimit`; then the blanks, while nothing is searched and some cells are blank. Empty while `needsSearch`.     |
+| `needsSearch` | `boolean`                        | The column holds more than `valueLimit` values and nothing is searched yet: show `filterSearchFirst(total)` — "Type to search 12,000 values" — in place of the list. |
+| `hiddenCount` | `number`                         | How many of a search's matches `valueLimit` left out: show `filterMoreValues(hiddenCount)` — "250 more, refine the search". `0` while `needsSearch`.                 |
+| `total`       | `number`                         | How many values the search matches — every value while nothing is searched. Blanks aside.                                                                            |
 
 Each item is `{ kind, key, label, count, checked }`. A `kind: "value"` item carries its `value`, toggled with `{ type: "toggleValue", value }`; the `kind: "blanks"` item stands for the column's blank cells, labelled `blanksLabel`, and is toggled with `{ type: "setIncludeBlanks", includeBlanks: !checked }`. `key` tells the items apart: a value's is the key the draft checks it under, and the blanks have their own.
 
