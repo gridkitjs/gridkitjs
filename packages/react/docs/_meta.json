@@ -1,6 +1,7 @@
 {
   "order": [
     "overview",
+    "choosing-packages",
     "data-grid",
     "accessibility",
     "localization",

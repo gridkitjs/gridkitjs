@@ -1,0 +1,53 @@
+---
+title: "Choosing packages"
+description: "What each GridKit package does, which ones a React app installs, and when to add core, dom or export-xlsx yourself."
+---
+
+GridKit is split into five published packages, so an app installs only what it uses. A React app needs two of them: `@gridkitjs/react` and `@gridkitjs/theme-tailwind`.
+
+## The packages
+
+| Package                     | What it holds                                                                                                                     | Install it                                                                |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `@gridkitjs/react`          | The `DataGrid` component, its hooks and its types.                                                                                | In every React app.                                                       |
+| `@gridkitjs/theme-tailwind` | The stylesheet: palette tokens, dark mode and the grid's styles, for Tailwind CSS v4.                                             | In every app that uses Tailwind. See [theming](/docs/theme-tailwind).     |
+| `@gridkitjs/core`           | The grid's logic in plain TypeScript: column definitions, sorting, filtering, row grouping, aggregates, pagination and the state. | Comes with `react`. Add it yourself to import from it, as below.          |
+| `@gridkitjs/dom`            | Browser behaviours with no framework: pointer gestures, keyboard focus, observers, the virtualizer, overlays and menus.           | Comes with `react`. Needed directly only to build a renderer of your own. |
+| `@gridkitjs/export-xlsx`    | The Excel export writer.                                                                                                          | Only to offer "Export to Excel". See [Excel export](/docs/export-xlsx).   |
+
+The split follows what each layer needs to run. `core` needs no DOM, so it runs in Node, in tests and on a server. `dom` needs a browser but no framework. `react` only draws: every decision the grid makes comes from `core`, and every browser behaviour from `dom`, so a renderer for another framework reuses both.
+
+## A React app
+
+<PackageInstall pkg="@gridkitjs/react @gridkitjs/theme-tailwind" />
+
+That is the whole install for every feature in the React docs except Excel export. Import the stylesheet once, as the [quick start](/docs/react) shows, and import components and types from `@gridkitjs/react`, which re-exports the types its props use, such as `ColumnDefinition`, `FilterState` and `SelectionState`.
+
+## Importing from core
+
+Some helpers live only in `@gridkitjs/core`: `defineColumnsFromRows`, `resolveGridView`, `sortRows`, `filterRows`, and the state types `ColumnSortState` and `PaginationState`. To import them, add `core` to your own dependencies:
+
+<PackageInstall pkg="@gridkitjs/core" />
+
+Install the same version `@gridkitjs/react` depends on (`npm ls @gridkitjs/core` shows it), so the app keeps one copy. With npm a transitive import often resolves anyway, but pnpm and Yarn Plug'n'Play refuse an import of a package you did not list.
+
+## Excel export
+
+<PackageInstall pkg="@gridkitjs/export-xlsx" />
+
+Register its writer on the grid with `exportWriters`, and "Export to Excel" joins the grid's export commands. CSV and JSON export are built in and need no extra package. See [Excel export](/docs/export-xlsx) and [export](/docs/react/export).
+
+## Without Tailwind
+
+The theme is compiled by Tailwind CSS v4; there is no plain-CSS build yet. Without Tailwind, keep `@gridkitjs/react` and write a stylesheet of your own against the grid's class names. See [without Tailwind](/docs/theme-tailwind#without-tailwind).
+
+## Versions
+
+Each package carries its own version and changelog, so `react` and `theme-tailwind` need not share a number. Until 1.0, a minor release may break: read the changelog before upgrading across one.
+
+## See also
+
+- [Quick start](/docs/react) to install, style and render a first grid.
+- [Core overview](/docs/core) for the logic `DataGrid` is built on.
+- [Dom overview](/docs/dom) for the browser behaviours, and for writing a renderer.
+- [Theming](/docs/theme-tailwind) for the stylesheet's tokens and class names.
