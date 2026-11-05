@@ -233,6 +233,10 @@ It prints only what the grid has drawn: not the rows on another page, nor those 
 }
 ```
 
+### Scrollbars
+
+The viewport, the row area, the menus, the column chooser list and the filter checklist show thin scrollbars (`scrollbar-width: thin`) whose thumb is `--gridkit-fg-muted` at 45%, on a transparent track, so they follow light and dark with the other tokens. Engines without `scrollbar-color` get an 8px rounded `::-webkit-scrollbar` equivalent. Only the grid's own elements are styled, never `html` or `body`. To change them, set `scrollbar-width` or `scrollbar-color` on any of those classes.
+
 ### Light and dark values
 
 Each token is backed by a raw pair, `--gridkit-<name>-light` and `--gridkit-<name>-dark` — `--gridkit-accent-light`, `--gridkit-accent-dark` and so on — defined once on `:root`. The stylesheet only ever reads `--gridkit-<name>`, and points it at one of the pair: the light one on `:root`, the dark one under `@variant dark`, and whichever `.gridkit-light` or `.gridkit-dark` names on an element that has one.

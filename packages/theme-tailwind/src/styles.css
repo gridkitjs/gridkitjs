@@ -149,6 +149,61 @@
   }
 
   /*
+   * Slim scrollbars on the grid's own scroll regions, never on the page: the
+   * viewport, the row area, the menus, and the column chooser and filter
+   * checklist lists. The thumb is the muted text colour thinned out, so it
+   * follows the light/dark swap above with no tokens of its own. Chromium
+   * and Firefox honour `scrollbar-width`/`scrollbar-color`; the
+   * `::-webkit-scrollbar` rules are only for engines that do not, since a
+   * browser that supports the standard properties ignores them anyway.
+   */
+  .gridkit-data-grid-viewport,
+  .gridkit-data-grid-body,
+  .gridkit-menu,
+  .column-chooser-list,
+  .filter-menu-checklist {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(
+        in oklch,
+        var(--gridkit-fg-muted) 45%,
+        transparent
+      )
+      transparent;
+  }
+
+  @supports not (scrollbar-color: auto) {
+    .gridkit-data-grid-viewport::-webkit-scrollbar,
+    .gridkit-data-grid-body::-webkit-scrollbar,
+    .gridkit-menu::-webkit-scrollbar,
+    .column-chooser-list::-webkit-scrollbar,
+    .filter-menu-checklist::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .gridkit-data-grid-viewport::-webkit-scrollbar-track,
+    .gridkit-data-grid-body::-webkit-scrollbar-track,
+    .gridkit-menu::-webkit-scrollbar-track,
+    .column-chooser-list::-webkit-scrollbar-track,
+    .filter-menu-checklist::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .gridkit-data-grid-viewport::-webkit-scrollbar-thumb,
+    .gridkit-data-grid-body::-webkit-scrollbar-thumb,
+    .gridkit-menu::-webkit-scrollbar-thumb,
+    .column-chooser-list::-webkit-scrollbar-thumb,
+    .filter-menu-checklist::-webkit-scrollbar-thumb {
+      background-color: color-mix(
+        in oklch,
+        var(--gridkit-fg-muted) 45%,
+        transparent
+      );
+      border-radius: 4px;
+    }
+  }
+
+  /*
    * Read but not seen — the grid's live region, which reports a reorder or a
    * resize that only a sighted user could otherwise notice.
    *
