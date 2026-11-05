@@ -1,6 +1,6 @@
 ---
 title: "Printing"
-description: "Print every row the grid holds — from a Print button in the toolbar, the context menu or the ref — with a title, a header row on every page and page numbers, and save it as a PDF from the print dialog."
+description: "Print every row the grid holds from the toolbar, the context menu or the ref, with a title, a repeating header row and page numbers, or save it as a PDF."
 ---
 
 The grid prints what the user sees: every row the filter, search and sort leave, across every page and inside collapsed groups, not only the rows a virtualized or paginated grid has drawn. The toolbar's Print button, a Print item in the context menu, `ref.current.runCommand("print")` and `ref.current.print()` all open the browser's print dialog on the same document.
@@ -95,7 +95,7 @@ One print at a time: a print asked for while the dialog is open does nothing, an
 | `includeAggregates` | `boolean`                                 | `true`       | Aggregate values: group summaries and the grand total, printed once at the end.                                       |
 | `includeHeader`     | `boolean`                                 | `true`       | The header row, repeated on every page.                                                                               |
 
-Cells print as the grid formats them, and a column decides its own part with `exportable` and `exportValue` — see [column definition](/docs/react/column-definition). Without a `title` or a `label` the print has no heading, and the browser names a saved PDF after the page.
+Cells print as the grid formats them, and a column decides its own part with `exportable` and `exportValue` — see [column definitions](/docs/react/column-definition). Without a `title` or a `label` the print has no heading, and the browser names a saved PDF after the page.
 
 ## Styling the print
 
@@ -114,7 +114,7 @@ The printed document is a page of its own, so it sees none of your CSS, the them
 />
 ```
 
-The heading is `header.gridkit-print-header` holding `h1.print-title`, `p.print-subtitle` and `p.print-timestamp`; the footer `footer.gridkit-print-footer`; the table `table.gridkit-export-table`, with group rows `tr.export-group` and summary rows `tr.export-group-summary`, each with a `data-level`. See @gridkitjs/core's [print document](/docs/core/export#printing) and @gridkitjs/dom's [print stylesheet](/docs/dom#print).
+The heading is `header.gridkit-print-header` holding `h1.print-title`, `p.print-subtitle` and `p.print-timestamp`; the footer `footer.gridkit-print-footer`; the table `table.gridkit-export-table`, with group rows `tr.export-group` and summary rows `tr.export-group-summary`, each with a `data-level`. See @gridkitjs/core's [print document](/docs/core/export#printing) and @gridkitjs/dom's [print stylesheet](/docs/dom/downloads-clipboard-print#print).
 
 ## Save as PDF
 
@@ -147,11 +147,13 @@ The PDF holds what the print holds: the title, subtitle and timestamp above the 
 
 The grid shows no "Export to PDF" item of its own, because it writes no PDF. An app that must produce the file in code — to upload it, or to save it without a dialog — registers a `pdf` writer, and the Export dropdown and `export.pdf` then pick it up: see [PDF in code](/docs/react/export#pdf).
 
-## Browser support
+<Callout type="note" title="Browser support">
 
 In Chrome the header row repeats at the top of every page and each page is numbered, "1 / 4", at its foot. Firefox and Safari have not been checked yet.
 
 Page numbers use CSS `@page` margin boxes. A browser without them prints no numbers and nothing else changes; the browser's own header and footer, when turned on in the dialog, number the pages instead.
+
+</Callout>
 
 ## Printing the page
 
@@ -164,3 +166,9 @@ The browser's own print — <Kbd>Ctrl</Kbd>+<Kbd>P</Kbd>, or <Kbd>Cmd</Kbd>+<Kbd
 | `print` | `PrintOptions` |         | How the grid prints unless a call says otherwise — see [options](#options). |
 
 The button's and the menu item's label is a message, `print` — see [localization](/docs/react/localization).
+
+## See also
+
+- [Export](/docs/react/export) for writing the grid to a file.
+- [Toolbar](/docs/react/toolbar) and [context menu](/docs/react/context-menu) for where Print is offered.
+- [core: Export](/docs/core/export) for the printing options.

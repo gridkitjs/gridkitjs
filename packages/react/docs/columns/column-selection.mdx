@@ -3,7 +3,7 @@ title: "Column selection"
 description: "Letting the user select whole columns with selectable.columns."
 ---
 
-selectable.columns takes a SelectionMode — false, "single", or "multiple" — off by default, since selection claims the click a display-only grid shouldn't. A column click replaces the selection, <Kbd>Ctrl</Kbd>+click toggles one column in or out, and <Kbd>Shift</Kbd>+click takes every column between the last click and this one.
+`selectable.columns` takes a `SelectionMode`: `false`, `"single"` or `"multiple"`. It is off by default, since selection claims the click a display-only grid shouldn't. A column click replaces the selection, <Kbd>Ctrl</Kbd>+click toggles one column in or out, and <Kbd>Shift</Kbd>+click takes every column between the last click and this one.
 
 ## Multi-select columns
 
@@ -46,3 +46,13 @@ Each carries the column as a `SelectedColumn<Row>`:
 ## Reading selection outside the grid's own tree
 
 `useSelectionState`, documented on [row selection](/docs/react/row-selection#reading-selection-outside-the-grids-own-tree), covers row, column, and cell selection together as one hook rather than three — its `columnSelection` field is this page's `SelectionState`.
+
+## Keyboard
+
+Focus a header with the arrow keys, then press <Kbd>Enter</Kbd> to select its column alone, or <Kbd>Space</Kbd> to add it to the selection or remove it, as <Kbd>Ctrl</Kbd>+click does. <Kbd>Shift</Kbd> with either takes every column between the last one selected and this one. See [accessibility](/docs/react/accessibility#keyboard-navigation) for the full keyboard model.
+
+## See also
+
+- [Row selection](/docs/react/row-selection) and [cell selection](/docs/react/cell-selection) for the other two areas.
+- [Accessibility](/docs/react/accessibility) for the keyboard model.
+- [core: Selection](/docs/core/selection) for the framework-free primitives.

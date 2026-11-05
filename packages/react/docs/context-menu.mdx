@@ -1,6 +1,6 @@
 ---
 title: "Context menu"
-description: "The grid's own menu on headers, rows and group rows — sort, filter, group, copy, select, autofit, hide and choose columns — opened by a right-click, a long-press, Shift+F10 or the ContextMenu key."
+description: "The grid's own menu on headers, rows and group rows: sort, filter, group, copy, select, autofit, hide and choose columns, opened by right-click or Shift+F10."
 ---
 
 `contextMenu` gives the grid a menu of its own in place of the browser's. A right-click or a touch long-press on a column header, a data cell or a group row — or <Kbd>Shift</Kbd>+<Kbd>F10</Kbd> or the <Kbd>ContextMenu</Kbd> key on a focused one — opens a menu of what can be done there: sort the column, filter it, group by it, size it to its content, hide it or open the column chooser; copy the cell, its row or the selection to the clipboard; select every row on the page or clear the selection; expand or collapse every group. It is off by default, like every other GridKit feature: without `contextMenu`, a right-click shows the browser's menu.
@@ -297,3 +297,9 @@ Moving the pointer over an item focuses it, and resting it on a submenu item ope
 | `onContextMenuOpenChange` | `(event: ContextMenuOpenChangeEvent) => void` |         | Called as the menu opens or closes, with `{ open, target }`.                                                                                                                                 |
 
 Each menu's accessible name is a message — `headerMenuLabel`, "Name column menu"; `cellMenuLabel`, "Row menu"; `groupMenuLabel`, "Group menu"; `bodyMenuLabel`, "Grid menu" — and every item's label a message too; see [localization](/docs/react/localization).
+
+## See also
+
+- [Toolbar](/docs/react/toolbar) for the same commands in a bar.
+- [Localization](/docs/react/localization) for the item labels.
+- [core: Commands and menus](/docs/core/commands) for the framework-free model.

@@ -1,10 +1,16 @@
 {
   "order": [
     "overview",
+    "choosing-packages",
+    "migrating",
     "data-grid",
+    "typescript",
     "accessibility",
     "localization",
     "state",
+    "server-side-data",
+    "live-data",
+    "performance",
     "events",
     "context-menu",
     "toolbar",
@@ -12,6 +18,7 @@
     "clipboard",
     "printing",
     "imperative-handle",
+    "faq",
     "columns",
     "rows",
     "cells"

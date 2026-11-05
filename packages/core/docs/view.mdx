@@ -3,7 +3,7 @@ title: "The view pipeline"
 description: "resolveGridView: rows, columns, state and options in; everything the grid shows out."
 ---
 
-resolveGridView is the one function that answers "what is the user looking at". It takes the rows, the column definitions, the grid's state and its options, and runs every stage DataGrid renders from: rows are filtered → sorted → grouped → aggregated → paginated, and columns are ordered → hidden → sized. Call it from a custom adapter, an export or a toolbar instead of composing the stages yourself, so nothing can disagree with what the grid shows.
+`resolveGridView` is the one function that answers "what is the user looking at". It takes the rows, the column definitions, the grid's state and its options, and runs every stage DataGrid renders from: rows are filtered → sorted → grouped → aggregated → paginated, and columns are ordered → hidden → sized. Call it from a custom adapter, an export or a toolbar instead of composing the stages yourself, so nothing can disagree with what the grid shows.
 
 ```ts
 import { resolveGridView } from "@gridkitjs/core";
@@ -49,7 +49,7 @@ view.grandTotal.get("Amount"); // the sum over every filtered row, on every page
 | `displayDataRows` | `readonly ResolvedRow<Row>[]`    | `pageRows` without group headers or summary rows — the data rows on screen, in display order.                                       |
 | `pageCount`       | `number`                         | `1` when not paginated.                                                                                                             |
 | `pageIndex`       | `number`                         | The page shown, clamped into range. `0` when not paginated.                                                                         |
-| `grandTotal`      | `AggregateResults`               | Every aggregate over all of `rows`, ignoring grouping and paging.                                                                   |
+| `grandTotal`      | `AggregateResults`               | Every aggregate over all of `rows`, ignoring grouping and pagination.                                                               |
 
 ## Input
 
@@ -85,3 +85,9 @@ const after = resolve({
 after.rows === before.rows; // true — filtering and sorting did not run again
 after.columns === before.columns; // false — the widths changed
 ```
+
+## See also
+
+- [Controller](/docs/core/controller) for the state the pipeline reads.
+- [Filtering](/docs/core/filtering), [sorting](/docs/core/sorting), [row grouping](/docs/core/grouping) and [pagination](/docs/core/paging) for the stages in order.
+- [React quick start](/docs/react/overview) for the glossary entry on the view pipeline.

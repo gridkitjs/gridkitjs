@@ -3,7 +3,7 @@ title: "Column templates"
 description: "Custom header and cell rendering with headerTemplate and cellTemplate."
 ---
 
-Start from defineColumnsFromRows for the columns you don't need to customize, then declare the ones you do. headerTemplate and cellTemplate accept any React node, so markup and conditional styling are plain component code.
+`headerTemplate` and `cellTemplate` draw a header or a cell with any React node, so markup and conditional styling are plain component code. Start from `defineColumnsFromRows` for the columns you don't need to customize, then declare the ones you do.
 
 ## When you need a template
 
@@ -27,3 +27,75 @@ A template is for markup: a link or a button in a cell, a badge, a style that de
 | `datasetIndex` | `number`  | This row's absolute position in the whole filtered/sorted/grouped dataset, unaffected by which page is showing. See [pagination](/docs/react/pagination). |
 | `rowId`        | `string`  | This row's id, as `getRowId` (or the position fallback) resolved it.                                                                                      |
 | `selected`     | `boolean` | Whether this row is selected, so a template can style itself to match.                                                                                    |
+
+## Styling a template
+
+A class in a template is your own code, so it reaches the page the way any class in your app does. Tailwind utilities work as long as your app's Tailwind build scans the file the template is in. Tailwind v4 scans your project's source files automatically; a template in a file it skips, such as one in `node_modules` or a gitignored folder, needs an `@source` line for that path. The theme itself ships no utilities for your templates.
+
+The theme does register its palette as colours, so `text-accent`, `text-fg-muted`, `bg-selected` and the rest follow the grid's light and dark mode with no colours of your own:
+
+```tsx title="App.tsx"
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
+
+interface Deployment {
+  id: number;
+  service: string;
+  status: "healthy" | "degraded";
+  cost: number;
+}
+
+const deployments: Deployment[] = [
+  { id: 1, service: "checkout-api", status: "healthy", cost: 1240.5 },
+  { id: 2, service: "billing-worker", status: "degraded", cost: 860.2 },
+  { id: 3, service: "search-index", status: "healthy", cost: 92.75 },
+];
+
+const currency = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+});
+
+const columns: readonly ColumnDefinition<Deployment>[] = [
+  { field: "service", header: "Service" },
+  {
+    field: "status",
+    header: "Status",
+    cellTemplate: ({ row }) => (
+      <span
+        className={
+          row.status === "healthy"
+            ? "text-fg-muted"
+            : "font-semibold text-accent"
+        }
+      >
+        {row.status}
+      </span>
+    ),
+  },
+  {
+    field: "cost",
+    header: "Cost",
+    type: "currency",
+    cellTemplate: ({ row }) => currency.format(row.cost),
+  },
+];
+
+export default function App() {
+  return (
+    <DataGrid
+      columns={columns}
+      dataSource={deployments}
+      getRowId={(row) => String(row.id)}
+      label="Deployments"
+    />
+  );
+}
+```
+
+Without Tailwind, give the element a class of your own and style it in your stylesheet, reading the theme's tokens such as `var(--gridkit-accent)`. For a class on every cell of a column, rather than on markup inside it, use the column's `cellClassName` or `headerClassName`; see [column definitions](/docs/react/column-definition).
+
+## See also
+
+- [Column definitions](/docs/react/column-definition) for `format`, `valueFormatter`, `cellClassName` and every other field.
+- [Theming](/docs/theme-tailwind#theme-tokens) for the palette tokens a template can use.
+- [Pagination](/docs/react/pagination) for `rowIndex` and `datasetIndex` on a paged grid.

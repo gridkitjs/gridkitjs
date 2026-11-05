@@ -287,7 +287,7 @@ const outFile = path.resolve(
   process.argv[2] ?? path.join(REPO_ROOT, "docs-manifest.json"),
 );
 const manifest = await buildManifest();
-const json = `${JSON.stringify(manifest, null, 2)}\n`;
+const json = `${JSON.stringify(manifest)}\n`;
 await writeFile(outFile, json);
 console.log(
   `Wrote ${outFile} (${Math.round(Buffer.byteLength(json) / 1024)} KB): ` +

@@ -1,13 +1,13 @@
 ---
 title: "Overview"
-description: "Framework-agnostic grid logic: columns, sizing, ordering, selection, sorting, filtering, grouping, paging and more."
+description: "Framework-agnostic grid logic: columns, sizing, ordering, selection, sorting, filtering, row grouping, pagination and more."
 ---
 
-@gridkitjs/core is plain TypeScript — so it's testable without a DOM and reusable from other framework adapters. It holds everything the grid decides: column inference, sizing, ordering, selection, sorting, the filtering engine, grouping, aggregates, paging, virtualization math, and keyboard navigation. A renderer such as @gridkitjs/react draws the result.
+@gridkitjs/core is plain TypeScript — so it's testable without a DOM and reusable from other framework adapters. It holds everything the grid decides: column inference, sizing, ordering, selection, sorting, the filtering engine, row grouping, aggregates, pagination, virtualization math, and keyboard navigation. A renderer such as @gridkitjs/react draws the result.
 
 ## The view pipeline
 
-[resolveGridView](/docs/core/view) composes the stages into the one view a renderer draws: rows are filtered → sorted → grouped → aggregated → paginated, and columns are ordered → hidden → sized. A page never splits a top-level group, and aggregates are computed before paging, so a subtotal never depends on which page is showing. createGridViewResolver is its memoised form, which recomputes only the stages a change touches.
+[resolveGridView](/docs/core/view) composes the stages into the one view a [renderer](/docs/react#terms) draws: rows are filtered → sorted → grouped → aggregated → paginated, and columns are ordered → hidden → sized. A page never splits a top-level group, and aggregates are computed before pagination, so a subtotal never depends on which page is showing. createGridViewResolver is its memoised form, which recomputes only the stages a change touches.
 
 ## Grid options
 
@@ -31,8 +31,14 @@ A filter is plain data — operator entries such as `{ columnId: "amount", opera
 
 ## Install
 
-```bash
-npm install @gridkitjs/core
-```
+<PackageInstall pkg="@gridkitjs/core" />
+
+`@gridkitjs/react` already depends on it; install it yourself only to import from it directly. See [choosing packages](/docs/react/choosing-packages) for which package an app needs.
 
 See [column definitions](/docs/core/column-definitions) for column inference, [resizing](/docs/core/resizing) and [ordering](/docs/core/ordering) for the logic underneath resizableColumns and reorderableColumns, or [selection](/docs/core/selection) for the primitives underneath selectable.
+
+## See also
+
+- [React quick start](/docs/react/overview) for the React renderer and its glossary.
+- [Choosing packages](/docs/react/choosing-packages) for which package to install.
+- [Controller](/docs/core/controller) for the entry point to everything else.

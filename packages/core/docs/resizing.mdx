@@ -3,7 +3,7 @@ title: "Resizing"
 description: "The sizing logic underneath resizableColumns."
 ---
 
-resolveColumnWidths and fitColumnsToWidth are the functions DataGrid calls internally when resizableColumns is enabled — the first resolves each column's width from its definition, the sizing state, and the grid's defaults, the second redistributes width across columns under resizeMode="fit". Reach for them directly if you're building a custom grid adapter.
+`resolveColumnWidths` and `fitColumnsToWidth` are the functions DataGrid calls internally when `resizableColumns` is enabled — the first resolves each column's width from its definition, the sizing state, and the grid's defaults, the second redistributes width across columns under `resizeMode`="fit". Reach for them directly if you're building a custom grid adapter.
 
 ## Functions
 
@@ -15,7 +15,7 @@ resolveColumnWidths and fitColumnsToWidth are the functions DataGrid calls inter
 | `resolveColumnConstraints(column, sizeDefaults)`                     | `ColumnConstraints`              | The min/max a column may be resized between.                                                                                        |
 | `beginColumnResize(column, startWidth, startPosition, sizeDefaults)` | `ColumnResizeSession`            | Opens a resize: captures the column's constraints and starting point so applying a pointer position is arithmetic on numbers alone. |
 | `applyColumnResize(session, position)`                               | `number`                         | The width the dragged column takes with the pointer at position.                                                                    |
-| `sizeColumnToContent(measuredWidth, constraints)`                    | `number`                         | The width a double-click auto-fit resolves to, clamped to the column's bounds.                                                      |
+| `sizeColumnToContent(measuredWidth, constraints)`                    | `number`                         | The width a double-click autofit resolves to, clamped to the column's bounds.                                                       |
 | `totalColumnWidth(resolved)`                                         | `number`                         | The sum of every resolved column's width.                                                                                           |
 | `revertColumnSize(current, base, columnId)`                          | `ColumnSizingState`              | The sizing state with columnId reverted to its width in base — or omitted entirely if base had none — for Escape to restore.        |
 
@@ -27,3 +27,9 @@ resolveColumnWidths and fitColumnsToWidth are the functions DataGrid calls inter
 ## The same logic, in the React grid
 
 <ColumnResizingExample />
+
+## See also
+
+- [Column resizing](/docs/react/column-resizing) for the React grid.
+- [Column definitions](/docs/core/column-definitions) for the `width`, `minWidth` and `maxWidth` fields.
+- [Ordering](/docs/core/ordering) for the column order.

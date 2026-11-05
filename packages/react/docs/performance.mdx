@@ -1,0 +1,184 @@
+---
+title: "Performance"
+description: "Keeping a large or busy grid fast: stable props, getRowId, virtualization or pagination, and when to move the work to a server."
+---
+
+`DataGrid` works out what to draw in a memoised [view pipeline](/docs/react#terms), re-renders only the rows that changed, and with `virtualized` mounts only the rows near the scroll position. Keeping it fast is mostly a matter of not defeating those: pass stable `columns`, `getRowId` and `aggregates`, give rows an id, and bound how many rows are mounted at once.
+
+## When to use it
+
+Read this when a grid holds thousands of rows, updates often, or sits in a component that re-renders for reasons of its own. A grid of a few hundred rows in a quiet component needs none of it.
+
+## Keep props stable
+
+The view pipeline runs in stages (filter, sort, group, aggregate, paginate, then the column layout), and each stage remembers its last inputs and result. A stage runs again only when one of its inputs is a different value, compared with `Object.is`. `dataSource`, `getRowId`, `columns` and `aggregates` are inputs, so a new array or function in any of them runs the stages that read it again, over every row, on that render. A new `columns` array also gives every mounted row new resolved columns, so every row re-renders, and a new `format` object in a column builds a new `Intl` formatter, since formatters are cached by that object.
+
+This costs something only when the component holding the grid re-renders. The grid's own changes, such as a sort click or a selection, create no new props.
+
+| Prop         | Keep it stable by                                                                                        |
+| ------------ | -------------------------------------------------------------------------------------------------------- |
+| `columns`    | Declaring it at module scope, or with `useMemo` over the values it depends on.                           |
+| `getRowId`   | Declaring it at module scope, or with `useCallback`.                                                     |
+| `aggregates` | Declaring it at module scope, or with `useMemo`.                                                         |
+| `dataSource` | Passing a new array only when the rows change, and then keeping the objects of rows that did not change. |
+
+Event callbacks such as `onRowClick` and `onColumnSortChange`, and `getRowProps`, can stay inline arrows: none is an input to the pipeline, and the rows never receive them. A row whose `getRowProps` result reads the same as last time is not redrawn for it.
+
+```tsx title="App.tsx"
+import { useMemo, useState } from "react";
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
+
+interface Order {
+  id: number;
+  customer: string;
+  total: number;
+}
+
+const orders: Order[] = [
+  { id: 1, customer: "Alder & Co", total: 1250.5 },
+  { id: 2, customer: "Birchwood Ltd", total: 87.25 },
+  { id: 3, customer: "Cedar Supplies", total: 420 },
+];
+
+// Module scope: the same function on every render.
+const getOrderId = (order: Order) => String(order.id);
+
+export default function App() {
+  const [currency, setCurrency] = useState("USD");
+
+  // Rebuilt only when the currency changes, not on every render of App.
+  const columns = useMemo<readonly ColumnDefinition<Order>[]>(
+    () => [
+      { field: "id", header: "Order", type: "number", width: 90 },
+      { field: "customer", header: "Customer" },
+      {
+        field: "total",
+        header: "Total",
+        type: "currency",
+        format: { currency },
+      },
+    ],
+    [currency],
+  );
+
+  return (
+    <>
+      <select
+        value={currency}
+        onChange={(event) => {
+          setCurrency(event.target.value);
+        }}
+      >
+        <option>USD</option>
+        <option>EUR</option>
+      </select>
+      <DataGrid
+        columns={columns}
+        dataSource={orders}
+        getRowId={getOrderId}
+        label="Orders"
+        sortableColumns
+      />
+    </>
+  );
+}
+```
+
+## Give rows an id
+
+Pass `getRowId` for any grid whose rows sort, filter, page or change. Rows are keyed by their id, so a row that moves (re-sorted, or with a row inserted above it) keeps its element and, if its object is unchanged, skips re-rendering. Without `getRowId` a row's id is its position: insert a row at the top and every row below it re-renders with a different row, and a selection stays on the positions rather than the rows. The grid calls `getRowId` for every row on every change to `dataSource`, so keep it a cheap field read.
+
+## Bound the rows on screen
+
+Without `virtualized`, every row the grid shows is a mounted `<tr>` with a cell per column, so the cost of a render grows with rows times columns. Three props bound it:
+
+- `virtualized`, with `height`, mounts only the rows near the scroll position, plus `overscan` rows on each side. See [row virtualization](/docs/react/row-virtualization).
+- `paginated` mounts one page of rows. See [pagination](/docs/react/pagination).
+- `infiniteScroll` grows the rows as the user scrolls; pair it with `virtualized` so the mounted count stays flat. See [infinite scroll](/docs/react/infinite-scroll).
+
+There is no fixed threshold for turning on virtualization. A reasonable starting point is a grid that would mount more than a few hundred rows at once; measure on the slowest device you support. `virtualized` measures each row's real height, so wrapped cells and group rows need nothing special; an `estimatedRowHeight` close to your real row height makes the first paint and `scrollToRow`'s first jump land closer.
+
+<Callout type="warning" title="virtualized needs height">
+  Without `height` the row area has no bounded viewport, so `virtualized` mounts
+  every row anyway and the grid logs a `console.error`.
+</Callout>
+
+This grid holds 100,000 rows and mounts only the twenty or so near the scroll position:
+
+```tsx title="App.tsx"
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
+
+interface Reading {
+  id: number;
+  sensor: string;
+  celsius: number;
+  recorded: Date;
+}
+
+// 100,000 rows, built once when the module loads.
+const readings: Reading[] = Array.from({ length: 100_000 }, (_, index) => ({
+  id: index + 1,
+  sensor: `Sensor ${String((index % 40) + 1)}`,
+  celsius: 15 + ((index * 7) % 200) / 10,
+  recorded: new Date(Date.UTC(2026, 0, 1) + index * 60_000),
+}));
+
+const columns: readonly ColumnDefinition<Reading>[] = [
+  { field: "id", header: "#", type: "number", width: 100 },
+  { field: "sensor", header: "Sensor" },
+  { field: "celsius", header: "°C", type: "decimal" },
+  { field: "recorded", header: "Recorded", type: "dateTime" },
+];
+
+const getReadingId = (reading: Reading) => String(reading.id);
+
+export default function App() {
+  return (
+    <DataGrid
+      columns={columns}
+      dataSource={readings}
+      getRowId={getReadingId}
+      label="Sensor readings"
+      height={480}
+      virtualized
+      sortableColumns
+      filterableColumns
+    />
+  );
+}
+```
+
+## Large datasets
+
+Filtering, sorting, row grouping and aggregates run in the browser over every row in `dataSource`, and run again only when one of their inputs changes: a sort click sorts once, while scrolling, selecting and resizing a column re-sort nothing. A column resize runs only the column layout stage.
+
+A `cellTemplate` runs for each mounted cell every time its row renders, so its cost multiplies by the rows on screen. Keep templates to reading and formatting; do lookups and calculations once, ahead of the grid, into the row objects.
+
+When the rows are too many to send to the browser, or the server must decide which rows a user may see, sort, filter and page on the server instead. See [server-side data](/docs/react/server-side-data).
+
+## Updating rows
+
+To change rows, pass a new `dataSource` array and keep the same object for every row that did not change, as `rows.map((row) => (row.id === id ? { ...row, ...patch } : row))` does. Each row re-renders only when its object, its selection or focus, the columns, or a grid-wide setting such as `locale` changes, so an update touching three rows re-renders three rows. See [live data](/docs/react/live-data) for a grid fed by a stream of updates.
+
+## Measuring
+
+The React DevTools Profiler, with "Highlight updates when components render" turned on, shows which rows re-render on each change. A change that lights up every row points at a prop recreated on each render, most often `columns`.
+
+## Props
+
+| Prop                 | Type                                  | Default        | Description                                                       |
+| -------------------- | ------------------------------------- | -------------- | ----------------------------------------------------------------- |
+| `getRowId`           | `(row: Row, index: number) => string` | `row position` | A row's stable id: the key its element and its selection follow.  |
+| `virtualized`        | `boolean`                             | `false`        | Mounts only the rows near the scroll position. Requires `height`. |
+| `height`             | `number \| string`                    |                | Bounds the row area, which then scrolls on its own.               |
+| `overscan`           | `number`                              | `4`            | Rows mounted beyond each edge of the visible area.                |
+| `estimatedRowHeight` | `number`                              | `40`           | The height assumed for a row not yet measured.                    |
+| `paginated`          | `boolean`                             | `false`        | Shows one page of rows at a time.                                 |
+
+## See also
+
+- [Row virtualization](/docs/react/row-virtualization) for `virtualized` in depth.
+- [Live data](/docs/react/live-data) for rows that change on their own.
+- [Server-side data](/docs/react/server-side-data) for rows too many to hold in the browser.
+- [The view pipeline](/docs/core/view) for the stages and the order they run in.
+- [TypeScript](/docs/react/typescript) for typing memoised `columns`.

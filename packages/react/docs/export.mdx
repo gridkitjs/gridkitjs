@@ -1,6 +1,6 @@
 ---
 title: "Export"
-description: "Download what the grid shows as CSV or JSON — from an Export dropdown in the toolbar, the context menu or the ref — and add formats of your own through export writers."
+description: "Download what the grid shows as CSV or JSON from the toolbar, the context menu or the ref, and add formats of your own through export writers."
 ---
 
 The grid exports what the user sees as a file: CSV or JSON out of the box, and any other format — Excel, or one of your own — through an export writer. The toolbar's Export dropdown, an export item in the context menu and `ref.current.runCommand("export.csv")` all run the same built-in commands and download the same file; `ref.current.exportData("csv")` hands you the file as a `Blob` instead, to upload or keep.
@@ -111,11 +111,11 @@ async function upload() {
 | `csv`               | `CsvOptions`                              |             | How CSV is written — `delimiter`, `bom`, `eol`, `neutralizeFormulas`, `values`. See [CSV](/docs/core/export#csv). |
 | `json`              | `JsonOptions`                             |             | How JSON is written — `keys`, `space`. See [JSON](/docs/core/export#json).                                        |
 
-A column decides its own part with `exportable` and `exportValue` — see [column definition](/docs/react/column-definition).
+A column decides its own part with `exportable` and `exportValue` — see [column definitions](/docs/react/column-definition).
 
 ## Excel
 
-Excel export ships as a package of its own, [@gridkitjs/export-xlsx](/docs/export-xlsx/overview), so that a grid which never exports to Excel carries none of it. Register its writer and "Export to Excel" appears in the dropdown, with "Export selection to Excel" while rows are selected:
+Excel export ships as a package of its own, [@gridkitjs/export-xlsx](/docs/export-xlsx), so that a grid which never exports to Excel carries none of it. Register its writer and "Export to Excel" appears in the dropdown, with "Export selection to Excel" while rows are selected:
 
 ```tsx
 import { xlsxWriter } from "@gridkitjs/export-xlsx";
@@ -130,7 +130,7 @@ const writers = [xlsxWriter({ sheetName: "Orders" })];
 />;
 ```
 
-The workbook holds what a CSV would, with numbers, dates and booleans stored as Excel's own in a format read from each column's `type` and `format`, a bold header row frozen at the top, the columns' widths, and group headers above rows Excel's outline collapses. See its [overview](/docs/export-xlsx/overview) for the options and what maps to what.
+The workbook holds what a CSV would, with numbers, dates and booleans stored as Excel's own in a format read from each column's `type` and `format`, a bold header row frozen at the top, the columns' widths, and group headers above rows Excel's outline collapses. See its [overview](/docs/export-xlsx) for the options and what maps to what.
 
 ## PDF
 
@@ -191,3 +191,9 @@ A format with no built-in command of its own, like `html` here, is reached throu
 | `exportWriters` | `readonly ExportWriter[]` |         | Formats beyond CSV and JSON, by `format`; one replaces a built-in's.         |
 
 The dropdown's name, every export item's label and the "Export failed" announcement are messages — `exportMenu`, `exportCsv`, `exportJson`, `exportXlsx`, `exportPdf`, `exportSelectionCsv`, `exportSelectionJson`, `exportSelectionXlsx` and `exportFailed` — see [localization](/docs/react/localization).
+
+## See also
+
+- [core: Export](/docs/core/export) for the writers and options.
+- [@gridkitjs/export-xlsx](/docs/export-xlsx) for the Excel writer's options.
+- [Printing](/docs/react/printing) and [clipboard](/docs/react/clipboard) for the other ways out.

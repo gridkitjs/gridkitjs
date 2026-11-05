@@ -178,3 +178,9 @@ const filtered = filterRows(rows, [{ query: searchText }], resolvedColumns);
 | `defaultFilter`  | `FilterState<Row>`                        |         | The filter to start with — every applied entry, ANDed together. Uncontrolled. |
 | `filter`         | `FilterState<Row>`                        |         | The filter, controlled — changed only through `onFilterChange`.               |
 | `onFilterChange` | `(event: FilterChangeEvent<Row>) => void` |         | Called once when the filter changes, with the whole `filter` to persist.      |
+
+## See also
+
+- [Column filter menu](/docs/react/column-filter-menu) for the header menu.
+- [Server-side data](/docs/react/server-side-data) for filtering on a server.
+- [core: Filtering](/docs/core/filtering) for the framework-free model.

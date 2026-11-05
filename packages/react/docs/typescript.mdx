@@ -1,0 +1,245 @@
+---
+title: "TypeScript"
+description: "How DataGrid takes its row type, what field accepts, and the types for column definitions, templates, events, state and the ref."
+---
+
+`DataGrid` is generic over the row type: `DataGridProps<Row>` takes `Row` from `dataSource` and `columns`, and every template, callback and the `ref` are typed with it. This page covers where `Row` comes from, what a column's `field` accepts, and which type to annotate each piece with.
+
+## When to use it
+
+Inline in JSX, inference does most of the work. Read on when you declare `columns` outside the component, write a cell template or an event handler as a function of its own, hold the grid's `ref`, or keep a slice of its state in your own component.
+
+## A typed grid
+
+Annotate `columns` as `readonly ColumnDefinition<Row>[]` and the rest follows: `field` autocompletes, a template's `row` is a `Row`, and so is every row an event or the `ref` hands back.
+
+```tsx title="App.tsx"
+import { useRef, useState } from "react";
+import {
+  DataGrid,
+  type CellTemplateContext,
+  type ColumnDefinition,
+  type DataGridApi,
+  type RowPointerEvent,
+  type RowSelectionChangeEvent,
+} from "@gridkitjs/react";
+
+interface Invoice {
+  id: string;
+  customer: { name: string; country: string };
+  amount: number;
+  issued: Date;
+  paid: boolean;
+}
+
+const invoices: Invoice[] = [
+  {
+    id: "INV-001",
+    customer: { name: "Alder & Co", country: "Norway" },
+    amount: 1250.5,
+    issued: new Date(2026, 0, 12),
+    paid: true,
+  },
+  {
+    id: "INV-002",
+    customer: { name: "Birchwood Ltd", country: "Ireland" },
+    amount: 87.25,
+    issued: new Date(2026, 1, 3),
+    paid: false,
+  },
+  {
+    id: "INV-003",
+    customer: { name: "Cedar Supplies", country: "Canada" },
+    amount: 420,
+    issued: new Date(2026, 1, 20),
+    paid: false,
+  },
+];
+
+function StatusCell({ row }: CellTemplateContext<Invoice>) {
+  return row.paid ? "Paid" : `Due ${row.amount.toFixed(2)}`;
+}
+
+const columns: readonly ColumnDefinition<Invoice>[] = [
+  { field: "id", header: "Invoice", width: 110 },
+  { field: "customer.name", header: "Customer" },
+  { field: "customer.country", header: "Country" },
+  {
+    field: "amount",
+    header: "Amount",
+    type: "currency",
+    format: { currency: "EUR" },
+  },
+  { field: "issued", header: "Issued", type: "date" },
+  { field: "paid", header: "Status", cellTemplate: StatusCell },
+];
+
+export default function App() {
+  const gridRef = useRef<DataGridApi<Invoice>>(null);
+  const [opened, setOpened] = useState<Invoice | null>(null);
+  const [selectedTotal, setSelectedTotal] = useState(0);
+
+  function openInvoice(event: RowPointerEvent<Invoice>) {
+    setOpened(event.row.row);
+  }
+
+  function sumSelection(event: RowSelectionChangeEvent<Invoice>) {
+    setSelectedTotal(
+      event.selected.reduce((sum, entry) => sum + entry.row.amount, 0),
+    );
+  }
+
+  return (
+    <>
+      <DataGrid
+        ref={gridRef}
+        columns={columns}
+        dataSource={invoices}
+        getRowId={(invoice) => invoice.id}
+        label="Invoices"
+        selectable={{ rows: "multiple" }}
+        onRowDoubleClick={openInvoice}
+        onRowSelectionChange={sumSelection}
+      />
+      <p>Selected total: {selectedTotal.toFixed(2)}</p>
+      <button
+        type="button"
+        onClick={() => {
+          gridRef.current?.clearSelection();
+        }}
+      >
+        Clear selection
+      </button>
+      {opened !== null && <p>Opened {opened.customer.name}</p>}
+    </>
+  );
+}
+```
+
+- `field: "customer.name"` reaches into a nested object. `"customer"` alone is not offered, since it holds an object rather than a value to show.
+- `StatusCell` is typed with `CellTemplateContext<Invoice>`, so it can live outside the column list and still read `row.paid`.
+- `useRef<DataGridApi<Invoice>>(null)` types the handle, so `getSelectedRows()` returns rows of `Invoice`.
+
+## Where `Row` comes from
+
+TypeScript infers `Row` from `dataSource` and `columns` together, so the two must agree: a column list typed for one row type fails against rows of another. An unannotated array of columns still compiles, because `field` accepts any string, but you lose autocomplete and template typing. Annotate it, as above.
+
+To name the row type on the component itself, pass it as a type argument, which TSX allows on a generic component: `<DataGrid<Employee> ... />`, as the sample below does.
+
+## What `field` accepts
+
+`field` is `FieldPath<Row> | (string & {})`. `FieldPath<Row>` is every key of `Row` that holds a value, plus `"Parent.Child"` for each value one level inside a nested object. A value is a string, number, boolean, bigint, symbol, `Date`, array, function, `null` or `undefined`; anything else is an object to reach into, and contributes its own values rather than itself. Paths deeper than one level are not in the union, though the grid reads them at runtime.
+
+The `(string & {})` half lets any string compile, so the union drives autocomplete without rejecting a field it cannot see. A mistyped field therefore compiles, and its cells read `undefined` and show nothing. To have the compiler catch it, narrow `field` to `FieldPath<Row>` in a type of your own:
+
+```tsx title="App.tsx"
+import { useState } from "react";
+import type { ColumnSortState, FieldPath } from "@gridkitjs/core";
+import {
+  DataGrid,
+  type ColumnDefinition,
+  type FilterState,
+} from "@gridkitjs/react";
+
+interface Employee {
+  id: number;
+  name: string;
+  team: { name: string; lead: string };
+  salary: number;
+}
+
+const employees: Employee[] = [
+  {
+    id: 1,
+    name: "Ada",
+    team: { name: "Platform", lead: "Grace" },
+    salary: 98000,
+  },
+  {
+    id: 2,
+    name: "Linus",
+    team: { name: "Kernel", lead: "Ken" },
+    salary: 91000,
+  },
+  {
+    id: 3,
+    name: "Barbara",
+    team: { name: "Platform", lead: "Grace" },
+    salary: 102000,
+  },
+];
+
+/** A column definition whose `field` must be one of the row's paths. */
+type StrictColumn<Row> = ColumnDefinition<Row> & { field: FieldPath<Row> };
+
+const columns: readonly StrictColumn<Employee>[] = [
+  { field: "name", header: "Name" },
+  { field: "team.name", header: "Team" },
+  { field: "team.lead", header: "Lead" },
+  { field: "salary", header: "Salary", type: "number" },
+  // { field: "team.nmae" } would fail: not assignable to FieldPath<Employee>
+];
+
+export default function App() {
+  const [sort, setSort] = useState<ColumnSortState>([]);
+  const [filter, setFilter] = useState<FilterState<Employee>>([]);
+
+  return (
+    <DataGrid<Employee>
+      columns={columns}
+      dataSource={employees}
+      getRowId={(employee) => String(employee.id)}
+      label="Employees"
+      sortableColumns
+      filterableColumns
+      columnSort={sort}
+      onColumnSortChange={(event) => {
+        setSort(event.sort);
+      }}
+      filter={filter}
+      onFilterChange={(event) => {
+        setFilter(event.filter);
+      }}
+    />
+  );
+}
+```
+
+`FieldPath`, `ColumnSortState` and `PaginationState` come from `@gridkitjs/core`, which `@gridkitjs/react` installs for you; see [importing from core](/docs/react/choosing-packages#importing-from-core) if your package manager wants it listed. The same sample shows the controlled state types: `ColumnSortState` for `columnSort`, and `FilterState<Row>` for `filter`.
+
+## Templates and formatters
+
+A `cellTemplate` receives a `CellTemplateContext<Row>`. Its `row` is typed, but its `value` is `unknown`, because the type at a dotted path cannot be recovered from the string. Read the field from `row` when you need its type, as `StatusCell` above does, or narrow `value` first: `({ value }) => (typeof value === "number" ? value.toFixed(2) : null)`.
+
+`valueFormatter` is `(value: unknown, row: Row | undefined) => string`. `row` is `undefined` for a value no single row owns: an aggregate result, or a group header's value. `footerTemplate` receives a `FooterTemplateContext<Row>` with the aggregate as `value` and the rows it covers as `rows`.
+
+## Events and the ref
+
+Each callback's event carries `ResolvedRow<Row>` entries, `{ rowId, row, rowIndex, datasetIndex }`, so the row itself is `entry.row`. `DataGridApi<Row>` is the `ref`'s type, and its getters return the same entries.
+
+## Types
+
+| Type                           | Package            | Description                                                                                    |
+| ------------------------------ | ------------------ | ---------------------------------------------------------------------------------------------- |
+| `DataGridProps<Row>`           | `@gridkitjs/react` | Every prop of `DataGrid`.                                                                      |
+| `ColumnDefinition<Row>`        | `@gridkitjs/react` | One entry of `columns`; its templates return React nodes.                                      |
+| `FieldPath<Row>`               | `@gridkitjs/core`  | Every path `field` autocompletes.                                                              |
+| `CellTemplateContext<Row>`     | `@gridkitjs/react` | What `cellTemplate` receives: `value`, `row`, `rowIndex`, `datasetIndex`, `rowId`, `selected`. |
+| `ResolvedRow<Row>`             | `@gridkitjs/react` | A row with its id and position: `{ rowId, row, rowIndex, datasetIndex }`.                      |
+| `DataGridApi<Row>`             | `@gridkitjs/react` | The `ref`'s handle. See [imperative handle](/docs/react/imperative-handle).                    |
+| `RowPointerEvent<Row>`         | `@gridkitjs/react` | What `onRowClick` and `onRowDoubleClick` receive.                                              |
+| `RowSelectionChangeEvent<Row>` | `@gridkitjs/react` | What `onRowSelectionChange` receives: `added`, `removed`, `selected` and `selection`.          |
+| `FilterState<Row>`             | `@gridkitjs/react` | The value of `filter`.                                                                         |
+| `SelectionState`               | `@gridkitjs/react` | Selected ids, the value of `rowSelection` and `columnSelection`.                               |
+| `ColumnSortState`              | `@gridkitjs/core`  | The value of `columnSort`.                                                                     |
+| `PaginationState`              | `@gridkitjs/core`  | The value of `pagination`: `{ pageIndex, pageSize }`.                                          |
+
+The packages ship their own declarations; there is no `@types` package to install.
+
+## See also
+
+- [Column definitions](/docs/react/column-definition) for every field of a column definition.
+- [Column templates](/docs/react/column-templates) for `cellTemplate` and its context.
+- [Controlled and uncontrolled state](/docs/react/state) for the state each controlled prop holds.
+- [Imperative handle](/docs/react/imperative-handle) for `DataGridApi`.
+- [Core: column definitions](/docs/core/column-definitions) for the framework-free `ColumnDefinition<Row, Node>`.

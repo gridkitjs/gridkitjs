@@ -1,6 +1,6 @@
 ---
 title: "Overview"
-description: "Export a GridKit grid to Excel: a writer that stores numbers and dates typed, in each column's format, with a frozen header, column widths, an outline of the groups and the grand total."
+description: "Export a GridKit grid to Excel: numbers and dates stored typed, a frozen header, column widths, group outlines and the grand total."
 ---
 
 @gridkitjs/export-xlsx turns what a grid shows into an Excel workbook. It is an [export writer](/docs/core/export#writers): you register it on the grid, and the grid's "Export to Excel" command appears — in the toolbar's [Export dropdown](/docs/react/export#from-the-toolbar), in the context menu where export commands are listed, and behind `ref.current.exportData("xlsx")`. The workbook is built from the same table as every other export, so it holds the rows, columns, groups and totals a CSV would, with the cells typed.
@@ -9,9 +9,7 @@ It is a package of its own so that the grid stays free of dependencies for those
 
 ## Install
 
-```bash
-npm install @gridkitjs/export-xlsx
-```
+<PackageInstall pkg="@gridkitjs/export-xlsx" />
 
 ## Register it
 
@@ -40,6 +38,8 @@ const blob = await gridRef.current?.exportData("xlsx");
 ```
 
 ## Options
+
+`xlsxWriter(options)` takes an `XlsxWriterOptions` object, exported as a type from the package. Every field is optional:
 
 | Option       | Type                                                  | Default    | Description                                                                                                                              |
 | ------------ | ----------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
@@ -105,3 +105,9 @@ An aggregate is written in its column's format — a sum of a currency column is
 - The outline goes seven groups deep, as far as Excel's does.
 
 To write something this writer does not, write a writer of your own: see [writers](/docs/core/export#writers).
+
+## See also
+
+- [Core export](/docs/core/export) for the writer contract and the other formats.
+- [Export in React](/docs/react/export) for the toolbar and the context menu.
+- [Choosing packages](/docs/react/choosing-packages) for when to install it.

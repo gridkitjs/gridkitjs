@@ -1,16 +1,216 @@
 ---
 title: "Overview"
-description: "React components for GridKit, built on @gridkitjs/core."
+description: "Install @gridkitjs/react and its Tailwind theme, import the stylesheet and render a first data grid."
 ---
 
-@gridkitjs/react renders semantic class names — gridkit-data-grid, header-cell, grid-row — and carries no styles of its own. Pair it with @gridkitjs/theme-tailwind, or target the same class names with your own stylesheet.
+`@gridkitjs/react` is a data grid for React: sorting, filtering, row grouping, pagination, selection, virtualization and more, each turned on with a prop. It renders semantic class names and carries no styles of its own; `@gridkitjs/theme-tailwind` is the stylesheet that draws them.
 
-It is the drawing layer only: what the grid does — its state, the rows and columns it shows, every action — comes from [@gridkitjs/core](/docs/core)'s controller, and its browser behaviours — gestures, keyboard focus, virtualization, announcements — from [@gridkitjs/dom](/docs/dom). Both are installed with it.
+## Prerequisites
+
+- **React 19.** `react` and `react-dom` 19 are peer dependencies.
+- **Tailwind CSS v4.** The theme is a Tailwind v4 stylesheet (`tailwindcss` 4.3.3 or later), compiled by your app's Tailwind build. Without Tailwind, see [without Tailwind](/docs/theme-tailwind#without-tailwind).
+- **An ESM bundler**, such as Vite or Next.js. The packages ship as ES modules only.
 
 ## Install
 
-```bash
-npm install @gridkitjs/react @gridkitjs/theme-tailwind
+<PackageInstall pkg="@gridkitjs/react @gridkitjs/theme-tailwind" />
+
+`@gridkitjs/react` brings `@gridkitjs/core` and `@gridkitjs/dom` with it. See [choosing packages](/docs/react/choosing-packages) for what each package does and when to install one yourself.
+
+If your app has no Tailwind yet, add it. In a Vite app that is the Tailwind plugin:
+
+<PackageInstall pkg="tailwindcss @tailwindcss/vite" dev="true" />
+
+```ts title="vite.config.ts"
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+});
 ```
 
-See [DataGrid](/docs/react/data-grid) for the component itself, [column templates](/docs/react/column-templates) for custom header and cell rendering, [resizing](/docs/react/column-resizing), [reordering](/docs/react/column-reordering), row/column/cell [selection](/docs/react/row-selection), or [events](/docs/react/events) for every callback prop. The [toolbar](/docs/react/toolbar), [context menu](/docs/react/context-menu) and [column chooser](/docs/react/column-chooser) each have a page; [localization](/docs/react/localization) covers translating the grid, [controlled state](/docs/react/state) holding its state yourself and saving it, [accessibility](/docs/react/accessibility) its keyboard model and announcements, and the [imperative handle](/docs/react/imperative-handle) its `ref`. See [theming](/docs/theme-tailwind) for palette tokens and dark mode.
+Other frameworks have their own setup; follow [Tailwind's installation guide](https://tailwindcss.com/docs/installation) for yours.
+
+## Import the stylesheet
+
+Import the theme in the CSS file your app already loads, after Tailwind itself. In a new Vite app that is `src/index.css`; replace the template's demo styles in it, which centre all text on the page:
+
+```css title="src/index.css"
+@import "tailwindcss";
+@import "@gridkitjs/theme-tailwind/styles.css";
+```
+
+<Callout type="warning" title="An unstyled grid means a missing import">
+  Without this import the grid still renders, but as bare tables: no padding,
+  borders, hover or selection colours, and every header's sort icons drawn as
+  large as the header itself. If that is what you see, check that the `@import`
+  is in a CSS file your app loads, and that it comes after Tailwind's own.
+</Callout>
+
+## Your first grid
+
+Give `DataGrid` the rows as `dataSource` and describe the columns. This is a complete component; paste it over a new app's `App.tsx`:
+
+```tsx title="src/App.tsx"
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
+
+interface Order {
+  id: number;
+  customer: string;
+  region: string;
+  total: number;
+  shipped: boolean;
+}
+
+const orders: Order[] = [
+  {
+    id: 1,
+    customer: "Alder & Co",
+    region: "North",
+    total: 1250.5,
+    shipped: true,
+  },
+  {
+    id: 2,
+    customer: "Birchwood Ltd",
+    region: "South",
+    total: 87.25,
+    shipped: false,
+  },
+  {
+    id: 3,
+    customer: "Cedar Supplies",
+    region: "East",
+    total: 420,
+    shipped: true,
+  },
+  {
+    id: 4,
+    customer: "Dunmore Trading",
+    region: "West",
+    total: 3105.9,
+    shipped: false,
+  },
+  {
+    id: 5,
+    customer: "Elmfield Retail",
+    region: "North",
+    total: 640.1,
+    shipped: true,
+  },
+];
+
+const columns: readonly ColumnDefinition<Order>[] = [
+  { field: "id", header: "Order", type: "number", width: 90 },
+  { field: "customer", header: "Customer" },
+  { field: "region", header: "Region" },
+  {
+    field: "total",
+    header: "Total",
+    type: "currency",
+    format: { currency: "USD" },
+  },
+  { field: "shipped", header: "Shipped", type: "boolean" },
+];
+
+export default function App() {
+  return (
+    <DataGrid
+      columns={columns}
+      dataSource={orders}
+      getRowId={(row) => String(row.id)}
+      label="Orders"
+      borders="horizontal"
+      sortableColumns
+    />
+  );
+}
+```
+
+- `columns` lists the column definitions: `field` is the key a cell reads, `header` its title, and `type` decides alignment, formatting and how the column sorts. See [column definitions](/docs/react/column-definition) for every field.
+- `getRowId` gives each row a stable id, so selection and other state follow the row when it is sorted, filtered or paged.
+- `label` names the grid for screen readers.
+- `borders` draws lines between rows; `"all"` adds them between columns too.
+- `sortableColumns` turns on one feature: click a header's sort toggle to sort by it. Most features are a prop like this one.
+
+`columns` is optional: without it, the grid infers one column per field found in the rows, and a nested object's fields as `Parent.Child`. The same inference is available as `defineColumnsFromRows` from `@gridkitjs/core`, to start from and then adjust:
+
+<DataGridBasicExample />
+
+## Next steps
+
+<LinkCards>
+  <LinkCard
+    href="/docs/react/data-grid"
+    title="DataGrid"
+    description="Every prop the component takes, with layout and keyboard behaviour."
+  />
+  <LinkCard
+    href="/docs/react/column-sorting"
+    title="Column sorting"
+    description="Sort by one column or stack several."
+  />
+  <LinkCard
+    href="/docs/react/pagination"
+    title="Pagination"
+    description="Split rows into pages with a built-in pager."
+  />
+  <LinkCard
+    href="/docs/react/row-selection"
+    title="Row selection"
+    description="Let users select one row or many."
+  />
+  <LinkCard
+    href="/docs/react/server-side-data"
+    title="Server-side data"
+    description="Sort, filter and page on your server."
+  />
+  <LinkCard
+    href="/docs/react/choosing-packages"
+    title="Choosing packages"
+    description="What core, dom, react and the theme each do."
+  />
+  <LinkCard
+    href="/docs/theme-tailwind"
+    title="Theming"
+    description="Palette tokens, dark mode and the class names to restyle."
+  />
+  <LinkCard
+    href="/docs/react/state"
+    title="Controlled state"
+    description="Hold the sort, filter or page in your own component."
+  />
+  <LinkCard
+    href="/docs/react/migrating"
+    title="From Syncfusion or AG Grid"
+    description="Their props mapped to DataGrid, and what is not there yet."
+  />
+  <LinkCard
+    href="/docs/react/faq"
+    title="FAQ"
+    description="An unstyled grid, virtualization without height, and more."
+  />
+</LinkCards>
+
+## Terms
+
+A few words recur throughout these docs:
+
+- **Column definition**: one entry of `columns`, a `ColumnDefinition<Row>`: which field a column shows and how.
+- **Renderer**: the package that draws the grid for a UI framework. `@gridkitjs/react` is the renderer for React; the logic it draws comes from `@gridkitjs/core`.
+- **View pipeline**: the steps that turn `dataSource` into the rows on screen, in order: filter, sort, group, aggregate, paginate. See [the view pipeline](/docs/core/view).
+- **Controlled and uncontrolled**: a piece of state the grid keeps itself (`defaultColumnSort`) or that you hold and pass back in (`columnSort`). See [controlled state](/docs/react/state).
+- **Row id**: the string `getRowId` returns for a row, which selection and other per-row state are keyed by. Without `getRowId`, a row's id is its position.
+- **Roving tab stop**: the grid is one stop in the page's <Kbd>Tab</Kbd> order; arrow keys then move between cells inside it. See [accessibility](/docs/react/accessibility).
+- **Sentinel row**: an invisible last row that infinite scroll watches, loading more when it scrolls into view. See [infinite scroll](/docs/react/infinite-scroll).
+- **Autofit**: sizing a column to its content, by double-clicking its edge or from the context menu.
+
+## See also
+
+- [DataGrid](/docs/react/data-grid) for the full props list.
+- [Column definitions](/docs/react/column-definition) for describing columns.
+- [Controlled and uncontrolled state](/docs/react/state) for holding the grid's state yourself.
+- [TypeScript](/docs/react/typescript) for typing rows, columns, templates and the `ref`.
+- [Core overview](/docs/core/overview) for the framework-free layer under it.

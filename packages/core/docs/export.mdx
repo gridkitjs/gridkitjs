@@ -3,7 +3,7 @@ title: "Export"
 description: "buildExportTable: the grid's view as data — columns, typed and formatted cells, group and aggregate rows — for any export format."
 ---
 
-buildExportTable turns what the grid shows into an `ExportTable`: the columns, every row as typed and formatted cells, the group header and aggregate rows, and the grand total. Every export format, the clipboard and print are written from this one model, and it is built from the grid's view and state rather than from the page, so rows that are virtualised, on another page or inside a collapsed group still export, and no two outputs can disagree.
+`buildExportTable` turns what the grid shows into an `ExportTable`: the columns, every row as typed and formatted cells, the group header and aggregate rows, and the grand total. Every export format, the clipboard and print are written from this one model, and it is built from the grid's view and state rather than from the page, so rows that are virtualised, on another page or inside a collapsed group still export, and no two outputs can disagree.
 
 ```ts
 import {
@@ -137,13 +137,15 @@ The delimited formats lay the rows out the same way: the header row when `table.
 
 `"text"` makes a file that reads like the screen, with the column's `format` and the grid's `locale` applied: `1.234,50 €` rather than `1234.5`. Use `"raw"` for a file another program reads back, where a formatted number or a localised date would have to be parsed again.
 
-## CSV pitfalls
+<Callout type="warning" title="CSV pitfalls">
 
 A CSV file has no header of its own saying how to read it, and spreadsheets guess. The defaults are chosen so that Excel, the usual reader, gets each guess right.
 
 - **Encoding.** Without a byte order mark, Excel reads a CSV in the system's legacy code page, so `Ćirilica`, `ш` or `€` arrive garbled. `bom: true` writes one; turn it off only for a program that does not expect it.
 - **Delimiter.** Excel splits a CSV on the system's list separator, which is `;` wherever a decimal is written with a comma — most of Europe, Macedonian and Croatian included. A comma-separated file opens there as one column. `delimiter: "auto"` with the user's `locale` writes `;` in those locales and `,` elsewhere.
 - **Formula injection.** A spreadsheet runs a field that starts with `=`, `+`, `-` or `@` as a formula, and a leading tab or carriage return can hide such a start. A value a user typed into the data — `=HYPERLINK(…)`, or a call that runs a command — would then run on the machine of whoever opens the export. `neutralizeFormulas: true` writes such a field with a leading `'`, which the spreadsheet shows as text. A cell whose typed value is a number keeps a leading `-` or `+`, so `-5` stays a number; every other field, the header and group labels included, is guarded.
+
+</Callout>
 
 ## TSV
 
@@ -187,7 +189,7 @@ The markup carries semantic class names for a stylesheet and no styles of its ow
 
 ## Writers
 
-A writer is one export format as a file: an `ExportWriter` turns an `ExportTable` into the file's contents and says what the file is. CSV and JSON ship as `csvWriter` and `jsonWriter`; any other format — xlsx, or one of your own — is a writer you register on the grid through `exportWriters`, so the grid's export commands and its renderer's API reach it exactly as they reach CSV. The reference xlsx writer is `xlsxWriter` from [@gridkitjs/export-xlsx](/docs/export-xlsx/overview), a package of its own so that core keeps no dependencies; it reads only the `ExportTable`, and runs in Node as in the browser.
+A writer is one export format as a file: an `ExportWriter` turns an `ExportTable` into the file's contents and says what the file is. CSV and JSON ship as `csvWriter` and `jsonWriter`; any other format — xlsx, or one of your own — is a writer you register on the grid through `exportWriters`, so the grid's export commands and its renderer's API reach it exactly as they reach CSV. The reference xlsx writer is `xlsxWriter` from [@gridkitjs/export-xlsx](/docs/export-xlsx), a package of its own so that core keeps no dependencies; it reads only the `ExportTable`, and runs in Node as in the browser.
 
 ```ts
 import type { ExportWriter } from "@gridkitjs/core";
@@ -292,7 +294,7 @@ It returns a `CopyContent` — `{ text, html, count, unit }`, where `count` and 
 
 ## Printing
 
-`buildPrintDocument(table, options)` lays the table out as a printable document: a heading of the title, subtitle and timestamp `options` set, the table as [`toHtmlTable`](#html-table) writes it, and a footer line, every piece of text escaped. It returns a `PrintDocument` and holds no styles of its own — putting it on paper is the renderer's: @gridkitjs/dom's [`printStyles` and `printDocument`](/docs/dom#print) print it through a hidden frame.
+`buildPrintDocument(table, options)` lays the table out as a printable document: a heading of the title, subtitle and timestamp `options` set, the table as [`toHtmlTable`](#html-table) writes it, and a footer line, every piece of text escaped. It returns a `PrintDocument` and holds no styles of its own — putting it on paper is the renderer's: @gridkitjs/dom's [`printStyles` and `printDocument`](/docs/dom/downloads-clipboard-print#print) print it through a hidden frame.
 
 ```ts
 import { buildExportTable, buildPrintDocument } from "@gridkitjs/core";
@@ -355,3 +357,9 @@ const document = exportPrintDocument(context, {
 ```
 
 A grid's `print` option, a `PrintOptions`, says how it prints unless a call says otherwise. The `print` [command](/docs/core/commands#built-in-commands) prints under it, so a toolbar's Print button, a context menu and a renderer's `runCommand("print")` print the same document: it builds one with `exportPrintDocument` and hands it to the renderer's `host.print`, with the options, whose `styles` the renderer adds after its print stylesheet.
+
+## See also
+
+- [Export in React](/docs/react/export) for the toolbar, the context menu and the options.
+- [@gridkitjs/export-xlsx](/docs/export-xlsx) for the Excel writer.
+- [Commands and menus](/docs/core/commands) for the export commands.

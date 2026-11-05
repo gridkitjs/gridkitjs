@@ -1,0 +1,411 @@
+---
+title: "Server-side data"
+description: "Sort, filter and page on your server: hold the grid's state, send it with each request, and pass back the rows that return."
+---
+
+`DataGrid` sorts, filters and pages the rows in `dataSource` itself. To do that work on a server instead, hold the sort and filter in your own state with the controlled `columnSort` and `filter` props, send them with each request, and give the grid only the rows that come back.
+
+## When to use it
+
+Fetch from a server when the rows are too many to send to the browser, or when the server has to decide which rows a user may see. For a few thousand rows, sending them all and letting the grid sort and filter them is simpler and answers instantly; [row virtualization](/docs/react/row-virtualization) keeps a long list fast.
+
+<Callout type="note" title="What the grid does and does not do here">
+  The grid has no server mode and no data adapter: it never fetches. It always
+  applies the sort and filter it holds to the rows it is given, so return rows
+  sorted and filtered the same way, or the grid reorders them or hides the ones
+  its filter rejects. `paginated` pages only the rows the grid holds, and knows
+  of no rows beyond them, so for pages from a server leave it off and draw a
+  pager of your own, as below. Row grouping, aggregates and "select all" cover
+  only the rows passed in.
+</Callout>
+
+## A stand-in server
+
+The examples on this page call `fetchOrders`, which stands in for your API. It answers from an array in memory with `@gridkitjs/core`'s `resolveGridView`, the function the grid itself sorts, filters and pages with, so its answers agree with the grid exactly. Your version sends the same query over HTTP; `@gridkitjs/core` runs in Node too, so a Node server can answer it the same way.
+
+```ts title="api.ts"
+import {
+  resolveGridView,
+  type ColumnDefinition,
+  type ColumnSortState,
+  type FilterState,
+  type PaginationState,
+} from "@gridkitjs/core";
+
+export interface Order {
+  id: number;
+  customer: string;
+  region: string;
+  total: number;
+}
+
+export interface OrderQuery {
+  sort: ColumnSortState;
+  filter: FilterState<Order>;
+  page: PaginationState;
+}
+
+export interface OrderPage {
+  rows: readonly Order[];
+  total: number; // rows matching the filter, on every page
+}
+
+export const orderColumns: readonly ColumnDefinition<Order>[] = [
+  { field: "id", header: "Order", type: "number", width: 100 },
+  { field: "customer", header: "Customer" },
+  { field: "region", header: "Region" },
+  { field: "total", header: "Total", type: "number" },
+];
+
+const regions = ["North", "South", "East", "West"];
+
+const allOrders: Order[] = Array.from({ length: 1000 }, (_, index) => ({
+  id: index + 1,
+  customer: `Customer ${String((index % 97) + 1)}`,
+  region: regions[index % regions.length] ?? "North",
+  total: Math.round(((index * 7919) % 100000) / 10) / 10,
+}));
+
+export async function fetchOrders(
+  query: OrderQuery,
+  signal?: AbortSignal,
+): Promise<OrderPage> {
+  await new Promise((resolve) => setTimeout(resolve, 300)); // the network
+  signal?.throwIfAborted();
+  const view = resolveGridView({
+    rows: allOrders,
+    getRowId: (row) => String(row.id),
+    columns: orderColumns,
+    state: {
+      columnSizing: {},
+      columnOrder: [],
+      columnVisibility: {},
+      columnSort: query.sort,
+      filter: query.filter,
+      groupBy: [],
+      groupExpansion: [],
+      pagination: query.page,
+    },
+    options: { paginated: true },
+  });
+  return {
+    rows: view.displayDataRows.map(({ row }) => row),
+    total: view.rows.length,
+  };
+}
+```
+
+Importing from `@gridkitjs/core` needs it in your own dependencies; see [choosing packages](/docs/react/choosing-packages#importing-from-core). Over HTTP, send `sort` and `filter` as JSON. Both are plain data: a sort is a list of `{ columnId, direction }`, and the filter the toolbar's search box and the filter menus build is a list of entries such as `{ query: "%north%" }` or `{ columnId: "total", operator: "gt", value: 500 }`. The one exception is a predicate entry, a function, which only your own code adds. See [column filtering](/docs/react/column-filtering) for every entry kind.
+
+## Sorting, filtering and pages on the server
+
+Hold the sort, the filter and the page in state, fetch whenever one changes, and draw a pager below the grid. `useOrders` is a small fetch hook in the shape of a query library's `useQuery`: it keeps the last rows on screen while the next ones load, and drops the answer to a request a newer one has replaced.
+
+```ts title="useOrders.ts"
+import { useEffect, useState } from "react";
+import { fetchOrders, type OrderPage, type OrderQuery } from "./api";
+
+interface Result {
+  query: OrderQuery;
+  data: OrderPage | undefined;
+  error: unknown;
+}
+
+export function useOrders(query: OrderQuery) {
+  const [result, setResult] = useState<Result>();
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchOrders(query, controller.signal).then(
+      (data) => {
+        if (!controller.signal.aborted) {
+          setResult({ query, data, error: undefined });
+        }
+      },
+      (error: unknown) => {
+        if (!controller.signal.aborted) {
+          setResult((last) => ({ query, data: last?.data, error }));
+        }
+      },
+    );
+    return () => {
+      controller.abort();
+    };
+  }, [query]);
+
+  return {
+    data: result?.data, // the last answer, kept while the next one loads
+    error: result?.error,
+    isFetching: result?.query !== query,
+  };
+}
+```
+
+```tsx title="App.tsx"
+import { useMemo, useState } from "react";
+import type { ColumnSortState, PaginationState } from "@gridkitjs/core";
+import { DataGrid, type FilterState } from "@gridkitjs/react";
+import { orderColumns, type Order } from "./api";
+import { useOrders } from "./useOrders";
+
+const noOrders: readonly Order[] = [];
+
+export default function App() {
+  const [sort, setSort] = useState<ColumnSortState>([]);
+  const [filter, setFilter] = useState<FilterState<Order>>([]);
+  const [page, setPage] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 25,
+  });
+
+  const query = useMemo(() => ({ sort, filter, page }), [sort, filter, page]);
+  const { data, isFetching, error } = useOrders(query);
+  const pageCount = Math.max(1, Math.ceil((data?.total ?? 0) / page.pageSize));
+
+  const goToPage = (pageIndex: number) => {
+    setPage((current) => ({ ...current, pageIndex }));
+  };
+
+  return (
+    <>
+      <DataGrid
+        columns={orderColumns}
+        dataSource={data?.rows ?? noOrders}
+        getRowId={(row) => String(row.id)}
+        label="Orders"
+        height={400}
+        toolbar
+        sortableColumns
+        filterableColumns
+        columnSort={sort}
+        onColumnSortChange={(event) => {
+          setSort(event.sort);
+          goToPage(0);
+        }}
+        filter={filter}
+        onFilterChange={(event) => {
+          setFilter(event.filter);
+          goToPage(0);
+        }}
+      />
+      <nav aria-label="Orders pages">
+        <button
+          disabled={page.pageIndex === 0}
+          onClick={() => {
+            goToPage(page.pageIndex - 1);
+          }}
+        >
+          Previous
+        </button>
+        <span>
+          Page {page.pageIndex + 1} of {pageCount}
+          {isFetching ? " (loading)" : ""}
+        </span>
+        <button
+          disabled={page.pageIndex + 1 >= pageCount}
+          onClick={() => {
+            goToPage(page.pageIndex + 1);
+          }}
+        >
+          Next
+        </button>
+      </nav>
+      {error !== undefined && <p role="alert">The orders did not load.</p>}
+    </>
+  );
+}
+```
+
+- A header click, a filter menu or the toolbar's search box asks for a change through `onColumnSortChange` or `onFilterChange`; the grid shows the new sort or filter once you pass it back, and the new rows once they arrive. The search box waits for a pause in typing before it reports, so a fetch does not run on every key.
+- A new sort or filter sends the page back to the first one, as the grid does for its own pages.
+- `useMemo` keeps `query` the same object until a slice changes, so the effect fetches only then.
+- `getRowId` keeps a selection on the right rows across fetches. A selected row on another page keeps its id in the selection; the ref's `getSelectedRows()` returns only the selected rows in the current `dataSource`.
+
+## Loading more as the user scrolls
+
+For one long list instead of pages, give `infiniteScroll` an `onLoadMore` that fetches the next page and appends it. A new sort or filter starts the list again from the first page.
+
+```tsx title="App.tsx"
+import { useEffect, useMemo, useState } from "react";
+import type { ColumnSortState } from "@gridkitjs/core";
+import { DataGrid, type FilterState } from "@gridkitjs/react";
+import { fetchOrders, orderColumns, type Order } from "./api";
+
+const pageSize = 50;
+
+export default function App() {
+  const [sort, setSort] = useState<ColumnSortState>([]);
+  const [filter, setFilter] = useState<FilterState<Order>>([]);
+  const [pages, setPages] = useState<readonly (readonly Order[])[]>([]);
+  const [pagesWanted, setPagesWanted] = useState(1);
+  const [total, setTotal] = useState<number>();
+  const [error, setError] = useState<unknown>();
+
+  const loaded = pages.length;
+  const rows = useMemo(() => pages.flat(), [pages]);
+
+  // Fetches the next page whenever fewer pages are loaded than wanted.
+  useEffect(() => {
+    if (loaded >= pagesWanted) {
+      return;
+    }
+    const controller = new AbortController();
+    const query = { sort, filter, page: { pageIndex: loaded, pageSize } };
+    fetchOrders(query, controller.signal).then(
+      (page) => {
+        if (!controller.signal.aborted) {
+          setPages((current) => [...current, page.rows]);
+          setTotal(page.total);
+        }
+      },
+      (reason: unknown) => {
+        if (!controller.signal.aborted) {
+          setError(reason);
+        }
+      },
+    );
+    return () => {
+      controller.abort();
+    };
+  }, [sort, filter, loaded, pagesWanted]);
+
+  // A new sort or filter starts the list again from the first page.
+  const startOver = () => {
+    setPages([]);
+    setPagesWanted(1);
+    setTotal(undefined);
+    setError(undefined);
+  };
+
+  const failed = error !== undefined;
+
+  return (
+    <>
+      <DataGrid
+        columns={orderColumns}
+        dataSource={rows}
+        getRowId={(row) => String(row.id)}
+        label="Orders"
+        height={400}
+        virtualized
+        toolbar
+        sortableColumns
+        columnSort={sort}
+        onColumnSortChange={(event) => {
+          setSort(event.sort);
+          startOver();
+        }}
+        filter={filter}
+        onFilterChange={(event) => {
+          setFilter(event.filter);
+          startOver();
+        }}
+        infiniteScroll={{
+          // After a failed request, stop loading until the next sort or filter.
+          hasMore: !failed && (total === undefined || rows.length < total),
+          isLoadingMore: !failed && loaded < pagesWanted,
+          onLoadMore: () => {
+            setPagesWanted(loaded + 1);
+          },
+        }}
+      />
+      {failed && <p role="alert">More orders did not load.</p>}
+    </>
+  );
+}
+```
+
+The grid calls `onLoadMore` once as the last row nears the bottom of the body, then not again until `isLoadingMore` goes back to `false`, so a slow request is never sent twice. Here `onLoadMore` only asks for one more page, and the effect fetches it, so every request is cancelled when the sort or filter changes under it. `virtualized` keeps the number of mounted rows small however many load. See [infinite scroll](/docs/react/infinite-scroll) for `rootMargin` and the loading row.
+
+## With TanStack Query
+
+A query library slots into the same place as `useOrders`. With [TanStack Query](https://tanstack.com/query), the query is the key, and `keepPreviousData` keeps the last page on screen while the next one loads. Only the fetching changes, so this sample leaves out the pager, which is the same as in the `useOrders` example above:
+
+```tsx title="App.tsx"
+import { useState } from "react";
+import {
+  keepPreviousData,
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+} from "@tanstack/react-query";
+import type { ColumnSortState, PaginationState } from "@gridkitjs/core";
+import { DataGrid, type FilterState } from "@gridkitjs/react";
+import { fetchOrders, orderColumns, type Order } from "./api";
+
+const queryClient = new QueryClient();
+const noOrders: readonly Order[] = [];
+
+function Orders() {
+  const [sort, setSort] = useState<ColumnSortState>([]);
+  const [filter, setFilter] = useState<FilterState<Order>>([]);
+  const [page, setPage] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 25,
+  });
+
+  const { data } = useQuery({
+    queryKey: ["orders", sort, filter, page],
+    queryFn: ({ signal }) => fetchOrders({ sort, filter, page }, signal),
+    placeholderData: keepPreviousData,
+  });
+
+  return (
+    <DataGrid
+      columns={orderColumns}
+      dataSource={data?.rows ?? noOrders}
+      getRowId={(row) => String(row.id)}
+      label="Orders"
+      sortableColumns
+      columnSort={sort}
+      onColumnSortChange={(event) => {
+        setSort(event.sort);
+        setPage((current) => ({ ...current, pageIndex: 0 }));
+      }}
+      filter={filter}
+      onFilterChange={(event) => {
+        setFilter(event.filter);
+        setPage((current) => ({ ...current, pageIndex: 0 }));
+      }}
+    />
+  );
+}
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Orders />
+    </QueryClientProvider>
+  );
+}
+```
+
+For infinite scroll, `useInfiniteQuery` fits the same way: its `fetchNextPage` is `onLoadMore`, `hasNextPage` is `hasMore`, and `isFetchingNextPage` is `isLoadingMore`.
+
+## Props
+
+| Prop                 | Type                                      | Description                                                                                                |
+| -------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `dataSource`         | `readonly Row[]`                          | The rows the server returned for the current query.                                                        |
+| `getRowId`           | `(row: Row, index: number) => string`     | A row's stable id. Needed so that a selection follows its rows across fetches.                             |
+| `columnSort`         | `ColumnSortState`                         | The sort, controlled. The grid shows it in the headers and applies it to `dataSource`.                     |
+| `onColumnSortChange` | `(event: ColumnSortEvent) => void`        | Called when the user asks for a new sort, with the whole new `sort` to fetch with.                         |
+| `filter`             | `FilterState<Row>`                        | The filter, controlled. The grid shows it in the toolbar and filter menus and applies it to `dataSource`.  |
+| `onFilterChange`     | `(event: FilterChangeEvent<Row>) => void` | Called when the user changes the filter, with the whole new `filter` to fetch with.                        |
+| `infiniteScroll`     | `InfiniteScrollConfig`                    | `{ hasMore, onLoadMore, isLoadingMore }` to fetch the next page as the user scrolls. Not with `paginated`. |
+
+`ColumnSortState` and `PaginationState` come from `@gridkitjs/core`; `FilterState` is re-exported by `@gridkitjs/react` as well.
+
+## Messages
+
+While `isLoadingMore` is `true`, infinite scroll shows a "Loading more…" row, the `loadingMore` message; `infiniteScroll.loadingTemplate` replaces it. The grid has no loading overlay or empty-state message of its own: while a page or a first load is in flight, show your own indicator, as the pager above does. See [localization](/docs/react/localization) to translate the grid's messages.
+
+## See also
+
+- [Controlled state](/docs/react/state) for every controlled prop and how a slice is held.
+- [Column filtering](/docs/react/column-filtering) for the filter entries a query carries.
+- [Column sorting](/docs/react/column-sorting) for the sort a header click asks for.
+- [Infinite scroll](/docs/react/infinite-scroll) for `infiniteScroll` in depth.
+- [Pagination](/docs/react/pagination) for the grid's own pages, over the rows it holds.
+- [The view pipeline](/docs/core/view) for `resolveGridView`, the function the stand-in server answers with.
+- [Live data](/docs/react/live-data) for rows that change on their own, from a poll or a WebSocket.

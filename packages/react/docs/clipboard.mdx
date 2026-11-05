@@ -1,6 +1,6 @@
 ---
 title: "Clipboard"
-description: "Copy a cell, a row or the selection to the clipboard — from the context menu, Ctrl+C or the ref — as text a spreadsheet splits into cells and an HTML table a document keeps."
+description: "Copy a cell, a row or the selection to the clipboard from the context menu, Ctrl+C or the ref, as text a spreadsheet splits into cells and as an HTML table."
 ---
 
 The grid copies what the user sees to the clipboard in two forms at once: tab-separated text, which a spreadsheet such as Excel or Google Sheets splits into cells when pasted, and an HTML table, which a word processor pastes as a table. The context menu's copy items, <Kbd>Ctrl</Kbd>+<Kbd>C</Kbd> and `ref.current.runCommand("copy.selection")` all run the same built-in commands.
@@ -68,9 +68,11 @@ gridRef.current?.runCommand("copy.row", {
 
 `copy.cell` and `copy.row` take a `{ area: "cell", rowId, columnId }` target; `copy.selection` runs on the default `{ area: "grid" }`. Each returns whether it ran — not when there is nothing to copy.
 
-## Browser support
+<Callout type="note" title="Browser support">
 
-The grid writes through the async Clipboard API with both formats where the browser has it, falls back to plain text alone where it cannot write HTML, and to the older `copy` event on a page outside a secure context. See @gridkitjs/dom's [`writeClipboard`](/docs/dom#clipboard).
+The grid writes through the async Clipboard API with both formats where the browser has it, falls back to plain text alone where it cannot write HTML, and to the older `copy` event on a page outside a secure context. See @gridkitjs/dom's [`writeClipboard`](/docs/dom/downloads-clipboard-print#clipboard).
+
+</Callout>
 
 ## Paste
 
@@ -79,3 +81,9 @@ There is no paste: the grid copies out, but does not take clipboard content in.
 ## Localization
 
 The item labels and announcements are messages — `copyCell`, `copyRow`, `copySelection`, `copied` and `copyFailed` — see [localization](/docs/react/localization).
+
+## See also
+
+- [Context menu](/docs/react/context-menu) for the copy items.
+- [Row selection](/docs/react/row-selection) for copying a selection.
+- [core: Export](/docs/core/export) for the table a copy is written from.

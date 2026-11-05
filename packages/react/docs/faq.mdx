@@ -1,0 +1,58 @@
+---
+title: "FAQ"
+description: "Answers to the problems that come up first: an unstyled grid, virtualized without height, paginated with infiniteScroll, and Tailwind scanning."
+---
+
+Short answers to the questions and problems that come up first, each linking to the page that covers it in full.
+
+## The grid renders, but unstyled
+
+The stylesheet is missing. Without it the grid renders as bare tables: no padding, borders or hover colours, and sort icons drawn as large as the header. Import the theme in a CSS file your app loads, after Tailwind itself:
+
+```css title="src/index.css"
+@import "tailwindcss";
+@import "@gridkitjs/theme-tailwind/styles.css";
+```
+
+The theme is a Tailwind CSS v4 stylesheet, compiled by your app's Tailwind build, so the app needs Tailwind v4 set up. See [import the stylesheet](/docs/react#import-the-stylesheet), and [without Tailwind](/docs/theme-tailwind#without-tailwind) if your app does not use it.
+
+## `virtualized` does nothing
+
+`virtualized` needs `height`. Without a bounded row area there is no viewport to window rows against, so every row still mounts and the grid logs a `console.error`: "`virtualized` has no effect without `height`". Set `height` to a number of pixels or a CSS length such as `"60vh"`. See [row virtualization](/docs/react/row-virtualization).
+
+## `paginated` and `infiniteScroll` together
+
+They are mutually exclusive: with both set, only `paginated` takes effect, and the grid logs a `console.error` saying so. Choose one. Pages suit rows a user moves through and comes back to; infinite scroll suits a feed that grows as the user reads. See [pagination](/docs/react/pagination) and [infinite scroll](/docs/react/infinite-scroll).
+
+## Tailwind classes in a template do not apply
+
+A class in a `cellTemplate` or `headerTemplate` is your own code, so your Tailwind build must scan the file it is in. Tailwind v4 scans your project's source automatically, but skips `node_modules` and gitignored folders; a template in one of those needs an `@source` line for its path. The theme also registers its palette as colours (`text-accent`, `text-fg-muted`, `bg-selected` and the rest) that follow the grid's light and dark mode. See [styling a template](/docs/react/column-templates#styling-a-template).
+
+GridKit's own packages need no `@source`: the grid renders semantic class names such as `gridkit-data-grid` and `grid-row`, and the theme's stylesheet styles them.
+
+## A selection moves to other rows after a sort
+
+Pass `getRowId`. Without it a row's id is its position, so a selection stays on the positions while sorting, filtering or new data moves different rows through them. See [row selection](/docs/react/row-selection).
+
+## A screen reader announces an unnamed grid
+
+Give the grid a name with `label`, or with `labelledBy` pointing at a visible heading's `id`. Without either, the grid has no accessible name. See [accessibility](/docs/react/accessibility).
+
+## Does the grid fetch data from a server?
+
+No. `dataSource` is an array, and the grid never fetches. To sort, filter and page on a server, hold that state with the controlled props and fetch with it. See [server-side data](/docs/react/server-side-data).
+
+## Can users edit cells?
+
+Not yet: there is no built-in editing. See [not yet](/docs/react/migrating#not-yet) for the other features GridKit does not have today.
+
+## Does it work in the Next.js App Router?
+
+Yes. The published bundle is marked `"use client"`, so a server component can import `DataGrid`. Function props such as `getRowId`, `cellTemplate` and event callbacks cannot be passed from a server component, though, so render the grid inside a client component of your own and pass it the rows.
+
+## See also
+
+- [Overview](/docs/react) for installing and a first grid.
+- [From Syncfusion or AG Grid](/docs/react/migrating) for mapping another grid's props.
+- [Performance](/docs/react/performance) for a slow or busy grid.
+- [Theming](/docs/theme-tailwind) for the stylesheet and its tokens.

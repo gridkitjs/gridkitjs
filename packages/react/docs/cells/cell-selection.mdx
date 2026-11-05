@@ -3,7 +3,7 @@ title: "Cell selection"
 description: "Letting the user select one cell at a time with selectable.cells."
 ---
 
-selectable.cells takes a CellSelectionMode — only false or "single": a cell addresses one value, so there is no "multiple" and no range to take. A click moves the selection to that cell; <Kbd>Ctrl</Kbd>+click on the selected cell clears it.
+`selectable.cells` takes a `CellSelectionMode`: only `false` or `"single"`. A cell addresses one value, so there is no "multiple" and no range to take. A click moves the selection to that cell; <Kbd>Ctrl</Kbd>+click on the selected cell clears it.
 
 ## Single-select cells
 
@@ -46,3 +46,13 @@ Each carries the cell as a `SelectedCell<Row>`, resolved down to the value it sh
 ## Reading selection outside the grid's own tree
 
 `useSelectionState`, documented on [row selection](/docs/react/row-selection#reading-selection-outside-the-grids-own-tree), covers row, column, and cell selection together as one hook rather than three — its `cellSelection` field is this page's `CellSelectionState`.
+
+## Keyboard
+
+With the arrow keys, move focus to a cell and press <Kbd>Enter</Kbd> to select it. <Kbd>Space</Kbd> toggles it, so on the selected cell it clears the selection, as <Kbd>Ctrl</Kbd>+click does. See [accessibility](/docs/react/accessibility#keyboard-navigation) for the full keyboard model.
+
+## See also
+
+- [Row selection](/docs/react/row-selection) and [column selection](/docs/react/column-selection) for the other two areas.
+- [Accessibility](/docs/react/accessibility) for the keyboard model.
+- [core: Selection](/docs/core/selection) for the framework-free primitives.
