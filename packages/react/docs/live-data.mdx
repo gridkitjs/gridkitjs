@@ -1,0 +1,228 @@
+---
+title: "Live data"
+description: "Feeding DataGrid rows that change on their own, from a timer, a poll or a WebSocket, while selection, sort and filter keep up."
+---
+
+`DataGrid` has no live mode and needs none: give `dataSource` a new array and the grid filters, sorts, groups and pages the new rows, keeping its selection and other state, which follow each row by its `getRowId`. This page shows a grid fed by a stream of updates, and what to expect while the rows move.
+
+## When to use it
+
+Use it for rows that change while they are on screen: prices, metrics, job queues, order status. For rows that change only when the user asks, fetch them as on [server-side data](/docs/react/server-side-data).
+
+## A ticking grid
+
+A timer stands in for the feed here, moving a few prices each second. Each tick passes a new array to `dataSource`, keeping the same object for every quote that did not move, and the pause button stops the updates while the user reads.
+
+```tsx title="App.tsx"
+import { useEffect, useState } from "react";
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
+
+interface Quote {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+}
+
+const initialQuotes: Quote[] = [
+  { symbol: "ALDR", name: "Alder Holdings", price: 42.1, change: 0 },
+  { symbol: "BRCH", name: "Birchwood Group", price: 118.75, change: 0 },
+  { symbol: "CEDR", name: "Cedar Energy", price: 9.6, change: 0 },
+  { symbol: "DUNM", name: "Dunmore Trading", price: 63.2, change: 0 },
+  { symbol: "ELMF", name: "Elmfield Retail", price: 27.45, change: 0 },
+];
+
+/** Stands in for a feed: moves some prices and keeps every other row as it was. */
+function nextTick(quotes: readonly Quote[]): Quote[] {
+  return quotes.map((quote) => {
+    if (Math.random() < 0.6) {
+      return quote;
+    }
+    const change = Math.round((Math.random() - 0.5) * 200) / 100;
+    const price = Math.max(1, Math.round((quote.price + change) * 100) / 100);
+    return { ...quote, price, change };
+  });
+}
+
+const columns: readonly ColumnDefinition<Quote>[] = [
+  { field: "symbol", header: "Symbol", width: 100 },
+  { field: "name", header: "Name" },
+  {
+    field: "price",
+    header: "Price",
+    type: "currency",
+    format: { currency: "USD" },
+  },
+  {
+    field: "change",
+    header: "Change",
+    type: "number",
+    cellTemplate: ({ row }) => (
+      <span className={row.change < 0 ? "text-red-600" : "text-emerald-600"}>
+        {row.change > 0 ? "+" : ""}
+        {row.change.toFixed(2)}
+      </span>
+    ),
+  },
+];
+
+const getQuoteId = (quote: Quote) => quote.symbol;
+
+export default function App() {
+  const [quotes, setQuotes] = useState<readonly Quote[]>(initialQuotes);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (paused) {
+      return;
+    }
+    const timer = setInterval(() => {
+      setQuotes((current) => nextTick(current));
+    }, 1000);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [paused]);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          setPaused((value) => !value);
+        }}
+      >
+        {paused ? "Resume updates" : "Pause updates"}
+      </button>
+      <DataGrid
+        columns={columns}
+        dataSource={quotes}
+        getRowId={getQuoteId}
+        label="Live quotes"
+        selectable={{ rows: "multiple" }}
+        sortableColumns
+      />
+    </>
+  );
+}
+```
+
+The `text-red-600` and `text-emerald-600` classes are Tailwind utilities in your own code, so your Tailwind build must scan this file; see [styling a template](/docs/react/column-templates#styling-a-template).
+
+## From a WebSocket
+
+A feed can send many updates a second, and each `setState` from a socket message is a render of its own. Collect the updates as they arrive and apply them together on an interval, a few times a second, so the grid renders once per batch however fast the feed is:
+
+```tsx title="App.tsx"
+import { useEffect, useState } from "react";
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
+
+interface Quote {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+}
+
+type QuoteUpdate = Pick<Quote, "symbol" | "price" | "change">;
+
+const initialQuotes: Quote[] = [
+  { symbol: "ALDR", name: "Alder Holdings", price: 42.1, change: 0 },
+  { symbol: "BRCH", name: "Birchwood Group", price: 118.75, change: 0 },
+  { symbol: "CEDR", name: "Cedar Energy", price: 9.6, change: 0 },
+];
+
+const columns: readonly ColumnDefinition<Quote>[] = [
+  { field: "symbol", header: "Symbol", width: 100 },
+  { field: "name", header: "Name" },
+  { field: "price", header: "Price", type: "decimal" },
+  { field: "change", header: "Change", type: "decimal" },
+];
+
+const getQuoteId = (quote: Quote) => quote.symbol;
+
+/** Applies a batch of updates, keeping every row no update names as it was. */
+function applyUpdates(
+  quotes: readonly Quote[],
+  updates: ReadonlyMap<string, QuoteUpdate>,
+): readonly Quote[] {
+  return quotes.map((quote) => {
+    const update = updates.get(quote.symbol);
+    return update === undefined ? quote : { ...quote, ...update };
+  });
+}
+
+export default function App() {
+  const [quotes, setQuotes] = useState<readonly Quote[]>(initialQuotes);
+
+  useEffect(() => {
+    // Updates arriving between two flushes; a later one for a symbol wins.
+    let pending = new Map<string, QuoteUpdate>();
+    const socket = new WebSocket("wss://example.com/quotes");
+    socket.addEventListener("message", (event) => {
+      const update = JSON.parse(String(event.data)) as QuoteUpdate;
+      pending.set(update.symbol, update);
+    });
+    const flush = setInterval(() => {
+      if (pending.size === 0) {
+        return;
+      }
+      const updates = pending;
+      pending = new Map();
+      setQuotes((current) => applyUpdates(current, updates));
+    }, 250);
+    return () => {
+      clearInterval(flush);
+      socket.close();
+    };
+  }, []);
+
+  return (
+    <DataGrid
+      columns={columns}
+      dataSource={quotes}
+      getRowId={getQuoteId}
+      label="Live quotes"
+      sortableColumns
+    />
+  );
+}
+```
+
+A poll fits the same shape: fetch on an interval, and pass the rows that come back to `dataSource`, or patch the ones that changed.
+
+## What happens on each update
+
+- **Selection follows the row.** Selection is held as row ids, so a selected row stays selected wherever the update moves it. A selected row that leaves `dataSource` drops out of `getSelectedRows()`, though its id stays in `getRowSelection()`, so the row is selected again if it comes back. Without `getRowId` a row's id is its position, and a selection stays on the position as different rows move through it.
+- **Sort and filter apply to the new values.** A row whose sorted value changed moves to its new place, and a row whose value no longer passes the filter disappears. There is no setting to hold rows in place; pause the updates while the user works, as the sample does, or leave the grid unsorted.
+- **The page stays put.** An update does not send the grid back to the first page; only a change of sort, filter or row grouping does. A page past the new end shows the last page.
+- **Focus stays at its position.** The focused cell is a row and column position, not a row, so a re-sort moves a different row under it.
+- **Only changed rows re-render.** A row re-renders when its object changes, so keeping the objects of unchanged rows, as both samples do, keeps a tick cheap. Keep `columns` and `getRowId` stable too; see [performance](/docs/react/performance).
+
+<Callout type="note" title="Updates are not announced">
+  The grid's live region announces what the user does, such as a sort or a
+  selection, not changes to the data. A screen reader is not told a value
+  changed. If a change matters, such as an alert crossing a threshold, announce
+  it from your own `aria-live` region, and only that change rather than every
+  tick.
+</Callout>
+
+## Highlighting changes
+
+A `cellTemplate` can style a value by its row, as `change` does above. To mark rows rather than cells, `getRowProps` returns a class or `data-*` attributes for each row, which your stylesheet targets; see [row props](/docs/react/data-grid#row-props). To show which way a value moved, carry what you compare against in the row itself, as `change` does here: the template then stays a function of its row, and `columns` can stay at module scope.
+
+## Props
+
+| Prop          | Type                                  | Default        | Description                                                               |
+| ------------- | ------------------------------------- | -------------- | ------------------------------------------------------------------------- |
+| `dataSource`  | `readonly Row[]`                      |                | The current rows. Pass a new array for each update.                       |
+| `getRowId`    | `(row: Row, index: number) => string` | `row position` | A row's stable id, which selection follows across updates.                |
+| `getRowProps` | `(row: ResolvedRow<Row>) => RowProps` |                | A class and `data-*` attributes for each data row, to mark rows by state. |
+
+## See also
+
+- [Performance](/docs/react/performance) for stable props and row re-renders.
+- [Server-side data](/docs/react/server-side-data) for rows fetched on request.
+- [Row selection](/docs/react/row-selection) for `getSelectedRows` and the selection events.
+- [Column templates](/docs/react/column-templates) for `cellTemplate` and styling it.
+- [Accessibility](/docs/react/accessibility) for what the grid announces.
