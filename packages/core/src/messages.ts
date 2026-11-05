@@ -20,8 +20,14 @@ import type { FormatLocale } from "./util/format";
 export interface GridMessages {
   /** The pager's accessible name. */
   pagerLabel: string;
+  /** The pager button to the first page; drawn as an icon, so this is its accessible name. */
+  firstPage: string;
+  /** The pager button to the previous page; its accessible name. */
   previousPage: string;
+  /** The pager button to the next page; its accessible name. */
   nextPage: string;
+  /** The pager button to the last page; its accessible name. */
+  lastPage: string;
   /** The page-size control's label. */
   pageSizeLabel: string;
   /** A numbered pager button's accessible name. */
@@ -397,8 +403,10 @@ export function createDefaultMessages(locale?: FormatLocale): GridMessages {
   const n = countFormat(locale);
   return {
     pagerLabel: "Pagination",
+    firstPage: "First",
     previousPage: "Previous",
     nextPage: "Next",
+    lastPage: "Last",
     pageSizeLabel: "Rows per page",
     pageButtonLabel: (page) => `Page ${n(page)}`,
     pageStatus: (page, pageCount) => `Page ${n(page)} of ${n(pageCount)}`,
