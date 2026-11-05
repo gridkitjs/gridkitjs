@@ -116,6 +116,12 @@ One word per idea, across every package: "pagination", not "paging";
 `packages/react/docs/overview.mdx` is the glossary: define a new recurring
 term there and link to it, rather than defining it again on each page.
 
+`packages/dom/docs/` is split by kind of behaviour, and its overview's
+"Exports by page" table names every export of `@gridkitjs/dom` with the
+page that documents it. A new export goes into that table and into its
+page's `## Types` table or a section of its own, so nothing the package
+exports goes unnamed.
+
 Reference actual key presses with `<Kbd>` — `<Kbd>Ctrl</Kbd>+<Kbd>A</Kbd>`,
 not backtick text like `` `Ctrl+A` ``. `<Kbd>` is globally available in
 rendered docs (registered in `gridkit-website`'s MDX component map), so it

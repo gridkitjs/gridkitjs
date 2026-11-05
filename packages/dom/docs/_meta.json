@@ -1,3 +1,10 @@
 {
-  "order": ["overview"]
+  "order": [
+    "overview",
+    "gestures-and-focus",
+    "overlays",
+    "menus-and-toolbar",
+    "observers-and-virtualizer",
+    "downloads-clipboard-print"
+  ]
 }

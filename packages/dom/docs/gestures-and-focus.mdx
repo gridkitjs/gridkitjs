@@ -1,0 +1,239 @@
+---
+title: "Gestures and focus"
+description: "Body event targets, column resize and reorder drags, focus movement in the grid and in a checklist, and the live announcer in @gridkitjs/dom."
+---
+
+These are the behaviours a renderer attaches to the grid's own table: reading which cell or row a body event addressed (`bodyCellFrom`, `groupRowFrom`, `bodyRowFrom`), the pointer gestures that resize and reorder columns (`startColumnResizeGesture`, `startDragReorder`), the single tab stop the keyboard moves through the grid (`createGridFocus`) and through a long list of values (`attachChecklist`), and the live region that reports what changed (`createLiveAnnouncer`). Each follows [the contract](/docs/dom#the-contract): it attaches to markup the renderer drew and hands back the way to stop it.
+
+## Body event targets
+
+A renderer keeps its rows cheap to re-render by handling the body's clicks, focus and keys with one listener on the `<tbody>` rather than one per cell. These turn such an event's `target` into what it addresses in the grid's markup, `null` when it addresses none:
+
+| Function               | Returns                                                                                                                                       |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bodyCellFrom(target)` | `{ rowIndex, columnIndex, columnId }` — the data cell (`td[data-gridkit-column]`) it is in. Never a group header's cell, which has no column. |
+| `groupRowFrom(target)` | `{ rowIndex, groupId }` — the group-header row (`tr[data-gridkit-group]`) it is in.                                                           |
+| `bodyRowFrom(target)`  | `{ rowIndex, columnId }` — any body row it is in, with the column of its cell in that row, or `null` for none — what a row click reports.     |
+
+`rowIndex` is the row's place among every body row, read off its `data-gridkit-row-index`, so it holds under virtualization, where a row's place in the DOM does not.
+
+```ts
+import { bodyCellFrom } from "@gridkitjs/dom";
+
+tbody.addEventListener("click", (event) => {
+  const cell = bodyCellFrom(event.target);
+  if (cell !== null) select(view.pageRows[cell.rowIndex], cell.columnId);
+});
+```
+
+## Gestures
+
+A gesture starts from a `PointerPress` — the `pointerdown` that began it, native or a framework's wrapper around one — and only from the main button of the primary pointer: a right-click or a second finger starts nothing, and the starter returns `false`. While it runs, the pointer is captured, so the gesture keeps reporting wherever the pointer goes, and <Kbd>Escape</Kbd> cancels it.
+
+### Column resize
+
+`startColumnResizeGesture(handle, press, session, { onMove, onEnd, onCancel })` drags a column's edge. `session` comes from @gridkitjs/core's `beginColumnResize`, which also turns each pointer position into a clamped width. `onMove(width)` reports every move; `onEnd(width)` reports the release, with `null` when the width ended where it started — a click on the handle is not a resize; `onCancel()` reports <Kbd>Escape</Kbd> or a cancelled pointer.
+
+```ts
+import { beginColumnResize } from "@gridkitjs/core";
+import { startColumnResizeGesture } from "@gridkitjs/dom";
+
+handle.addEventListener("pointerdown", (event) => {
+  const session = beginColumnResize(column, width, event.clientX);
+  startColumnResizeGesture(handle, event, session, {
+    onMove: (width) => controller.resizeColumn(session.columnId, width, "move"),
+    onEnd: (width) => {
+      if (width !== null)
+        controller.resizeColumn(session.columnId, width, "end");
+    },
+    onCancel: () =>
+      controller.cancelColumnResize(
+        session.columnId,
+        startSizing,
+        session.startWidth,
+      ),
+  });
+});
+```
+
+`measureColumnContent(table, columnId)` is the width the widest rendered cell of a column needs to show its content in full — what double-clicking a resize handle sizes it to, through `sizeColumnToContent` — or `null` when the column has no cells.
+
+### Drag to reorder
+
+`startDragReorder(id, grabElement, press, { resolveTarget, onState, onDrop })` is the gesture behind every reorder in the grid — a header dragged among the others or into the group-by bar, a group-by chip dragged within it. Nothing is reported until the pointer has travelled 4 pixels, so a press that stays put remains a click; from then on every move asks `resolveTarget(clientX, clientY, id)` where a drop would land and reports `onState({ draggedId, dropTarget, ghostTransform })` — what to draw, with `ghostTransform` a CSS `transform` keeping the ghost under the pointer where it was picked up. Release over a target calls `onDrop(target, id)`; every ending reports `onState(NO_DRAG)`.
+
+```ts
+import {
+  NO_DRAG,
+  resolveColumnDropTarget,
+  startDragReorder,
+} from "@gridkitjs/dom";
+
+header.addEventListener("pointerdown", (event) => {
+  startDragReorder(columnId, header, event, {
+    resolveTarget: (x, y, id) =>
+      resolveColumnDropTarget(x, y, id, {
+        order,
+        groupBy,
+        groupByDraggableIds,
+      }),
+    onState: (state) => draw(state),
+    onDrop: (target, id) =>
+      target.kind === "group-by"
+        ? controller.moveGroupBy(id, target.beforeColumnId)
+        : controller.moveColumn(id, target.beforeId),
+  });
+});
+```
+
+The grid's own targets are hit-tested against its markup:
+
+| Function                                           | Returns                                                                                                                                                                                            |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resolveColumnDropTarget(x, y, movedId, context)`  | `{ kind: "column-order", beforeId }` over another `th[data-gridkit-column]`, by which half the pointer is in; else a group-by target for a column that may be grouped and is not yet; else `null`. |
+| `resolveGroupByDropTarget(x, y, movedId, groupBy)` | `{ kind: "group-by", beforeColumnId }` over `[data-gridkit-group-by-bar]`, before or after the `[data-gridkit-group-chip]` under the pointer, or appended; `null` elsewhere.                       |
+
+Either returns `null` for a drop that would change nothing, so a drop indicator only ever promises a move that happens.
+
+## Focus movement
+
+A grid is one tab stop: <Kbd>Tab</Kbd> reaches it and passes it by, and the arrow keys, <Kbd>Home</Kbd>, <Kbd>End</Kbd>, <Kbd>PageUp</Kbd> and <Kbd>PageDown</Kbd> move within it. `createGridFocus({ rowCount, columnCount, isSkippableRow, virtualRange })` keeps that tab stop — starting on the header's first cell — and moves the browser's focus with it.
+
+| Member                                 | Description                                                                                                                                   |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getFocus()`                           | The focused cell, `{ rowIndex, columnIndex }` with `HEADER_ROW` (`-1`) for the header, clamped to the counts. The same object until it moves. |
+| `subscribe(listener)`                  | Calls `listener` when the focused cell moves.                                                                                                 |
+| `setOptions(options)`                  | The current counts, skippable rows and virtualized window, given on every render. Calls no listener.                                          |
+| `attach({ getHeaderRow, getBodyRow })` | Connects it to the rendered rows; returns the function that disconnects them.                                                                 |
+| `focusCell(rowIndex, columnIndex)`     | Moves the tab stop. Moving to the focused cell does nothing.                                                                                  |
+| `handleKey(key, modifiers, pageSize)`  | Moves the tab stop as a navigation key does, and returns `true` — prevent the key's default then — or returns `false` for any other key.      |
+| `focusDrawnCell(drawn)`                | Called after drawing `drawn`, a value `getFocus()` returned: moves the browser's focus to that cell if a move to it is pending.               |
+
+```ts
+import { HEADER_ROW } from "@gridkitjs/core";
+import { createGridFocus, findBodyRow, measurePageSize } from "@gridkitjs/dom";
+
+const focus = createGridFocus({ rowCount, columnCount });
+focus.attach({
+  getHeaderRow: () => headerTable.tHead?.rows[0] ?? null,
+  getBodyRow: (rowIndex) => findBodyRow(bodyTable, rowIndex),
+});
+focus.subscribe(() => draw()); // draw() renders tabindex 0 on focus.getFocus(), then calls focus.focusDrawnCell(focus.getFocus())
+
+grid.addEventListener("keydown", (event) => {
+  if (focus.handleKey(event.key, event, measurePageSize(bodyTable))) {
+    event.preventDefault();
+  }
+});
+```
+
+The browser's focus follows only once the move is drawn, so it lands on the cell in the new markup — after a column moves, the header now at that index. A virtualized row outside the drawn window is scrolled into it with `virtualRange.scrollToIndex` and focused when a later drawing mounts it. `findBodyRow(bodyTable, rowIndex)` finds a body row by its `data-gridkit-row-index`, not its position, which under virtualization is off by the rows not mounted; `measurePageSize(bodyTable)` is how many rows a page key moves — as many as fit the body's scrolling area.
+
+## Checklist
+
+`attachChecklist(list, options)` makes a long multi-select list the renderer has drawn — a filter's distinct values, thousands of them, usually virtualized so only a window is mounted — behave as one with a single tab stop, after the [WAI-ARIA listbox pattern](https://www.w3.org/WAI/ARIA/apg/patterns/listbox/). The keys move focus among its items, and <Kbd>Space</Kbd> or a click asks for an item to be toggled. It decides what each key does; the renderer flips the item in its own state and draws the result. It returns `setCount(count)`, `focusItem(index)` and `detach()`.
+
+The behaviour sets nothing on the markup but `tabindex`. The roles, the label and the checked state are the renderer's to draw:
+
+| Markup                                                        | On        | Meaning                                                                                                                     |
+| ------------------------------------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `role="listbox"`, `aria-multiselectable="true"`               | the list  | A list of values any number of which can be checked. Give it an `aria-label` or `aria-labelledby` too.                      |
+| `role="option"`, `aria-checked`                               | each item | A value, and whether it is checked — `"true"` or `"false"`, redrawn from the caller's state after each `onToggle`.          |
+| `aria-setsize`, `aria-posinset`                               | each item | How many items the whole list holds and this one's place in it, from 1, since only a window of them is in the page.         |
+| `data-gridkit-checklist-item`, `data-gridkit-checklist-index` | each item | What makes it an item, and its place in the whole list from 0 — the index every callback reports. Read afresh on every key. |
+
+The list is the element that scrolls — the virtualizer's scroll element — so put the spacers that stand in for unmounted items inside it with `role="presentation"`. One item at a time has `tabindex="0"` — the focused one, or the first mounted while the focused one is scrolled away — and the rest `-1`; an observer of the list keeps that so as items mount and unmount, so do not render a `tabindex` of your own.
+
+| Option          | Called                                                                                                                                        |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `onToggle`      | `(index)` — <Kbd>Space</Kbd> on an item, or a click on it. Flip it and draw its new `aria-checked`.                                           |
+| `onFocusChange` | `(index)` — focus moved to another item, by a key, a click, <Kbd>Tab</Kbd> or `focusItem`. Optional.                                          |
+| `scrollToIndex` | `(index)` — bring the item into view, mounting it if the window does not hold it. Forward it to the virtualizer, with `{ block: "nearest" }`. |
+
+| Key                                       | Does                                                                                           |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| <Kbd>ArrowDown</Kbd> / <Kbd>ArrowUp</Kbd> | Focuses the next or previous item, stopping at the ends.                                       |
+| <Kbd>Home</Kbd> / <Kbd>End</Kbd>          | Focuses the first or last item of the whole list.                                              |
+| <Kbd>PageDown</Kbd> / <Kbd>PageUp</Kbd>   | Moves focus by as many items as the list shows whole.                                          |
+| <Kbd>Space</Kbd>                          | `onToggle(index)` for the focused item, once however long it is held.                          |
+| <Kbd>Enter</Kbd>                          | Not handled, so a form or panel around the list hears it — a filter popup applies.             |
+| <Kbd>Escape</Kbd>                         | Not handled here: the [overlay stack](/docs/dom/overlays#stacking) closes the topmost overlay. |
+
+A key pressed with <Kbd>Ctrl</Kbd>, <Kbd>Alt</Kbd>, <Kbd>Shift</Kbd> or <Kbd>Meta</Kbd> is left alone. A move to an item outside the window asks `scrollToIndex` for it and focuses it once it mounts, unless focus has gone elsewhere in the meantime. There is no typeahead: a checklist of values comes with a search box.
+
+`setCount(count)` says how many items the whole list holds. It starts at 0, so call it straight after attaching, and again whenever the list changes — a search narrowing it, say; a focused place past the new end moves back to the last item. `focusItem(index)` focuses an item from code, scrolling to it first.
+
+```ts
+import { attachChecklist, createRowVirtualizer } from "@gridkitjs/dom";
+
+// <div role="listbox" aria-multiselectable="true" aria-label="Values"
+//      style="height: 240px; overflow: auto">
+//   <div role="presentation" style="height: {offsetBefore}px"></div>
+//   <div role="option" aria-checked="false" aria-setsize="5000"
+//        aria-posinset="1" data-gridkit-checklist-item
+//        data-gridkit-checklist-index="0">(Blanks)</div>
+//   …the rest of the window…
+//   <div role="presentation" style="height: {offsetAfter}px"></div>
+// </div>
+const virtualizer = createRowVirtualizer(listElement, {
+  estimatedRowHeight: 28,
+  overscan: 4,
+  onRange: (range) => drawItems(range),
+});
+const checklist = attachChecklist(listElement, {
+  onToggle: (index) => toggleValue(index), // then redraw its aria-checked
+  scrollToIndex: (index) => {
+    virtualizer.scrollToIndex(index, { block: "nearest" });
+  },
+});
+virtualizer.setRowCount(items.length);
+checklist.setCount(items.length);
+```
+
+A "Select all" box belongs above the list as a native checkbox of its own, with its own tab stop and `indeterminate` while some items are checked, rather than as an option inside it.
+
+## Live announcer
+
+`createLiveAnnouncer(container?)` adds one visually hidden live region (`role="status"`, `aria-live="polite"`) as the last child of `container` — `document.body` when omitted — and returns `announce(text)` and `destroy()`. The region carries the `gridkit-sr-only` class, which @gridkitjs/theme-tailwind clips to nothing while keeping it in the accessibility tree.
+
+```ts
+import { createLiveAnnouncer } from "@gridkitjs/dom";
+
+const announcer = createLiveAnnouncer(gridElement);
+announcer.announce("Amount, column 2 of 5");
+announcer.announce("Amount, column 2 of 5"); // read out again
+announcer.destroy();
+```
+
+A live region speaks only when its text changes, so `announce` makes a repeat of the last message a change of its own: the same text twice in a row is read twice.
+
+## Types
+
+| Type                          | Description                                                                                                                                                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `BodyCellTarget`              | `{ rowIndex, columnIndex, columnId }`, what `bodyCellFrom` returns. `rowIndex` is read off `data-gridkit-row-index`; `columnIndex` is the cell's place in its row.                                                 |
+| `GroupRowTarget`              | `{ rowIndex, groupId }`, what `groupRowFrom` returns.                                                                                                                                                              |
+| `BodyRowTarget`               | `{ rowIndex, columnId }`, what `bodyRowFrom` returns. `columnId` is `null` when the event was in no cell.                                                                                                          |
+| `PointerPress`                | The part of a `pointerdown` a gesture reads: `pointerId`, `clientX`, `clientY`, `button`, `isPrimary` and `preventDefault()`. A native `PointerEvent` fits, and so does React's synthetic one.                     |
+| `ColumnResizeGestureHandlers` | `{ onMove, onEnd, onCancel }`, the last argument of `startColumnResizeGesture`, described under [column resize](#column-resize).                                                                                   |
+| `DragReorderState<Target>`    | `{ draggedId, dropTarget, ghostTransform }`, what `onState` reports while a reorder drag is open. `NO_DRAG` is the state with all three `null`.                                                                    |
+| `DragReorderHandlers<Target>` | `{ resolveTarget, onState, onDrop }`, the last argument of `startDragReorder`.                                                                                                                                     |
+| `ColumnDropTarget`            | Where a dragged header would land: `{ kind: "column-order", beforeId }` among the headers (`beforeId` is `null` for the end), or a `GroupByDropTarget`.                                                            |
+| `GroupByDropTarget`           | `{ kind: "group-by", beforeColumnId }`: a drop into the group-by bar, in front of `beforeColumnId`, or appended when it is `null`.                                                                                 |
+| `ColumnDropContext`           | `{ order, groupBy, groupByDraggableIds }`, the last argument of `resolveColumnDropTarget`: the column order on screen, the current group-by state, and the ids whose header may join the group-by bar.             |
+| `GridFocusOptions`            | `{ rowCount, columnCount, isSkippableRow?, virtualRange? }` for `createGridFocus` and its `setOptions`. `rowCount` counts group headers and summary rows; `isSkippableRow` marks rows the vertical keys step over. |
+| `GridFocusController`         | What `createGridFocus` returns. Its members are tabled under [focus movement](#focus-movement).                                                                                                                    |
+| `GridFocusRows`               | `{ getHeaderRow, getBodyRow }`, passed to `attach`: how to find the rendered header row, and body row `rowIndex`, each `null` while it is not rendered.                                                            |
+| `FocusVirtualRange`           | `{ startIndex, endIndex, scrollToIndex }`: the window of rows a virtualizer drew, and how to bring a row into it.                                                                                                  |
+| `ChecklistOptions`            | `{ onToggle, onFocusChange?, scrollToIndex }` for `attachChecklist`, tabled under [checklist](#checklist).                                                                                                         |
+| `AttachedChecklist`           | `{ setCount, focusItem, detach }`, what `attachChecklist` returns.                                                                                                                                                 |
+| `LiveAnnouncer`               | `{ announce, destroy }`, what `createLiveAnnouncer` returns.                                                                                                                                                       |
+
+## See also
+
+- [Overview](/docs/dom) for the contract every behaviour follows.
+- [Overlays](/docs/dom/overlays) for the panel a checklist is shown in, whose stack handles <Kbd>Escape</Kbd>.
+- [Observers and virtualizer](/docs/dom/observers-and-virtualizer) for the row virtualizer `virtualRange` comes from.
+- [Core: focus and virtualization](/docs/core/navigation) for the key handling `handleKey` applies.
+- [Core: resizing](/docs/core/resizing) and [core: ordering](/docs/core/ordering) for the state these gestures change.
+- [Accessibility](/docs/react/accessibility) for the keyboard model the React grid builds on them.

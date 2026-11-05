@@ -3,7 +3,7 @@ title: "Toolbar"
 description: "ToolbarEntry and resolveToolbar: a toolbar written in the menu vocabulary, and the arithmetic that moves what does not fit into a More menu."
 ---
 
-A toolbar is written in the same vocabulary as a [menu](/docs/core/commands#menus): a command id is a button, an inline item a button of its own, a submenu a dropdown button and `"separator"` a separator — plus three entries only a toolbar has. Core resolves the entries against the grid's state, so a button is disabled, pressed or gone exactly when its command says, and works out how many fit; a renderer draws the result and attaches @gridkitjs/dom's [toolbar behaviours](/docs/dom#toolbar).
+A toolbar is written in the same vocabulary as a [menu](/docs/core/commands#menus): a command id is a button, an inline item a button of its own, a submenu a dropdown button and `"separator"` a separator — plus three entries only a toolbar has. Core resolves the entries against the grid's state, so a button is disabled, pressed or gone exactly when its command says, and works out how many fit; a renderer draws the result and attaches @gridkitjs/dom's [toolbar behaviours](/docs/dom/menus-and-toolbar#toolbar).
 
 ```ts
 import type { ToolbarEntry } from "@gridkitjs/core";
@@ -130,7 +130,7 @@ const count = fitToolbarItems({
 const { shown, overflow } = splitToolbarItems(items, count);
 ```
 
-@gridkitjs/dom's [`observeToolbarOverflow`](/docs/dom#toolbar) does the measuring and calls `fitToolbarItems` for you.
+@gridkitjs/dom's [`observeToolbarOverflow`](/docs/dom/menus-and-toolbar#toolbar) does the measuring and calls `fitToolbarItems` for you.
 
 | Function                           | Type                             | Description                                                                           |
 | ---------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------- |
