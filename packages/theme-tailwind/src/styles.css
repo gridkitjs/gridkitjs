@@ -24,6 +24,7 @@
  *    than `:root` simply wins.
  */
 :root {
+  --gridkit-radius: 0.25rem;
   --gridkit-surface-light: oklch(1 0 0);
   --gridkit-surface-dark: oklch(0.21 0.01 250);
   --gridkit-surface-muted-light: oklch(0.97 0.003 250);
@@ -126,6 +127,7 @@
    */
   .gridkit-data-grid-viewport {
     overflow-x: auto;
+    border-radius: var(--gridkit-radius);
   }
 
   /*
@@ -1156,7 +1158,7 @@
     font-variant-numeric: tabular-nums;
     background-color: var(--gridkit-surface);
     border: 1px solid var(--gridkit-line);
-    border-radius: 0.25rem;
+    border-radius: var(--gridkit-radius);
   }
 
   .grid-pager-button,
@@ -1181,13 +1183,13 @@
 
   .grid-pager-bar > :first-child {
     border-inline-start: 0;
-    border-start-start-radius: calc(0.25rem - 1px);
-    border-end-start-radius: calc(0.25rem - 1px);
+    border-start-start-radius: calc(var(--gridkit-radius) - 1px);
+    border-end-start-radius: calc(var(--gridkit-radius) - 1px);
   }
 
   .grid-pager-bar > :last-child {
-    border-start-end-radius: calc(0.25rem - 1px);
-    border-end-end-radius: calc(0.25rem - 1px);
+    border-start-end-radius: calc(var(--gridkit-radius) - 1px);
+    border-end-end-radius: calc(var(--gridkit-radius) - 1px);
   }
 
   .grid-pager-button {

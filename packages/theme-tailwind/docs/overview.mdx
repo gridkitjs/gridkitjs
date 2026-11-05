@@ -233,6 +233,10 @@ It prints only what the grid has drawn: not the rows on another page, nor those 
 }
 ```
 
+### Corner radius
+
+`--gridkit-radius` (default `0.25rem`) rounds the grid's outer frame, `.gridkit-data-grid-viewport`, which clips the header and rows to it, and the outer corners of the pager bar. It is not a colour, so it has no light and dark pair: set it on `:root` or on any ancestor of the grid, for example `--gridkit-radius: 0.375rem`, or `0` for square corners.
+
 ### Scrollbars
 
 The viewport, the row area, the menus, the column chooser list and the filter checklist show thin scrollbars (`scrollbar-width: thin`) whose thumb is `--gridkit-fg-muted` at 45%, on a transparent track, so they follow light and dark with the other tokens. Engines without `scrollbar-color` get an 8px rounded `::-webkit-scrollbar` equivalent. Only the grid's own elements are styled, never `html` or `body`. To change them, set `scrollbar-width` or `scrollbar-color` on any of those classes.
