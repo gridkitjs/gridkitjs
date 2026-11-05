@@ -11,13 +11,13 @@ GridKit makes no WCAG conformance claim yet. It has not been audited against WCA
 
 - **Built to the WAI-ARIA Authoring Practices.** The grid, treegrid, menu, menu button, toolbar and listbox patterns, as described on this page.
 - **Operable from the keyboard.** Every built-in feature has a key, listed below and on each feature's page.
-- **Tested in a real browser.** A Playwright component suite, run on every push, checks the grid's roles and ARIA attributes, keyboard navigation, focus movement in its menus and dialogs, and what its live region announces. It runs in Chromium only.
+- **Tested in a real browser.** A Playwright component suite, run on every push, checks the grid's roles and ARIA attributes, keyboard navigation, focus movement in its menus and dialogs, and what its live region announces. It also runs an [axe](https://github.com/dequelabs/axe-core) scan of a grouped grid, which must report no violations. It runs in Chromium only.
 
 What has not been tested:
 
 - **Screen readers.** No one has yet worked through the grid with NVDA, JAWS, VoiceOver or TalkBack, so how its announcements and attributes read in practice is unverified. Reports from screen-reader users are welcome as issues.
-- **Automated audits.** No axe or similar scan runs in CI.
-- **Colour contrast.** The contrast of the `@gridkitjs/theme-tailwind` palette has not been measured against WCAG's ratios; check it, and any colours you override, in your own theme.
+- **Beyond the one scan.** The axe scan covers a grouped grid, not every feature, and no automated scan can judge how the grid reads in a screen reader.
+- **Colour contrast.** The axe scan leaves it out, since it depends on your theme, and the contrast of the `@gridkitjs/theme-tailwind` palette has not been measured against WCAG's ratios; check it, and any colours you override, in your own theme.
 - **Other browsers.** Firefox and Safari are not part of the test suite.
 
 Your part: give every grid an accessible name with `label` or `labelledBy` (without either, it has none), give a `cellTemplate` that renders a control its own accessible name, and test the page your grid lives on.
@@ -127,10 +127,6 @@ A `role="status" aria-live="polite"` region, outside the table itself, reports c
 - **Page change** — moving to another page or changing the page size announces where the grid is now, as the `pageStatus` message has it ("Page 2 of 5"). The silent reset to the first page a filter, sort or regroup causes is not announced on its own.
 
 Each announcement's wording is a `messages` key, so it can be translated — see [localization](/docs/react/localization).
-
-## Conformance and testing
-
-No formal accessibility audit of DataGrid has been done, and it makes no claim of WCAG conformance. What is checked, on every change, is narrower: the component tests assert the roles and ARIA attributes above, and run an [axe](https://github.com/dequelabs/axe-core) scan of a grouped grid in Chromium that must report no violations. That scan leaves out colour contrast, which depends on your theme, and an automated scan cannot judge how the grid reads in a screen reader; test with the assistive technology your users rely on.
 
 ## See also
 
