@@ -78,11 +78,11 @@ test("usePaginationState updates from Next/Previous clicks with no onPaginationC
   expect(status.pagination.pageIndex).toBe(0);
   expect(status.pageCount).toBe(3);
 
-  await root.locator(".grid-pager-button", { hasText: "Next" }).click();
+  await root.getByRole("button", { name: "Next", exact: true }).click();
   status = await readReactiveStatus(root);
   expect(status.pagination.pageIndex).toBe(1);
 
-  await root.locator(".grid-pager-button", { hasText: "Previous" }).click();
+  await root.getByRole("button", { name: "Previous", exact: true }).click();
   status = await readReactiveStatus(root);
   expect(status.pagination.pageIndex).toBe(0);
 });
@@ -226,7 +226,7 @@ test("usePaginationState updates on the silent page reset from a sort change, wi
     />,
   );
 
-  await root.locator(".grid-pager-button", { hasText: "Next" }).click();
+  await root.getByRole("button", { name: "Next", exact: true }).click();
   let status = await readReactiveStatus(root);
   expect(status.pagination.pageIndex).toBe(1);
 
@@ -351,7 +351,7 @@ test("unmounting the hook's owning component doesn't throw and stops receiving u
   root.page().on("pageerror", (error) => {
     consoleErrors.push(error.message);
   });
-  await root.locator(".grid-pager-button", { hasText: "Next" }).click();
+  await root.getByRole("button", { name: "Next", exact: true }).click();
   expect(consoleErrors).toEqual([]);
 });
 
@@ -382,7 +382,7 @@ test("the reactive hooks don't warn under React Strict Mode's double-render/doub
     </StrictMode>,
   );
 
-  await root.locator(".grid-pager-button", { hasText: "Next" }).click();
+  await root.getByRole("button", { name: "Next", exact: true }).click();
   const status = await readReactiveStatus(root);
   expect(status.pagination.pageIndex).toBe(1);
 

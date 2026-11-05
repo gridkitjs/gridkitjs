@@ -163,7 +163,8 @@ test("changing the page size recomputes the page count and clamps the current pa
   // Page 3 of 3 (7 rows / 3 per page) to start.
   await expect(pagerStatus(root)).toHaveText("Page 3 of 3");
 
-  await root.locator(".grid-pager-page-size select").selectOption("7");
+  // The select is named by its label, which follows it.
+  await root.getByRole("combobox", { name: "Rows per page" }).selectOption("7");
 
   // A page size covering every row leaves one page, and the stale
   // pageIndex (2) is clamped back to the only page there is (0).
@@ -275,7 +276,19 @@ test("a grid with paginated off renders every row on one implicit page", async (
 });
 
 function pageButton(root: MountResult, page: number) {
-  return root.getByRole("button", { name: `Page ${String(page)}` });
+  return root.getByRole("button", {
+    name: `Page ${String(page)}`,
+    exact: true,
+  });
+}
+
+/** `count` West rows, `r1`..`r<count>`. */
+function buildManyRows(count: number): Row[] {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `r${String(index + 1)}`,
+    region: "West",
+    amount: (index + 1) * 10,
+  }));
 }
 
 function ellipses(root: MountResult) {
@@ -315,8 +328,6 @@ test.describe("numbered pager variant", () => {
       />,
     );
 
-    // Page 3's button isn't in the initial window (current page 1's siblings
-    // only reach page 2), so land on page 2 first to bring it into view.
     await pageButton(root, 2).click();
     expect(await rowIds(root)).toEqual(["r2"]);
 
@@ -354,7 +365,7 @@ test.describe("numbered pager variant", () => {
       mount,
       <RowIdentifiedGrid
         columns={columns}
-        dataSource={buildRows()}
+        dataSource={buildManyRows(10)}
         label="Numbered ellipsis"
         paginated
         defaultPagination={{ pageIndex: 0, pageSize: 1 }}
@@ -362,9 +373,29 @@ test.describe("numbered pager variant", () => {
       />,
     );
 
-    // 7 rows at pageSize 1 = 7 pages; from page 1 the boundary+sibling
-    // window is [1, 2, …, 7] — one ellipsis, on the right only.
+    // 10 pages; from page 1 the boundary+sibling window is
+    // [1, 2, 3, 4, 5, …, 10] — one ellipsis, on the right only.
     await expect(ellipses(root)).toHaveCount(1);
+    await expect(pageButton(root, 10)).toBeVisible();
+  });
+
+  test("shows every page, with no ellipsis, while they all fit in the window", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildRows()}
+        label="Numbered no ellipsis"
+        paginated
+        defaultPagination={{ pageIndex: 0, pageSize: 1 }}
+        pager={{ variant: "numbered" }}
+      />,
+    );
+
+    // 7 pages fit the default 7-slot window outright.
+    await expect(ellipses(root)).toHaveCount(0);
     await expect(pageButton(root, 7)).toBeVisible();
   });
 
@@ -394,6 +425,162 @@ test.describe("numbered pager variant", () => {
     await previous.click();
     expect(await rowIds(root)).toEqual(["r1"]);
     await expect(pageButton(root, 1)).toHaveAttribute("aria-current", "page");
+  });
+});
+
+function pagerButton(root: MountResult, name: string) {
+  return root
+    .locator(".gridkit-grid-pager")
+    .getByRole("button", { name, exact: true });
+}
+
+/** The page-number and ellipsis slots between the arrows, in order. */
+function windowSlots(root: MountResult) {
+  return root.locator(
+    ".grid-pager-bar > .grid-pager-page, .grid-pager-bar > .grid-pager-ellipsis",
+  );
+}
+
+async function leftEdge(locator: ReturnType<MountResult["locator"]>) {
+  const box = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  return box?.x ?? Number.NaN;
+}
+
+test.describe("pager bar", () => {
+  test("First/Last jump to either end, disabling at the end they lead to", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildRows()}
+        label="First and last"
+        paginated
+        defaultPagination={{ pageIndex: 1, pageSize: 3 }}
+      />,
+    );
+
+    const first = pagerButton(root, "First");
+    const last = pagerButton(root, "Last");
+
+    await last.click();
+    await expect(pagerStatus(root)).toHaveText("Page 3 of 3");
+    await expect(last).toBeDisabled();
+    await expect(pagerButton(root, "Next")).toBeDisabled();
+    await expect(first).toBeEnabled();
+
+    await first.click();
+    await expect(pagerStatus(root)).toHaveText("Page 1 of 3");
+    await expect(first).toBeDisabled();
+    await expect(pagerButton(root, "Previous")).toBeDisabled();
+  });
+
+  test("the arrows are reachable by Tab and operable by keyboard", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildRows()}
+        label="Pager keyboard"
+        paginated
+        defaultPagination={{ pageIndex: 0, pageSize: 3 }}
+      />,
+    );
+
+    await pagerButton(root, "Next").focus();
+    await root.page().keyboard.press("Enter");
+    await expect(pagerStatus(root)).toHaveText("Page 2 of 3");
+    await root.page().keyboard.press("Tab");
+    await expect(pagerButton(root, "Last")).toBeFocused();
+    await root.page().keyboard.press("Space");
+    await expect(pagerStatus(root)).toHaveText("Page 3 of 3");
+  });
+
+  test("numbered: the next button holds its place and the window keeps its slot count from the first page to the last", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildManyRows(30)}
+        label="Stable numbered pager"
+        paginated
+        defaultPagination={{ pageIndex: 0, pageSize: 1 }}
+        pager={{ variant: "numbered", sizeOptions: [1, 5] }}
+      />,
+    );
+
+    const next = pagerButton(root, "Next");
+    const last = pagerButton(root, "Last");
+    await expect(windowSlots(root)).toHaveCount(7);
+    const nextX = await leftEdge(next);
+    const lastX = await leftEdge(last);
+
+    // A middle page: an ellipsis either side.
+    await pageButton(root, 5).click();
+    await expect(pageButton(root, 5)).toHaveAttribute("aria-current", "page");
+    await expect(root.locator(".grid-pager-ellipsis")).toHaveCount(2);
+    await expect(windowSlots(root)).toHaveCount(7);
+    expect(await leftEdge(next)).toBe(nextX);
+    expect(await leftEdge(last)).toBe(lastX);
+
+    // The last page: two-digit numbers where page 1 showed one-digit ones.
+    await last.click();
+    await expect(pageButton(root, 30)).toHaveAttribute("aria-current", "page");
+    await expect(windowSlots(root)).toHaveCount(7);
+    expect(await leftEdge(next)).toBe(nextX);
+    expect(await leftEdge(last)).toBe(lastX);
+  });
+
+  test("numbered: every page-number slot is the same width, whatever its digits", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildManyRows(120)}
+        label="Equal slots"
+        paginated
+        defaultPagination={{ pageIndex: 59, pageSize: 1 }}
+        pager={{ variant: "numbered" }}
+      />,
+    );
+
+    // [1, …, 59, 60, 61, …, 120]: one, two and three digits side by side.
+    const widths = await windowSlots(root).evaluateAll((slots) =>
+      slots.map((slot) => slot.getBoundingClientRect().width),
+    );
+    expect(widths).toHaveLength(7);
+    expect(new Set(widths).size).toBe(1);
+  });
+
+  test("compact: the next button holds its place as the status gains a digit", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildManyRows(12)}
+        label="Stable compact pager"
+        paginated
+        defaultPagination={{ pageIndex: 0, pageSize: 1 }}
+      />,
+    );
+
+    const next = pagerButton(root, "Next");
+    await expect(pagerStatus(root)).toHaveText("Page 1 of 12");
+    const nextX = await leftEdge(next);
+
+    await pagerButton(root, "Last").click();
+    await expect(pagerStatus(root)).toHaveText("Page 12 of 12");
+    expect(await leftEdge(next)).toBe(nextX);
   });
 });
 

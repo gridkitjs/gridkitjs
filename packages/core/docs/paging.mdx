@@ -9,10 +9,10 @@ A `PaginationState` is `{ pageIndex, pageSize }`, with `pageIndex` 0-based.
 
 ## Functions
 
-| Function                                             | Type                               | Description                                                                                                                                                                                                          |
-| ---------------------------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `paginateRows(rows, pagination)`                     | `PaginatedRows<Row>`               | The page `pagination` names, from rows already filtered, sorted, grouped and aggregated. A `pageIndex` out of range is clamped, and a `pageSize` below `1` is taken as `1`.                                          |
-| `paginationWindow(currentPage, pageCount, options?)` | `readonly PaginationWindowEntry[]` | The 1-based page numbers a numbered pager shows for `currentPage` of `pageCount`, with each gap wider than one page as a single `"ellipsis"`. `options` is `{ boundaryCount?, siblingCount? }`, both `1` by default. |
+| Function                                             | Type                               | Description                                                                                                                                                                                                                    |
+| ---------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `paginateRows(rows, pagination)`                     | `PaginatedRows<Row>`               | The page `pagination` names, from rows already filtered, sorted, grouped and aggregated. A `pageIndex` out of range is clamped, and a `pageSize` below `1` is taken as `1`.                                                    |
+| `paginationWindow(currentPage, pageCount, options?)` | `readonly PaginationWindowEntry[]` | The 1-based page numbers a numbered pager shows for `currentPage` of `pageCount`, always the same number of entries once there are more pages than fit. `options` is `{ boundaryCount?, siblingCount? }`, both `1` by default. |
 
 A page counts **units**, not rows: a top-level group with everything under it is one unit, as is a bare data row outside any group, so a group never splits across pages and a page of 25 holds 25 top-level groups when the grid is grouped. A group's summary row stays with its group.
 
@@ -34,7 +34,15 @@ paginationWindow(page.pageIndex + 1, page.pageCount);
 // [1, "ellipsis", 6, 7, 8, "ellipsis", 20] for page 7 of 20
 ```
 
-`paginationWindow` always keeps the first and last `boundaryCount` pages and `siblingCount` pages either side of the current one. A gap of exactly one page shows that page rather than an ellipsis, which would save no space.
+`paginationWindow` always keeps the first and last `boundaryCount` pages and a run of `2 * siblingCount + 1` pages around the current one, slid inwards near either end rather than cut short. Between each boundary and that run sits one slot: the page it skips when it skips only one, an `"ellipsis"` otherwise.
+
+So the window has a constant length. Once `pageCount` is more than `2 * boundaryCount + 2 * siblingCount + 3` (7 with the defaults), every page's window has exactly that many entries, and a pager that gives each entry the same width keeps its next and last buttons in place as the user pages through. Up to that many pages, every page shows.
+
+```ts
+paginationWindow(1, 20); // [1, 2, 3, 4, 5, "ellipsis", 20]
+paginationWindow(10, 20); // [1, "ellipsis", 9, 10, 11, "ellipsis", 20]
+paginationWindow(20, 20); // [1, "ellipsis", 16, 17, 18, 19, 20]
+```
 
 ## In the React grid
 

@@ -7,8 +7,9 @@ import { observeElementWidth } from "@gridkitjs/dom";
  *
  * A layout effect rather than an effect so the first measurement lands before
  * paint — otherwise columns show at their natural width for a frame and then
- * visibly jump once auto-fit runs. Server rendering would want the usual
- * isomorphic-layout-effect shim here.
+ * visibly jump once auto-fit runs. No isomorphic-layout-effect shim: React 19
+ * skips layout effects on the server without a warning, and the width stays
+ * `null` until the client measures.
  *
  * @param enabled Whether to observe at all. A caller that does not read the
  * width passes `false` rather than paying a re-render of the whole grid on

@@ -27,7 +27,9 @@ export interface GridControllerBinding<Row> {
  * `getState` is the snapshot: the controller hands back the same object until
  * a slice changes, which is exactly the stability `useSyncExternalStore`
  * needs, and a change the props made (a controlled slice) is already in it by
- * the time it is read here.
+ * the time it is read here. It is the server snapshot too: on the server and
+ * while hydrating, the controller has seen only the props, so both sides read
+ * the same initial state.
  */
 export default function useGridController<Row>(
   options: GridControllerOptions<Row, ReactNode>,
@@ -36,6 +38,10 @@ export default function useGridController<Row>(
     createGridController<Row, ReactNode>(options),
   );
   controller.setOptions(options);
-  const state = useSyncExternalStore(controller.subscribe, controller.getState);
+  const state = useSyncExternalStore(
+    controller.subscribe,
+    controller.getState,
+    controller.getState,
+  );
   return { controller, state, view: controller.getView() };
 }

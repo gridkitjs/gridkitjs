@@ -160,6 +160,10 @@ Under the hood, the header, the rows, and (when `aggregates` is active) the gran
 }
 ```
 
+## Server rendering
+
+`DataGrid` renders on the server (for example, prerendered by a Next.js App Router page) and hydrates on the client without a mismatch, so it needs no client-only wrapper. The server draws the grid's initial state from its props; anything that needs the browser (measuring the grid's width under `resizeMode="fit"`, the `virtualized` row window, a `use*State` hook reading the grid's `ref`) settles once the grid has hydrated. Until then, a hook such as `usePaginationState` reads its documented pre-mount value.
+
 ## Keyboard & pointer interactions
 
 - Drag a header's trailing edge to resize; double-click it to size the column to its content.

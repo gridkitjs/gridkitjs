@@ -20,7 +20,7 @@ const columns: readonly ColumnDefinition<LocalizedRow>[] = [
   { field: "name", width: 160 },
 ];
 
-test("a custom messages.previousPage replaces the pager's text", async ({
+test("a custom messages.previousPage renames the pager's Previous button", async ({
   mount,
 }) => {
   const root = await mountGrid(

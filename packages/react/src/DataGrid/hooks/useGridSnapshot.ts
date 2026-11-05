@@ -5,7 +5,8 @@ import type { DataGridApi } from "../DataGrid";
  * Shared `useSyncExternalStore` wiring behind every public `use*State` hook
  * in this folder. Not exported — `gridRef.current` is `null` until the grid
  * mounts, so subscribing has to tolerate that, and falls back to `fallback`
- * for the same reason `getSnapshot` has to until then.
+ * for the same reason `getSnapshot` has to until then. The ref is `null` on
+ * the server and while hydrating too, so `fallback` is the server snapshot.
  */
 export default function useGridSnapshot<Row, T>(
   gridRef: RefObject<DataGridApi<Row> | null>,
@@ -26,8 +27,12 @@ export default function useGridSnapshot<Row, T>(
     [gridRef],
   );
 
-  return useSyncExternalStore(subscribe, () => {
-    const api = gridRef.current;
-    return api === null ? fallback : getSnapshot(api);
-  });
+  return useSyncExternalStore(
+    subscribe,
+    () => {
+      const api = gridRef.current;
+      return api === null ? fallback : getSnapshot(api);
+    },
+    () => fallback,
+  );
 }

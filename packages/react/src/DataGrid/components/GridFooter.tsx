@@ -46,7 +46,7 @@ export default function GridFooter<Row>({
   locale,
 }: GridFooterProps<Row>) {
   return (
-    <tfoot>
+    <tfoot role="rowgroup">
       <tr className="grid-footer" role="row">
         {columns.map((entry) => {
           const specs = aggregates.filter(

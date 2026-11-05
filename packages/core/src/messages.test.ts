@@ -18,8 +18,10 @@ import type { ColumnType } from "./types";
 function rendered(messages: GridMessages): Record<keyof GridMessages, string> {
   return {
     pagerLabel: messages.pagerLabel,
+    firstPage: messages.firstPage,
     previousPage: messages.previousPage,
     nextPage: messages.nextPage,
+    lastPage: messages.lastPage,
     pageSizeLabel: messages.pageSizeLabel,
     pageButtonLabel: messages.pageButtonLabel(3),
     pageStatus: messages.pageStatus(2, 5),
@@ -133,8 +135,10 @@ describe("defaultMessages", () => {
   test("reads as the grid's own English", () => {
     expect(rendered(createDefaultMessages("en"))).toEqual({
       pagerLabel: "Pagination",
+      firstPage: "First",
       previousPage: "Previous",
       nextPage: "Next",
+      lastPage: "Last",
       pageSizeLabel: "Rows per page",
       pageButtonLabel: "Page 3",
       pageStatus: "Page 2 of 5",
