@@ -7,22 +7,7 @@ selectable.cells takes a CellSelectionMode — only false or "single": a cell ad
 
 ## Single-select cells
 
-<LiveExampleFrame title='selectable={{ cells: "single" }}'>
-  <StackblitzExample
-    path="cell-selection"
-    title='selectable={{ cells: "single" }}'
-  />
-</LiveExampleFrame>
-
-```ts
-<DataGrid
-  columns={columns}
-  dataSource={rows}
-  getRowId={(row) => String(row.Id)}
-  selectable={{ cells: "single" }}
-  onCellSelect={({ cell }) => console.log(cell.value)}
-/>;
-```
+<CellSelectionExample />
 
 ## Props
 

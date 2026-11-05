@@ -78,6 +78,8 @@ A controlled `pagination` is never changed behind your back. Reset it alongside 
 
 ## Saving and restoring a layout
 
+<StatePersistenceExample />
+
 The ref reads every slice at once with `getState()` and puts a saved one back with `restoreState()` — a user's column layout, sort and filter kept across visits, or shared through a URL. `serializeGridState` makes the state safe for JSON first:
 
 ```tsx

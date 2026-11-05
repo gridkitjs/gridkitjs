@@ -284,9 +284,7 @@ Redefine a token inside `@variant dark { }` to change its dark value too:
 
 `.gridkit-light` / `.gridkit-dark` pin a grid to one palette regardless of the ambient `dark:` state. Put either on any ancestor of the grid, including the grid's own root; its menus follow, since the grid copies the class onto each overlay it opens. Toggle the app theme below and only the first grid follows it:
 
-<LiveExampleFrame title=".gridkit-light / .gridkit-dark">
-  <DarkModeExample />
-</LiveExampleFrame>
+<DarkModeExample />
 
 ```tsx
 <div className="gridkit-dark">

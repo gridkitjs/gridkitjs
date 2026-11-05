@@ -7,20 +7,7 @@ description: "Splitting rows into pages with paginated, defaultPagination, and p
 
 ## Enable pagination
 
-<LiveExampleFrame title="paginated">
-  <StackblitzExample path="pagination" title="paginated" />
-</LiveExampleFrame>
-
-```ts
-<DataGrid
-  columns={columns}
-  dataSource={rows}
-  paginated
-  defaultPagination={{ pageIndex: 0, pageSize: 25 }}
-  pager={{ sizeOptions: [10, 25, 50] }}
-  onPaginationChange={({ pagination }) => persist(pagination)}
-/>;
-```
+<PaginationExample />
 
 Off by default, matching `sortableColumns`'s convention. `defaultPagination` seeds the uncontrolled starting page and page size — omit it and a paginated grid starts at `{ pageIndex: 0, pageSize: 25 }`. `pager.sizeOptions` feeds the built-in pager's page-size `<select>`; omit it (or pass an empty array) and that control doesn't render, leaving just Previous/Next and the page display.
 

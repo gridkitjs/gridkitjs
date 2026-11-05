@@ -7,18 +7,7 @@ sortableColumns turns on a clickable sort toggle in every header, unless a colum
 
 ## Click to sort, Shift-click to stack
 
-<LiveExampleFrame title="sortableColumns">
-  <StackblitzExample path="column-sorting" title="sortableColumns" />
-</LiveExampleFrame>
-
-```ts
-<DataGrid
-  columns={columns}
-  dataSource={rows}
-  sortableColumns
-  onColumnSortChange={({ sort }) => persist(sort)}
-/>;
-```
+<ColumnSortingExample />
 
 ## Props
 
