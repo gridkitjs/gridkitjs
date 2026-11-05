@@ -1,6 +1,6 @@
 ---
 title: "Export"
-description: "Download what the grid shows as CSV or JSON — from an Export dropdown in the toolbar, the context menu or the ref — and add formats of your own through export writers."
+description: "Download what the grid shows as CSV or JSON from the toolbar, the context menu or the ref, and add formats of your own through export writers."
 ---
 
 The grid exports what the user sees as a file: CSV or JSON out of the box, and any other format — Excel, or one of your own — through an export writer. The toolbar's Export dropdown, an export item in the context menu and `ref.current.runCommand("export.csv")` all run the same built-in commands and download the same file; `ref.current.exportData("csv")` hands you the file as a `Blob` instead, to upload or keep.
