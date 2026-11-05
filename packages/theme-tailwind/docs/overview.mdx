@@ -5,16 +5,26 @@ description: "Palette tokens, dark mode, and the grid's styles."
 
 @gridkitjs/react renders semantic class names — gridkit-data-grid, header-cell, grid-row — and this stylesheet targets them directly. Nothing needs to scan component source, and every colour is a CSS custom property, so overriding one is plain CSS.
 
+## Requirements
+
+The stylesheet is written for Tailwind CSS v4 and needs `tailwindcss` 4.3.3 or later, a peer dependency. It is not plain CSS: it uses Tailwind's `@variant dark` to follow your app's dark mode and `@theme inline` to register the palette as colour utilities (`text-accent`, `bg-surface`), so your app's Tailwind build has to compile it. Tailwind v3 cannot.
+
 ## Install
 
-```bash
-npm install @gridkitjs/theme-tailwind
-```
+<PackageInstall pkg="@gridkitjs/theme-tailwind" />
 
-```css
+Import it in your app's CSS entry, after Tailwind itself:
+
+```css title="src/index.css"
 @import "tailwindcss";
 @import "@gridkitjs/theme-tailwind/styles.css";
 ```
+
+The [quick start](/docs/react) walks through the whole setup, Tailwind included, in a new Vite app.
+
+## Without Tailwind
+
+There is no plain-CSS build of the theme yet. Without Tailwind, `@gridkitjs/react` still works: it renders the same semantic class names with no styles of its own, so a stylesheet of yours can target them. The tables below list every class and state, and the [theme tokens](#theme-tokens) are a starting palette to copy. Expect to write the layout rules too, such as `table-layout: fixed` on `.gridkit-data-grid`, which column widths depend on.
 
 ## Layout
 
