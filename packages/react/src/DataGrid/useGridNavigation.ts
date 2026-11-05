@@ -107,7 +107,13 @@ export default function useGridNavigation({
   };
   const [gridFocus] = useState(() => createGridFocus(options));
   gridFocus.setOptions(options);
-  const focus = useSyncExternalStore(gridFocus.subscribe, gridFocus.getFocus);
+  // `getFocus` serves the server too: nothing can move focus before the grid
+  // hydrates, so both sides draw the same initial tab stop.
+  const focus = useSyncExternalStore(
+    gridFocus.subscribe,
+    gridFocus.getFocus,
+    gridFocus.getFocus,
+  );
 
   const [rows] = useState<GridFocusRows>(() => ({
     getHeaderRow: () => headerTableRef.current?.tHead?.rows[0] ?? null,
