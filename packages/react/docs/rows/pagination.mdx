@@ -61,13 +61,19 @@ This is also why `aria-rowindex` on a rendered row reports the dataset position,
 
 ## The built-in pager
 
-Turning `paginated` on renders a minimal pager below the grid: a Previous button, a "Page X of Y" display, a Next button, and — when `pager.sizeOptions` is given — a page-size `<select>`. Its text comes from `messages` (`previousPage`, `pageStatus`, `nextPage`, `pageSizeLabel`), so it can be translated — see [localization](/docs/react/localization). It's semantically classed (`gridkit-grid-pager`, `grid-pager-button`, `grid-pager-status`, `grid-pager-page-size`) rather than carrying its own layout, the same as the rest of `@gridkitjs/react`; style it via `@gridkitjs/theme-tailwind` or your own CSS targeting those classes.
+Turning `paginated` on renders a compact pager below the grid: one connected bar of First, Previous, a "Page X of Y" display, Next and Last, followed (when `pager.sizeOptions` is given) by a page-size `<select>` with its label to its right. The four arrow buttons are icons, named by the `firstPage`, `previousPage`, `nextPage` and `lastPage` messages; the status and the select's label are `pageStatus` and `pageSizeLabel`. All of them can be translated, see [localization](/docs/react/localization).
+
+The bar holds still as the user pages: the status keeps the width of its widest text, "Page 30 of 30", from the first page on, and under the numbered variant every page-number slot is the same width, so the Next and Last buttons never move.
+
+It's semantically classed (`gridkit-grid-pager`, `grid-pager-bar`, `grid-pager-button`, `grid-pager-page`, `grid-pager-status`, `grid-pager-page-size` and a few more, listed in the [theme's pager classes](/docs/theme-tailwind#pager)) rather than carrying its own layout, the same as the rest of `@gridkitjs/react`; style it via `@gridkitjs/theme-tailwind` or your own CSS targeting those classes.
+
+The pager's buttons are ordinary buttons: <Kbd>Tab</Kbd> moves through them in order, and <Kbd>Enter</Kbd> or <Kbd>Space</Kbd> presses one. A button that leads nowhere, First and Previous on the first page or Next and Last on the last, is disabled.
 
 To suppress the built-in pager while keeping row-windowing and the imperative API active, pass `pager={{ template: () => null }}` rather than turning `paginated` off — see [Custom pager template](#custom-pager-template) below.
 
 ### Numbered pagination
 
-`pager={{ variant: "numbered" }}` swaps the "Page X of Y" display for a row of page-number buttons — `[Prev][1][2][3]…[n][Next]` — instead of the default `"compact"` display:
+`pager={{ variant: "numbered" }}` swaps the "Page X of Y" display for page-number buttons, `[«][‹][1][2][3][4][5][…][n][›][»]`, instead of the default `"compact"` display:
 
 ```ts
 <DataGrid
@@ -79,7 +85,7 @@ To suppress the built-in pager while keeping row-windowing and the imperative AP
 />;
 ```
 
-`pager.boundaryCount` (default `1`) sets how many pages are always shown at each end; `pager.siblingCount` (default `1`) sets how many pages are shown on each side of the current page. Once the current page sits far enough from an end that some pages would go unshown, the gap collapses into a single `…` (`.grid-pager-ellipsis`), never two adjacent ones. Both options are ignored under the default `"compact"` variant.
+`pager.boundaryCount` (default `1`) sets how many pages are always shown at each end; `pager.siblingCount` (default `1`) sets how many pages are shown on each side of the current page. Once there are more pages than fit, each run of skipped pages collapses into a single `…` (`.grid-pager-ellipsis`), never two adjacent ones, and the window keeps the same number of slots on every page: `2 * boundaryCount + 2 * siblingCount + 3`, 7 with the defaults. Near either end the pages around the current one slide inwards rather than the window shrinking, so page 1 of 30 shows `1 2 3 4 5 … 30` and page 30 shows `1 … 26 27 28 29 30`. [`paginationWindow`](/docs/core/paging) works the window out. Both options are ignored under the default `"compact"` variant.
 
 Each page button is named by the `pageButtonLabel` message — "Page 3" in English — and the active page's button carries `aria-current="page"` rather than a dedicated CSS class — style it with `.grid-pager-button[aria-current="page"]`.
 
@@ -87,7 +93,7 @@ Each page button is named by the `pageButtonLabel` message — "Page 3" in Engli
 
 `pager.template` replaces the built-in pager's markup entirely with your own. It's a render prop, called on every render where pagination-relevant state changed, so it's always current — unlike building a pager purely against the imperative handle, which has no "something changed, re-render" signal of its own for a silent page reset (filtering, sorting, or regrouping shrinking the page count) or a data-driven `pageCount` change.
 
-Reach for `template` only when `pager.variant: "numbered"` genuinely doesn't fit — it already gives you `[Prev][1][2][3]…[n][Next]` with no markup of your own to write.
+Reach for `template` only when `pager.variant: "numbered"` genuinely doesn't fit — it already gives you `[«][‹][1][2][3][4][5][…][n][›][»]` with no markup of your own to write.
 
 ```ts
 <DataGrid
@@ -201,13 +207,13 @@ A user looking at page 7 of a result that filtering, sorting, or regrouping just
 
 ### `pager` fields
 
-| Field           | Type                                           | Default     | Description                                                                               |
-| --------------- | ---------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------- |
-| `sizeOptions`   | `readonly number[]`                            |             | Page sizes offered by the page-size `<select>`. No control renders when omitted or empty. |
-| `variant`       | `"compact" \| "numbered"`                      | `"compact"` | `"compact"` is the Prev/status/Next display; `"numbered"` shows page-number buttons.      |
-| `boundaryCount` | `number`                                       | `1`         | Numbered variant only. Pages always shown at each end.                                    |
-| `siblingCount`  | `number`                                       | `1`         | Numbered variant only. Pages shown on each side of the current page.                      |
-| `template`      | `(context: PagerTemplateContext) => ReactNode` |             | Replaces the built-in pager entirely when given. `variant` is ignored.                    |
+| Field           | Type                                           | Default     | Description                                                                                          |
+| --------------- | ---------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------- |
+| `sizeOptions`   | `readonly number[]`                            |             | Page sizes offered by the page-size `<select>`. No control renders when omitted or empty.            |
+| `variant`       | `"compact" \| "numbered"`                      | `"compact"` | `"compact"` shows a "Page X of Y" status between the arrows; `"numbered"` shows page-number buttons. |
+| `boundaryCount` | `number`                                       | `1`         | Numbered variant only. Pages always shown at each end.                                               |
+| `siblingCount`  | `number`                                       | `1`         | Numbered variant only. Pages shown on each side of the current page.                                 |
+| `template`      | `(context: PagerTemplateContext) => ReactNode` |             | Replaces the built-in pager entirely when given. `variant` is ignored.                               |
 
 ## Imperative handle
 

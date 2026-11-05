@@ -58,3 +58,39 @@ export function FilterIcon() {
     </Icon>
   );
 }
+
+/** The pager's previous-page chevron; `theme-tailwind` mirrors the pager's chevrons right-to-left. */
+export function ChevronLeftIcon() {
+  return (
+    <Icon>
+      <path d="m15 18-6-6 6-6" />
+    </Icon>
+  );
+}
+
+export function ChevronRightIcon() {
+  return (
+    <Icon>
+      <path d="m9 18 6-6-6-6" />
+    </Icon>
+  );
+}
+
+/** The pager's first-page double chevron. */
+export function ChevronsLeftIcon() {
+  return (
+    <Icon>
+      <path d="m11 17-5-5 5-5" />
+      <path d="m18 17-5-5 5-5" />
+    </Icon>
+  );
+}
+
+export function ChevronsRightIcon() {
+  return (
+    <Icon>
+      <path d="m6 17 5-5-5-5" />
+      <path d="m13 17 5-5-5-5" />
+    </Icon>
+  );
+}

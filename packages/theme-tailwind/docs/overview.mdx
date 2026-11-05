@@ -100,13 +100,18 @@ The [group-by bar](/docs/react/row-grouping) sits above the tables, outside `.gr
 
 The [pager](/docs/react/pagination#the-built-in-pager) sits below the tables, unscoped like the group-by bar.
 
-| Class                   | Element    | Description                                                                                        |
-| ----------------------- | ---------- | -------------------------------------------------------------------------------------------------- |
-| `.gridkit-grid-pager`   | `<div>`    | The pager.                                                                                         |
-| `.grid-pager-button`    | `<button>` | Previous, Next, and each page number. The current page's carries `[aria-current="page"]`.          |
-| `.grid-pager-status`    | `<span>`   | "Page 2 of 5", under the default `"compact"` variant.                                              |
-| `.grid-pager-ellipsis`  | `<span>`   | The `…` standing for pages left out, under `"numbered"`.                                           |
-| `.grid-pager-page-size` | `<label>`  | The page-size `<select>` and its label, pushed to the far end, while `pager.sizeOptions` is given. |
+| Class                      | Element    | Description                                                                                                                                                                                                          |
+| -------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.gridkit-grid-pager`      | `<div>`    | The pager.                                                                                                                                                                                                           |
+| `.grid-pager-bar`          | `<div>`    | First, Previous, the pages or the status, Next and Last, drawn as one connected bar with the radius on its outer corners. Its `--gridkit-pager-digits` (the page count's digits) sizes every page-number slot alike. |
+| `.grid-pager-button`       | `<button>` | Every button in the bar. The current page's carries `[aria-current="page"]`, drawn in the accent with a ring.                                                                                                        |
+| `.grid-pager-nav`          | `<button>` | The four arrow buttons, each with `.grid-pager-first`, `.grid-pager-previous`, `.grid-pager-next` or `.grid-pager-last`. Their chevrons mirror right-to-left.                                                        |
+| `.grid-pager-page`         | `<button>` | A page number, under `"numbered"`, in tabular numerals.                                                                                                                                                              |
+| `.grid-pager-ellipsis`     | `<span>`   | The `…` standing for pages left out, under `"numbered"`.                                                                                                                                                             |
+| `.grid-pager-status-slot`  | `<span>`   | The status segment under the default `"compact"` variant, as wide as its widest text.                                                                                                                                |
+| `.grid-pager-status`       | `<span>`   | "Page 2 of 5", inside the status segment.                                                                                                                                                                            |
+| `.grid-pager-status-sizer` | `<span>`   | The status's widest text, hidden, which holds the segment's width.                                                                                                                                                   |
+| `.grid-pager-page-size`    | `<label>`  | The page-size `<select>` beside the bar, followed by its label text in `.grid-pager-page-size-label`, while `pager.sizeOptions` is given.                                                                            |
 
 ## Toolbar
 
