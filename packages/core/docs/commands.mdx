@@ -1,6 +1,6 @@
 ---
 title: "Commands and menus"
-description: "GridCommand: the one implementation behind a menu item, a toolbar button and the API — the built-in set, app commands and overrides, the context they run in, and the menu model resolveMenu draws from."
+description: "GridCommand, the one implementation behind a menu item, a toolbar button and the API: built-in and app commands, their context and the menu model."
 ---
 
 A command is the one implementation behind a menu item, a toolbar button and a renderer's `runCommand` — "Sort ascending", "Hide column", "Clear filters". Whether it shows and whether it can run are predicates over a context, a snapshot of the grid taken where it was asked for, and it changes the grid only through the [controller](/docs/core/controller)'s actions, so a change made from a menu reports through the same callback as the user's own gesture would.

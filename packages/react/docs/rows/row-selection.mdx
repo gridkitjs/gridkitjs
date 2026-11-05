@@ -75,7 +75,7 @@ Clicking a selected row deselects it. <Kbd>Shift</Kbd>+click still selects a ran
 | `selected`  | `readonly ResolvedRow<Row>[]` | Every selected row, not only what this interaction changed. |
 | `selection` | `SelectionState`              | The same rows, as ids only — `readonly string[]`.           |
 
-See [imperative handle](/docs/react/imperative-handle#resolved-row-and-column) for `ResolvedRow<Row>`'s own fields. The other four callbacks, `onRowSelect`, `onRowsSelect`, `onRowDeselect` and `onRowsDeselect`, pass the rows they name, each as a `ResolvedRow<Row>`, alongside the `selection` at that point.
+See [imperative handle](/docs/react/imperative-handle#resolved-row-and-column) for `ResolvedRow<Row>`'s own fields. The other four callbacks pass the rows they name, each as a `ResolvedRow<Row>`, alongside the `selection` at that point: `onRowSelect` and `onRowDeselect` get a `RowSelectEvent<Row>` (`{ row, selection }`) once per row, and `onRowsSelect` and `onRowsDeselect` get a `RowsSelectEvent<Row>` (`{ rows, selection }`) once per interaction.
 
 ## Selecting from code
 

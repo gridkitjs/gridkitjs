@@ -29,7 +29,65 @@ description: "Dragging a column wider with resizableColumns, resizeMode, and col
 
 ## Autofit
 
-Sizing a column to its content — a double-click on its edge, <Kbd>Alt</Kbd>+<Kbd>Enter</Kbd> on its header — measures the column's content in the rows on screen and fits the column to it, within its `minWidth`/`maxWidth`, firing `onColumnResize` once with `"end"`. On a paged or virtualized grid, rows not drawn are not measured. The same fit is available from code: the ref's [`autoFitColumn(columnId)`](/docs/react/imperative-handle#actions) and `autoFitColumns(columnIds?)`, which fits every column shown when given none, and the `column.autoFit` and `column.autoFitAll` commands, which a [context menu](/docs/react/context-menu#default-items) or [toolbar](/docs/react/toolbar) can carry or `runCommand` can run.
+Sizing a column to its content — a double-click on its edge, <Kbd>Alt</Kbd>+<Kbd>Enter</Kbd> on its header — measures the column's content in the rows on screen and fits the column to it, within its `minWidth`/`maxWidth`, firing `onColumnResize` once with `"end"`. On a paginated or virtualized grid, rows not drawn are not measured. The same fit is available from code: the ref's [`autoFitColumn(columnId)`](/docs/react/imperative-handle#actions) and `autoFitColumns(columnIds?)`, which fits every column shown when given none, and the `column.autoFit` and `column.autoFitAll` commands, which a [context menu](/docs/react/context-menu#default-items) or [toolbar](/docs/react/toolbar) can carry or `runCommand` can run.
+
+## Reading column widths outside the grid's own tree
+
+`useColumnSizingState` subscribes to the grid's column widths through its `ref`, for a component living elsewhere on the page:
+
+```tsx title="App.tsx"
+import { useRef, type RefObject } from "react";
+import {
+  DataGrid,
+  useColumnSizingState,
+  type ColumnDefinition,
+  type DataGridApi,
+} from "@gridkitjs/react";
+
+interface Book {
+  id: number;
+  title: string;
+  author: string;
+}
+
+const books: Book[] = [
+  { id: 1, title: "Kindred", author: "Butler" },
+  { id: 2, title: "The Dispossessed", author: "Le Guin" },
+];
+
+const columns: readonly ColumnDefinition<Book>[] = [
+  { field: "title", header: "Title" },
+  { field: "author", header: "Author" },
+];
+
+function WidthReadout({
+  gridRef,
+}: {
+  gridRef: RefObject<DataGridApi<Book> | null>;
+}) {
+  const sizing = useColumnSizingState(gridRef);
+  return <p>{Object.keys(sizing).length} columns resized</p>;
+}
+
+export default function App() {
+  const gridRef = useRef<DataGridApi<Book>>(null);
+  return (
+    <>
+      <WidthReadout gridRef={gridRef} />
+      <DataGrid
+        ref={gridRef}
+        columns={columns}
+        dataSource={books}
+        getRowId={(row) => String(row.id)}
+        label="Books"
+        resizableColumns
+      />
+    </>
+  );
+}
+```
+
+`useColumnSizingState` only reads. To change column widths from code, call the ref's `setColumnSizing(sizing)`, which fires `onColumnResize`, or hold it yourself with the controlled `columnSizing` prop. Before the grid mounts, the hook reads as an empty object. See [imperative handle](/docs/react/imperative-handle) for `getColumnSizing` and `subscribe`.
 
 ## See also
 

@@ -24,6 +24,64 @@ description: "Dragging a column into a new position with reorderableColumns."
 - Drag a header to reorder columns.
 - With a header focused, <Kbd>Ctrl</Kbd>+<Kbd>ArrowLeft</Kbd> / <Kbd>Ctrl</Kbd>+<Kbd>ArrowRight</Kbd> reorders it via keyboard; <Kbd>Escape</Kbd> cancels an in-progress drag.
 
+## Reading column order outside the grid's own tree
+
+`useColumnOrderState` subscribes to the grid's column order through its `ref`, for a component living elsewhere on the page:
+
+```tsx title="App.tsx"
+import { useRef, type RefObject } from "react";
+import {
+  DataGrid,
+  useColumnOrderState,
+  type ColumnDefinition,
+  type DataGridApi,
+} from "@gridkitjs/react";
+
+interface Book {
+  id: number;
+  title: string;
+  author: string;
+}
+
+const books: Book[] = [
+  { id: 1, title: "Kindred", author: "Butler" },
+  { id: 2, title: "The Dispossessed", author: "Le Guin" },
+];
+
+const columns: readonly ColumnDefinition<Book>[] = [
+  { field: "title", header: "Title" },
+  { field: "author", header: "Author" },
+];
+
+function OrderReadout({
+  gridRef,
+}: {
+  gridRef: RefObject<DataGridApi<Book> | null>;
+}) {
+  const order = useColumnOrderState(gridRef);
+  return <p>Order: {order.join(", ") || "as declared"}</p>;
+}
+
+export default function App() {
+  const gridRef = useRef<DataGridApi<Book>>(null);
+  return (
+    <>
+      <OrderReadout gridRef={gridRef} />
+      <DataGrid
+        ref={gridRef}
+        columns={columns}
+        dataSource={books}
+        getRowId={(row) => String(row.id)}
+        label="Books"
+        reorderableColumns
+      />
+    </>
+  );
+}
+```
+
+`useColumnOrderState` only reads. To change column order from code, call the ref's `setColumnOrder(order)`, which fires `onColumnOrderChange`, or hold it yourself with the controlled `columnOrder` prop. Before the grid mounts, the hook reads as an empty array. See [imperative handle](/docs/react/imperative-handle) for `getColumnOrder` and `subscribe`.
+
 ## See also
 
 - [Column resizing](/docs/react/column-resizing) and [column chooser](/docs/react/column-chooser) for the other column layout controls.

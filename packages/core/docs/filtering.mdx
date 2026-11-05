@@ -1,6 +1,6 @@
 ---
 title: "Filter state and the editor model"
-description: "describeColumnFilter, columnValueOptions and filterEditorReducer: the headless model a column's filter editor is drawn over, the filter menu's options, operators, condition rows, value cache and checklist window — and searchTextOf and setSearchText, a search box's."
+description: "The headless model a filter editor is drawn over (describeColumnFilter, columnValueOptions, filterEditorReducer) and the helpers behind a search box."
 ---
 
 A grid's filter is one `FilterState` — entries ANDed together, described with every entry kind on [Column filtering](/docs/react/column-filtering). A filter editor, whether a list of conditions or an Excel-style checklist of values, is a UI over one column's part of that state. Core holds everything such an editor decides, so a renderer only draws it and every renderer's editor behaves the same:

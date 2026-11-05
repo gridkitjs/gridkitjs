@@ -1,6 +1,6 @@
 ---
 title: "Overview"
-description: "Framework-free browser behaviours for GridKit renderers: gestures, focus, observers, virtualization, overlays, menus, checklists, toolbars, announcements, downloads, the clipboard and printing."
+description: "Framework-free browser behaviours for GridKit renderers: gestures, focus, observers, virtualization, overlays, menus, toolbars, downloads, clipboard."
 ---
 
 @gridkitjs/dom holds every browser behaviour a grid needs that is not drawing: pointer gestures, keyboard focus movement, the observers behind fit-to-width and infinite scroll, the row virtualizer's measuring, overlays and the menus and checklists shown in them, toolbars, the live region it reports changes through, the download an export ends in, the clipboard a copy goes to, and the hidden frame a print goes through. @gridkitjs/core decides what the grid does and runs without a DOM; @gridkitjs/dom does what needs one, with no framework; a renderer such as @gridkitjs/react draws the markup and attaches these behaviours to it. A second renderer — for Angular, Vue or Svelte — reuses both unchanged.
