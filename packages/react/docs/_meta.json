@@ -2,6 +2,7 @@
   "order": [
     "overview",
     "choosing-packages",
+    "migrating",
     "data-grid",
     "typescript",
     "accessibility",
@@ -17,6 +18,7 @@
     "clipboard",
     "printing",
     "imperative-handle",
+    "faq",
     "columns",
     "rows",
     "cells"
