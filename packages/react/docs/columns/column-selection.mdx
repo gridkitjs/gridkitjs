@@ -47,6 +47,10 @@ Each carries the column as a `SelectedColumn<Row>`:
 
 `useSelectionState`, documented on [row selection](/docs/react/row-selection#reading-selection-outside-the-grids-own-tree), covers row, column, and cell selection together as one hook rather than three — its `columnSelection` field is this page's `SelectionState`.
 
+## Keyboard
+
+Focus a header with the arrow keys, then press <Kbd>Enter</Kbd> to select its column alone, or <Kbd>Space</Kbd> to add it to the selection or remove it, as <Kbd>Ctrl</Kbd>+click does. <Kbd>Shift</Kbd> with either takes every column between the last one selected and this one. See [accessibility](/docs/react/accessibility#keyboard-navigation) for the full keyboard model.
+
 ## See also
 
 - [Row selection](/docs/react/row-selection) and [cell selection](/docs/react/cell-selection) for the other two areas.

@@ -338,6 +338,10 @@ The pagination methods on `DataGridApi`:
 
 `getRows()`/`getDisplayRows()` are unaffected — they still return every row (filtered, sorted, and optionally grouped), never just the current page's slice; `getPageRows()` is that slice.
 
+## Keyboard
+
+The pager is native controls: <Kbd>Tab</Kbd> moves through Previous, the page buttons, Next and the page-size `<select>`, and <Kbd>Enter</Kbd> or <Kbd>Space</Kbd> presses a button. The grid's own keys act on the current page only: <Kbd>PageUp</Kbd> and <Kbd>PageDown</Kbd> move by the rows that fit the viewport, not by pages, and <Kbd>Ctrl</Kbd>+<Kbd>Home</Kbd> and <Kbd>Ctrl</Kbd>+<Kbd>End</Kbd> go to the first and last row of the page. See [accessibility](/docs/react/accessibility#keyboard-navigation) for the full keyboard model.
+
 ## See also
 
 - [Row grouping](/docs/react/row-grouping) for `groupBy` and the group-boundary rule pagination respects.

@@ -47,6 +47,10 @@ Each carries the cell as a `SelectedCell<Row>`, resolved down to the value it sh
 
 `useSelectionState`, documented on [row selection](/docs/react/row-selection#reading-selection-outside-the-grids-own-tree), covers row, column, and cell selection together as one hook rather than three — its `cellSelection` field is this page's `CellSelectionState`.
 
+## Keyboard
+
+With the arrow keys, move focus to a cell and press <Kbd>Enter</Kbd> to select it. <Kbd>Space</Kbd> toggles it, so on the selected cell it clears the selection, as <Kbd>Ctrl</Kbd>+click does. See [accessibility](/docs/react/accessibility#keyboard-navigation) for the full keyboard model.
+
 ## See also
 
 - [Row selection](/docs/react/row-selection) and [column selection](/docs/react/column-selection) for the other two areas.
