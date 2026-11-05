@@ -3,7 +3,7 @@ title: "Controller"
 description: "createGridController: a grid's state, view and actions, without a renderer."
 ---
 
-createGridController is a whole grid minus the drawing. It holds the grid's state, derives the view from it with [resolveGridView](/docs/core/view), and carries every action a user can take — sorting, filtering, grouping, expanding, paging, resizing, reordering, hiding columns, selecting. @gridkitjs/react's DataGrid creates one per grid, hands it its props on every render, draws its view and calls its actions from event handlers; a renderer for another framework does the same, so none of them decides anything the user can see.
+`createGridController` is a whole grid minus the drawing. It holds the grid's state, derives the view from it with [resolveGridView](/docs/core/view), and carries every action a user can take — sorting, filtering, row grouping, expanding, pagination, resizing, reordering, hiding columns, selecting. @gridkitjs/react's DataGrid creates one per grid, hands it its props on every render, draws its view and calls its actions from event handlers; a renderer for another framework does the same, so none of them decides anything the user can see.
 
 ```ts
 import { createGridController } from "@gridkitjs/core";

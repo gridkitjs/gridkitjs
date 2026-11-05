@@ -3,17 +3,17 @@ title: "Pagination"
 description: "Splitting rows into pages with paginated, defaultPagination, and pager."
 ---
 
-`paginated` splits the grid's rows into pages of `pagination.pageSize`. It composes after every other row transform — filtering, sorting, and grouping all run first, so a page is a window onto the finished result, never an input to anything else.
+`paginated` splits the grid's rows into pages of `pagination.pageSize`. It composes after every other row transform — filtering, sorting, and grouping all run first, so a page is a window onto the finished result.
 
 ## Enable pagination
 
 <PaginationExample />
 
-Off by default, matching `sortableColumns`'s convention. `defaultPagination` seeds the uncontrolled starting page and page size — omit it and a paginated grid starts at `{ pageIndex: 0, pageSize: 25 }`. `pager.sizeOptions` feeds the built-in pager's page-size `<select>`; omit it (or pass an empty array) and that control doesn't render, leaving just Previous/Next and the page display.
+Off by default. `defaultPagination` seeds the uncontrolled starting page and page size — omit it and a paginated grid starts at `{ pageIndex: 0, pageSize: 25 }`. `pager.sizeOptions` feeds the built-in pager's page-size `<select>`; omit it (or pass an empty array) and that control doesn't render, leaving just Previous/Next and the page display.
 
 ## A page's unit is a group, not a leaf row
 
-When grouping and pagination are both on, `pageSize` counts top-level groups, not leaf rows — a group is never split across a page boundary. This is the same behavior ag-Grid Enterprise and Excel's own "page break between groups" option use, because a group header on one page and its remaining rows on the next reads as broken, not as a smaller page.
+When grouping and pagination are both on, `pageSize` counts top-level groups, not leaf rows — a group is never split across a page boundary. A group header on one page and its remaining rows on the next would read as broken, so a group always stays whole.
 
 ```tsx title="App.tsx"
 import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
@@ -57,7 +57,7 @@ export default function App() {
 }
 ```
 
-With `pageSize: 2`, each page holds two whole top-level regions — however many rows each contains — never half of one. An ungrouped grid's units are just its rows, so this rule subsumes ordinary row-count pagination without a special case: `paginated` alone, with no `groupBy`, pages by row count exactly as expected.
+With `pageSize: 2`, each page holds two whole top-level regions — however many rows each contains — never half of one. Without `groupBy` the units are just rows, so `paginated` alone pages by row count.
 
 Nested group levels don't add extra units of their own — a top-level group's whole subtree (nested headers and their rows alike) counts as the one unit its own top-level header started.
 
@@ -208,7 +208,7 @@ export default function App() {
 | `previousPage`    | `() => void`                     | Moves to the previous page. A no-op on the first page.                   |
 | `setPageSize`     | `(pageSize: number) => void`     | Changes the page size, resetting to the first page.                      |
 
-`pager.template={() => null}` is the documented way to suppress the built-in pager UI while keeping `paginated` row-windowing and the imperative API active — no separate `visible`/`showPager` flag needed. `variant` is ignored when `template` is given.
+Return `null` from `pager.template` to hide the built-in pager while keeping row windowing and the imperative API active. `variant` is ignored when `template` is given.
 
 ## Building a pager outside the grid's own tree
 
@@ -354,4 +354,4 @@ The pager is native controls: <Kbd>Tab</Kbd> moves through Previous, the page bu
 - [Column sorting](/docs/react/column-sorting) and [column filtering](/docs/react/column-filtering) for the transforms that run ahead of pagination in the pipeline.
 - [Accessibility](/docs/react/accessibility) for the WAI-ARIA grid pattern `aria-rowindex`/`aria-rowcount` follow.
 - [Imperative handle](/docs/react/imperative-handle) for the full `DataGridApi` surface.
-- [core: Paging](/docs/core/paging) for the framework-free logic.
+- [core: Pagination](/docs/core/paging) for the framework-free logic.

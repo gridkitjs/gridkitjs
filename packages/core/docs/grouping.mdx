@@ -1,9 +1,9 @@
 ---
-title: "Grouping"
-description: "The grouping transforms underneath groupBy, groupExpansion and the group-by bar."
+title: "Row grouping"
+description: "The row grouping transforms underneath groupBy, groupExpansion and the group-by bar."
 ---
 
-groupRows reshapes filtered, sorted rows into nested groups, and the other functions here change the two pieces of state it reads: the group-by stack and which groups are collapsed. The [view pipeline](/docs/core/view) and the [controller](/docs/core/controller) call them for you; reach for them directly in a custom adapter or group-by bar.
+`groupRows` reshapes filtered, sorted rows into nested groups, and the other functions here change the two pieces of state it reads: the group-by stack and which groups are collapsed. The [view pipeline](/docs/core/view) and the [controller](/docs/core/controller) call them for you; reach for them directly in a custom adapter or group-by bar.
 
 A `GroupByState` is `readonly GroupByEntry[]`, outer level first, each entry `{ columnId, direction? }` — a level's own `direction` orders its group values, not the rows inside a group. A `GroupExpansionState` is `readonly string[]`: the ids of the groups collapsed, so a group absent from it is expanded.
 

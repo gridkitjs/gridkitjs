@@ -1,9 +1,9 @@
 ---
-title: "Paging"
-description: "The paging logic underneath paginated and the numbered pager."
+title: "Pagination"
+description: "The pagination logic underneath paginated and the numbered pager."
 ---
 
-paginateRows slices the grid's rows into pages, and paginationWindow works out which page numbers a numbered pager shows. The [view pipeline](/docs/core/view) pages for you under `paginated`; reach for these directly in a custom adapter or a pager of your own.
+`paginateRows` slices the grid's rows into pages, and `paginationWindow` works out which page numbers a numbered pager shows. The [view pipeline](/docs/core/view) pages for you under `paginated`; reach for these directly in a custom adapter or a pager of your own.
 
 A `PaginationState` is `{ pageIndex, pageSize }`, with `pageIndex` 0-based.
 
@@ -46,7 +46,7 @@ paginationWindow(20, 20); // [1, "ellipsis", 16, 17, 18, 19, 20]
 
 ## In the React grid
 
-`paginated` and `pager` turn paging on — see [pagination](/docs/react/pagination).
+`paginated` and `pager` turn pagination on — see [pagination](/docs/react/pagination).
 
 ## See also
 

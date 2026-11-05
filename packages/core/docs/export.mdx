@@ -3,7 +3,7 @@ title: "Export"
 description: "buildExportTable: the grid's view as data — columns, typed and formatted cells, group and aggregate rows — for any export format."
 ---
 
-buildExportTable turns what the grid shows into an `ExportTable`: the columns, every row as typed and formatted cells, the group header and aggregate rows, and the grand total. Every export format, the clipboard and print are written from this one model, and it is built from the grid's view and state rather than from the page, so rows that are virtualised, on another page or inside a collapsed group still export, and no two outputs can disagree.
+`buildExportTable` turns what the grid shows into an `ExportTable`: the columns, every row as typed and formatted cells, the group header and aggregate rows, and the grand total. Every export format, the clipboard and print are written from this one model, and it is built from the grid's view and state rather than from the page, so rows that are virtualised, on another page or inside a collapsed group still export, and no two outputs can disagree.
 
 ```ts
 import {
