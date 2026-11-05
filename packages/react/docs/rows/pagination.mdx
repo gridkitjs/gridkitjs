@@ -9,7 +9,125 @@ description: "Splitting rows into pages with paginated, defaultPagination, and p
 
 <PaginationExample />
 
-Off by default. `defaultPagination` seeds the uncontrolled starting page and page size — omit it and a paginated grid starts at `{ pageIndex: 0, pageSize: 25 }`. `pager.sizeOptions` feeds the built-in pager's page-size `<select>`; omit it (or pass an empty array) and that control doesn't render, leaving just Previous/Next and the page display.
+Off by default. `defaultPagination` seeds the uncontrolled starting page and page size — omit it and a paginated grid starts at `{ pageIndex: 0, pageSize: 25 }`. `pager.sizeOptions` feeds the built-in pager's page-size `<select>`; omit it (or pass an empty array) and that control doesn't render, leaving the bar of First, Previous, the page display, Next and Last.
+
+## Props
+
+| Prop                 | Type                                     | Default                          | Description                                                                                                                                             |
+| -------------------- | ---------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `paginated`          | `boolean`                                | `false`                          | Whether the grid's rows are split into pages.                                                                                                           |
+| `defaultPagination`  | `PaginationState`                        | `{ pageIndex: 0, pageSize: 25 }` | The page and page size to start on. Uncontrolled.                                                                                                       |
+| `pagination`         | `PaginationState`                        |                                  | The page and page size, controlled — changed only through `onPaginationChange`, and never reset by the grid. See [controlled state](/docs/react/state). |
+| `pager`              | `PagerConfig`                            |                                  | Presentation options for the built-in pager.                                                                                                            |
+| `onPaginationChange` | `(event: PaginationChangeEvent) => void` |                                  | Once when the user changes the page or the page size.                                                                                                   |
+
+`PaginationState` is `{ pageIndex: number; pageSize: number }` (`pageIndex` 0-based). `PaginationChangeEvent` is `{ pagination: PaginationState; pageCount: number }` — the state to persist, plus the page count it produces, so a consumer doesn't have to recompute it. `PagerConfig` is `{ sizeOptions?: readonly number[]; variant?: "compact" | "numbered"; boundaryCount?: number; siblingCount?: number; template?: (context: PagerTemplateContext) => ReactNode }`.
+
+### `pager` fields
+
+| Field           | Type                                           | Default     | Description                                                                                          |
+| --------------- | ---------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------- |
+| `sizeOptions`   | `readonly number[]`                            |             | Page sizes offered by the page-size `<select>`. No control renders when omitted or empty.            |
+| `variant`       | `"compact" \| "numbered"`                      | `"compact"` | `"compact"` shows a "Page X of Y" status between the arrows; `"numbered"` shows page-number buttons. |
+| `boundaryCount` | `number`                                       | `1`         | Numbered variant only. Pages always shown at each end.                                               |
+| `siblingCount`  | `number`                                       | `1`         | Numbered variant only. Pages shown on each side of the current page.                                 |
+| `template`      | `(context: PagerTemplateContext) => ReactNode` |             | Replaces the built-in pager entirely when given. `variant` is ignored.                               |
+
+## The built-in pager
+
+Turning `paginated` on renders a compact pager below the grid: one connected bar of First, Previous, a "Page X of Y" display, Next and Last, followed (when `pager.sizeOptions` is given) by a page-size `<select>` with its label to its right. The pager is a `role="group"` named by the `pagerLabel` message. The four arrow buttons are icons, named by the `firstPage`, `previousPage`, `nextPage` and `lastPage` messages; the status and the select's label are `pageStatus` and `pageSizeLabel`. All of them can be translated, see [localization](/docs/react/localization).
+
+The bar holds still as the user pages: the status keeps the width of its widest text, "Page 30 of 30", from the first page on, and under the numbered variant every page-number slot is the same width, so the Next and Last buttons never move.
+
+It's semantically classed (`gridkit-grid-pager`, `grid-pager-bar`, `grid-pager-button`, `grid-pager-page`, `grid-pager-status`, `grid-pager-page-size` and a few more, listed in the [theme's pager classes](/docs/theme-tailwind#pager)) rather than carrying its own layout, the same as the rest of `@gridkitjs/react`; style it via `@gridkitjs/theme-tailwind` or your own CSS targeting those classes.
+
+A button that leads nowhere, First and Previous on the first page or Next and Last on the last, is disabled.
+
+To suppress the built-in pager while keeping row-windowing and the imperative API active, pass `pager={{ template: () => null }}` rather than turning `paginated` off — see [Custom pager template](#custom-pager-template) below.
+
+### Numbered pagination
+
+`pager={{ variant: "numbered" }}` swaps the "Page X of Y" display for page-number buttons, `[«][‹][1][2][3][4][5][…][n][›][»]`, instead of the default `"compact"` display. The example at the top of this page uses it, with `sizeOptions` for the page-size control.
+
+`pager.boundaryCount` (default `1`) sets how many pages are always shown at each end; `pager.siblingCount` (default `1`) sets how many pages are shown on each side of the current page. Once there are more pages than fit, each run of skipped pages collapses into a single `…` (`.grid-pager-ellipsis`), never two adjacent ones, and the window keeps the same number of slots on every page: `2 * boundaryCount + 2 * siblingCount + 3`, 7 with the defaults. Near either end the pages around the current one slide inwards rather than the window shrinking, so page 1 of 30 shows `1 2 3 4 5 … 30` and page 30 shows `1 … 26 27 28 29 30`. [`paginationWindow`](/docs/core/paging) works the window out. Both options are ignored under the default `"compact"` variant.
+
+Each page button is named by the `pageButtonLabel` message — "Page 3" in English — and the active page's button carries `aria-current="page"` rather than a dedicated CSS class — style it with `.grid-pager-button[aria-current="page"]`.
+
+### Custom pager template
+
+`pager.template` replaces the built-in pager's markup entirely with your own. It's a render prop, called on every render where pagination-relevant state changed, so it's always current — unlike building a pager purely against the imperative handle, which has no "something changed, re-render" signal of its own for a silent page reset (filtering, sorting, or regrouping shrinking the page count) or a data-driven `pageCount` change.
+
+Reach for `template` only when `pager.variant: "numbered"` genuinely doesn't fit — it already gives you `[«][‹][1][2][3][4][5][…][n][›][»]` with no markup of your own to write.
+
+```tsx title="App.tsx"
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
+
+interface Sale {
+  id: number;
+  region: string;
+  rep: string;
+  amount: number;
+}
+
+const regions = ["North", "South", "East", "West", "Central"];
+
+const sales: Sale[] = Array.from({ length: 60 }, (_, index) => ({
+  id: index + 1,
+  region: regions[index % regions.length] ?? "North",
+  rep: `Rep ${String((index % 12) + 1)}`,
+  amount: 100 + ((index * 37) % 900),
+}));
+
+const columns: readonly ColumnDefinition<Sale>[] = [
+  { field: "id", header: "#", type: "number", width: 80 },
+  { field: "region", header: "Region" },
+  { field: "rep", header: "Rep" },
+  { field: "amount", header: "Amount", type: "number" },
+];
+
+export default function App() {
+  return (
+    <DataGrid
+      columns={columns}
+      dataSource={sales}
+      getRowId={(row) => String(row.id)}
+      label="Sales"
+      paginated
+      defaultPagination={{ pageIndex: 0, pageSize: 10 }}
+      pager={{
+        template: ({ currentPage, pageCount, previousPage, nextPage }) => (
+          <div className="my-pager">
+            <button onClick={previousPage} disabled={currentPage <= 1}>
+              Back
+            </button>
+            <span>
+              {currentPage} / {pageCount}
+            </span>
+            <button onClick={nextPage} disabled={currentPage >= pageCount}>
+              Forward
+            </button>
+          </div>
+        ),
+      }}
+    />
+  );
+}
+```
+
+`PagerTemplateContext` carries everything needed to rebuild the built-in pager yourself:
+
+| Field             | Type                             | Description                                                              |
+| ----------------- | -------------------------------- | ------------------------------------------------------------------------ |
+| `pagination`      | `PaginationState`                | Same shape as `DataGridApi.getPagination()` — 0-based `pageIndex`.       |
+| `currentPage`     | `number`                         | `pagination.pageIndex + 1`, clamped — the display-ready page number.     |
+| `pageCount`       | `number`                         | How many pages the current page size splits the rows into.               |
+| `pageSizeOptions` | `readonly number[] \| undefined` | Passthrough of `pager.sizeOptions`.                                      |
+| `goToPage`        | `(pageIndex: number) => void`    | 0-based, same as `DataGridApi.goToPage` — not `currentPage`'s numbering. |
+| `nextPage`        | `() => void`                     | Moves to the next page. A no-op on the last page.                        |
+| `previousPage`    | `() => void`                     | Moves to the previous page. A no-op on the first page.                   |
+| `setPageSize`     | `(pageSize: number) => void`     | Changes the page size, resetting to the first page.                      |
+
+Return `null` from `pager.template` to hide the built-in pager while keeping row windowing and the imperative API active. `variant` is ignored when `template` is given.
 
 ## A page's unit is a group, not a leaf row
 
@@ -114,101 +232,17 @@ Use `rowIndex` for anything about the row's position on screen (alternating row 
 
 This is also why `aria-rowindex` on a rendered row reports the dataset position, not the page-relative one — the WAI-ARIA grid pattern expects a row's index to reflect its true position in the full set even when only one page of it is in the DOM. `aria-rowcount` stays the total row count the same way. Neither of these changes for a grid that never turns `paginated` on: `datasetIndex` equals `rowIndex` whenever there's only one page, so this is additive rather than a behavior change for an existing, unpaginated grid.
 
-## The built-in pager
+## Changing pages resets keyboard navigation and range selection to the page
 
-Turning `paginated` on renders a compact pager below the grid: one connected bar of First, Previous, a "Page X of Y" display, Next and Last, followed (when `pager.sizeOptions` is given) by a page-size `<select>` with its label to its right. The four arrow buttons are icons, named by the `firstPage`, `previousPage`, `nextPage` and `lastPage` messages; the status and the select's label are `pageStatus` and `pageSizeLabel`. All of them can be translated, see [localization](/docs/react/localization).
+Arrow-key navigation and <Kbd>Shift</Kbd>+click range selection both operate on what's actually rendered — the current page — not the whole dataset. A <Kbd>Shift</Kbd>+click range drawn on page 1 and then paged away from does not retroactively include rows revealed by a later page, the same way a range spanning a collapsed group excludes the rows hidden beneath it (see [row grouping](/docs/react/row-grouping)).
 
-The bar holds still as the user pages: the status keeps the width of its widest text, "Page 30 of 30", from the first page on, and under the numbered variant every page-number slot is the same width, so the Next and Last buttons never move.
+## Filtering, sorting, or regrouping resets to page 1
 
-It's semantically classed (`gridkit-grid-pager`, `grid-pager-bar`, `grid-pager-button`, `grid-pager-page`, `grid-pager-status`, `grid-pager-page-size` and a few more, listed in the [theme's pager classes](/docs/theme-tailwind#pager)) rather than carrying its own layout, the same as the rest of `@gridkitjs/react`; style it via `@gridkitjs/theme-tailwind` or your own CSS targeting those classes.
+A user looking at page 7 of a result that filtering, sorting, or regrouping just shrank to 2 pages is not silently stranded on an empty page — under uncontrolled pagination, any of the three resets `pageIndex` back to `0`. That reset fires no `onPaginationChange` of its own. A controlled `pagination` is yours to reset; until you do, the grid shows the last page that exists. See [controlled state](/docs/react/state#the-page-goes-back-to-the-first-page).
 
-The pager's buttons are ordinary buttons: <Kbd>Tab</Kbd> moves through them in order, and <Kbd>Enter</Kbd> or <Kbd>Space</Kbd> presses one. A button that leads nowhere, First and Previous on the first page or Next and Last on the last, is disabled.
+## Keyboard
 
-To suppress the built-in pager while keeping row-windowing and the imperative API active, pass `pager={{ template: () => null }}` rather than turning `paginated` off — see [Custom pager template](#custom-pager-template) below.
-
-### Numbered pagination
-
-`pager={{ variant: "numbered" }}` swaps the "Page X of Y" display for page-number buttons, `[«][‹][1][2][3][4][5][…][n][›][»]`, instead of the default `"compact"` display. The example at the top of this page uses it, with `sizeOptions` for the page-size control.
-
-`pager.boundaryCount` (default `1`) sets how many pages are always shown at each end; `pager.siblingCount` (default `1`) sets how many pages are shown on each side of the current page. Once there are more pages than fit, each run of skipped pages collapses into a single `…` (`.grid-pager-ellipsis`), never two adjacent ones, and the window keeps the same number of slots on every page: `2 * boundaryCount + 2 * siblingCount + 3`, 7 with the defaults. Near either end the pages around the current one slide inwards rather than the window shrinking, so page 1 of 30 shows `1 2 3 4 5 … 30` and page 30 shows `1 … 26 27 28 29 30`. [`paginationWindow`](/docs/core/paging) works the window out. Both options are ignored under the default `"compact"` variant.
-
-Each page button is named by the `pageButtonLabel` message — "Page 3" in English — and the active page's button carries `aria-current="page"` rather than a dedicated CSS class — style it with `.grid-pager-button[aria-current="page"]`.
-
-### Custom pager template
-
-`pager.template` replaces the built-in pager's markup entirely with your own. It's a render prop, called on every render where pagination-relevant state changed, so it's always current — unlike building a pager purely against the imperative handle, which has no "something changed, re-render" signal of its own for a silent page reset (filtering, sorting, or regrouping shrinking the page count) or a data-driven `pageCount` change.
-
-Reach for `template` only when `pager.variant: "numbered"` genuinely doesn't fit — it already gives you `[«][‹][1][2][3][4][5][…][n][›][»]` with no markup of your own to write.
-
-```tsx title="App.tsx"
-import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
-
-interface Sale {
-  id: number;
-  region: string;
-  rep: string;
-  amount: number;
-}
-
-const regions = ["North", "South", "East", "West", "Central"];
-
-const sales: Sale[] = Array.from({ length: 60 }, (_, index) => ({
-  id: index + 1,
-  region: regions[index % regions.length] ?? "North",
-  rep: `Rep ${String((index % 12) + 1)}`,
-  amount: 100 + ((index * 37) % 900),
-}));
-
-const columns: readonly ColumnDefinition<Sale>[] = [
-  { field: "id", header: "#", type: "number", width: 80 },
-  { field: "region", header: "Region" },
-  { field: "rep", header: "Rep" },
-  { field: "amount", header: "Amount", type: "number" },
-];
-
-export default function App() {
-  return (
-    <DataGrid
-      columns={columns}
-      dataSource={sales}
-      getRowId={(row) => String(row.id)}
-      label="Sales"
-      paginated
-      defaultPagination={{ pageIndex: 0, pageSize: 10 }}
-      pager={{
-        template: ({ currentPage, pageCount, previousPage, nextPage }) => (
-          <div className="my-pager">
-            <button onClick={previousPage} disabled={currentPage <= 1}>
-              Back
-            </button>
-            <span>
-              {currentPage} / {pageCount}
-            </span>
-            <button onClick={nextPage} disabled={currentPage >= pageCount}>
-              Forward
-            </button>
-          </div>
-        ),
-      }}
-    />
-  );
-}
-```
-
-`PagerTemplateContext` carries everything needed to rebuild the built-in pager yourself:
-
-| Field             | Type                             | Description                                                              |
-| ----------------- | -------------------------------- | ------------------------------------------------------------------------ |
-| `pagination`      | `PaginationState`                | Same shape as `DataGridApi.getPagination()` — 0-based `pageIndex`.       |
-| `currentPage`     | `number`                         | `pagination.pageIndex + 1`, clamped — the display-ready page number.     |
-| `pageCount`       | `number`                         | How many pages the current page size splits the rows into.               |
-| `pageSizeOptions` | `readonly number[] \| undefined` | Passthrough of `pager.sizeOptions`.                                      |
-| `goToPage`        | `(pageIndex: number) => void`    | 0-based, same as `DataGridApi.goToPage` — not `currentPage`'s numbering. |
-| `nextPage`        | `() => void`                     | Moves to the next page. A no-op on the last page.                        |
-| `previousPage`    | `() => void`                     | Moves to the previous page. A no-op on the first page.                   |
-| `setPageSize`     | `(pageSize: number) => void`     | Changes the page size, resetting to the first page.                      |
-
-Return `null` from `pager.template` to hide the built-in pager while keeping row windowing and the imperative API active. `variant` is ignored when `template` is given.
+The pager is native controls: <Kbd>Tab</Kbd> moves through First, Previous, the page buttons (numbered variant only), Next, Last and the page-size `<select>`, and <Kbd>Enter</Kbd> or <Kbd>Space</Kbd> presses a button. The grid's own keys act on the current page only: <Kbd>PageUp</Kbd> and <Kbd>PageDown</Kbd> move by the rows that fit the viewport, not by pages, and <Kbd>Ctrl</Kbd>+<Kbd>Home</Kbd> and <Kbd>Ctrl</Kbd>+<Kbd>End</Kbd> go to the first and last row of the page. See [accessibility](/docs/react/accessibility#keyboard-navigation) for the full keyboard model.
 
 ## Building a pager outside the grid's own tree
 
@@ -297,36 +331,6 @@ export default function App() {
 
 See [imperative handle](/docs/react/imperative-handle) for `subscribe`, the primitive this hook is built on.
 
-## Changing pages resets keyboard navigation and range selection to the page
-
-Arrow-key navigation and <Kbd>Shift</Kbd>+click range selection both operate on what's actually rendered — the current page — not the whole dataset. A <Kbd>Shift</Kbd>+click range drawn on page 1 and then paged away from does not retroactively include rows revealed by a later page, the same way a range spanning a collapsed group excludes the rows hidden beneath it (see [row grouping](/docs/react/row-grouping)).
-
-## Filtering, sorting, or regrouping resets to page 1
-
-A user looking at page 7 of a result that filtering, sorting, or regrouping just shrank to 2 pages is not silently stranded on an empty page — under uncontrolled pagination, any of the three resets `pageIndex` back to `0`. That reset fires no `onPaginationChange` of its own. A controlled `pagination` is yours to reset; until you do, the grid shows the last page that exists. See [controlled state](/docs/react/state#the-page-goes-back-to-the-first-page).
-
-## Props
-
-| Prop                 | Type                                     | Default                          | Description                                                                                                                                             |
-| -------------------- | ---------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `paginated`          | `boolean`                                | `false`                          | Whether the grid's rows are split into pages.                                                                                                           |
-| `defaultPagination`  | `PaginationState`                        | `{ pageIndex: 0, pageSize: 25 }` | The page and page size to start on. Uncontrolled.                                                                                                       |
-| `pagination`         | `PaginationState`                        |                                  | The page and page size, controlled — changed only through `onPaginationChange`, and never reset by the grid. See [controlled state](/docs/react/state). |
-| `pager`              | `PagerConfig`                            |                                  | Presentation options for the built-in pager.                                                                                                            |
-| `onPaginationChange` | `(event: PaginationChangeEvent) => void` |                                  | Once when the user changes the page or the page size.                                                                                                   |
-
-`PaginationState` is `{ pageIndex: number; pageSize: number }` (`pageIndex` 0-based). `PaginationChangeEvent` is `{ pagination: PaginationState; pageCount: number }` — the state to persist, plus the page count it produces, so a consumer doesn't have to recompute it. `PagerConfig` is `{ sizeOptions?: readonly number[]; variant?: "compact" | "numbered"; boundaryCount?: number; siblingCount?: number; template?: (context: PagerTemplateContext) => ReactNode }`.
-
-### `pager` fields
-
-| Field           | Type                                           | Default     | Description                                                                                          |
-| --------------- | ---------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------- |
-| `sizeOptions`   | `readonly number[]`                            |             | Page sizes offered by the page-size `<select>`. No control renders when omitted or empty.            |
-| `variant`       | `"compact" \| "numbered"`                      | `"compact"` | `"compact"` shows a "Page X of Y" status between the arrows; `"numbered"` shows page-number buttons. |
-| `boundaryCount` | `number`                                       | `1`         | Numbered variant only. Pages always shown at each end.                                               |
-| `siblingCount`  | `number`                                       | `1`         | Numbered variant only. Pages shown on each side of the current page.                                 |
-| `template`      | `(context: PagerTemplateContext) => ReactNode` |             | Replaces the built-in pager entirely when given. `variant` is ignored.                               |
-
 ## Imperative handle
 
 The pagination methods on `DataGridApi`:
@@ -343,10 +347,6 @@ The pagination methods on `DataGridApi`:
 | `setPageSize(pageSize)`     | Changes the page size, resetting to the first page.                                                              |
 
 `getRows()`/`getDisplayRows()` are unaffected — they still return every row (filtered, sorted, and optionally grouped), never just the current page's slice; `getPageRows()` is that slice.
-
-## Keyboard
-
-The pager is native controls: <Kbd>Tab</Kbd> moves through Previous, the page buttons, Next and the page-size `<select>`, and <Kbd>Enter</Kbd> or <Kbd>Space</Kbd> presses a button. The grid's own keys act on the current page only: <Kbd>PageUp</Kbd> and <Kbd>PageDown</Kbd> move by the rows that fit the viewport, not by pages, and <Kbd>Ctrl</Kbd>+<Kbd>Home</Kbd> and <Kbd>Ctrl</Kbd>+<Kbd>End</Kbd> go to the first and last row of the page. See [accessibility](/docs/react/accessibility#keyboard-navigation) for the full keyboard model.
 
 ## See also
 
