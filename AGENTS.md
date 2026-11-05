@@ -50,9 +50,29 @@ which is what `@source` used to paper over.
 Each published package keeps its own docs as `.mdx` under
 `packages/<pkg>/docs/`, with page order controlled by that folder's
 `_meta.json`. Nested topics live in subfolders with their own `_meta.json` —
-e.g. `packages/react/docs/columns/`. They are fetched and rendered by the
+e.g. `packages/react/docs/columns/`. They are rendered by the
 `gridkit-website` repo — there is no docs build here, so `.mdx` changes can
 only be previewed there.
+
+The website does not read those files one by one. It reads a single
+`docs-manifest.json`, built by `scripts/build-docs-manifest.mjs`: every
+published package's name, `version` and `CHANGELOG.md`, every `.mdx` page
+with its frontmatter, body, blob SHA and last commit date, and every parsed
+`_meta.json`. The script's JSDoc typedefs are the manifest's contract with
+the website, so a field changed there is a change to the website too; bump
+`schemaVersion` when a field changes meaning or goes away.
+
+The `revalidate-docs` workflow builds it on every push to `main` that touches
+`packages/*/docs/**`, `packages/*/CHANGELOG.md` or `packages/*/package.json`,
+commits it to the orphan `docs-meta` branch (`main` is protected, so it cannot
+live there), and POSTs a signed `{ ref, sha, manifestSha, ts }` to the
+website's revalidation webhook. Never commit to `docs-meta` by hand; every
+commit on it is the workflow's. To preview a branch's docs, run the workflow
+on that branch from the Actions tab: it publishes to `docs-meta-<branch>`
+(slashes become dashes) and does not notify the website, so point the
+website's `DOCS_MANIFEST_REF` at that branch. To inspect the manifest
+locally, run `node scripts/build-docs-manifest.mjs`; it writes the gitignored
+`docs-manifest.json` at the repo root, or to the path given as its argument.
 
 Keeping these current is a priority, not a follow-up task. A new public API,
 component, or prop needs a doc page — or a new section on an existing one —
