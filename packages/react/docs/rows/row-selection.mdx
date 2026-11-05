@@ -225,6 +225,10 @@ It returns a `SelectionStateApi`:
 
 Before the grid mounts, the row/column fields read as empty arrays and the cell field reads `null`. See [imperative handle](/docs/react/imperative-handle) for `subscribe`, the primitive this hook is built on.
 
+## Keyboard
+
+Select with the keyboard from a focused cell, as a click does: <Kbd>Enter</Kbd> stands in for a plain click and <Kbd>Space</Kbd> for <Kbd>Ctrl</Kbd>+click, so <Kbd>Space</Kbd> adds the row to the selection or removes it. Holding <Kbd>Shift</Kbd> with either selects a range from the last row selected, as <Kbd>Shift</Kbd>+click does. With `toggleOnClick`, <Kbd>Enter</Kbd> toggles too. The arrow keys move focus between rows without changing the selection. See [accessibility](/docs/react/accessibility#keyboard-navigation) for the full keyboard model.
+
 ## See also
 
 - [Cell selection](/docs/react/cell-selection) and [column selection](/docs/react/column-selection) for the other two areas.
