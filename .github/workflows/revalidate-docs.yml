@@ -7,8 +7,11 @@ name: Publish docs manifest
 on:
   push:
     branches: [main]
+    # Docs pages, changelogs and versions: everything the manifest carries.
     paths:
       - "packages/*/docs/**"
+      - "packages/*/CHANGELOG.md"
+      - "packages/*/package.json"
   # Run by hand from another branch to publish a preview manifest to
   # docs-meta-<branch>, for the website's DOCS_MANIFEST_REF. Only a run on
   # main notifies the website.
@@ -70,15 +73,23 @@ jobs:
           git push origin "$commit:refs/heads/$branch"
           echo "manifest-sha=$commit" >> "$GITHUB_OUTPUT"
 
+      # ts is Unix time in seconds; the website rejects a request whose ts is
+      # more than five minutes off, so a captured one cannot be replayed.
       - name: Sign and send revalidation request
         if: github.ref == 'refs/heads/main'
         env:
           SECRET: ${{ secrets.DOCS_REVALIDATE_SECRET }}
           URL: ${{ vars.WEBSITE_REVALIDATE_URL }}
+          MANIFEST_SHA: ${{ steps.publish.outputs.manifest-sha }}
         run: |
-          body='{"ref":"${{ github.ref }}"}'
+          body=$(jq -nc \
+            --arg ref "$GITHUB_REF" \
+            --arg sha "$GITHUB_SHA" \
+            --arg manifestSha "$MANIFEST_SHA" \
+            --argjson ts "$(date +%s)" \
+            '{ref: $ref, sha: $sha, manifestSha: $manifestSha, ts: $ts}')
           signature=$(printf '%s' "$body" | openssl dgst -sha256 -hmac "$SECRET" | sed 's/^.* //')
-          curl --fail-with-body -sS -X POST "$URL" \
+          curl --fail-with-body -sS --retry 3 --retry-all-errors -X POST "$URL" \
             -H "Content-Type: application/json" \
             -H "X-Hub-Signature-256: sha256=$signature" \
-            -d "$body"
+            --data-binary "$body"
