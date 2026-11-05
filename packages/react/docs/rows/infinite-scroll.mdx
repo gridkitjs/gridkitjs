@@ -26,9 +26,13 @@ description: "Loading more rows as the user scrolls near the bottom, instead of 
 
 <InfiniteScrollExample />
 
-## Mutually exclusive with `paginated`
+<Callout type="warning" title="Mutually exclusive with paginated">
 
-`paginated` and `infiniteScroll` are two different answers to the same question — how the grid moves through more rows than fit on screen — and don't compose. Setting both logs a dev-time `console.error` and only `paginated` takes effect:
+`paginated` and `infiniteScroll` are two different answers to the same question: how the grid moves through more rows than fit on screen. They do not compose. Setting both logs a dev-time `console.error` and only `paginated` takes effect.
+
+</Callout>
+
+The message reads:
 
 ```tsx
 // console.error: DataGrid: `paginated` and `infiniteScroll` are

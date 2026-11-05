@@ -137,13 +137,15 @@ The delimited formats lay the rows out the same way: the header row when `table.
 
 `"text"` makes a file that reads like the screen, with the column's `format` and the grid's `locale` applied: `1.234,50 €` rather than `1234.5`. Use `"raw"` for a file another program reads back, where a formatted number or a localised date would have to be parsed again.
 
-## CSV pitfalls
+<Callout type="warning" title="CSV pitfalls">
 
 A CSV file has no header of its own saying how to read it, and spreadsheets guess. The defaults are chosen so that Excel, the usual reader, gets each guess right.
 
 - **Encoding.** Without a byte order mark, Excel reads a CSV in the system's legacy code page, so `Ćirilica`, `ш` or `€` arrive garbled. `bom: true` writes one; turn it off only for a program that does not expect it.
 - **Delimiter.** Excel splits a CSV on the system's list separator, which is `;` wherever a decimal is written with a comma — most of Europe, Macedonian and Croatian included. A comma-separated file opens there as one column. `delimiter: "auto"` with the user's `locale` writes `;` in those locales and `,` elsewhere.
 - **Formula injection.** A spreadsheet runs a field that starts with `=`, `+`, `-` or `@` as a formula, and a leading tab or carriage return can hide such a start. A value a user typed into the data — `=HYPERLINK(…)`, or a call that runs a command — would then run on the machine of whoever opens the export. `neutralizeFormulas: true` writes such a field with a leading `'`, which the spreadsheet shows as text. A cell whose typed value is a number keeps a leading `-` or `+`, so `-5` stays a number; every other field, the header and group labels included, is guarded.
+
+</Callout>
 
 ## TSV
 
