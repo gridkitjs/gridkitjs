@@ -3,7 +3,7 @@ title: "Row selection"
 description: "Letting the user select whole rows with selectable.rows."
 ---
 
-selectable.rows takes a SelectionMode — false, "single", or "multiple" — off by default, since selection claims the click a display-only grid shouldn't. Give getRowId alongside it for data that sorts, filters, or pages; without one a row is identified by its position, so a re-sort leaves the same positions selected under different rows.
+`selectable.rows` takes a `SelectionMode`: `false`, `"single"` or `"multiple"`. It is off by default, since selection claims the click a display-only grid shouldn't. Give `getRowId` alongside it for data that sorts, filters, or pages; without one a row is identified by its position, so a re-sort leaves the same positions selected under different rows.
 
 ## Multi-select rows
 
@@ -26,20 +26,47 @@ selectable.rows takes a SelectionMode — false, "single", or "multiple" — off
 
 By default a plain click selects a row alone and <Kbd>Ctrl</Kbd>+click adds to the selection. `toggleOnClick` makes the plain click a toggle instead — a checklist, where the user picks rows one after another without holding a key:
 
-```ts
-<DataGrid
-  columns={columns}
-  dataSource={rows}
-  getRowId={(row) => String(row.Id)}
-  selectable={{ rows: "multiple", toggleOnClick: true }}
-/>
+```tsx title="App.tsx"
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
+
+interface Contact {
+  id: number;
+  name: string;
+  email: string;
+  team: string;
+}
+
+const contacts: Contact[] = [
+  { id: 1, name: "Ana Petrova", email: "ana@example.com", team: "Design" },
+  { id: 2, name: "Marko Ilic", email: "marko@example.com", team: "Support" },
+  { id: 3, name: "Ivana Novak", email: "ivana@example.com", team: "Design" },
+  { id: 4, name: "Luka Horvat", email: "luka@example.com", team: "Sales" },
+];
+
+const columns: readonly ColumnDefinition<Contact>[] = [
+  { field: "name", header: "Name" },
+  { field: "email", header: "Email" },
+  { field: "team", header: "Team" },
+];
+
+export default function App() {
+  return (
+    <DataGrid
+      columns={columns}
+      dataSource={contacts}
+      getRowId={(row) => String(row.id)}
+      label="Contacts"
+      selectable={{ rows: "multiple", toggleOnClick: true }}
+    />
+  );
+}
 ```
 
 Clicking a selected row deselects it. <Kbd>Shift</Kbd>+click still selects a range from the last row clicked, and <Kbd>Enter</Kbd> on a focused cell, which stands in for the plain click, toggles too. It applies to rows only: a column or cell click is unchanged.
 
 ## Payload shape
 
-`RowSelectionChangeEvent<Row>` — the payload of `onRowSelectionChange`, and the one to persist from:
+`RowSelectionChangeEvent<Row>` is the payload of `onRowSelectionChange`, and the one to persist from:
 
 | Field       | Type                          | Description                                                 |
 | ----------- | ----------------------------- | ----------------------------------------------------------- |
@@ -48,33 +75,114 @@ Clicking a selected row deselects it. <Kbd>Shift</Kbd>+click still selects a ran
 | `selected`  | `readonly ResolvedRow<Row>[]` | Every selected row, not only what this interaction changed. |
 | `selection` | `SelectionState`              | The same rows, as ids only — `readonly string[]`.           |
 
-See [imperative handle](/docs/react/imperative-handle#resolved-row-and-column) for `ResolvedRow<Row>`'s own fields. `onRowSelect`/`onRowsSelect`/`onRowDeselect`/`onRowsDeselect` fire the row(s) they name, each as a `ResolvedRow<Row>`, alongside the `selection` at that point.
+See [imperative handle](/docs/react/imperative-handle#resolved-row-and-column) for `ResolvedRow<Row>`'s own fields. The other four callbacks, `onRowSelect`, `onRowsSelect`, `onRowDeselect` and `onRowsDeselect`, pass the rows they name, each as a `ResolvedRow<Row>`, alongside the `selection` at that point.
 
 ## Selecting from code
 
 The grid's `ref` selects rows by id and reads the selected rows back:
 
-```ts
-gridRef.current?.selectRows(["42", "43"]); // exactly these
-gridRef.current?.selectRows(["44"], "toggle"); // flip one, keep the rest
-gridRef.current?.getSelectedRows(); // ResolvedRow<Row>[], in selection order
-```
-
-`selectRows` selects as a user could, within `selectable.rows` — under `"single"` only the last id is kept, and with rows off it does nothing — and fires the row callbacks once for the whole call. `getSelectedRows` resolves the selected ids against every row the filter lets through, on any page and in any group; a row filtered out while selected is left out until it is back, though its id stays in `getRowSelection()`.
-
-## Reading selection outside the grid's own tree
-
-`useSelectionState` subscribes to row, column, _and_ cell selection together through the grid's `ref` — one combined hook, not three, matching how the grid treats all three as one concern internally — for a "N rows selected" toolbar living elsewhere on the page:
-
-```ts
-import { useRef } from "react";
+```tsx title="App.tsx"
+import { useRef, useState } from "react";
 import {
   DataGrid,
-  useSelectionState,
+  type ColumnDefinition,
   type DataGridApi,
 } from "@gridkitjs/react";
 
-function Toolbar({ gridRef }: { gridRef: RefObject<DataGridApi<Row> | null> }) {
+interface Contact {
+  id: number;
+  name: string;
+  email: string;
+  team: string;
+}
+
+const contacts: Contact[] = [
+  { id: 1, name: "Ana Petrova", email: "ana@example.com", team: "Design" },
+  { id: 2, name: "Marko Ilic", email: "marko@example.com", team: "Support" },
+  { id: 3, name: "Ivana Novak", email: "ivana@example.com", team: "Design" },
+  { id: 4, name: "Luka Horvat", email: "luka@example.com", team: "Sales" },
+];
+
+const columns: readonly ColumnDefinition<Contact>[] = [
+  { field: "name", header: "Name" },
+  { field: "email", header: "Email" },
+  { field: "team", header: "Team" },
+];
+
+export default function App() {
+  const gridRef = useRef<DataGridApi<Contact>>(null);
+  const [names, setNames] = useState("");
+
+  return (
+    <>
+      <button onClick={() => gridRef.current?.selectRows(["1", "3"])}>
+        Select Ana and Ivana
+      </button>
+      <button onClick={() => gridRef.current?.selectRows(["4"], "toggle")}>
+        Toggle Luka
+      </button>
+      <button
+        onClick={() => {
+          const selected = gridRef.current?.getSelectedRows() ?? [];
+          setNames(selected.map(({ row }) => row.name).join(", "));
+        }}
+      >
+        Read the selection
+      </button>
+      <p>{names}</p>
+      <DataGrid
+        ref={gridRef}
+        columns={columns}
+        dataSource={contacts}
+        getRowId={(row) => String(row.id)}
+        label="Contacts"
+        selectable={{ rows: "multiple" }}
+      />
+    </>
+  );
+}
+```
+
+`selectRows(ids)` selects exactly those rows, and `selectRows(ids, "toggle")` flips them and keeps the rest. It selects as a user could, within `selectable.rows` — under `"single"` only the last id is kept, and with rows off it does nothing — and fires the row callbacks once for the whole call. `getSelectedRows()` returns `ResolvedRow<Row>[]` in selection order. It resolves the selected ids against every row the filter lets through, on any page and in any group; a row filtered out while selected is left out until it is back, though its id stays in `getRowSelection()`.
+
+## Reading selection outside the grid's own tree
+
+`useSelectionState` subscribes to row, column _and_ cell selection together through the grid's `ref`, for a "N rows selected" toolbar living elsewhere on the page:
+
+```tsx title="App.tsx"
+import { useRef, type RefObject } from "react";
+import {
+  DataGrid,
+  useSelectionState,
+  type ColumnDefinition,
+  type DataGridApi,
+} from "@gridkitjs/react";
+
+interface Contact {
+  id: number;
+  name: string;
+  email: string;
+  team: string;
+}
+
+const contacts: Contact[] = [
+  { id: 1, name: "Ana Petrova", email: "ana@example.com", team: "Design" },
+  { id: 2, name: "Marko Ilic", email: "marko@example.com", team: "Support" },
+  { id: 3, name: "Ivana Novak", email: "ivana@example.com", team: "Design" },
+  { id: 4, name: "Luka Horvat", email: "luka@example.com", team: "Sales" },
+];
+
+const columns: readonly ColumnDefinition<Contact>[] = [
+  { field: "name", header: "Name" },
+  { field: "email", header: "Email" },
+  { field: "team", header: "Team" },
+];
+
+function SelectionBar({
+  gridRef,
+}: {
+  gridRef: RefObject<DataGridApi<Contact> | null>;
+}) {
   const { rowSelection, clearSelection, selectAllRows } =
     useSelectionState(gridRef);
 
@@ -84,6 +192,23 @@ function Toolbar({ gridRef }: { gridRef: RefObject<DataGridApi<Row> | null> }) {
       <button onClick={selectAllRows}>Select all</button>
       <button onClick={clearSelection}>Clear</button>
     </div>
+  );
+}
+
+export default function App() {
+  const gridRef = useRef<DataGridApi<Contact>>(null);
+  return (
+    <>
+      <SelectionBar gridRef={gridRef} />
+      <DataGrid
+        ref={gridRef}
+        columns={columns}
+        dataSource={contacts}
+        getRowId={(row) => String(row.id)}
+        label="Contacts"
+        selectable={{ rows: "multiple" }}
+      />
+    </>
   );
 }
 ```

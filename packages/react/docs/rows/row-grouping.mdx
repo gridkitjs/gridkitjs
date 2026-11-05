@@ -41,42 +41,86 @@ defaultGroupExpansion?: GroupExpansionState; // group ids collapsed to start wit
 onGroupExpansionChange?: (event: GroupExpansionEvent) => void;
 ```
 
-`GroupExpansionState` holds only the collapsed exceptions — a group id absent from it is expanded, the same way `ColumnSizingState` holds only resized widths. Build a group id with `groupRowId(path)` (`@gridkitjs/core`) rather than constructing one by hand; it's exposed on every group's `groupId` already, via the imperative API's `getDisplayRows()`.
+`GroupExpansionState` holds only the collapsed exceptions — a group id absent from it is expanded, the same way `ColumnSizingState` holds only resized widths. Build a group id with `groupRowId(path)` (`@gridkitjs/core`) rather than constructing one by hand; each group row already carries its own as `groupId`, in the rows the ref's `getDisplayRows()` returns.
 
-| Field       | Type                  | Description                                                                                                      |
-| ----------- | --------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `groupId`   | `string \| null`      | The group toggled, or `null` for `expandAllGroups()`/`collapseAllGroups()`, which touch every group in one call. |
-| `expansion` | `GroupExpansionState` | The full collapsed set after the change.                                                                         |
+| Field       | Type                  | Description                                                                                                          |
+| ----------- | --------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `groupId`   | `string \| null`      | The group toggled, or `null` for `expandAllGroups()` and `collapseAllGroups()`, which touch every group in one call. |
+| `expansion` | `GroupExpansionState` | The full collapsed set after the change.                                                                             |
 
-"Expand all groups" and "Collapse all groups" — the `group.expandAll` and `group.collapseAll` commands — are in the default [context menu](/docs/react/context-menu#default-items) of a group row and, while the grid is grouped, of a cell; a [toolbar](/docs/react/toolbar) can list them too. From a button of your own, call `gridRef.current?.expandAllGroups()` or `collapseAllGroups()`. See [imperative handle](/docs/react/imperative-handle) for both, and for `getGroupBy()`/`getGroupExpansion()`/`getDisplayRows()`.
+"Expand all groups" and "Collapse all groups" — the `group.expandAll` and `group.collapseAll` commands — are in the default [context menu](/docs/react/context-menu#default-items) of a group row and, while the grid is grouped, of a cell; a [toolbar](/docs/react/toolbar) can list them too. From a button of your own, call `gridRef.current?.expandAllGroups()` or `collapseAllGroups()`. See [imperative handle](/docs/react/imperative-handle) for both, and for `getGroupBy()`, `getGroupExpansion()` and `getDisplayRows()`.
 
 ## Building a group-by UI outside the grid's own tree
 
 `useGroupByState` subscribes to the grid's group-by and group-expansion state through its `ref`, for a custom summary sidebar or group-by bar of your own living elsewhere on the page:
 
-```ts
-import { useRef } from "react";
+```tsx title="App.tsx"
+import { useRef, type RefObject } from "react";
 import {
   DataGrid,
   useGroupByState,
+  type ColumnDefinition,
   type DataGridApi,
 } from "@gridkitjs/react";
 
-function Sidebar({ gridRef }: { gridRef: RefObject<DataGridApi<Row> | null> }) {
+interface Employee {
+  id: number;
+  name: string;
+  department: string;
+  office: string;
+}
+
+const employees: Employee[] = [
+  { id: 1, name: "Ana", department: "Engineering", office: "Skopje" },
+  { id: 2, name: "Marko", department: "Engineering", office: "Belgrade" },
+  { id: 3, name: "Ivana", department: "Design", office: "Skopje" },
+  { id: 4, name: "Luka", department: "Sales", office: "Zagreb" },
+  { id: 5, name: "Elena", department: "Design", office: "Belgrade" },
+];
+
+const columns: readonly ColumnDefinition<Employee>[] = [
+  { field: "name", header: "Name" },
+  { field: "department", header: "Department" },
+  { field: "office", header: "Office" },
+];
+
+function GroupingSummary({
+  gridRef,
+}: {
+  gridRef: RefObject<DataGridApi<Employee> | null>;
+}) {
   const { groupBy, expandAllGroups, collapseAllGroups } =
     useGroupByState(gridRef);
 
   return (
     <div className="my-sidebar">
-      <p>Grouped by: {groupBy.map((level) => level.columnId).join(" → ")}</p>
+      <p>Grouped by: {groupBy.map((level) => level.columnId).join(", ")}</p>
       <button onClick={expandAllGroups}>Expand all</button>
       <button onClick={collapseAllGroups}>Collapse all</button>
     </div>
   );
 }
+
+export default function App() {
+  const gridRef = useRef<DataGridApi<Employee>>(null);
+  return (
+    <>
+      <GroupingSummary gridRef={gridRef} />
+      <DataGrid
+        ref={gridRef}
+        columns={columns}
+        dataSource={employees}
+        getRowId={(row) => String(row.id)}
+        label="Employees"
+        groupableColumns
+        defaultGroupBy={[{ columnId: "department" }]}
+      />
+    </>
+  );
+}
 ```
 
-`useGroupByState` returns a `GroupByStateApi`, below. To toggle a single group, give the ref's `setGroupExpansion(expansion)` the collapsed set with that group's id added or removed — it replaces the set and fires `onGroupExpansionChange` with `groupId: null`; `setGroupBy(groupBy)` replaces the stack the same way. A specific group's own computed aggregates are read off `getDisplayRows()`'s per-header `aggregates` field rather than a getter here — see [`useAggregateState`](/docs/react/aggregate-functions) for the grand-total equivalent.
+`useGroupByState` returns a `GroupByStateApi`, below. To toggle a single group, give the ref's `setGroupExpansion(expansion)` the collapsed set with that group's id added or removed — it replaces the set and fires `onGroupExpansionChange` with `groupId: null`; `setGroupBy(groupBy)` replaces the stack the same way. A group's own aggregates are on its header row's `aggregates` field, in the rows `getDisplayRows()` returns, rather than a getter here — see [`useAggregateState`](/docs/react/aggregate-functions) for the grand-total equivalent.
 
 | Field               | Type                  | Description                                    |
 | ------------------- | --------------------- | ---------------------------------------------- |
@@ -95,13 +139,43 @@ Before the grid mounts, both fields read as empty and the actions are no-ops. Se
 - `"always"` — rendered unconditionally, a fixed drop target and a constant reminder grouping exists.
 - `"never"` — never rendered, for a grid driving `groupBy` entirely through header toggles or programmatically.
 
-```ts
-<DataGrid
-  columns={columns}
-  dataSource={rows}
-  groupableColumns
-  groupByBarVisibility="always"
-/>;
+```tsx title="App.tsx"
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
+
+interface Employee {
+  id: number;
+  name: string;
+  department: string;
+  office: string;
+}
+
+const employees: Employee[] = [
+  { id: 1, name: "Ana", department: "Engineering", office: "Skopje" },
+  { id: 2, name: "Marko", department: "Engineering", office: "Belgrade" },
+  { id: 3, name: "Ivana", department: "Design", office: "Skopje" },
+  { id: 4, name: "Luka", department: "Sales", office: "Zagreb" },
+  { id: 5, name: "Elena", department: "Design", office: "Belgrade" },
+];
+
+const columns: readonly ColumnDefinition<Employee>[] = [
+  { field: "name", header: "Name" },
+  { field: "department", header: "Department" },
+  { field: "office", header: "Office" },
+];
+
+export default function App() {
+  return (
+    <DataGrid
+      columns={columns}
+      dataSource={employees}
+      getRowId={(row) => String(row.id)}
+      label="Employees"
+      groupableColumns
+      groupByDraggableColumns
+      groupByBarVisibility="always"
+    />
+  );
+}
 ```
 
 ## Props

@@ -15,15 +15,46 @@ Off by default, matching `sortableColumns`'s convention. `defaultPagination` see
 
 When grouping and pagination are both on, `pageSize` counts top-level groups, not leaf rows — a group is never split across a page boundary. This is the same behavior ag-Grid Enterprise and Excel's own "page break between groups" option use, because a group header on one page and its remaining rows on the next reads as broken, not as a smaller page.
 
-```ts
-<DataGrid
-  columns={columns}
-  dataSource={rows}
-  groupableColumns
-  defaultGroupBy={[{ columnId: "Region" }]}
-  paginated
-  defaultPagination={{ pageIndex: 0, pageSize: 2 }}
-/>;
+```tsx title="App.tsx"
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
+
+interface Sale {
+  id: number;
+  region: string;
+  rep: string;
+  amount: number;
+}
+
+const regions = ["North", "South", "East", "West", "Central"];
+
+const sales: Sale[] = Array.from({ length: 60 }, (_, index) => ({
+  id: index + 1,
+  region: regions[index % regions.length] ?? "North",
+  rep: `Rep ${String((index % 12) + 1)}`,
+  amount: 100 + ((index * 37) % 900),
+}));
+
+const columns: readonly ColumnDefinition<Sale>[] = [
+  { field: "id", header: "#", type: "number", width: 80 },
+  { field: "region", header: "Region" },
+  { field: "rep", header: "Rep" },
+  { field: "amount", header: "Amount", type: "number" },
+];
+
+export default function App() {
+  return (
+    <DataGrid
+      columns={columns}
+      dataSource={sales}
+      getRowId={(row) => String(row.id)}
+      label="Sales by region"
+      groupableColumns
+      defaultGroupBy={[{ columnId: "region" }]}
+      paginated
+      defaultPagination={{ pageIndex: 0, pageSize: 2 }}
+    />
+  );
+}
 ```
 
 With `pageSize: 2`, each page holds two whole top-level regions — however many rows each contains — never half of one. An ungrouped grid's units are just its rows, so this rule subsumes ordinary row-count pagination without a special case: `paginated` alone, with no `groupBy`, pages by row count exactly as expected.
@@ -34,11 +65,48 @@ Nested group levels don't add extra units of their own — a top-level group's w
 
 `CellTemplateContext.rowIndex` (and `ResolvedRow.rowIndex`) is the row's position within whatever is currently rendered — the index within the page, once `paginated` is on. A second field, `datasetIndex`, reports the row's absolute position in the whole filtered/sorted/grouped dataset, unaffected by which page is showing:
 
-```ts
-{
-  field: "Name",
-  cellTemplate: ({ rowIndex, datasetIndex }) =>
-    `${datasetIndex + 1}. ${/* ... */ ""}`, // a stable, dataset-wide row number
+```tsx title="App.tsx"
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
+
+interface Sale {
+  id: number;
+  region: string;
+  rep: string;
+  amount: number;
+}
+
+const regions = ["North", "South", "East", "West", "Central"];
+
+const sales: Sale[] = Array.from({ length: 60 }, (_, index) => ({
+  id: index + 1,
+  region: regions[index % regions.length] ?? "North",
+  rep: `Rep ${String((index % 12) + 1)}`,
+  amount: 100 + ((index * 37) % 900),
+}));
+
+const columns: readonly ColumnDefinition<Sale>[] = [
+  {
+    field: "id",
+    id: "rowNumber",
+    header: "No.",
+    width: 80,
+    // A stable, dataset-wide row number: page 2 starts at 26, not 1.
+    cellTemplate: ({ datasetIndex }) => String(datasetIndex + 1),
+  },
+  { field: "region", header: "Region" },
+  { field: "amount", header: "Amount", type: "number" },
+];
+
+export default function App() {
+  return (
+    <DataGrid
+      columns={columns}
+      dataSource={sales}
+      getRowId={(row) => String(row.id)}
+      label="Sales"
+      paginated
+    />
+  );
 }
 ```
 
@@ -54,17 +122,7 @@ To suppress the built-in pager while keeping row-windowing and the imperative AP
 
 ### Numbered pagination
 
-`pager={{ variant: "numbered" }}` swaps the "Page X of Y" display for a row of page-number buttons — `[Prev][1][2][3]…[n][Next]` — instead of the default `"compact"` display:
-
-```ts
-<DataGrid
-  columns={columns}
-  dataSource={rows}
-  paginated
-  defaultPagination={{ pageIndex: 0, pageSize: 25 }}
-  pager={{ variant: "numbered" }}
-/>;
-```
+`pager={{ variant: "numbered" }}` swaps the "Page X of Y" display for a row of page-number buttons — `[Prev][1][2][3]…[n][Next]` — instead of the default `"compact"` display. The example at the top of this page uses it, with `sizeOptions` for the page-size control.
 
 `pager.boundaryCount` (default `1`) sets how many pages are always shown at each end; `pager.siblingCount` (default `1`) sets how many pages are shown on each side of the current page. Once the current page sits far enough from an end that some pages would go unshown, the gap collapses into a single `…` (`.grid-pager-ellipsis`), never two adjacent ones. Both options are ignored under the default `"compact"` variant.
 
@@ -76,28 +134,59 @@ Each page button is named by the `pageButtonLabel` message — "Page 3" in Engli
 
 Reach for `template` only when `pager.variant: "numbered"` genuinely doesn't fit — it already gives you `[Prev][1][2][3]…[n][Next]` with no markup of your own to write.
 
-```ts
-<DataGrid
-  columns={columns}
-  dataSource={rows}
-  paginated
-  defaultPagination={{ pageIndex: 0, pageSize: 25 }}
-  pager={{
-    template: ({ currentPage, pageCount, previousPage, nextPage }) => (
-      <div className="my-pager">
-        <button onClick={previousPage} disabled={currentPage <= 1}>
-          Back
-        </button>
-        <span>
-          {currentPage} / {pageCount}
-        </span>
-        <button onClick={nextPage} disabled={currentPage >= pageCount}>
-          Forward
-        </button>
-      </div>
-    ),
-  }}
-/>;
+```tsx title="App.tsx"
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
+
+interface Sale {
+  id: number;
+  region: string;
+  rep: string;
+  amount: number;
+}
+
+const regions = ["North", "South", "East", "West", "Central"];
+
+const sales: Sale[] = Array.from({ length: 60 }, (_, index) => ({
+  id: index + 1,
+  region: regions[index % regions.length] ?? "North",
+  rep: `Rep ${String((index % 12) + 1)}`,
+  amount: 100 + ((index * 37) % 900),
+}));
+
+const columns: readonly ColumnDefinition<Sale>[] = [
+  { field: "id", header: "#", type: "number", width: 80 },
+  { field: "region", header: "Region" },
+  { field: "rep", header: "Rep" },
+  { field: "amount", header: "Amount", type: "number" },
+];
+
+export default function App() {
+  return (
+    <DataGrid
+      columns={columns}
+      dataSource={sales}
+      getRowId={(row) => String(row.id)}
+      label="Sales"
+      paginated
+      defaultPagination={{ pageIndex: 0, pageSize: 10 }}
+      pager={{
+        template: ({ currentPage, pageCount, previousPage, nextPage }) => (
+          <div className="my-pager">
+            <button onClick={previousPage} disabled={currentPage <= 1}>
+              Back
+            </button>
+            <span>
+              {currentPage} / {pageCount}
+            </span>
+            <button onClick={nextPage} disabled={currentPage >= pageCount}>
+              Forward
+            </button>
+          </div>
+        ),
+      }}
+    />
+  );
+}
 ```
 
 `PagerTemplateContext` carries everything needed to rebuild the built-in pager yourself:
@@ -119,15 +208,43 @@ Reach for `template` only when `pager.variant: "numbered"` genuinely doesn't fit
 
 `pager.template` only reaches the built-in pager's own DOM slot — `DataGrid` still renders it, so it's for replacing that one widget's markup, not for a toolbar or sidebar living elsewhere on the page. `usePaginationState` covers that case: it subscribes to the grid's pagination state through its `ref`, so a component anywhere in the tree stays current with no `on*Change` prop to forward and no polling.
 
-```ts
-import { useRef } from "react";
+```tsx title="App.tsx"
+import { useRef, type RefObject } from "react";
 import {
   DataGrid,
   usePaginationState,
+  type ColumnDefinition,
   type DataGridApi,
 } from "@gridkitjs/react";
 
-function Toolbar({ gridRef }: { gridRef: RefObject<DataGridApi<Row> | null> }) {
+interface Sale {
+  id: number;
+  region: string;
+  rep: string;
+  amount: number;
+}
+
+const regions = ["North", "South", "East", "West", "Central"];
+
+const sales: Sale[] = Array.from({ length: 60 }, (_, index) => ({
+  id: index + 1,
+  region: regions[index % regions.length] ?? "North",
+  rep: `Rep ${String((index % 12) + 1)}`,
+  amount: 100 + ((index * 37) % 900),
+}));
+
+const columns: readonly ColumnDefinition<Sale>[] = [
+  { field: "id", header: "#", type: "number", width: 80 },
+  { field: "region", header: "Region" },
+  { field: "rep", header: "Rep" },
+  { field: "amount", header: "Amount", type: "number" },
+];
+
+function PageControls({
+  gridRef,
+}: {
+  gridRef: RefObject<DataGridApi<Sale> | null>;
+}) {
   const { pagination, pageCount, nextPage, previousPage } =
     usePaginationState(gridRef);
 
@@ -142,12 +259,20 @@ function Toolbar({ gridRef }: { gridRef: RefObject<DataGridApi<Row> | null> }) {
   );
 }
 
-function App() {
-  const gridRef = useRef<DataGridApi<Row>>(null);
+export default function App() {
+  const gridRef = useRef<DataGridApi<Sale>>(null);
   return (
     <>
-      <Toolbar gridRef={gridRef} />
-      <DataGrid ref={gridRef} paginated columns={columns} dataSource={rows} />
+      <PageControls gridRef={gridRef} />
+      <DataGrid
+        ref={gridRef}
+        columns={columns}
+        dataSource={sales}
+        getRowId={(row) => String(row.id)}
+        label="Sales"
+        paginated
+        pager={{ template: () => null }}
+      />
     </>
   );
 }

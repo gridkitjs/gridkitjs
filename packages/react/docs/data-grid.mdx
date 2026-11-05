@@ -3,7 +3,45 @@ title: "DataGrid"
 description: "The grid component: columns, data, borders, resizing, reordering, and selection."
 ---
 
-DataGrid takes a set of columns and a data source and renders a grid. Resizing, reordering, and selection are all opt-in — enable them per grid with resizableColumns, reorderableColumns, and selectable, or per column via each column's own resizable and reorderable fields.
+`DataGrid` takes column definitions and a data source and renders an accessible grid. Every feature is opt-in: turn it on for the whole grid with a prop such as `resizableColumns`, `reorderableColumns` or `selectable`, or per column through the column's own field, such as `resizable` or `reorderable`.
+
+## A minimal grid
+
+```tsx title="App.tsx"
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
+
+interface Task {
+  id: number;
+  title: string;
+  owner: string;
+  estimate: number;
+}
+
+const tasks: Task[] = [
+  { id: 1, title: "Write the release notes", owner: "Ana", estimate: 2 },
+  { id: 2, title: "Review the pull request", owner: "Marko", estimate: 1 },
+  { id: 3, title: "Fix the flaky test", owner: "Ivana", estimate: 3 },
+];
+
+const columns: readonly ColumnDefinition<Task>[] = [
+  { field: "title", header: "Task" },
+  { field: "owner", header: "Owner" },
+  { field: "estimate", header: "Estimate (h)", type: "number" },
+];
+
+export default function App() {
+  return (
+    <DataGrid
+      columns={columns}
+      dataSource={tasks}
+      getRowId={(row) => String(row.id)}
+      label="Tasks"
+    />
+  );
+}
+```
+
+See the [quick start](/docs/react) for installing the package and importing its stylesheet.
 
 ## Resizable, reorderable columns
 
@@ -90,16 +128,52 @@ DataGrid takes a set of columns and a data source and renders a grid. Resizing, 
 
 `getRowProps` gives each data row a class and `data-*` attributes worked out from the row — a class for your stylesheet to target, an attribute for a test or a script to find the row by. It takes the `ResolvedRow<Row>` and returns `{ className?, attributes? }`; group headers and summary rows are not passed to it. There is no inline `style`: styling belongs to the stylesheet, which the class already reaches.
 
-```ts
-<DataGrid
-  columns={columns}
-  dataSource={rows}
-  getRowId={(row) => String(row.Id)}
-  getRowProps={({ row }) => ({
-    className: row.dueDate < today ? "is-overdue" : undefined,
-    attributes: { "data-status": row.status },
-  })}
-/>
+```tsx title="App.tsx"
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
+
+interface Invoice {
+  id: number;
+  customer: string;
+  status: "paid" | "open";
+  dueDate: string; // ISO date, e.g. "2026-03-01"
+}
+
+const invoices: Invoice[] = [
+  { id: 1, customer: "Alder & Co", status: "paid", dueDate: "2026-01-15" },
+  { id: 2, customer: "Birchwood Ltd", status: "open", dueDate: "2026-02-01" },
+  { id: 3, customer: "Cedar Supplies", status: "open", dueDate: "2099-12-31" },
+];
+
+const columns: readonly ColumnDefinition<Invoice>[] = [
+  { field: "customer", header: "Customer" },
+  { field: "status", header: "Status" },
+  { field: "dueDate", header: "Due" },
+];
+
+const today = new Date().toISOString().slice(0, 10);
+
+export default function App() {
+  return (
+    <DataGrid
+      columns={columns}
+      dataSource={invoices}
+      getRowId={(row) => String(row.id)}
+      getRowProps={({ row }) => ({
+        className:
+          row.status === "open" && row.dueDate < today
+            ? "is-overdue"
+            : undefined,
+        attributes: { "data-status": row.status },
+      })}
+    />
+  );
+}
+```
+
+```css title="index.css"
+.grid-row.is-overdue {
+  color: oklch(0.55 0.2 25);
+}
 ```
 
 It runs for each data row as the row renders, so keep it cheap. A row whose class and attributes read the same as last time is not redrawn for them, so an inline arrow returning a fresh object every time is fine.
@@ -110,8 +184,38 @@ Every data row also carries `data-gridkit-row-id`, its id as `getRowId` resolves
 
 Set `height` to bound the row area to a fixed size, independently scrollable, while the group-by bar, header, footer, and pager stay outside it and always visible:
 
-```tsx
-<DataGrid columns={columns} dataSource={rows} height={400} />
+```tsx title="App.tsx"
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
+
+interface Reading {
+  id: number;
+  sensor: string;
+  celsius: number;
+}
+
+const readings: Reading[] = Array.from({ length: 200 }, (_, index) => ({
+  id: index + 1,
+  sensor: `Sensor ${String((index % 8) + 1)}`,
+  celsius: 18 + ((index * 7) % 90) / 10,
+}));
+
+const columns: readonly ColumnDefinition<Reading>[] = [
+  { field: "id", header: "#", type: "number", width: 80 },
+  { field: "sensor", header: "Sensor" },
+  { field: "celsius", header: "°C", type: "decimal" },
+];
+
+export default function App() {
+  return (
+    <DataGrid
+      columns={columns}
+      dataSource={readings}
+      getRowId={(row) => String(row.id)}
+      label="Readings"
+      height={400}
+    />
+  );
+}
 ```
 
 Under the hood, the header, the rows, and (when `aggregates` is active) the grand-total footer each render as their own `<table>` rather than sharing one. All three carry `.gridkit-data-grid`; the header adds `.gridkit-data-grid-header`, the footer `.gridkit-data-grid-footer`, and the rows' table sits inside `div.gridkit-data-grid-body`, the scroll container `height` applies to. That's what keeps the header and footer out of the region that scrolls: they're never inside it to begin with, so there's nothing to pin in place with `position: sticky`. A consumer who wants a divider or shadow at the seam adds their own CSS targeting one of those classes directly, for example:
