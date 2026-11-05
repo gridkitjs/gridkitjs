@@ -83,6 +83,39 @@ has not finished, the same way one without a changeset hasn't. The two rules
 are complementary — code changes need a changeset, user-facing changes need
 docs, and a PR can need either, both, or neither depending on what changed.
 
+A new page follows one template, in this order, leaving out a section with
+nothing to say:
+
+1. A lead sentence: what the feature is and why, its props in backticks.
+2. When to use it.
+3. A minimal example: the page's live example tag, or a complete sample.
+4. Props, as a `Prop | Type | Default | Description` table.
+5. Behaviour, one section per rule worth knowing.
+6. Events and callbacks.
+7. Keyboard and pointer, with `<Kbd>`.
+8. Reading the state outside the grid: its hook, or the `ref`.
+9. Messages and localization.
+10. `## See also`: the `core` counterpart and the related pages.
+
+`react/docs/columns/column-sorting.mdx` and `react/docs/server-side-data.mdx`
+are models; existing pages are being brought to it. Every code sample is
+complete, so a reader can paste it into a new app: imports, the row type,
+inline rows and columns, and an exported component. Check one by pasting it
+into a file under `apps/playground/src/`, running
+`pnpm --filter playground typecheck` and `pnpm --filter playground lint`,
+then deleting the file. A fence holding JSX is `tsx`; give it a
+`title="App.tsx"` when it is a whole file. Headings are in sentence case,
+`description` stays under 160 characters, and new prose uses commas, colons
+or parentheses rather than em dashes. Prefer the table headers the website
+sets in monospace (`Prop`, `Field`, `Function`, `Option`, `Type`, `Default`,
+`Key`, `Class`, `Member`, `Method`) for columns of code.
+
+One word per idea, across every package: "pagination", not "paging";
+"row grouping" for the feature, not "grouping"; "column definitions";
+"autofit", one word and lowercase. The "Terms" section of
+`packages/react/docs/overview.mdx` is the glossary: define a new recurring
+term there and link to it, rather than defining it again on each page.
+
 Reference actual key presses with `<Kbd>` — `<Kbd>Ctrl</Kbd>+<Kbd>A</Kbd>`,
 not backtick text like `` `Ctrl+A` ``. `<Kbd>` is globally available in
 rendered docs (registered in `gridkit-website`'s MDX component map), so it
