@@ -2,6 +2,7 @@
 // ./support/coverage rather than directly from the CT package — see that
 // file for why.
 import type { ColumnDefinition } from "@gridkitjs/core";
+import AxeBuilder from "@axe-core/playwright";
 import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
@@ -284,4 +285,111 @@ test("an announcement names a column by its header text, not its headerTemplate 
   await expect(root.locator('[role="status"]')).toHaveText(
     "Cost sorted ascending",
   );
+});
+
+interface GroupedRow {
+  id: string;
+  name: string;
+  region: string;
+  amount: number;
+}
+
+const groupedRows: GroupedRow[] = [
+  { id: "a", name: "Alpha", region: "North", amount: 3 },
+  { id: "b", name: "Bravo", region: "South", amount: 5 },
+  { id: "c", name: "Charlie", region: "North", amount: 2 },
+];
+
+const groupedColumns: readonly ColumnDefinition<GroupedRow>[] = [
+  { field: "name", width: 120 },
+  { field: "region", width: 120 },
+  { field: "amount", width: 100 },
+];
+
+/** Called, not mounted as a component: CT mounts only imported components. */
+function groupedGrid() {
+  return (
+    <DataGrid
+      columns={groupedColumns}
+      dataSource={groupedRows}
+      label="Grouped"
+      defaultGroupBy={[{ columnId: "region" }]}
+      aggregates={[{ columnId: "amount", fn: "sum" }]}
+      groupAggregateDisplay="row"
+      selectable={{ rows: "multiple" }}
+    />
+  );
+}
+
+test("each <table> is presentational and every section, row and cell carries its ARIA role explicitly", async ({
+  mount,
+}) => {
+  const root = await mountGrid(mount, groupedGrid());
+  const tables = root.locator("table");
+  // Header, body and the grand-total footer.
+  await expect(tables).toHaveCount(3);
+  for (const table of await tables.all()) {
+    await expect(table).toHaveAttribute("role", "presentation");
+  }
+  await expect(root.getByRole("table")).toHaveCount(0);
+  for (const section of await root.locator("thead, tbody, tfoot").all()) {
+    await expect(section).toHaveAttribute("role", "rowgroup");
+  }
+  await expect(root.getByRole("rowgroup")).toHaveCount(3);
+  for (const row of await root.locator("tr:not([aria-hidden='true'])").all()) {
+    await expect(row).toHaveAttribute("role", "row");
+  }
+  for (const cell of await root.locator("th").all()) {
+    await expect(cell).toHaveAttribute("role", "columnheader");
+  }
+  for (const cell of await root
+    .locator("tr:not([aria-hidden='true']) td")
+    .all()) {
+    await expect(cell).toHaveAttribute("role", "gridcell");
+  }
+});
+
+test("the treegrid owns its rows directly, with a group row's level, expansion and set position on a role=row", async ({
+  mount,
+}) => {
+  const root = await mountGrid(mount, groupedGrid());
+  const treegrid = root.getByRole("treegrid", { name: "Grouped" });
+  await expect(treegrid).toMatchAriaSnapshot(`
+    - treegrid "Grouped":
+      - rowgroup:
+        - row:
+          - columnheader "name"
+          - columnheader "region"
+          - columnheader "amount"
+      - rowgroup:
+        - row /North/
+        - row:
+          - gridcell "Alpha"
+  `);
+  const group = root.getByRole("row", { name: /^region: North/ });
+  await expect(group).toHaveAttribute("aria-level", "1");
+  await expect(group).toHaveAttribute("aria-expanded", "true");
+  await expect(group).toHaveAttribute("aria-posinset", "1");
+  await expect(group).toHaveAttribute("aria-setsize", "2");
+  await expect(group.getByRole("gridcell")).toHaveCount(1);
+});
+
+test("an axe scan of a grouped grid finds no violations", async ({
+  mount,
+  page,
+}) => {
+  await mountGrid(mount, groupedGrid());
+  const results = await new AxeBuilder({ page })
+    .include(".gridkit-data-grid-viewport")
+    // A colour in the theme rather than the markup this covers: the group
+    // count's `--gridkit-fg-muted` on the group row's background falls short
+    // of 4.5:1, and is a theme fix of its own.
+    .disableRules(["color-contrast"])
+    .analyze();
+  expect(
+    results.violations.map((violation) => ({
+      id: violation.id,
+      targets: violation.nodes.map((node) => node.target.join(" ")),
+    })),
+  ).toEqual([]);
 });

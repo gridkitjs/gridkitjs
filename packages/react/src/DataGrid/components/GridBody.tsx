@@ -226,6 +226,7 @@ export default function GridBody<Row>({
 
   return (
     <tbody
+      role="rowgroup"
       className="grid-body"
       onFocus={(event) => {
         const group = groupRowFrom(event.target);

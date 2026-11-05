@@ -95,7 +95,7 @@ export default function GridHeader<Row>({
   }
 
   return (
-    <thead>
+    <thead role="rowgroup">
       <tr className="grid-header" role="row" aria-rowindex={1}>
         {columns.map((entry, index) => {
           const { column } = entry;
@@ -142,11 +142,10 @@ export default function GridHeader<Row>({
             <th
               key={entry.id}
               scope="col"
-              // Explicit, matching `GridRow.tsx`'s `role="gridcell"` on the
-              // body `<td>`: both sit inside a `<table role="grid">`, and
-              // mixing that non-native ancestor role with descendants that
-              // rely on implicit native role mapping is inconsistently
-              // resolved across browser/AT combinations.
+              // Explicit, like every structural role in the grid: each
+              // `<table>` is `role="presentation"`, so the rows and cells
+              // belong to the `grid`/`treegrid` wrapper rather than to a
+              // native table, and only an explicit role survives that.
               role="columnheader"
               data-gridkit-column={entry.id}
               aria-colindex={index + 1}

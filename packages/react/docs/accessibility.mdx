@@ -5,6 +5,21 @@ description: "The keyboard navigation model, ARIA attributes, and live announcem
 
 DataGrid implements the [WAI-ARIA grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/): `role="grid"`, a single roving tab stop, and a live region for changes no visual cue alone would reach a screen reader with. A grid with an active `groupBy` switches to `role="treegrid"` — the WAI-ARIA pattern for expandable, collapsible rows — instead; an ungrouped grid is unaffected either way.
 
+## Roles
+
+The grid is drawn with `<table>` elements for layout, but its semantics are ARIA's alone. Each `<table>` is `role="presentation"`, and every part inside carries its role explicitly, so the rows belong to the `grid` or `treegrid` element rather than to a native table:
+
+| Element                         | Role                 | Notes                                                                                                       |
+| ------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `div.gridkit-data-grid-tables`  | `grid` or `treegrid` | `treegrid` while `groupBy` is non-empty. Carries the label, `aria-rowcount` and `aria-colcount`.            |
+| `<table>`                       | `presentation`       | The header, body and grand-total footer tables. Not exposed as tables.                                      |
+| `<thead>`, `<tbody>`, `<tfoot>` | `rowgroup`           | One per table.                                                                                              |
+| `<tr>`                          | `row`                | Header, data, group header, group summary and footer rows alike. Spacer and loading rows are `aria-hidden`. |
+| `<th>`                          | `columnheader`       | Headers relate to cells by their shared `aria-colindex`, not by native table association.                   |
+| `<td>`                          | `gridcell`           | A group header row has one, spanning every column.                                                          |
+
+Because a group header is a `row` owned by a `treegrid`, its `aria-level`, `aria-expanded`, `aria-posinset` and `aria-setsize` are permitted there. In a test, find the grid with `getByRole("grid")` or `getByRole("treegrid")`, not `getByRole("table")`.
+
 ## Keyboard navigation
 
 One cell holds the grid's tab stop at a time — <Kbd>Tab</Kbd> reaches the grid once, and the arrow keys move within it from there.
@@ -95,6 +110,10 @@ A `role="status" aria-live="polite"` region, outside the table itself, reports c
 - **Page change** — moving to another page or changing the page size announces where the grid is now, as the `pageStatus` message has it ("Page 2 of 5"). The silent reset to the first page a filter, sort or regroup causes is not announced on its own.
 
 Each announcement's wording is a `messages` key, so it can be translated — see [localization](/docs/react/localization).
+
+## Conformance and testing
+
+No formal accessibility audit of DataGrid has been done, and it makes no claim of WCAG conformance. What is checked, on every change, is narrower: the component tests assert the roles and ARIA attributes above, and run an [axe](https://github.com/dequelabs/axe-core) scan of a grouped grid in Chromium that must report no violations. That scan leaves out colour contrast, which depends on your theme, and an automated scan cannot judge how the grid reads in a screen reader; test with the assistive technology your users rely on.
 
 ## See also
 

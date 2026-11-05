@@ -988,6 +988,13 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
          * other two's rows now that they're split. It obliges the single
          * tab stop `useGridNavigation` keeps.
          *
+         * So each `<table>` is `role="presentation"`, and its sections, rows
+         * and cells carry `rowgroup`, `row`, `columnheader` and `gridcell`
+         * explicitly: a native table inside a grid would own those rows
+         * itself, with its own implicit roles, leaving the grid none, and
+         * would make a group row's `aria-level`/`aria-expanded` invalid on
+         * what is then a plain table row. The tables stay for layout alone.
+         *
          * Switches to `"treegrid"` — the WAI-ARIA pattern for expandable,
          * collapsible rows — whenever `groupBy` is non-empty, rather than
          * committing to it unconditionally. The alternative (always
@@ -1043,6 +1050,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
       >
         <table
           ref={headerTableRef}
+          role="presentation"
           // Widths are only honoured exactly when the table is as wide as its
           // columns; at `100%` the fixed layout redistributes the difference.
           style={{ width: totalColumnWidth(view.columns) }}
@@ -1080,6 +1088,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
         >
           <table
             ref={bodyTableRef}
+            role="presentation"
             style={{ width: totalColumnWidth(view.columns) }}
             className={gridTableClassName}
           >
@@ -1110,6 +1119,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
 
         {aggregates.length > 0 && (
           <table
+            role="presentation"
             style={{ width: totalColumnWidth(view.columns) }}
             className={classNames(
               gridTableClassName,
