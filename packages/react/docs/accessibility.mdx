@@ -1,9 +1,26 @@
 ---
 title: "Accessibility"
-description: "The keyboard navigation model, ARIA attributes, and live announcements built into DataGrid."
+description: "The keyboard model, ARIA attributes and live announcements built into DataGrid, and what has and has not been tested."
 ---
 
 DataGrid implements the [WAI-ARIA grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/): `role="grid"`, a single [roving tab stop](/docs/react#terms), and a live region for changes no visual cue alone would reach a screen reader with. A grid with an active `groupBy` switches to `role="treegrid"` — the WAI-ARIA pattern for expandable, collapsible rows — instead; an ungrouped grid is unaffected either way.
+
+## Conformance and testing
+
+GridKit makes no WCAG conformance claim yet. It has not been audited against WCAG 2.2, by its authors or by anyone else, and conformance is a property of a whole page, which the grid is only part of. What it is built and tested to:
+
+- **Built to the WAI-ARIA Authoring Practices.** The grid, treegrid, menu, menu button, toolbar and listbox patterns, as described on this page.
+- **Operable from the keyboard.** Every built-in feature has a key, listed below and on each feature's page.
+- **Tested in a real browser.** A Playwright component suite, run on every push, checks the grid's roles and ARIA attributes, keyboard navigation, focus movement in its menus and dialogs, and what its live region announces. It runs in Chromium only.
+
+What has not been tested:
+
+- **Screen readers.** No one has yet worked through the grid with NVDA, JAWS, VoiceOver or TalkBack, so how its announcements and attributes read in practice is unverified. Reports from screen-reader users are welcome as issues.
+- **Automated audits.** No axe or similar scan runs in CI.
+- **Colour contrast.** The contrast of the `@gridkitjs/theme-tailwind` palette has not been measured against WCAG's ratios; check it, and any colours you override, in your own theme.
+- **Other browsers.** Firefox and Safari are not part of the test suite.
+
+Your part: give every grid an accessible name with `label` or `labelledBy` (without either, it has none), give a `cellTemplate` that renders a control its own accessible name, and test the page your grid lives on.
 
 ## Keyboard navigation
 
@@ -106,3 +123,4 @@ Each announcement's wording is a `messages` key, so it can be translated — see
 - [Toolbar](/docs/react/toolbar) for the toolbar, its search box and its keys.
 - [Pagination](/docs/react/pagination) for how `aria-rowindex`/`aria-rowcount` behave once `paginated` is on.
 - [Aggregate functions](/docs/react/aggregate-functions) for `groupAggregateDisplay: "row"` and why its summary row is skipped by the arrow keys.
+- [Live data](/docs/react/live-data) for why changes to the data are not announced.
