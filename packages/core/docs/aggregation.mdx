@@ -3,7 +3,7 @@ title: "Aggregation"
 description: "The reducers underneath aggregates: grand totals and per-group subtotals."
 ---
 
-computeAggregates reduces rows to one result per aggregate, and withGroupAggregates gives every group header in a grouped result its own subtotals. The [view pipeline](/docs/core/view) runs both under its `aggregates` option — the grand total over every filtered row as `view.grandTotal`, and each group's on its header. Reach for them directly to total rows outside a grid, or in a custom adapter.
+`computeAggregates` reduces rows to one result per aggregate, and `withGroupAggregates` gives every group header in a grouped result its own subtotals. The [view pipeline](/docs/core/view) runs both under its `aggregates` option — the grand total over every filtered row as `view.grandTotal`, and each group's on its header. Reach for them directly to total rows outside a grid, or in a custom adapter.
 
 An `AggregateState<Row>` is `readonly AggregateSpec<Row>[]`, each spec `{ columnId, fn, id?, alignment? }`: `fn` is a built-in reducer — `"sum"`, `"avg"`, `"min"`, `"max"`, `"count"` or `"countDistinct"` — or an `AggregateFn<Row>`, `(rows) => unknown`, and `id` tells apart two aggregates on one column. The results are an `AggregateResults`, a `ReadonlyMap<string, unknown>` keyed by each spec's `id`, or its `columnId` when it has none. See [aggregate functions](/docs/react/aggregate-functions#the-six-built-in-reducers) for what each built-in computes.
 
@@ -41,6 +41,6 @@ The `aggregates` and `groupAggregateDisplay` props — see [aggregate functions]
 
 ## See also
 
-- [Grouping](/docs/core/grouping) for the group rows aggregates are computed over.
+- [Row grouping](/docs/core/grouping) for the group rows aggregates are computed over.
 - [The view pipeline](/docs/core/view) for where aggregation runs.
 - [Aggregate functions](/docs/react/aggregate-functions) for the React grid's props.

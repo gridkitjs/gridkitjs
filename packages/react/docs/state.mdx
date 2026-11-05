@@ -1,9 +1,9 @@
 ---
 title: "Controlled and uncontrolled state"
-description: "Letting DataGrid keep its own sort, filter, grouping, paging, selection and column layout, or holding any of them in your component and passing it back in."
+description: "Letting DataGrid keep its own sort, filter, row grouping, pagination, selection and column layout, or holding any of them in your component and passing it back in."
 ---
 
-Every piece of state a user can change — the sort, the filter, the grouping, which groups are collapsed, the page, the selection, the columns' widths, order and visibility — is either kept by the grid or held by you, one slice at a time, the way a React `<input>` takes either `defaultValue` or `value`.
+Every piece of state a user can change — the sort, the filter, the row grouping, which groups are collapsed, the page, the selection, the columns' widths, order and visibility — is either kept by the grid or held by you, one slice at a time, the way a React `<input>` takes either `defaultValue` or `value`.
 
 ## Uncontrolled: the grid keeps it
 
@@ -53,7 +53,7 @@ That makes it yours to adjust, limit or ignore — keep at most two sort keys, r
 | Selected columns         | `columnSelection`  | `defaultColumnSelection`  | `onColumnSelectionChange` (and the other column callbacks) |
 | Selected cell            | `cellSelection`    | `defaultCellSelection`    | `onCellSelectionChange` (and the other cell callbacks)     |
 
-Each slice is independent: control the sort and leave paging to the grid, or the other way round. Passing `undefined` is the same as leaving the prop out, so a slice can start uncontrolled and be taken over later. Passing both a controlled prop and its default logs a `console.error` once; the controlled value wins.
+Each slice is independent: control the sort and leave pagination to the grid, or the other way round. Passing `undefined` is the same as leaving the prop out, so a slice can start uncontrolled and be taken over later. Passing both a controlled prop and its default logs a `console.error` once; the controlled value wins.
 
 Keep a controlled value stable — the same array or object until it changes, as React state is. A new array on every render reads as a new sort each time, and sends an uncontrolled page back to the first page each time too.
 

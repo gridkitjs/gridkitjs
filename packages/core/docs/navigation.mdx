@@ -3,7 +3,7 @@ title: "Focus and virtualization"
 description: "The arithmetic behind the grid's single tab stop and its virtualized rows."
 ---
 
-nextFocusForKey works out where a navigation key moves the grid's tab stop, and visibleRange which rows a virtualized body draws. Both are plain arithmetic over numbers; @gridkitjs/dom's [`createGridFocus`](/docs/dom#focus-movement) and [`createRowVirtualizer`](/docs/dom#row-virtualizer) do the DOM side and call them for you. Reach for them directly in a renderer that keeps its own focus or scroll.
+`nextFocusForKey` works out where a navigation key moves the grid's tab stop, and `visibleRange` which rows a virtualized body draws. Both are plain arithmetic over numbers; @gridkitjs/dom's [`createGridFocus`](/docs/dom#focus-movement) and [`createRowVirtualizer`](/docs/dom#row-virtualizer) do the DOM side and call them for you. Reach for them directly in a renderer that keeps its own focus or scroll.
 
 ## Focus
 

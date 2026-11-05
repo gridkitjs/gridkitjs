@@ -3,7 +3,7 @@ title: "Sorting"
 description: "The comparator and sort transforms underneath sortableColumns."
 ---
 
-sortRows and toggleColumnSort are the functions a grid sorts with — the first orders rows by a `ColumnSortState`, the second works out the state a header click leads to. The [view pipeline](/docs/core/view) and the [controller](/docs/core/controller) call them for you; reach for them directly to sort rows outside a grid, or in a custom adapter.
+`sortRows` and `toggleColumnSort` are the functions a grid sorts with — the first orders rows by a `ColumnSortState`, the second works out the state a header click leads to. The [view pipeline](/docs/core/view) and the [controller](/docs/core/controller) call them for you; reach for them directly to sort rows outside a grid, or in a custom adapter.
 
 A `ColumnSortState` is `readonly ColumnSortEntry[]`, each entry `{ columnId, direction }` with `direction` a `SortDirection` — `"asc"` or `"desc"` — in priority order: the first entry sorts, the second breaks its ties, and so on.
 
