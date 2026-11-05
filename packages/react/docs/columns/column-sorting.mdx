@@ -3,7 +3,7 @@ title: "Column sorting"
 description: "Clicking a header's sort toggle with sortableColumns, and stacking with Shift-click."
 ---
 
-sortableColumns turns on a clickable sort toggle in every header, unless a column sets its own sortable to override the grid. A plain click sorts by that column alone, cycling ascending, descending, and off; <Kbd>Shift</Kbd>+click adds or updates the column in a priority-ordered stack instead of replacing it — sort by `Id` ascending, then by `Application.Name` descending as a tiebreaker.
+`sortableColumns` turns on a clickable sort toggle in every header, unless a column sets its own `sortable` to override the grid. A plain click sorts by that column alone, cycling ascending, descending, and off; <Kbd>Shift</Kbd>+click adds or updates the column in a priority-ordered stack instead of replacing it — sort by `Id` ascending, then by `Application.Name` descending as a tiebreaker.
 
 ## Click to sort, Shift-click to stack
 
@@ -30,18 +30,67 @@ sortableColumns turns on a clickable sort toggle in every header, unless a colum
 
 `useColumnSortState` subscribes to the grid's active sort through its `ref`, for a sort indicator living elsewhere on the page:
 
-```ts
-import { useRef } from "react";
+```tsx title="App.tsx"
+import { useRef, type RefObject } from "react";
 import {
   DataGrid,
   useColumnSortState,
+  type ColumnDefinition,
   type DataGridApi,
 } from "@gridkitjs/react";
 
-function SortIndicator({ gridRef }: { gridRef: RefObject<DataGridApi<Row> | null> }) {
+interface Book {
+  id: number;
+  title: string;
+  author: string;
+  year: number;
+}
+
+const books: Book[] = [
+  { id: 1, title: "The Left Hand of Darkness", author: "Le Guin", year: 1969 },
+  { id: 2, title: "Kindred", author: "Butler", year: 1979 },
+  { id: 3, title: "The Dispossessed", author: "Le Guin", year: 1974 },
+];
+
+const columns: readonly ColumnDefinition<Book>[] = [
+  { field: "title", header: "Title" },
+  { field: "author", header: "Author" },
+  { field: "year", header: "Year", type: "number" },
+];
+
+function SortIndicator({
+  gridRef,
+}: {
+  gridRef: RefObject<DataGridApi<Book> | null>;
+}) {
   const sort = useColumnSortState(gridRef);
-  return <p>{sort.map((entry) => `${entry.columnId} ${entry.direction}`).join(", ")}</p>;
+  if (sort.length === 0) {
+    return <p>Not sorted</p>;
+  }
+  return (
+    <p>
+      Sorted by{" "}
+      {sort.map((entry) => `${entry.columnId} ${entry.direction}`).join(", ")}
+    </p>
+  );
+}
+
+export default function App() {
+  const gridRef = useRef<DataGridApi<Book>>(null);
+  return (
+    <>
+      <SortIndicator gridRef={gridRef} />
+      <DataGrid
+        ref={gridRef}
+        columns={columns}
+        dataSource={books}
+        getRowId={(row) => String(row.id)}
+        label="Books"
+        sortableColumns
+      />
+    </>
+  );
 }
 ```
 
-`useColumnSortState` only reads. To change the sort from code, call the ref's `setColumnSort(sort)`, which replaces it and fires `onColumnSortChange`, or run a sort command — `runCommand("sort.ascending", { area: "header", columnId })`, likewise `"sort.descending"` and `"sort.clear"`, or `"sort.clearAll"` with no target — as the [context menu](/docs/react/context-menu#default-items) does; to hold the sort yourself, pass the controlled `columnSort` prop. Before the grid mounts, the hook reads as an empty array. See [imperative handle](/docs/react/imperative-handle) for `getColumnSort`/`subscribe`, and [row grouping](/docs/react/row-grouping) for `useGroupByState`'s equivalent.
+`useColumnSortState` only reads. To change the sort from code, call the ref's `setColumnSort(sort)`, which replaces it and fires `onColumnSortChange`, or run a sort command — `runCommand("sort.ascending", { area: "header", columnId })`, likewise `"sort.descending"` and `"sort.clear"`, or `"sort.clearAll"` with no target — as the [context menu](/docs/react/context-menu#default-items) does; to hold the sort yourself, pass the controlled `columnSort` prop, which is also how a [server sorts the rows](/docs/react/server-side-data). Before the grid mounts, the hook reads as an empty array. See [imperative handle](/docs/react/imperative-handle) for `getColumnSort`/`subscribe`, and [row grouping](/docs/react/row-grouping) for `useGroupByState`'s equivalent.
