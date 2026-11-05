@@ -24,6 +24,8 @@ description: "Loading more rows as the user scrolls near the bottom, instead of 
 - `onLoadMore` — called at most once per genuine threshold-crossing: when the sentinel comes within `rootMargin` of the body's visible area, and not again until `isLoadingMore` has gone back to `false`.
 - `isLoadingMore` — whether a load triggered by `onLoadMore` is still in flight. Suppresses further calls to it until this goes back to `false`.
 
+<InfiniteScrollExample />
+
 ## Mutually exclusive with `paginated`
 
 `paginated` and `infiniteScroll` are two different answers to the same question — how the grid moves through more rows than fit on screen — and don't compose. Setting both logs a dev-time `console.error` and only `paginated` takes effect:

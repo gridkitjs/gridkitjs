@@ -7,21 +7,7 @@ selectable.columns takes a SelectionMode — false, "single", or "multiple" — 
 
 ## Multi-select columns
 
-<LiveExampleFrame title='selectable={{ columns: "multiple" }}'>
-  <StackblitzExample
-    path="column-selection"
-    title='selectable={{ columns: "multiple" }}'
-  />
-</LiveExampleFrame>
-
-```ts
-<DataGrid
-  columns={columns}
-  dataSource={rows}
-  selectable={{ columns: "multiple" }}
-  onColumnSelectionChange={({ selected }) => persist(selected)}
-/>;
-```
+<ColumnSelectionExample />
 
 ## Props
 

@@ -7,20 +7,7 @@ description: "Stacking columns into nested, collapsible groups with groupBy, gro
 
 ## Enable grouping
 
-<LiveExampleFrame title="groupableColumns">
-  <StackblitzExample path="row-grouping" title="groupableColumns" />
-</LiveExampleFrame>
-
-```ts
-<DataGrid
-  columns={columns}
-  dataSource={rows}
-  groupableColumns
-  groupByDraggableColumns
-  defaultGroupBy={[{ columnId: "Region" }, { columnId: "Status" }]}
-  onGroupByChange={({ groupBy }) => persist(groupBy)}
-/>;
-```
+<RowGroupingExample />
 
 `groupableColumns` turns on a groupable header's click/<Kbd>Alt</Kbd>+<Kbd>ArrowDown</Kbd> toggle. `groupByDraggableColumns` turns on dragging a header into the group-by bar — independent of `groupableColumns`: a column can be groupable via its header toggle, via this drag, both, or neither. Neither gates grouping itself: `defaultGroupBy` groups the grid whether or not either is on, the same way `defaultColumnSort` sorts a grid that never turns on `sortableColumns`. Turn both off — the default — for a grid whose grouping is entirely programmatic.
 

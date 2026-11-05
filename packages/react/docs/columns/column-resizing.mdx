@@ -7,21 +7,7 @@ resizableColumns turns on dragging a header's trailing edge to resize, unless a 
 
 ## Fit vs. fixed
 
-<LiveExampleFrame title="resizableColumns">
-  <ColumnResizingExample />
-</LiveExampleFrame>
-
-```ts
-<DataGrid
-  columns={columns}
-  dataSource={rows}
-  resizableColumns
-  resizeMode="fit"
-  onColumnResize={({ columnId, width, phase }) => {
-    if (phase === "end") persist(columnId, width);
-  }}
-/>;
-```
+<ColumnResizingExample />
 
 ## Props
 
