@@ -1,0 +1,208 @@
+---
+title: "Menus and toolbar"
+description: "attachMenu and attachToolbar give drawn markup the WAI-ARIA menu and toolbar keys; observeToolbarOverflow works out which toolbar entries fit."
+---
+
+Two keyboard patterns a grid's menus and toolbar follow, each attached to markup the renderer drew: `attachMenu` for a menu and its submenus, and `attachToolbar` for a toolbar, with `observeToolbarOverflow` working out which entries fit. Each decides what a key or a click does and reports it; the renderer changes its own state and draws the result. A menu is shown in an [overlay](/docs/dom/overlays), whose stack closes the topmost one on <Kbd>Escape</Kbd>. The checklist a filter popup shows is on [gestures and focus](/docs/dom/gestures-and-focus#checklist).
+
+## Menu
+
+`attachMenu(panel, options)` makes a menu the renderer has drawn behave as one, following the [WAI-ARIA menu pattern](https://www.w3.org/WAI/ARIA/apg/patterns/menubar/): keys, typeahead and the pointer move focus among its items, and choosing one is reported through callbacks. It decides what each key and hover does; the renderer runs the item, opens or closes the submenu, and draws the result. It returns `focusItem(idOrIndex)` and `detach()`.
+
+What to show is @gridkitjs/core's: [`resolveMenu`](/docs/core/commands#menus) resolves a grid's menu entries to the items to draw, and the keys below are worked out with its [pure helpers](/docs/core/commands#keyboard). `attachMenu` reads only the markup:
+
+| Markup                                                       | Read as                                                                                                                                             |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `role="menuitem"`, `"menuitemcheckbox"` or `"menuitemradio"` | An item, when it also carries `data-gridkit-menu-item`. Its value is the id every callback reports. Read afresh on every key, so later items count. |
+| `aria-haspopup="menu"`                                       | An item that opens a submenu. Give it `aria-expanded` too, `"true"` while the submenu is open.                                                      |
+| `aria-disabled="true"`                                       | A disabled item: it takes focus, so a screen reader finds it, but is never chosen.                                                                  |
+| `role="separator"`, or anything else                         | Not an item, so the keys pass over it.                                                                                                              |
+| `aria-label`, else the text                                  | The label typeahead matches.                                                                                                                        |
+
+It keeps one item the tab stop — `tabindex="0"` on the focused item, or the first, `-1` on the rest — so attach the menu before its overlay, and the overlay's initial focus lands on the first item.
+
+| Option              | Called                                                                                                                                                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `onActivate`        | `(id)` — an enabled item that opens no submenu was chosen. Run it and close every menu.                                                                                                                      |
+| `onOpenSubmenu`     | `(id, { focus })` — an enabled submenu item asks for its submenu. `focus` is `"first"` from the keyboard, so focus its first item; `"none"` from a click or the pointer resting on it, so leave focus there. |
+| `onCollapseSubmenu` | `()` — the pointer came to rest on another item. Close any submenu open from this menu.                                                                                                                      |
+| `onCloseSubmenu`    | `()` — <Kbd>ArrowLeft</Kbd> in this menu, which is a submenu: close it. Pass it only to a submenu's menu.                                                                                                    |
+| `onClose`           | `("tab")` — <Kbd>Tab</Kbd> or <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd>: close every menu, and focus returns to where the first was opened from.                                                                       |
+
+| Key                                              | Does                                                                                                                                                        |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <Kbd>ArrowDown</Kbd> / <Kbd>ArrowUp</Kbd>        | Focuses the next or previous item, wrapping round the ends.                                                                                                 |
+| <Kbd>Home</Kbd> / <Kbd>End</Kbd>                 | Focuses the first or last item.                                                                                                                             |
+| <Kbd>Enter</Kbd> / <Kbd>Space</Kbd>              | `onActivate(id)`; on a submenu item, `onOpenSubmenu(id, { focus: "first" })`. Nothing on a disabled item.                                                   |
+| <Kbd>ArrowRight</Kbd>                            | On a submenu item, `onOpenSubmenu(id, { focus: "first" })` — also for one already open, when focus should move into it.                                     |
+| <Kbd>ArrowLeft</Kbd>                             | `onCloseSubmenu()`, when given.                                                                                                                             |
+| <Kbd>Tab</Kbd> / <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd> | `onClose("tab")`, in place of the key's own move.                                                                                                           |
+| A printable character                            | Typeahead: focuses the next item whose label starts with what was typed in the last half second. One letter typed again steps through every item it starts. |
+| <Kbd>Escape</Kbd>                                | Not handled here: the [overlay stack](/docs/dom/overlays#stacking) closes the topmost overlay.                                                              |
+
+Moving the pointer over an item focuses it at once. What the item opens or closes waits until the pointer has rested on it for 150 ms: a submenu item reports `onOpenSubmenu(id, { focus: "none" })`, any other item `onCollapseSubmenu()`. Leaving the panel cancels the wait, so a pointer crossing another item on its way into an open submenu leaves it open. A click chooses an item as <Kbd>Enter</Kbd> does, except that a submenu opens with `focus: "none"`. Touch has no hover: only its taps count, as clicks.
+
+### Submenus
+
+A submenu is a menu of its own: a panel with its own `attachMenu`, shown in an overlay of its own anchored to its item. Attach it when it opens, after the menu below it, so it sits above that menu in the [stack](/docs/dom/overlays#stacking): <Kbd>Escape</Kbd> then closes the submenu alone, focus goes back to its item, and closing the menu closes the submenu with it.
+
+```ts
+import {
+  attachMenu,
+  attachOverlay,
+  type AttachedMenu,
+  type MenuSubmenuFocus,
+} from "@gridkitjs/dom";
+
+// <div role="menu" aria-label="Column"> holding, among its items,
+// <div role="menuitem" data-gridkit-menu-item="grouping"
+//      aria-haspopup="menu" aria-expanded="false">Grouping</div>
+function showMenu(
+  anchor: HTMLElement,
+  menu: HTMLElement,
+  submenu: HTMLElement,
+) {
+  const groupingItem = menu.querySelector<HTMLElement>(
+    '[data-gridkit-menu-item="grouping"]',
+  )!;
+  let openSubmenu: { behaviour: AttachedMenu; close: () => void } | null = null;
+
+  function closeSubmenu() {
+    openSubmenu?.close();
+  }
+
+  function showSubmenu(focus: MenuSubmenuFocus) {
+    if (openSubmenu !== null) {
+      if (focus === "first") openSubmenu.behaviour.focusItem(0);
+      return;
+    }
+    document.body.append(submenu);
+    groupingItem.setAttribute("aria-expanded", "true");
+    const behaviour = attachMenu(submenu, {
+      onActivate: (id) => {
+        run(id);
+        close();
+      },
+      onCloseSubmenu: closeSubmenu,
+      onClose: close,
+    });
+    const detach = attachOverlay(groupingItem, submenu, {
+      placement: "right-start",
+      offset: -4, // the submenu's top padding, so its first item lines up
+      initialFocus: focus,
+      onDismiss: closeSubmenu,
+    });
+    openSubmenu = {
+      behaviour,
+      close: () => {
+        openSubmenu = null;
+        detach();
+        behaviour.detach();
+        submenu.remove();
+        groupingItem.setAttribute("aria-expanded", "false");
+      },
+    };
+  }
+
+  document.body.append(menu);
+  const behaviour = attachMenu(menu, {
+    onActivate: (id) => {
+      run(id);
+      close();
+    },
+    onOpenSubmenu: (_id, { focus }) => showSubmenu(focus),
+    onCollapseSubmenu: closeSubmenu,
+    onClose: close,
+  });
+  const detach = attachOverlay(anchor, menu, { onDismiss: close });
+
+  function close() {
+    detach(); // dismisses the submenu above it with "parent" first
+    behaviour.detach();
+    menu.remove();
+  }
+}
+```
+
+## Toolbar
+
+`attachToolbar(toolbar)` makes a `role="toolbar"` element the renderer has drawn one tab stop that the arrow keys move within, following the [WAI-ARIA toolbar pattern](https://www.w3.org/WAI/ARIA/apg/patterns/toolbar/), and returns the function that stops it. What the toolbar lists is @gridkitjs/core's: [`resolveToolbar`](/docs/core/toolbar#resolving) resolves a grid's toolbar entries to the items to draw.
+
+| Markup                      | Read as                                                                                                                                                                                                      |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `data-gridkit-toolbar-item` | An entry, holding the item's `key`. Its control is the entry itself when it can take focus, else the first element in it that can — a search box's input, a custom entry's button. Read afresh on every key. |
+| An entry with no control    | A separator or a spacer: the keys pass over it.                                                                                                                                                              |
+| `aria-disabled="true"`      | A disabled control: it still takes focus, so a screen reader finds it. Running it is the renderer's to refuse.                                                                                               |
+
+One control at a time has `tabindex="0"` — the focused one, or the first — and the rest `-1`, so <Kbd>Tab</Kbd> reaches the toolbar once and returns to the control last used. A control drawn later, such as a button whose command became visible, joins with `-1`, leaving the tab stop where it was. Leave `tabindex` to it.
+
+| Key                                          | Does                                                           |
+| -------------------------------------------- | -------------------------------------------------------------- |
+| <Kbd>ArrowRight</Kbd> / <Kbd>ArrowLeft</Kbd> | Focuses the next or previous control, wrapping round the ends. |
+| <Kbd>Home</Kbd> / <Kbd>End</Kbd>             | Focuses the first or last control.                             |
+
+A text field keeps the keys it needs: <Kbd>Home</Kbd> and <Kbd>End</Kbd> move its caret, and so do the arrows while there is text to move through. With the caret at the start, <Kbd>ArrowLeft</Kbd> moves on to the previous control; at the end, <Kbd>ArrowRight</Kbd> to the next — otherwise a search box holding the tab stop would leave no way to the controls after it. With text selected, or in a field that keeps its caret to itself, such as `type="email"`, the arrows stay with the field.
+
+```ts
+import { attachToolbar } from "@gridkitjs/dom";
+
+// <div role="toolbar" aria-label="Grid toolbar">
+//   <div data-gridkit-toolbar-item="search"><input type="search" … /></div>
+//   <div data-gridkit-toolbar-item="spacer-1"></div>
+//   <button data-gridkit-toolbar-item="filter.clearAll" aria-disabled="true">Clear filters</button>
+// </div>
+const detach = attachToolbar(toolbarElement);
+```
+
+### Overflow
+
+`observeToolbarOverflow(toolbar, { items, onChange })` measures how many of a toolbar's entries fit in it, and reports the count — what @gridkitjs/core's [`fitToolbarItems`](/docs/core/toolbar#overflow) works out from the widths — through `onChange`: once straight away, so a renderer calling it before paint draws the right entries from the first frame, and again whenever it changes. Draw the first `count` entries and every pinned one — or let [`splitToolbarItems`](/docs/core/toolbar#overflow) split them — and put the rest in a "More" menu button at the end. It returns `update(options)` and `detach()`.
+
+| Option     | Type                             | Description                                                                                                |
+| ---------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `items`    | `readonly ToolbarOverflowItem[]` | Every entry, drawn or in "More", in order: `{ type, key, label? }`, as `resolveToolbar`'s items have them. |
+| `onChange` | `(count) => void`                | How many entries fit, from the start. Called straight away, then only when it changes.                     |
+
+| Markup                      | Read as                                                                        |
+| --------------------------- | ------------------------------------------------------------------------------ |
+| `data-gridkit-toolbar-item` | An entry, whose value is its item's `key`.                                     |
+| `data-gridkit-toolbar-more` | The "More" button — an entry too, for `attachToolbar`, but not one of `items`. |
+
+An entry moved into "More" is no longer drawn, so its width is remembered by key from the last time it was. One never drawn yet counts as nothing: it is drawn, measured, and moved back out if it does not fit. So does one whose `label` changed, as `update` finds it, while it was in "More": its remembered width is for the old label. The "More" button likewise counts as nothing until it is first drawn. A spacer counts as nothing too, since its width is only the room left over. The toolbar's padding and the `column-gap` between entries are allowed for, so a theme can space them however it likes.
+
+It measures again whenever the toolbar or an entry resizes, and whenever entries are drawn or taken away — those the count it reported lets in, or the "More" button — so the renderer only draws what it is told. When the items change, pass them to `update`.
+
+```ts
+import { resolveToolbar, splitToolbarItems } from "@gridkitjs/core";
+import { observeToolbarOverflow } from "@gridkitjs/dom";
+
+const overflow = observeToolbarOverflow(toolbarElement, {
+  items,
+  onChange: (count) => draw(splitToolbarItems(items, count)), // { shown, overflow }
+});
+
+// when the grid changes:
+items = resolveToolbar(entries, { commands, contextFor });
+overflow.update({
+  items,
+  onChange: (count) => draw(splitToolbarItems(items, count)),
+});
+```
+
+## Types
+
+| Type                     | Description                                                                                                    |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `MenuOptions`            | `{ onActivate, onOpenSubmenu?, onCollapseSubmenu?, onCloseSubmenu?, onClose }` for `attachMenu`, tabled above. |
+| `AttachedMenu`           | `{ focusItem, detach }`, what `attachMenu` returns. `focusItem` takes an item's id or its index.               |
+| `MenuSubmenuFocus`       | `"first"` or `"none"`: whether a submenu opens with focus on its first item, or leaves focus where it is.      |
+| `MenuCloseReason`        | `"tab"`, the one reason `onClose` reports.                                                                     |
+| `ToolbarOverflowOptions` | `{ items, onChange }` for `observeToolbarOverflow` and its `update`.                                           |
+| `ToolbarOverflowItem`    | `{ type, key, label? }`: one toolbar entry as the overflow reads it.                                           |
+| `ToolbarOverflow`        | `{ update, detach }`, what `observeToolbarOverflow` returns.                                                   |
+
+## See also
+
+- [Overlays](/docs/dom/overlays) for the panel a menu is shown in.
+- [Core: commands and menus](/docs/core/commands) and [core: toolbar](/docs/core/toolbar) for what these list.
+- [Toolbar](/docs/react/toolbar) and [column filter menu](/docs/react/column-filter-menu) for the React grid's use of them.

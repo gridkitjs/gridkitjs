@@ -1,0 +1,129 @@
+---
+title: "Overlays"
+description: "attachOverlay places a panel beside an anchor, moves focus and stacks; placeOverlay is its arithmetic; the context menu trigger asks for one."
+---
+
+An overlay is a panel shown above the page beside an anchor: a menu, a popover, a filter editor. `attachOverlay` positions it, moves focus into it and reports when it should close; `placeOverlay` is its placement arithmetic on its own; and `attachContextMenuTrigger` reports the right-clicks, keys and long-presses that ask for a context menu, with the point to open one at. The menus drawn inside an overlay are on [menus and toolbar](/docs/dom/menus-and-toolbar), and the checklist a filter popup holds on [gestures and focus](/docs/dom/gestures-and-focus#checklist).
+
+## Overlay
+
+`attachOverlay(anchor, panel, options)` shows a panel the renderer has already put in the page — a menu, a popover, a filter editor, usually rendered into `document.body` so no scrolling ancestor clips it — beside `anchor`, an element or an `{ x, y }` point, and returns the function that ends it.
+
+```ts
+import { attachOverlay } from "@gridkitjs/dom";
+
+const detach = attachOverlay(headerCell, menuElement, {
+  placement: "bottom-start",
+  gap: 4,
+  onDismiss: (reason) => closeMenu(), // removes menuElement, then calls detach()
+});
+```
+
+| Option                   | Type                                                        | Description                                                                                                    |
+| ------------------------ | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `placement`              | `"bottom-start"`, `"top-end"`, `"right-start"` and the rest | Where the panel would rather open. Defaults to `"bottom-start"`.                                               |
+| `gap`                    | `number`                                                    | Pixels between the anchor and the panel. Defaults to `0`.                                                      |
+| `offset`                 | `number`                                                    | Pixels to shift the panel along the anchor's edge (below). Defaults to `0`.                                    |
+| `onDismiss`              | `(reason) => void`                                          | Called with the reason the overlay asks to close (below); the caller closes the panel, or not.                 |
+| `initialFocus`           | `"first"`, `"panel"`, `"none"` or an `HTMLElement`          | Where focus goes on attaching (below). Defaults to `"first"`.                                                  |
+| `returnFocusTo`          | `HTMLElement \| null`                                       | Where focus goes on detach. Defaults to the element focused when the overlay attached; `null` leaves it alone. |
+| `ignoreScrollAfterInput` | `boolean`                                                   | Whether a scroll just after input in the panel leaves it open (below). Defaults to `false`.                    |
+| `trapFocus`              | `boolean`                                                   | Whether <Kbd>Tab</Kbd> cycles inside the panel ([below](#focus-trap)). Defaults to `false`.                    |
+
+The panel is positioned `fixed` and opens on the preferred side unless only the opposite side has room for it, lines up with the preferred edge of the anchor unless only the other edge keeps it on screen, and is pushed back inside the viewport if it still overflows. The placement it ends up with is written to `data-gridkit-placement`. Whenever the panel's own size changes — a list that shrinks under a search, content that loads in — it is placed again from the anchor's current box and the same preferred placement, so a panel flipped above its anchor keeps its bottom edge against it. An anchor taken out of the page while the panel is open — the header of a column the panel just hid — leaves it placed beside where that anchor last was.
+
+`offset` moves the panel along the edge it lines up with: down beside a `left` or `right` side, right beside `top` or `bottom`; a negative offset goes the other way. A submenu opened `right-start` passes its own top padding, negated, so its first item lines up with the item that opened it. The edge is chosen for the shifted panel, and it is still kept on screen.
+
+Focus moves to the panel's first focusable element (`"first"`), or to the panel itself when it has none; `"panel"` focuses the panel itself, given `tabindex="-1"` when it has no `tabindex`; `"none"` leaves focus where it was, for a popup the user keeps typing past; an element focuses that element — a filter editor's value box rather than the operator picker before it, say.
+
+It asks to close with one of these reasons. Nothing on the anchor counts, so a button that toggles the panel closes it with its own click.
+
+| Reason      | When                                                                                                                                                                                                                         |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `"escape"`  | <Kbd>Escape</Kbd> was pressed while it was the topmost overlay.                                                                                                                                                              |
+| `"outside"` | A pointer went down outside it and outside every overlay above it.                                                                                                                                                           |
+| `"scroll"`  | Something outside it scrolled — it is placed in viewport coordinates, so the anchor would move away from it. With `ignoreScrollAfterInput`, not in the two animation frames after an `input` or `change` event in the panel. |
+| `"resize"`  | The window resized.                                                                                                                                                                                                          |
+| `"blur"`    | The window lost focus, or focus moved somewhere outside it and outside every overlay above it.                                                                                                                               |
+| `"parent"`  | The overlay it was opened above detached. It is detached straight after, whatever the caller does with the dismissal.                                                                                                        |
+
+A panel whose controls change the page under it passes `ignoreScrollAfterInput`, so that what its own controls cause does not close it: a column chooser hiding a column narrows a grid scrolled to its end, and the browser scrolls that grid back within its narrower content. A scroll the user makes outside the panel still closes it.
+
+Detaching returns focus only while focus is still in the panel, in an overlay above it, or nowhere — after a click on another control, focus stays there.
+
+### Focus trap
+
+A dialog-like panel — a filter editor with its own OK and Cancel — passes `trapFocus` so the keyboard cannot leave it by accident. <Kbd>Tab</Kbd> from its last tabbable element moves to its first, and <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd> from its first to its last; every other <Kbd>Tab</Kbd> is the browser's own. Tabbable means focusable without a negative `tabindex`, enabled and shown, read afresh on each key so controls drawn since attaching count. A panel with nothing tabbable keeps focus where it is. Only the keys are kept in: a pointer down outside still dismisses it with `"outside"`, and focus moved outside by a script still dismisses it with `"blur"`. <Kbd>Tab</Kbd> in an overlay above it is that overlay's, and <Kbd>Escape</Kbd> and <Kbd>Enter</Kbd> are left alone — the stack still closes the topmost overlay on <Kbd>Escape</Kbd>, and the panel's own form hears <Kbd>Enter</Kbd>.
+
+### Stacking
+
+Overlays stack in the order they attach, so a submenu opened from a menu, or a picker opened from a filter panel, sits above the overlay it came from.
+
+- <Kbd>Escape</Kbd> belongs to the topmost overlay alone: it is asked to close
+  and the key goes no further — it is taken in the capture phase on `window`,
+  before anything else on the page hears it. A grid that clears its selection on
+  <Kbd>Escape</Kbd>, or a dialog that closes on it, is not disturbed by an
+  <Kbd>Escape</Kbd> that closed a menu, and a second <Kbd>Escape</Kbd> closes
+  the overlay below. With no overlay open, <Kbd>Escape</Kbd> passes through
+  untouched.
+- An overlay counts everything inside the overlays above it as inside itself: a click or a focus move into a submenu keeps its menu open, while a click elsewhere in the menu closes only the submenu, and a click outside both closes both.
+- Detaching an overlay first dismisses every overlay still above it with `"parent"` and detaches it, topmost first, so a submenu never outlives its menu.
+
+## Placement
+
+`placeOverlay(anchorRect, panelSize, viewport, { placement, gap, offset })` is the placement on its own: pure arithmetic over boxes, returning `{ top, left, placement }`, for a renderer that positions its own panels.
+
+## Context menu trigger
+
+`attachContextMenuTrigger(root, { onRequest })` reports every context menu the user asks for inside `root` — a right-click, <Kbd>Shift</Kbd>+<Kbd>F10</Kbd>, the <Kbd>ContextMenu</Kbd> key, or a touch held still for half a second — and returns the function that stops it. `onRequest` is called with a `ContextMenuRequest` and answers whether it opened a menu of its own: `true` prevents the browser's menu, `false` lets it show, so a part of the grid with nothing to offer keeps the browser's.
+
+| Field    | Type                      | Description                                                                                                                  |
+| -------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `target` | `Element`                 | The element under the pointer, or the focused one for a key.                                                                 |
+| `point`  | `{ x, y } \| null`        | Where the pointer was, in viewport coordinates — an overlay anchor as it is. `null` from the keyboard: open beside `target`. |
+| `source` | `"pointer" \| "keyboard"` | How it was asked for: a right-click or a long-press, or a key.                                                               |
+
+```ts
+import { attachContextMenuTrigger, attachOverlay } from "@gridkitjs/dom";
+
+const stop = attachContextMenuTrigger(gridElement, {
+  onRequest: ({ target, point }) => {
+    const cell = target.closest("td[data-gridkit-column]");
+    if (cell === null) return false; // the browser's menu, then
+    showMenu(point ?? cell); // an attachOverlay anchor: the point, or the cell
+    return true;
+  },
+});
+```
+
+Each gesture asks once. On some systems a key press also makes the browser fire a `contextmenu` event of its own; once the key opened a menu, that event is taken rather than reported again.
+
+A long-press is a primary touch that rests for 500 ms, drifting no more than 10 pixels; one that moves further, lifts sooner or is taken over by the browser to scroll asks nothing, and a mouse or pen held down never asks. It is reported with the touch's point. A browser that turns a held touch into a `contextmenu` of its own — Chrome on Android does — asks once, whichever comes first. Once a long-press opened a menu, the click its lifting brings is taken before anything under the finger hears it: the menu opened there, and a click would land in it.
+
+An event something already prevented is left alone, so a cell template with a menu of its own keeps it. For that, the trigger listens on the document in the bubble phase — after a framework that handles events at its root container, as React does, where a listener on `root` would hear them first — and counts only events whose target is inside `root`.
+
+## Types
+
+| Type                        | Description                                                                                                                                                                                           |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OverlayOptions`            | The last argument of `attachOverlay`: the `OverlayPlacementOptions` plus `onDismiss`, `initialFocus`, `returnFocusTo`, `ignoreScrollAfterInput` and `trapFocus`, as tabled under [overlay](#overlay). |
+| `OverlayAnchor`             | What an overlay opens beside: an `Element`, or a `{ x, y }` point in viewport coordinates.                                                                                                            |
+| `OverlayInitialFocus`       | `"first"`, `"panel"`, `"none"` or an `HTMLElement`: where focus goes on attaching.                                                                                                                    |
+| `OverlayDismissReason`      | `"escape"`, `"outside"`, `"scroll"`, `"resize"`, `"blur"` or `"parent"`, each tabled under [overlay](#overlay).                                                                                       |
+| `OverlayPlacementOptions`   | `{ placement?, gap?, offset? }`, shared by `attachOverlay` and `placeOverlay`.                                                                                                                        |
+| `OverlayPlacement`          | A side and an alignment joined by a dash: `"bottom-start"`, `"top-end"`, `"right-start"` and the other five.                                                                                          |
+| `OverlaySide`               | `"top"`, `"bottom"`, `"left"` or `"right"`.                                                                                                                                                           |
+| `OverlayAlign`              | `"start"` or `"end"`: which edge of the anchor the panel lines up with.                                                                                                                               |
+| `OverlayRect`               | `{ top, left, width, height }`: the anchor's box for `placeOverlay`, in viewport coordinates. A point is a box with no width or height.                                                               |
+| `OverlaySize`               | `{ width, height }`: the panel's size, and the viewport's.                                                                                                                                            |
+| `OverlayPosition`           | `{ top, left, placement }`, what `placeOverlay` returns, with the placement the panel ended up with.                                                                                                  |
+| `ContextMenuTriggerOptions` | `{ onRequest }`, the last argument of `attachContextMenuTrigger`.                                                                                                                                     |
+| `ContextMenuRequest`        | `{ target, point, source }`, tabled under [context menu trigger](#context-menu-trigger).                                                                                                              |
+| `ContextMenuSource`         | `"pointer"` for a right-click or a long-press, `"keyboard"` for a key.                                                                                                                                |
+
+## See also
+
+- [Menus and toolbar](/docs/dom/menus-and-toolbar) for the menus shown in an overlay.
+- [Overview](/docs/dom) for the contract every behaviour follows.
+- [Core: commands and menus](/docs/core/commands#menus) for what a context menu lists.
+- [Context menu](/docs/react/context-menu) for the menus the React grid opens with these.

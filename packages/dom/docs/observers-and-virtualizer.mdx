@@ -1,0 +1,93 @@
+---
+title: "Observers and virtualizer"
+description: "observeElementWidth, createRowVirtualizer and attachInfiniteScroll: the observers behind fit-to-width, row virtualization and infinite scroll."
+---
+
+Three behaviours that watch the page's layout and report what it means for the grid: `observeElementWidth` reports the width `resizeMode: "fit"` fills, `createRowVirtualizer` the window of rows near the scroll position, and `attachInfiniteScroll` the moment the next load should start. Each owns its observers and listeners, and stops with the function or object it returns.
+
+## Element width
+
+`observeElementWidth(element, onWidth)` reports `element.clientWidth` straight away and again whenever it changes, and returns the function that stops it — the width `resizeMode: "fit"` fills, passed to the controller as `viewportWidth`. The first report is synchronous, so columns laid out before paint never show at the wrong width for a frame.
+
+```ts
+import { observeElementWidth } from "@gridkitjs/dom";
+
+const disconnect = observeElementWidth(viewportElement, (width) => {
+  controller.setOptions({ ...options, viewportWidth: width });
+});
+```
+
+## Row virtualizer
+
+`createRowVirtualizer(scrollElement, { estimatedRowHeight, overscan, onRange })` windows a long list of rows inside a scrolling element down to those near its scroll position. It measures each rendered row's real height — rows need not be uniform — and reports the window to render through `onRange({ startIndex, endIndex, offsetBefore, offsetAfter })`, with `offsetBefore`/`offsetAfter` the heights of the spacers that stand in for the rows outside it. It reports only when the window moves.
+
+| Member                          | Description                                                                                                                |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `setRowCount(count)`            | How many rows there are. Heights measured for rows that remain are kept.                                                   |
+| `resetHeights()`                | Forgets every measured height — after a sort or filter, when the rows at each index are different rows.                    |
+| `measureRow(index)`             | A ref callback for row `index`'s element, measuring it while mounted. The same function for the same index every time.     |
+| `scrollToIndex(index, options)` | Scrolls a mounted row into view; jumps to an unmounted one's estimated offset, then scrolls to it properly once it mounts. |
+| `destroy()`                     | Stops listening and measuring.                                                                                             |
+
+```ts
+import { createRowVirtualizer } from "@gridkitjs/dom";
+
+const virtualizer = createRowVirtualizer(bodyElement, {
+  estimatedRowHeight: 40,
+  overscan: 4,
+  onRange: (range) => drawRows(range), // rows startIndex..endIndex, between two spacers
+});
+virtualizer.setRowCount(rows.length);
+
+// while drawing row `index`:
+virtualizer.measureRow(index)(rowElement);
+```
+
+The arithmetic is @gridkitjs/core's `visibleRange`; this owns the measured heights, the scroll and resize listeners, and one `ResizeObserver` for every mounted row.
+
+## Infinite scroll
+
+`attachInfiniteScroll(root, options)` calls `onLoadMore` as a sentinel element — the last row of the body — comes within `rootMargin` of the scrolling `root`, at most once until `isLoadingMore` has gone from `true` back to `false`. It returns `update(options)`, which a renderer calls after every render with the current options and sentinel (the sentinel comes and goes with `hasMore`), and `detach()`.
+
+```ts
+import { attachInfiniteScroll } from "@gridkitjs/dom";
+
+const scroll = attachInfiniteScroll(bodyElement, {
+  sentinel: lastRow,
+  hasMore: true,
+  onLoadMore: () => fetchNextPage(),
+});
+
+// after each render
+scroll.update({ sentinel: lastRow, hasMore, isLoadingMore, onLoadMore });
+scroll.detach();
+```
+
+`options` is an `InfiniteScrollOptions`:
+
+| Option          | Type              | Description                                                                                                                                        |
+| --------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sentinel`      | `Element \| null` | The element whose approach triggers a load — the body's always-last row — or `null` while none is rendered.                                        |
+| `hasMore`       | `boolean`         | Whether a further load could still return more rows. `false` stops watching altogether.                                                            |
+| `onLoadMore`    | `() => void`      | Called at most once per approach, and not again until `isLoadingMore` has gone from `true` back to `false`.                                        |
+| `isLoadingMore` | `boolean`         | Whether a load `onLoadMore` started is still in flight. Defaults to `false`.                                                                       |
+| `rootMargin`    | `string`          | How far ahead of the sentinel scrolling into view a load starts, as CSS margins — an `IntersectionObserver`'s `rootMargin`. Defaults to `"200px"`. |
+
+`update` is cheap when nothing changed; a new sentinel or `rootMargin` restarts the observer, and `isLoadingMore` going back to `false` checks again at once.
+
+When a load finishes but the rows it appended leave the sentinel still in range, the next load starts straight away — nothing would scroll it out and back in to trigger one. With `hasMore` false or no sentinel, nothing is observed.
+
+## Types
+
+| Type                    | Description                                                                                                                                                                                                             |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RowVirtualizerOptions` | `{ estimatedRowHeight, overscan, onRange }` for `createRowVirtualizer`. `onRange` receives the `VisibleRange` from `@gridkitjs/core`, `{ startIndex, endIndex, offsetBefore, offsetAfter }`, with `endIndex` inclusive. |
+| `RowVirtualizer`        | `{ setRowCount, resetHeights, measureRow, scrollToIndex, destroy }`, what `createRowVirtualizer` returns; tabled under [row virtualizer](#row-virtualizer).                                                             |
+| `InfiniteScrollOptions` | `{ sentinel, hasMore, onLoadMore?, isLoadingMore?, rootMargin? }`, tabled under [infinite scroll](#infinite-scroll).                                                                                                    |
+| `InfiniteScroll`        | `{ update, detach }`, what `attachInfiniteScroll` returns.                                                                                                                                                              |
+
+## See also
+
+- [Gestures and focus](/docs/dom/gestures-and-focus) for the focus controller that reads the virtualizer's window.
+- [Core: focus and virtualization](/docs/core/navigation) for `visibleRange`, the arithmetic under the virtualizer.
+- [Row virtualization](/docs/react/row-virtualization) and [infinite scroll](/docs/react/infinite-scroll) for the React grid's props.
