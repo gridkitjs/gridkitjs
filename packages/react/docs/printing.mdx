@@ -147,11 +147,13 @@ The PDF holds what the print holds: the title, subtitle and timestamp above the 
 
 The grid shows no "Export to PDF" item of its own, because it writes no PDF. An app that must produce the file in code — to upload it, or to save it without a dialog — registers a `pdf` writer, and the Export dropdown and `export.pdf` then pick it up: see [PDF in code](/docs/react/export#pdf).
 
-## Browser support
+<Callout type="note" title="Browser support">
 
 In Chrome the header row repeats at the top of every page and each page is numbered, "1 / 4", at its foot. Firefox and Safari have not been checked yet.
 
 Page numbers use CSS `@page` margin boxes. A browser without them prints no numbers and nothing else changes; the browser's own header and footer, when turned on in the dialog, number the pages instead.
+
+</Callout>
 
 ## Printing the page
 

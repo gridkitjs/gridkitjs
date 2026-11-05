@@ -68,9 +68,11 @@ gridRef.current?.runCommand("copy.row", {
 
 `copy.cell` and `copy.row` take a `{ area: "cell", rowId, columnId }` target; `copy.selection` runs on the default `{ area: "grid" }`. Each returns whether it ran — not when there is nothing to copy.
 
-## Browser support
+<Callout type="note" title="Browser support">
 
 The grid writes through the async Clipboard API with both formats where the browser has it, falls back to plain text alone where it cannot write HTML, and to the older `copy` event on a page outside a secure context. See @gridkitjs/dom's [`writeClipboard`](/docs/dom#clipboard).
+
+</Callout>
 
 ## Paste
 
