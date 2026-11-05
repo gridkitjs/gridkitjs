@@ -89,6 +89,28 @@ rendered docs (registered in `gridkit-website`'s MDX component map), so it
 needs no import. Reserve it for keys, not mouse actions worded with "click"
 or "drag".
 
+The website registers a few more content primitives the same way, so reach
+for them instead of faking one with a heading. MDX expressions are stripped
+there, so every prop is a string: write `dev="true"`, never `dev={true}`.
+
+- `<Callout type="warning" title="Not with paging">…</Callout>` — an aside;
+  `type` is `note`, `tip`, `warning` or `breaking`, `title` is optional.
+- `<PackageInstall pkg="@gridkitjs/react @gridkitjs/theme-tailwind" />` —
+  the install command with npm, pnpm, yarn and bun tabs; add `dev="true"`
+  for a dev dependency. Use it instead of an npm-only `bash` fence.
+- `<Since v="0.12.0" pkg="react" />` — an inline "since version" badge;
+  `pkg` is the package without its scope, and optional.
+- `<LinkCards><LinkCard href="/docs/core/sorting" title="Sorting" description="…" /></LinkCards>`
+  — a grid of link cards for a page's next steps.
+- Code fence meta: ` ```tsx title="App.tsx" {2,4-5} showLineNumbers wrap `
+  gives a title bar, highlighted lines, line numbers and wrapped lines; in
+  the code, `// [!code highlight]`, `// [!code ++]`, `// [!code --]` and
+  `// [!code focus]` mark single lines.
+
+The full list of registered tags is served at
+`https://gridkitjs.com/mdx-tags.json`; a tag missing from it renders as
+literal text.
+
 ## Tests
 
 Two layers, at two different points in the stack.
