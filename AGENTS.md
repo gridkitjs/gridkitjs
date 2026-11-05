@@ -82,10 +82,11 @@ pnpm test                            # all packages
 pnpm --filter @gridkitjs/core test     # one package
 ```
 
-`react` still passes `--passWithNoTests`; drop that flag once it has real
-Vitest tests of its own. `dom` passes it too, for good: its behaviours need
-real layout and are tested through Playwright below, and Vitest there covers
-only pure helpers such as overlay placement. Prefer testing logic in `core`,
+`react` has Vitest tests of its own, next to the code as `*.test.tsx`: an
+SSR `renderToString` test and a jsdom hydration test. `dom` still passes
+`--passWithNoTests`, for good: its behaviours need real layout and are tested
+through Playwright below, and Vitest there covers only pure helpers such as
+overlay placement. Prefer testing logic in `core`,
 where no DOM is required.
 
 **Playwright component tests** cover `react`'s `DataGrid` and the `dom`
