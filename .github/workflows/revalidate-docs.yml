@@ -75,6 +75,8 @@ jobs:
 
       # ts is Unix time in seconds; the website rejects a request whose ts is
       # more than five minutes off, so a captured one cannot be replayed.
+      # The request follows redirects (a 308 re-sends the POST body) and the
+      # step fails unless the final response is a 2xx.
       - name: Sign and send revalidation request
         if: github.ref == 'refs/heads/main'
         env:
@@ -89,7 +91,16 @@ jobs:
             --argjson ts "$(date +%s)" \
             '{ref: $ref, sha: $sha, manifestSha: $manifestSha, ts: $ts}')
           signature=$(printf '%s' "$body" | openssl dgst -sha256 -hmac "$SECRET" | sed 's/^.* //')
-          curl --fail-with-body -sS --retry 3 --retry-all-errors -X POST "$URL" \
+          status=$(curl --location --fail-with-body -sS --retry 3 --retry-all-errors \
+            -o "$RUNNER_TEMP/revalidate-response.txt" -w '%{http_code}' \
+            -X POST "$URL" \
             -H "Content-Type: application/json" \
             -H "X-Hub-Signature-256: sha256=$signature" \
-            --data-binary "$body"
+            --data-binary "$body") || true
+          echo "http_code=$status"
+          cat "$RUNNER_TEMP/revalidate-response.txt" || true
+          echo
+          case "$status" in
+            2*) ;;
+            *) echo "::error::revalidation returned HTTP ${status:-none}"; exit 1 ;;
+          esac
