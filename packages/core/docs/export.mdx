@@ -189,7 +189,7 @@ The markup carries semantic class names for a stylesheet and no styles of its ow
 
 ## Writers
 
-A writer is one export format as a file: an `ExportWriter` turns an `ExportTable` into the file's contents and says what the file is. CSV and JSON ship as `csvWriter` and `jsonWriter`; any other format — xlsx, or one of your own — is a writer you register on the grid through `exportWriters`, so the grid's export commands and its renderer's API reach it exactly as they reach CSV. The reference xlsx writer is `xlsxWriter` from [@gridkitjs/export-xlsx](/docs/export-xlsx/overview), a package of its own so that core keeps no dependencies; it reads only the `ExportTable`, and runs in Node as in the browser.
+A writer is one export format as a file: an `ExportWriter` turns an `ExportTable` into the file's contents and says what the file is. CSV and JSON ship as `csvWriter` and `jsonWriter`; any other format — xlsx, or one of your own — is a writer you register on the grid through `exportWriters`, so the grid's export commands and its renderer's API reach it exactly as they reach CSV. The reference xlsx writer is `xlsxWriter` from [@gridkitjs/export-xlsx](/docs/export-xlsx), a package of its own so that core keeps no dependencies; it reads only the `ExportTable`, and runs in Node as in the browser.
 
 ```ts
 import type { ExportWriter } from "@gridkitjs/core";
@@ -357,3 +357,9 @@ const document = exportPrintDocument(context, {
 ```
 
 A grid's `print` option, a `PrintOptions`, says how it prints unless a call says otherwise. The `print` [command](/docs/core/commands#built-in-commands) prints under it, so a toolbar's Print button, a context menu and a renderer's `runCommand("print")` print the same document: it builds one with `exportPrintDocument` and hands it to the renderer's `host.print`, with the options, whose `styles` the renderer adds after its print stylesheet.
+
+## See also
+
+- [Export in React](/docs/react/export) for the toolbar, the context menu and the options.
+- [@gridkitjs/export-xlsx](/docs/export-xlsx) for the Excel writer.
+- [Commands and menus](/docs/core/commands) for the export commands.
