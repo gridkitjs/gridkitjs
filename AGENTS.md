@@ -111,6 +111,35 @@ The full list of registered tags is served at
 `https://gridkitjs.com/mdx-tags.json`; a tag missing from it renders as
 literal text.
 
+Live examples are tags too. Each one renders the real `DataGrid` in a frame
+with its title and description, a Preview and a Code tab, Reset and "Open in
+StackBlitz", so a page needs only the bare tag, on a line of its own:
+`<ColumnSortingExample />`. Copy the name exactly from `mdx-tags.json`. The
+one prop an example tag takes is an optional `title`, replacing the
+example's own. Don't wrap one in `<LiveExampleFrame>` (it still works, but
+only passes its title on), and don't repeat the example's code in a fence
+below it — the Code tab already shows it; a fence that shows something the
+example doesn't is fine. The examples live in the
+`gridkit-website` repo, so a page that needs a new one asks for it there
+(an issue or a PR adding it) before the tag goes into a page here.
+`<StackblitzExample path="...">` is a link-only box to a project under
+`examples/`; keep it for a whole app setup an inline example can't show.
+
+`scripts/check-mdx-tags.mjs` holds the docs to that list: it collects every
+PascalCase tag in `packages/*/docs/**/*.mdx`, ignoring fenced code, code
+spans and comments, and fails with the file and line of any tag the website
+does not register. CI runs it after lint. While the hosted list is missing
+(a 404, before the website first publishes it) it skips with a warning;
+any other failure to read the list fails it. To run it locally against the
+website's current tags, generate the list in the `gridkit-website` repo
+with `node scripts/export-mdx-tags.mjs` and point the check at it:
+
+```bash
+MDX_TAGS_FILE=../gridkit-website/public/mdx-tags.json node scripts/check-mdx-tags.mjs
+```
+
+`MDX_TAGS_URL` points it at another hosted list instead.
+
 ## Tests
 
 Two layers, at two different points in the stack.
@@ -161,7 +190,7 @@ CI runs two jobs on every push and pull request. The `ci` job runs exactly
 this, in order:
 
 ```bash
-pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build
+pnpm format:check && pnpm lint && node scripts/check-mdx-tags.mjs && pnpm typecheck && pnpm test && pnpm build
 ```
 
 The `e2e` job runs the Playwright suite instrumented,

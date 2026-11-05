@@ -28,15 +28,4 @@ A grid's `selectable` option is a `SelectableConfig` — `{ rows?, columns?, cel
 
 ## The same logic, in the React grid
 
-<LiveExampleFrame title="selectable">
-  <CombinedSelectionExample />
-</LiveExampleFrame>
-
-```ts
-<DataGrid
-  columns={columns}
-  dataSource={rows}
-  getRowId={(row) => String(row.Id)}
-  selectable={{ rows: "multiple", columns: "multiple", cells: "single" }}
-/>;
-```
+<CombinedSelectionExample />

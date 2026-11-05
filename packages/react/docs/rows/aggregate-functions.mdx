@@ -7,22 +7,7 @@ description: "Computing group subtotals and a grand total with aggregates, the b
 
 ## Compute a subtotal and a grand total
 
-<LiveExampleFrame title='aggregates={[{ columnId: "Cost", fn: "sum" }]}'>
-  <StackblitzExample
-    path="aggregate-functions"
-    title='aggregates={[{ columnId: "Cost", fn: "sum" }]}'
-  />
-</LiveExampleFrame>
-
-```ts
-<DataGrid
-  columns={columns}
-  dataSource={rows}
-  groupableColumns
-  defaultGroupBy={[{ columnId: "Region" }]}
-  aggregates={[{ columnId: "Amount", fn: "sum" }]}
-/>;
-```
+<AggregatesExample />
 
 `aggregates` is a plain controlled prop, unlike `columnSort`/`filter`/`groupBy`/`pagination`: there is no built-in UI for a user to add or remove an aggregate interactively, so there's no `defaultAggregates`/`onAggregatesChange` pair — a consumer declares which aggregates to compute the same way it declares `columns`.
 

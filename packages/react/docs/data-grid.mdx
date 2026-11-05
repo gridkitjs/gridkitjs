@@ -7,45 +7,7 @@ DataGrid takes a set of columns and a data source and renders a grid. Resizing, 
 
 ## Resizable, reorderable columns
 
-<LiveExampleFrame title="DataGrid">
-  <DataGridResizeReorderExample />
-</LiveExampleFrame>
-
-```ts
-import { useState } from "react";
-import { defineColumnsFromRows } from "@gridkitjs/core";
-import {
-  DataGrid,
-  type ColumnDefinition,
-  type ResizeMode,
-} from "@gridkitjs/react";
-
-const columns: readonly ColumnDefinition<Row>[] = [
-  ...defineColumnsFromRows(rows),
-  {
-    field: "Cost",
-    id: "Cost.currency",
-    type: "currency",
-    headerTemplate: <span className="italic">Cost</span>,
-    cellTemplate: ({ value, row }) => (
-      <span className={row.Cost > 500 ? "font-semibold text-red-600" : ""}>
-        {currency.format(Number(value))}
-      </span>
-    ),
-  },
-];
-
-const [resizeMode, setResizeMode] = useState<ResizeMode>("fit");
-
-<DataGrid
-  columns={columns}
-  dataSource={rows}
-  borders="all"
-  resizableColumns
-  reorderableColumns
-  resizeMode={resizeMode}
-/>;
-```
+<DataGridResizeReorderExample />
 
 ## Props
 

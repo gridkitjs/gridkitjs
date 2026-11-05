@@ -7,22 +7,7 @@ selectable.rows takes a SelectionMode — false, "single", or "multiple" — off
 
 ## Multi-select rows
 
-<LiveExampleFrame title='selectable={{ rows: "multiple" }}'>
-  <StackblitzExample
-    path="row-selection"
-    title='selectable={{ rows: "multiple" }}'
-  />
-</LiveExampleFrame>
-
-```ts
-<DataGrid
-  columns={columns}
-  dataSource={rows}
-  getRowId={(row) => String(row.Id)}
-  selectable={{ rows: "multiple" }}
-  onRowSelectionChange={({ selected }) => persist(selected)}
-/>;
-```
+<RowSelectionExample />
 
 ## Props
 

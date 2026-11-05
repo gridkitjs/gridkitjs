@@ -13,6 +13,8 @@ description: "Rendering only the rows near the current scroll position with virt
 <DataGrid columns={columns} dataSource={rows} height={400} virtualized />
 ```
 
+<RowVirtualizationExample />
+
 ## Row height is measured, not assumed
 
 Rows in this grid are not uniform: a column with `wrap: { cells: true }` allows multi-line content, and group header/summary rows (see [row grouping](/docs/react/row-grouping)) differ in height from data rows. `virtualized` measures each rendered row's real height rather than assuming a fixed one, so none of that is out of scope — a `.is-wrapped` column keeps wrapping exactly as it does without `virtualized`.

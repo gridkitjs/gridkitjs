@@ -19,6 +19,8 @@ A `FilterState<Row>` is an array of `FilterEntry<Row>`, ANDed together — a row
 
 A text, value or predicate entry may omit `columnId` to match against **every** column instead of one — a free-text search, for example. An operator entry always names its column.
 
+<ColumnFilteringExample />
+
 ## Seed a grid already filtered
 
 ```ts

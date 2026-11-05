@@ -13,37 +13,7 @@ A template is for markup: a link or a button in a cell, a badge, a style that de
 
 ## Formatted currency column
 
-<LiveExampleFrame title="Column templates">
-  <ColumnTemplatesExample />
-</LiveExampleFrame>
-
-```ts
-import { defineColumnsFromRows } from "@gridkitjs/core";
-import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
-
-const currency = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-});
-
-const columns: readonly ColumnDefinition<Row>[] = [
-  ...defineColumnsFromRows(rows),
-  {
-    field: "Cost",
-    id: "Cost.currency",
-    type: "currency",
-    header: "Cost",
-    headerTemplate: <span className="italic">Cost</span>,
-    cellTemplate: ({ value, row }) => (
-      <span className={row.Cost > 500 ? "font-semibold text-red-600" : ""}>
-        {currency.format(Number(value))}
-      </span>
-    ),
-  },
-];
-
-<DataGrid columns={columns} dataSource={rows} borders="horizontal" />;
-```
+<ColumnTemplatesExample />
 
 ## The `cellTemplate` context
 

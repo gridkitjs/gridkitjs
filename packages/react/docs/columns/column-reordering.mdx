@@ -7,18 +7,7 @@ reorderableColumns turns on dragging a header to a new position, unless a column
 
 ## Drag a header to reorder it
 
-<LiveExampleFrame title="reorderableColumns">
-  <StackblitzExample path="column-reordering" title="reorderableColumns" />
-</LiveExampleFrame>
-
-```ts
-<DataGrid
-  columns={columns}
-  dataSource={rows}
-  reorderableColumns
-  onColumnOrderChange={({ columnId, order }) => persist(order)}
-/>;
-```
+<ColumnReorderingExample />
 
 ## Props
 
