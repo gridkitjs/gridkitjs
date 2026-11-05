@@ -275,7 +275,19 @@ test("a grid with paginated off renders every row on one implicit page", async (
 });
 
 function pageButton(root: MountResult, page: number) {
-  return root.getByRole("button", { name: `Page ${String(page)}` });
+  return root.getByRole("button", {
+    name: `Page ${String(page)}`,
+    exact: true,
+  });
+}
+
+/** `count` West rows, `r1`..`r<count>`. */
+function buildManyRows(count: number): Row[] {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `r${String(index + 1)}`,
+    region: "West",
+    amount: (index + 1) * 10,
+  }));
 }
 
 function ellipses(root: MountResult) {
@@ -315,8 +327,6 @@ test.describe("numbered pager variant", () => {
       />,
     );
 
-    // Page 3's button isn't in the initial window (current page 1's siblings
-    // only reach page 2), so land on page 2 first to bring it into view.
     await pageButton(root, 2).click();
     expect(await rowIds(root)).toEqual(["r2"]);
 
@@ -354,7 +364,7 @@ test.describe("numbered pager variant", () => {
       mount,
       <RowIdentifiedGrid
         columns={columns}
-        dataSource={buildRows()}
+        dataSource={buildManyRows(10)}
         label="Numbered ellipsis"
         paginated
         defaultPagination={{ pageIndex: 0, pageSize: 1 }}
@@ -362,9 +372,29 @@ test.describe("numbered pager variant", () => {
       />,
     );
 
-    // 7 rows at pageSize 1 = 7 pages; from page 1 the boundary+sibling
-    // window is [1, 2, …, 7] — one ellipsis, on the right only.
+    // 10 pages; from page 1 the boundary+sibling window is
+    // [1, 2, 3, 4, 5, …, 10] — one ellipsis, on the right only.
     await expect(ellipses(root)).toHaveCount(1);
+    await expect(pageButton(root, 10)).toBeVisible();
+  });
+
+  test("shows every page, with no ellipsis, while they all fit in the window", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildRows()}
+        label="Numbered no ellipsis"
+        paginated
+        defaultPagination={{ pageIndex: 0, pageSize: 1 }}
+        pager={{ variant: "numbered" }}
+      />,
+    );
+
+    // 7 pages fit the default 7-slot window outright.
+    await expect(ellipses(root)).toHaveCount(0);
     await expect(pageButton(root, 7)).toBeVisible();
   });
 
