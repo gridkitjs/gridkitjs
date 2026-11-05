@@ -440,3 +440,9 @@ The two decisions those keys need are pure, and live here; the behaviour that ho
 | ------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `nextMenuIndex(entries, from, move)`  | `number` | The item focus moves to from index `from`, `-1` for none. `move` is a `MenuMove`: `"next"`, `"previous"`, `"first"` or `"last"`. Skips separators, wraps round the ends and counts disabled items; `-1` when there is no item.                                                                                           |
 | `typeaheadIndex(labels, from, query)` | `number` | The item `query` picks, matched case-insensitively against the start of each label, wrapping. One letter, or one letter typed again and again, searches from the item after `from`, so repeating it steps through every item it starts; a longer query keeps the focused item while it still matches. `-1` for no match. |
+
+## See also
+
+- [Toolbar](/docs/core/toolbar) for the toolbar's resolved items.
+- [Context menu](/docs/react/context-menu) and [toolbar](/docs/react/toolbar) for the React components that show them.
+- [Export](/docs/core/export) for the export and print commands.

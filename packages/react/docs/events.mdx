@@ -65,3 +65,9 @@ Neither fires for a group header or a group's summary row; a click there expands
 | `onCellSelectionChange`                                                                             | `(event: CellSelectionChangeEvent) => void` | Once per change with what was selected and deselected — one interaction can fill both, since moving between cells does so at once.        |
 
 Every payload's fields are broken down where its feature lives, rather than repeated here: [row selection](/docs/react/row-selection#payload-shape) for `RowSelectionChangeEvent`, [column selection](/docs/react/column-selection#payload-shapes) for `ColumnSelectEvent`/`ColumnsSelectEvent`/`ColumnSelectionChangeEvent`, [cell selection](/docs/react/cell-selection#payload-shapes) for `CellSelectEvent`/`CellSelectionChangeEvent`, and [row grouping](/docs/react/row-grouping) for `GroupByEvent`/`GroupExpansionEvent`.
+
+## See also
+
+- [Controlled and uncontrolled state](/docs/react/state) for holding the state these events report.
+- [Imperative handle](/docs/react/imperative-handle) for `subscribe` and the ref's reads.
+- [DataGrid](/docs/react/data-grid) for the full props list.

@@ -30,3 +30,9 @@ resizableColumns turns on dragging a header's trailing edge to resize, unless a 
 ## Autofit
 
 Sizing a column to its content — a double-click on its edge, <Kbd>Alt</Kbd>+<Kbd>Enter</Kbd> on its header — measures the column's content in the rows on screen and fits the column to it, within its `minWidth`/`maxWidth`, firing `onColumnResize` once with `"end"`. On a paged or virtualized grid, rows not drawn are not measured. The same fit is available from code: the ref's [`autoFitColumn(columnId)`](/docs/react/imperative-handle#actions) and `autoFitColumns(columnIds?)`, which fits every column shown when given none, and the `column.autoFit` and `column.autoFitAll` commands, which a [context menu](/docs/react/context-menu#default-items) or [toolbar](/docs/react/toolbar) can carry or `runCommand` can run.
+
+## See also
+
+- [Column reordering](/docs/react/column-reordering) for moving columns.
+- [Column definition](/docs/react/column-definition) for `width`, `minWidth` and `maxWidth`.
+- [core: Resizing](/docs/core/resizing) for the framework-free logic.
