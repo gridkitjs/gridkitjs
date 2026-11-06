@@ -39,10 +39,10 @@ covered by `apps/playground/tests-ct/export.spec.tsx`.
 
 ## Docs
 
-`packages/export-xlsx/docs/`. The writing rules are in the root
-[Docs](../../AGENTS.md#docs) section.
+`packages/export-xlsx/docs/`. The writing rules are in
+[.claude/rules/docs.md](../../.claude/rules/docs.md).
 
 ## Releasing
 
-Published, so a change here needs a changeset: see the root
-[Versioning](../../AGENTS.md#versioning) section.
+Published, so a change here needs a changeset: see
+[.claude/rules/versioning.md](../../.claude/rules/versioning.md).

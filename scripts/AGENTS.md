@@ -2,8 +2,8 @@
 
 Node scripts for the docs pipeline. Plain ESM `.mjs`, no build step; run them
 from the repo root. How the docs pipeline fits together (the manifest, the
-`revalidate-docs` workflow, the `docs-meta` branch) is in the root
-[Docs](../AGENTS.md#docs) section.
+`revalidate-docs` workflow, the `docs-meta` branch) is in
+[.claude/rules/docs.md](../.claude/rules/docs.md#the-docs-manifest).
 
 | Script                    | What it does                                                                |
 | ------------------------- | --------------------------------------------------------------------------- |

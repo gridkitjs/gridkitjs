@@ -56,5 +56,5 @@ pnpm --filter playground typecheck
 pnpm --filter playground lint        # src, tests-ct and playwright
 ```
 
-The root [Docs](../../AGENTS.md#docs) section checks a docs code sample with
-these two.
+[.claude/rules/docs.md](../../.claude/rules/docs.md#code-samples-and-style)
+checks a docs code sample with these two.

@@ -3,7 +3,7 @@
 Standalone Vite and React apps, one per folder, that run GridKit from the
 **published** packages on npm, the way a consumer would. Each one opens on
 StackBlitz through a `<StackblitzExample path="...">` box in the docs (see
-the root [Docs](../AGENTS.md#docs) section for when to use one).
+[.claude/rules/docs.md](../.claude/rules/docs.md#live-examples) for when to use one).
 
 ## How they differ from the workspace
 

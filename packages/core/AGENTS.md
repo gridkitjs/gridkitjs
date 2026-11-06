@@ -34,15 +34,15 @@ pnpm --filter @gridkitjs/core build       # tsup, only for publishing
 ## Tests
 
 Vitest only. Test files sit next to the code as `*.test.ts`. Logic that can
-be tested here, without a DOM, should be: see the root
-[Tests](../../AGENTS.md#tests) section.
+be tested here, without a DOM, should be: see
+[.claude/rules/testing.md](../../.claude/rules/testing.md).
 
 ## Docs
 
 `packages/core/docs/`, page order in its `_meta.json`. The writing rules are
-in the root [Docs](../../AGENTS.md#docs) section.
+in [.claude/rules/docs.md](../../.claude/rules/docs.md).
 
 ## Releasing
 
-Published, so a change here needs a changeset: see the root
-[Versioning](../../AGENTS.md#versioning) section.
+Published, so a change here needs a changeset: see
+[.claude/rules/versioning.md](../../.claude/rules/versioning.md).

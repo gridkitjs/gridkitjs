@@ -46,9 +46,9 @@ counts toward its coverage threshold.
 
 `packages/react/docs/`, with nested topics in `cells/`, `columns/` and
 `rows/`, each with its own `_meta.json`. The writing rules, the page template
-and the glossary are in the root [Docs](../../AGENTS.md#docs) section.
+and the glossary are in [.claude/rules/docs.md](../../.claude/rules/docs.md).
 
 ## Releasing
 
-Published, so a change here needs a changeset: see the root
-[Versioning](../../AGENTS.md#versioning) section.
+Published, so a change here needs a changeset: see
+[.claude/rules/versioning.md](../../.claude/rules/versioning.md).
