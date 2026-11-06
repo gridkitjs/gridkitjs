@@ -15,7 +15,10 @@ Each published package keeps its own docs as `.mdx` under
 `_meta.json`. Nested topics live in subfolders with their own `_meta.json` —
 e.g. `packages/react/docs/columns/`. They are rendered by the
 `gridkit-website` repo — there is no docs build here, so `.mdx` changes can
-only be previewed there.
+only be previewed there: at [next.gridkitjs.com](https://next.gridkitjs.com)
+after the PR merges, or locally against a branch's manifest (see
+[The docs manifest](#the-docs-manifest)). The production site,
+`gridkitjs.com`, shows them only after the next release.
 
 ## The docs manifest
 
@@ -141,8 +144,12 @@ example's own. Don't wrap one in `<LiveExampleFrame>` (it still works, but
 only passes its title on), and don't repeat the example's code in a fence
 below it — the Code tab already shows it; a fence that shows something the
 example doesn't is fine. The examples live in the
-`gridkit-website` repo, so a page that needs a new one asks for it there
-(an issue or a PR adding it) before the tag goes into a page here.
+`gridkit-website` repo, so a page that needs a new one gets it built there
+first: a PR into the website's `development` branch, which deploys to
+[next.gridkitjs.com](https://next.gridkitjs.com), where it can be previewed.
+It reaches production with the release. Once it is merged into
+`development`, its tag is on the next site's list and the page here can use
+it (see [Tag check](#tag-check)).
 `<StackblitzExample path="...">` is a link-only box to a project under
 `examples/`; keep it for a whole app setup an inline example can't show.
 
