@@ -1,5 +1,39 @@
 # @gridkitjs/react
 
+## 0.13.0
+
+### Minor Changes
+
+- 6a4c6c2: The built-in pager is redrawn as one connected bar, `« ‹ pages › »`, that no longer shifts as the user pages through it, followed by the page-size `<select>` with its label to its right.
+
+  - New First and Last buttons, named by the new `firstPage` and `lastPage` messages.
+  - Previous and Next show chevron icons instead of their text; `previousPage` and `nextPage` are now their accessible names and tooltips. A test that found them by text, such as `locator(".grid-pager-button", { hasText: "Next" })`, should find them by role: `getByRole("button", { name: "Next" })`.
+  - The arrows and pages sit inside a new `.grid-pager-bar`. Arrow buttons carry `grid-pager-nav` plus `grid-pager-first`, `grid-pager-previous`, `grid-pager-next` or `grid-pager-last`; page-number buttons carry `grid-pager-page`. All of them keep `grid-pager-button`.
+  - The compact status is wrapped in `.grid-pager-status-slot` beside a hidden `.grid-pager-status-sizer` holding its widest text, so it keeps one width; `.grid-pager-status` still holds the visible text.
+  - The page-size label text follows the `<select>` inside `.grid-pager-page-size`, in a `.grid-pager-page-size-label` span, where it came before it.
+
+- 6a4c6c2: `DataGrid`'s header, body and footer `<table>` elements are now `role="presentation"`, and their `<thead>`, `<tbody>` and `<tfoot>` carry `role="rowgroup"`, so every row and cell belongs to the `grid` or `treegrid` element instead of to a native table. A grouped grid's group rows keep `aria-level`, `aria-expanded`, `aria-posinset` and `aria-setsize`, which are now valid there; screen readers stop announcing a table inside the grid, and the axe `aria-required-children` and `aria-conditional-attr` violations are gone. Class names and keyboard behaviour are unchanged.
+
+  A test that found the grid's markup by the `table` role no longer matches. Query the grid instead, or a class name:
+
+  ```ts
+  // Before
+  page.getByRole("table");
+  // After
+  page.getByRole("grid"); // or "treegrid" while grouped
+  page.locator(".gridkit-data-grid-header"); // one table, by class
+  ```
+
+### Patch Changes
+
+- 2ac1c45: `DataGrid` formats the counts in its default messages with its `locale` prop.
+- 6a4c6c2: `DataGrid` now renders on the server: a Next.js App Router page that prerenders a grid no longer fails with "Missing getServerSnapshot", and the grid hydrates on the client without a mismatch, so it no longer needs a client-only wrapper. The `use*State` hooks such as `usePaginationState` render their pre-mount values on the server too.
+- Updated dependencies [2ac1c45]
+- Updated dependencies [6a4c6c2]
+- Updated dependencies [6a4c6c2]
+  - @gridkitjs/core@0.14.0
+  - @gridkitjs/dom@0.3.1
+
 ## 0.12.0
 
 ### Minor Changes
