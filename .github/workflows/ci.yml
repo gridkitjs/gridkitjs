@@ -33,8 +33,10 @@ jobs:
       - run: pnpm format:check
       - run: pnpm lint
 
-      # Skips with a warning while the website has not yet published its
-      # tag list (a 404); fails on an unregistered tag or any other error.
+      # Checks against the next site's tag list (next.gridkitjs.com), which
+      # carries the examples for merged but unreleased features. Skips with
+      # a warning while that list is not published (a 404, or the host not
+      # resolving yet); fails on an unregistered tag or any other error.
       - run: node scripts/check-mdx-tags.mjs
 
       - run: pnpm typecheck

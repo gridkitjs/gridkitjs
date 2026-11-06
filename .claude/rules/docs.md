@@ -126,8 +126,9 @@ there, so every prop is a string: write `dev="true"`, never `dev={true}`.
   `// [!code focus]` mark single lines.
 
 The full list of registered tags is served at
-`https://gridkitjs.com/mdx-tags.json`; a tag missing from it renders as
-literal text.
+`https://next.gridkitjs.com/mdx-tags.json`; a tag missing from it renders as
+literal text. The next site holds every tag the live site has, plus the
+examples for features merged here but not yet released.
 
 ## Live examples
 
@@ -150,5 +151,11 @@ example doesn't is fine. The examples live in the
 `scripts/check-mdx-tags.mjs` holds the docs to that list: it collects every
 PascalCase tag in `packages/*/docs/**/*.mdx`, ignoring fenced code, code
 spans and comments, and fails with the file and line of any tag the website
-does not register. How CI runs it and how to run it locally against the
-website's current tags are in [scripts/AGENTS.md](../../scripts/AGENTS.md).
+does not register. It reads the next site's list, not the live site's:
+docs ship to `gridkitjs.com` only with a release, and by then the website's
+`development` branch, which deploys to `next.gridkitjs.com`, has reached its
+`main` along with the examples a release's pages use. So a page can use a
+new example's tag as soon as the example is merged into `development`, in
+the same PR as the feature. How CI runs it and how to run it locally
+against the website's current tags are in
+[scripts/AGENTS.md](../../scripts/AGENTS.md).

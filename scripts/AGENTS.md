@@ -61,10 +61,14 @@ node scripts/publish-docs-manifest.mjs --branch docs-meta-next --dry-run
 
 ## check-mdx-tags.mjs
 
-CI runs it after lint. While the hosted list is missing (a 404, before the
-website first publishes it) it skips with a warning; any other failure to
-read the list fails it. To run it locally against the website's current
-tags, generate the list in the `gridkit-website` repo with
+CI runs it after lint, against `https://next.gridkitjs.com/mdx-tags.json`:
+the next site, which carries the examples for features merged here but not
+yet released (why is in
+[.claude/rules/docs.md](../.claude/rules/docs.md#tag-check)). While that
+list is missing (a 404, or the host not resolving before the next site is
+first deployed) it skips with a warning; any other failure to read the list
+fails it. To run it locally against the website's current tags, generate
+the list in the `gridkit-website` repo with
 `node scripts/export-mdx-tags.mjs` and point the check at it:
 
 ```bash
