@@ -152,7 +152,10 @@ async function main() {
     // Scoped packages are private by default; these are public.
     const args = ["publish", tarball.file, "--access", "public"];
     if (distTag !== undefined) args.push("--tag", distTag);
+    // A failed trusted-publishing token exchange surfaces only as ENEEDAUTH;
+    // npm names the reason at verbose level alone.
     if (dryRun) args.push("--dry-run");
+    else args.push("--loglevel", "verbose");
     console.error(
       `${dryRun ? "dry-run" : "publish"}  ${label}  dist-tag ${distTag ?? "latest"}`,
     );
