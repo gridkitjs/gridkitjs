@@ -1,5 +1,34 @@
 # @gridkitjs/react
 
+## 0.14.0
+
+### Minor Changes
+
+- 2980dcf: Secondary text now meets WCAG AA contrast (4.5:1) on group rows. The light `--gridkit-fg-muted-light` default is darker, `oklch(0.5 0.015 250)` where it was `oklch(0.55 0.015 250)`, so a group row's `(n)` count and inline subtotals, which sat at about 4.4:1 on `--gridkit-surface-muted` and 4.1:1 on hover, now read at 5.5:1 and 5:1. Every other use of `--gridkit-fg-muted` in light mode is slightly darker too. The dark palette already met AA and is unchanged. A grid that overrides `--gridkit-fg-muted` or its `-light` value keeps its own colour.
+
+  `datasetIndex` is each row's position in the whole result as shown, as documented. A data row's `datasetIndex` used to stay at its index in `dataSource` through filtering, sorting and grouping, so in a grouped grid a group's first data row could share an `aria-rowindex` with the group row above it, and in a sorted or filtered grid `aria-rowindex` skipped about or ran past `aria-rowcount`. `filterRows`, `sortRows`, `groupRows` and `withGroupAggregates` now renumber `datasetIndex` alongside `rowIndex`, so every row, group row and summary row has its own `aria-rowindex`, in order, on every page and under virtualization. A `cellTemplate` that reads `datasetIndex` as a running row number now counts 1, 2, 3 down the grid however it is sorted; to reach a row's index in `dataSource`, look the row up by its id instead.
+
+  `DataGrid`'s grand-total footer row, drawn while `aggregates` is set, has an `aria-rowindex` of its own, after the last body row, and is counted in the grid's `aria-rowcount`, which is one higher than before for a grid with aggregates. It had neither, so a screen reader could not place it among the rows.
+
+  The built-in pager keeps keyboard focus at either end. Pressing Next until the last page used to disable the focused button and drop focus to the page; now First, Previous, Next and Last are disabled with `aria-disabled="true"` instead of the `disabled` attribute, so the button stays focused and announced as unavailable, and pressing it again does nothing. The theme styles `.grid-pager-button[aria-disabled="true"]`, fading the chevron but not the focus ring. **Breaking:** CSS or tests of your own that look for the buttons' `disabled` attribute no longer match; CSS that targets `.grid-pager-button:disabled` should target `.grid-pager-button[aria-disabled="true"]`:
+
+  ```css
+  /* Before */
+  .grid-pager-button:disabled {
+    opacity: 0.3;
+  }
+  /* After */
+  .grid-pager-button[aria-disabled="true"] {
+    opacity: 0.3;
+  }
+  ```
+
+### Patch Changes
+
+- Updated dependencies [2980dcf]
+  - @gridkitjs/core@0.14.1
+  - @gridkitjs/dom@0.3.2
+
 ## 0.13.0
 
 ### Minor Changes

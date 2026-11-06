@@ -1,5 +1,12 @@
 # @gridkitjs/dom
 
+## 0.3.2
+
+### Patch Changes
+
+- Updated dependencies [2980dcf]
+  - @gridkitjs/core@0.14.1
+
 ## 0.3.1
 
 ### Patch Changes
