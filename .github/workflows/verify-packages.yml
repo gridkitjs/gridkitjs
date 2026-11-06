@@ -59,10 +59,12 @@ jobs:
       - name: Smoke-test the tarballs in fresh apps
         run: node scripts/smoke-packages.mjs
 
+      # `.pack/` is a dot-directory, which upload-artifact skips by default.
       - if: inputs.upload-tarballs
         uses: actions/upload-artifact@v4
         with:
           name: package-tarballs
           path: .pack/
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
