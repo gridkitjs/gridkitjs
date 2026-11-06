@@ -952,6 +952,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     selection.columnMode === false ? "" : "selectable-columns",
     selection.cellMode === false ? "" : "selectable-cells",
   );
+  const hasFooter = aggregates.length > 0;
 
   return (
     <div className="gridkit-data-grid-viewport" ref={viewportRef}>
@@ -1011,10 +1012,11 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
         // The header is a row too, and counted from one; group headers (and,
         // under `groupAggregateDisplay: "row"`, each group's own summary
         // row) count as rows here too, the same way they do in `nav`'s
-        // `rowCount`. `view.displayRows`, not `view.pageRows`: the total
-        // dataset count, not the current page's, so this stays the true row
-        // count per the WAI-ARIA grid pattern even while paged.
-        aria-rowcount={view.displayRows.length + 1}
+        // `rowCount`, and so does the grand-total footer. `view.displayRows`,
+        // not `view.pageRows`: the total dataset count, not the current
+        // page's, so this stays the true row count per the WAI-ARIA grid
+        // pattern even while paged.
+        aria-rowcount={view.displayRows.length + (hasFooter ? 2 : 1)}
         aria-colcount={view.columns.length}
         {...ariaAttr(multiselectable, "aria-multiselectable", true)}
         {...ariaAttr(labelledBy !== undefined, "aria-labelledby", labelledBy)}
@@ -1117,7 +1119,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
           </table>
         </div>
 
-        {aggregates.length > 0 && (
+        {hasFooter && (
           <table
             role="presentation"
             style={{ width: totalColumnWidth(view.columns) }}
@@ -1133,6 +1135,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
               results={view.grandTotal}
               rows={view.rows.map((entry) => entry.row)}
               locale={locale}
+              ariaRowIndex={view.displayRows.length + 2}
             />
           </table>
         )}
