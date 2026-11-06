@@ -11,7 +11,7 @@ name: Release
 #   (the Version Packages PR just merged, or a release stopped part-way):
 #   CI re-runs on this commit, the `release` environment's reviewer
 #   approves, and the tarballs CI verified are published, tagged and given
-#   GitHub Releases.
+#   GitHub Releases. The production docs manifest then goes to docs-meta.
 # - Otherwise nothing.
 #
 # npm authenticates through trusted publishing (OIDC); no npm token exists.
@@ -20,9 +20,10 @@ name: Release
 # `release` environment on the publish job.
 #
 # Run it by hand to retry a release, to rehearse one (dry run: everything
-# but the publishing, tagging and releasing), or with mode docs-only to skip
-# npm. A dry run can start from any branch, though a stable release's
-# publish job still runs only on main and only once approved.
+# but the publishing, tagging, releasing and pushing), or with mode
+# docs-only to ship docs alone: once approved, the manifest of main's head
+# goes to docs-meta, with no npm step. A dry run can start from any branch,
+# though the approved jobs still run only on main.
 on:
   push:
     branches: [main]
@@ -183,14 +184,21 @@ jobs:
     with:
       upload-tarballs: true
 
+  # A docs-only run has no checks and publishes nothing to npm: it passes
+  # through this job for the environment's approval alone, so production
+  # docs never change unapproved.
   publish:
     needs: [plan, checks]
-    if: needs.plan.outputs.release == 'stable'
+    if: >-
+      !cancelled() && needs.plan.result == 'success' &&
+      ((needs.plan.outputs.release == 'stable' && needs.checks.result == 'success') ||
+      inputs.mode == 'docs-only')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # The approval gate: the job starts once the environment's reviewer
     # approves. Its deployment branch rule allows main only, so a dry run of
-    # a stable release also runs on main and waits for approval.
+    # a stable or docs-only release also runs on main and waits for
+    # approval.
     environment: release
     permissions:
       contents: read
@@ -200,14 +208,17 @@ jobs:
       versions: ${{ steps.publish.outputs.versions }}
     steps:
       - uses: actions/checkout@v4
+        if: needs.plan.outputs.release == 'stable'
 
       # Node 24 ships npm 11, which trusted publishing needs (11.5.1 or
       # newer; the script checks).
       - uses: actions/setup-node@v4
+        if: needs.plan.outputs.release == 'stable'
         with:
           node-version: 24
 
       - uses: actions/download-artifact@v4
+        if: needs.plan.outputs.release == 'stable'
         with:
           name: package-tarballs
           path: ${{ runner.temp }}/package-tarballs
@@ -216,6 +227,7 @@ jobs:
       # that stopped part-way.
       - name: Publish the verified tarballs
         id: publish
+        if: needs.plan.outputs.release == 'stable'
         run: >-
           node scripts/publish-tarballs.mjs
           --pack-dir "$RUNNER_TEMP/package-tarballs"
@@ -250,3 +262,31 @@ jobs:
           --packages "$UNRELEASED"
           --sha "$GITHUB_SHA"
           ${{ inputs.dry-run && '--dry-run' || '' }}
+
+  # The production docs manifest, built from the release commit, on
+  # docs-meta. The website pins the commit this outputs, so live docs move
+  # only when the website ships this release.
+  docs:
+    needs: publish
+    # Explicit, since a skipped job further up (checks, on a docs-only run)
+    # would otherwise skip this one too.
+    if: ${{ !cancelled() && needs.publish.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    outputs:
+      manifest-sha: ${{ steps.manifest.outputs.manifest-sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Each file's lastModified comes from its git history.
+          fetch-depth: 0
+
+      # A dry run makes the manifest commit without pushing it.
+      - name: Publish the manifest to docs-meta
+        id: manifest
+        uses: ./.github/actions/publish-docs-manifest
+        with:
+          branch: docs-meta
+          dry-run: ${{ inputs.dry-run == true }}
