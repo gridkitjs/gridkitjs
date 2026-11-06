@@ -165,7 +165,7 @@ See [AGENTS.md](AGENTS.md) for the full contributor guide.
 CI runs exactly this, in order:
 
 ```bash
-pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build
+pnpm format:check && pnpm lint && node scripts/check-mdx-tags.mjs && pnpm typecheck && pnpm test && pnpm build
 ```
 
 TypeScript is `strict` with `noUncheckedIndexedAccess` and
@@ -175,6 +175,10 @@ versioning.
 
 Requires Node 22 or newer. See [AGENTS.md](AGENTS.md) for the full contributor
 guide.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and the pull request checklist.
 
 ## License
 
