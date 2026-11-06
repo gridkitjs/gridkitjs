@@ -44,5 +44,6 @@ covered by `apps/playground/tests-ct/export.spec.tsx`.
 
 ## Releasing
 
-Published, so a change here needs a changeset: see
+Published, so a change to what it ships needs a changeset; tests,
+docs and README edits do not. See
 [.claude/rules/versioning.md](../../.claude/rules/versioning.md).

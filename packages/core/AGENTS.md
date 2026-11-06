@@ -44,5 +44,6 @@ in [.claude/rules/docs.md](../../.claude/rules/docs.md).
 
 ## Releasing
 
-Published, so a change here needs a changeset: see
+Published, so a change to what it ships needs a changeset; tests,
+docs and README edits do not. See
 [.claude/rules/versioning.md](../../.claude/rules/versioning.md).
