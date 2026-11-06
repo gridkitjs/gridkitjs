@@ -1,0 +1,57 @@
+name: Verify packages
+
+# Tests the packages as they would be published: packed tarballs, linted,
+# then installed into fresh Vite, Next.js and Node apps. Reusable, so CI and
+# the release workflow run the same checks.
+on:
+  workflow_call:
+    inputs:
+      upload-tarballs:
+        description: Upload the verified tarballs as the `package-tarballs` artifact.
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reads the pnpm version from the `packageManager` field in package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: "pnpm"
+
+      # The smoke apps install with npm, as a consumer would, so they get
+      # npm's cache rather than pnpm's store; keyed on their pinned versions.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: smoke-npm-${{ runner.os }}-${{ hashFiles('scripts/smoke/*/package.json') }}
+          restore-keys: smoke-npm-${{ runner.os }}-
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Pack the published packages
+        run: node scripts/pack-packages.mjs
+
+      - name: Lint the tarballs
+        run: node scripts/lint-packages.mjs
+
+      - name: Smoke-test the tarballs in fresh apps
+        run: node scripts/smoke-packages.mjs
+
+      - if: inputs.upload-tarballs
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-tarballs
+          path: .pack/
+          if-no-files-found: error
+          retention-days: 7
