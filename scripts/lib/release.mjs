@@ -65,6 +65,7 @@ export async function isOnNpm({ name, version }) {
     `${name}@${version}`,
     "version",
     "--json",
+    "--prefer-online",
   ]);
   if (result.code === 0) {
     return JSON.parse(result.stdout.trim() || "null") === version;
