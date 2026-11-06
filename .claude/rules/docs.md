@@ -26,15 +26,24 @@ with its frontmatter, body, blob SHA and last commit date, and every parsed
 `_meta.json`. Its contract with the website, and how to run it locally, are
 in [scripts/AGENTS.md](../../scripts/AGENTS.md).
 
-The `revalidate-docs` workflow builds it on every push to `main` that touches
-`packages/*/docs/**`, `packages/*/CHANGELOG.md` or `packages/*/package.json`,
-commits it to the orphan `docs-meta` branch (`main` is protected, so it cannot
-live there), and POSTs a signed `{ ref, sha, manifestSha, ts }` to the
-website's revalidation webhook. Never commit to `docs-meta` by hand; every
-commit on it is the workflow's. To preview a branch's docs, run the workflow
-on that branch from the Actions tab: it publishes to `docs-meta-<branch>`
-(slashes become dashes) and does not notify the website, so point the
-website's `DOCS_MANIFEST_REF` at that branch.
+`scripts/publish-docs-manifest.mjs` commits it, as the only file, to an
+orphan manifest branch (`main` is protected, so it cannot live there). There
+are three, one per channel:
+
+| Branch               | Written by                                                                                                           | Read by                                     |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `docs-meta`          | The release workflow, after a stable release or a docs-only one, once the `release` environment's reviewer approves. | `gridkitjs.com`, at a pinned commit SHA.    |
+| `docs-meta-next`     | The `docs-preview` workflow, on every push to `main` touching a package's `docs/`, `CHANGELOG.md` or `package.json`. | `next.gridkitjs.com`.                       |
+| `docs-meta-<branch>` | The `docs-preview` workflow, run by hand on that branch from the Actions tab (slashes become dashes).                | The website's `DOCS_MANIFEST_REF`, locally. |
+
+So a docs change reaches the next site when it merges and the live site
+with the next release: the release hands the website the new `docs-meta`
+commit, and the website's own release PR moves its pin. On `main`,
+`docs-preview` also POSTs a signed `{ ref, sha, manifestSha, ts }` to the
+next site's revalidation webhook (`vars.WEBSITE_NEXT_REVALIDATE_URL`; while
+it is unset the request is skipped with a notice). A branch preview notifies
+nothing. Never commit to a manifest branch by hand; every commit on one is a
+workflow's.
 
 ## Keeping docs current
 
@@ -117,8 +126,9 @@ there, so every prop is a string: write `dev="true"`, never `dev={true}`.
   `// [!code focus]` mark single lines.
 
 The full list of registered tags is served at
-`https://gridkitjs.com/mdx-tags.json`; a tag missing from it renders as
-literal text.
+`https://next.gridkitjs.com/mdx-tags.json`; a tag missing from it renders as
+literal text. The next site holds every tag the live site has, plus the
+examples for features merged here but not yet released.
 
 ## Live examples
 
@@ -141,5 +151,11 @@ example doesn't is fine. The examples live in the
 `scripts/check-mdx-tags.mjs` holds the docs to that list: it collects every
 PascalCase tag in `packages/*/docs/**/*.mdx`, ignoring fenced code, code
 spans and comments, and fails with the file and line of any tag the website
-does not register. How CI runs it and how to run it locally against the
-website's current tags are in [scripts/AGENTS.md](../../scripts/AGENTS.md).
+does not register. It reads the next site's list, not the live site's:
+docs ship to `gridkitjs.com` only with a release, and by then the website's
+`development` branch, which deploys to `next.gridkitjs.com`, has reached its
+`main` along with the examples a release's pages use. So a page can use a
+new example's tag as soon as the example is merged into `development`, in
+the same PR as the feature. How CI runs it and how to run it locally
+against the website's current tags are in
+[scripts/AGENTS.md](../../scripts/AGENTS.md).

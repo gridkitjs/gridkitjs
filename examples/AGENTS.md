@@ -29,8 +29,12 @@ projects have to CI.
 
 ## After a release
 
-Bump every example to the new release in one change: update the
-`@gridkitjs/*` ranges in each `package.json`, run `npm install` in each folder
-to refresh its `package-lock.json`, and commit them together as
-`chore(examples): update to the latest gridkit release`. Examples are not
-published, so they need no changeset.
+The release workflow bumps them: after a stable release, the release bot
+opens a `chore(examples): bump to the latest releases` PR from
+`chore/bump-examples`, with each example's `@gridkitjs/*` ranges moved to
+`^<released version>` and its `package-lock.json` refreshed. Review and
+merge it like any other PR. Examples are not published, so it needs no
+changeset.
+
+The workflow runs `node scripts/bump-examples.mjs`; run it by hand, from the
+repo root, to do the same locally (`--dry-run` prints the diff only).

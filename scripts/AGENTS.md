@@ -2,20 +2,24 @@
 
 Node scripts for the docs pipeline, package verification and the release
 workflow. Plain ESM `.mjs`, no build step; run them from the repo root. How
-the docs pipeline fits together (the manifest, the `revalidate-docs`
-workflow, the `docs-meta` branch) is in
+the docs pipeline fits together (the manifest, its three channel branches,
+the workflows that write them) is in
 [.claude/rules/docs.md](../.claude/rules/docs.md#the-docs-manifest).
 
-| Script                    | What it does                                                                     |
-| ------------------------- | -------------------------------------------------------------------------------- |
-| `build-docs-manifest.mjs` | Builds `docs-manifest.json`, the one file the website reads all docs from.       |
-| `check-mdx-tags.mjs`      | Fails on any PascalCase tag in the docs that the website does not register.      |
-| `pack-packages.mjs`       | Builds the published packages and packs each into a tarball under `.pack/`.      |
-| `lint-packages.mjs`       | Lints the tarballs with publint and arethetypeswrong.                            |
-| `smoke-packages.mjs`      | Installs the tarballs into the fresh apps under `smoke/` and runs their checks.  |
-| `release-plan.mjs`        | Decides whether a release run publishes a snapshot, a stable release or nothing. |
-| `publish-tarballs.mjs`    | Publishes the verified tarballs to npm, skipping versions npm already has.       |
-| `github-releases.mjs`     | Tags a stable release and writes GitHub Releases from the changelogs.            |
+| Script                       | What it does                                                                     |
+| ---------------------------- | -------------------------------------------------------------------------------- |
+| `build-docs-manifest.mjs`    | Builds `docs-manifest.json`, the one file the website reads all docs from.       |
+| `publish-docs-manifest.mjs`  | Builds the manifest and commits it to a `docs-meta*` branch.                     |
+| `notify-docs-revalidate.mjs` | Sends a website deployment the signed request that revalidates its docs.         |
+| `check-mdx-tags.mjs`         | Fails on any PascalCase tag in the docs that the website does not register.      |
+| `pack-packages.mjs`          | Builds the published packages and packs each into a tarball under `.pack/`.      |
+| `lint-packages.mjs`          | Lints the tarballs with publint and arethetypeswrong.                            |
+| `smoke-packages.mjs`         | Installs the tarballs into the fresh apps under `smoke/` and runs their checks.  |
+| `release-plan.mjs`           | Decides whether a release run publishes a snapshot, a stable release or nothing. |
+| `publish-tarballs.mjs`       | Publishes the verified tarballs to npm, skipping versions npm already has.       |
+| `github-releases.mjs`        | Tags a stable release and writes GitHub Releases from the changelogs.            |
+| `website-dispatch.mjs`       | Tells the website which versions to install after a snapshot or a release.       |
+| `bump-examples.mjs`          | Moves the apps under `examples/` to the released versions.                       |
 
 ## build-docs-manifest.mjs
 
@@ -34,12 +38,37 @@ node scripts/build-docs-manifest.mjs
 Dates come from `git log`, so a run needs the full history (the workflow
 checks out with `fetch-depth: 0`), and a file with no commit yet gets `null`.
 
+## publish-docs-manifest.mjs and notify-docs-revalidate.mjs
+
+The docs workflows run these through the composite action
+`.github/actions/publish-docs-manifest`, so `docs-preview.yml` and
+`release.yml` publish a manifest the same way.
+
+- `publish-docs-manifest.mjs --branch <name> [--dry-run]` builds the
+  manifest and commits it with git plumbing on top of the branch's tip on
+  `origin`, then pushes; a rejected push is retried on the new tip. The
+  branch must be `docs-meta` or `docs-meta-*`, and slashes become dashes.
+  It prints `{ branch, sourceSha, parent, manifestSha, pushed }`.
+  `--dry-run` makes the commit locally and pushes nothing.
+- `notify-docs-revalidate.mjs --url <url> --manifest-sha <sha> [--dry-run]`
+  POSTs the signed `{ ref, sha, manifestSha, ts }` to a revalidation
+  webhook, with the secret from `DOCS_REVALIDATE_SECRET`. An empty `--url`
+  skips it with a notice. `--dry-run` prints the body.
+
+```bash
+node scripts/publish-docs-manifest.mjs --branch docs-meta-next --dry-run
+```
+
 ## check-mdx-tags.mjs
 
-CI runs it after lint. While the hosted list is missing (a 404, before the
-website first publishes it) it skips with a warning; any other failure to
-read the list fails it. To run it locally against the website's current
-tags, generate the list in the `gridkit-website` repo with
+CI runs it after lint, against `https://next.gridkitjs.com/mdx-tags.json`:
+the next site, which carries the examples for features merged here but not
+yet released (why is in
+[.claude/rules/docs.md](../.claude/rules/docs.md#tag-check)). While that
+list is missing (a 404, or the host not resolving before the next site is
+first deployed) it skips with a warning; any other failure to read the list
+fails it. To run it locally against the website's current tags, generate
+the list in the `gridkit-website` repo with
 `node scripts/export-mdx-tags.mjs` and point the check at it:
 
 ```bash
@@ -111,6 +140,20 @@ in `lib/release.mjs`.
   creates the missing `@gridkitjs/<pkg>@<version>` tags and GitHub Releases,
   with each version's `CHANGELOG.md` section as the notes. `--dry-run`
   prints them instead.
+- `website-dispatch.mjs --event <event> [--versions <json>] [--dry-run]`
+  (its header lists every option) sends the website a `repository_dispatch`
+  with the versions to install: after a snapshot, `{ sha, versions, manifestRef: "docs-meta-next" }`;
+  after a stable or docs-only release, `{ sha, versions, manifestSha }`,
+  `manifestSha` being the new `docs-meta` commit. `versions` always names
+  all five packages at exact versions; without `--versions` it is each
+  `package.json` version, which must be on npm. These payloads are the
+  contract with the website's receiving workflows, which validate them
+  strictly. `--dry-run` prints the event and payload.
+- `bump-examples.mjs [--versions <json>] [--dry-run]` sets each example's
+  `@gridkitjs/*` ranges to `^<version>` and refreshes its lockfile with
+  `npm install --package-lock-only`, retrying while npm catches up with a
+  version just published. The workflow then opens the PR. `--dry-run`
+  prints the diff.
 
 To rehearse a snapshot locally, on a branch with a committed changeset,
 version, pack and dry-run the publish. `changeset version` rewrites

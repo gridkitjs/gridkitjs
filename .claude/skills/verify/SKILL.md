@@ -72,8 +72,8 @@ What each script does is in
 | `lint-packages`   | publint or attw names the packaging mistake; fix the package's `package.json`, with a patch changeset.    |
 | `smoke-packages`  | It prints the failing fixture's step and output; rerun one with `node scripts/smoke-packages.mjs <name>`. |
 
-`check-mdx-tags` skipping with a warning (the hosted tag list returned a 404)
-is a pass, as in CI.
+`check-mdx-tags` skipping with a warning (the hosted tag list returned a 404,
+or its host does not resolve yet) is a pass, as in CI.
 
 Report each step as passed or failed with its real output. Don't call a step
 passed that you didn't run.

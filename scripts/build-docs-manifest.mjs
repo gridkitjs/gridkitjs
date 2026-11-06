@@ -1,9 +1,10 @@
 /**
  * Builds `docs-manifest.json`: every published package's docs pages,
  * `_meta.json` files, changelog and version, with each file's last commit
- * date, in one file the website fetches in a single request. The
- * revalidate-docs workflow runs it on push and publishes the result to the
- * orphan `docs-meta` branch.
+ * date, in one file the website fetches in a single request.
+ * `publish-docs-manifest.mjs` runs it and commits the result to an orphan
+ * manifest branch: `docs-meta-next` on a docs push, `docs-meta` on a
+ * release.
  *
  * Usage: node scripts/build-docs-manifest.mjs [output-path]
  * The output path defaults to `docs-manifest.json` at the repo root.

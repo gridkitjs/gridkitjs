@@ -32,7 +32,7 @@ nothing to say. Read a model page before starting:
 ## 3. Add the example
 
 - A live example is a bare tag on its own line, named exactly as in
-  `https://gridkitjs.com/mdx-tags.json`. See
+  `https://next.gridkitjs.com/mdx-tags.json`. See
   [Live examples](../../rules/docs.md#live-examples).
 - If the page needs an example that doesn't exist yet, ask for it in the
   `gridkit-website` repo (an issue or a PR) and use a complete code sample

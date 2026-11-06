@@ -5,20 +5,26 @@
  *
  * Usage: node scripts/check-mdx-tags.mjs
  *
- * The registered tags come from `https://gridkitjs.com/mdx-tags.json`, a
- * JSON array of tag names the website publishes on every build. Point the
+ * The registered tags come from `https://next.gridkitjs.com/mdx-tags.json`,
+ * a JSON array of tag names the website publishes on every build. The next
+ * site is the website's `development` branch, which holds everything on its
+ * `main` plus the examples for features gridkit has merged but not yet
+ * released, so a docs page can use a new example's tag in the same PR as
+ * the feature, before the release ships it to `gridkitjs.com`. Point the
  * check elsewhere with `MDX_TAGS_FILE` (a local copy, e.g. one generated in
  * the website repo by `node scripts/export-mdx-tags.mjs`) or `MDX_TAGS_URL`.
  *
  * A 404 from the hosted list skips the check with a warning instead of
  * failing it, so CI keeps passing until the website first publishes the
- * list. Any other failure to read it fails the check.
+ * list. So does a default host that does not resolve, until the next site
+ * is first deployed. Any other failure to read the list fails the check,
+ * and so does an `MDX_TAGS_URL` whose host does not resolve.
  */
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..");
-const DEFAULT_TAGS_URL = "https://gridkitjs.com/mdx-tags.json";
+const DEFAULT_TAGS_URL = "https://next.gridkitjs.com/mdx-tags.json";
 const FETCH_TIMEOUT_MS = 15_000;
 
 const IN_CI = process.env.GITHUB_ACTIONS === "true";
@@ -42,6 +48,19 @@ const COMPONENT_TAG = /<([A-Z]\w*(?:\.\w+)*)(?=[\s/>])/g;
 /** @param {unknown} error */
 function isMissingFile(error) {
   return error instanceof Error && "code" in error && error.code === "ENOENT";
+}
+
+/**
+ * Whether `fetch` failed because the host name does not resolve; `fetch`
+ * puts the reason for a network failure in its `cause`.
+ *
+ * @param {unknown} error
+ */
+function isUnresolvedHost(error) {
+  const cause = error instanceof Error ? error.cause : undefined;
+  return (
+    cause instanceof Error && "code" in cause && cause.code === "ENOTFOUND"
+  );
 }
 
 /** @param {string} message */
@@ -175,7 +194,7 @@ function parseTagList(value, source) {
 
 /**
  * The tags the website registers, or `null` when the hosted list does not
- * exist yet.
+ * exist yet: a 404, or the default host not resolving.
  *
  * @returns {Promise<Set<string> | null>}
  */
@@ -186,9 +205,15 @@ async function loadRegisteredTags() {
   }
 
   const url = process.env.MDX_TAGS_URL || DEFAULT_TAGS_URL;
-  const response = await fetch(url, {
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+  } catch (error) {
+    if (url === DEFAULT_TAGS_URL && isUnresolvedHost(error)) return null;
+    throw error;
+  }
   if (!response.ok) {
     // An unread body keeps the socket open past the end of the script.
     await response.body?.cancel();
@@ -228,8 +253,8 @@ async function main() {
   const registered = await loadRegisteredTags();
   if (registered === null) {
     warn(
-      "Skipped: the website has not published mdx-tags.json yet (404), so " +
-        "the docs' tags cannot be checked.",
+      "Skipped: the website has not published mdx-tags.json yet (a 404, or " +
+        "a host that does not resolve), so the docs' tags cannot be checked.",
     );
     return 0;
   }

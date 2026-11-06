@@ -1,0 +1,48 @@
+name: Publish docs manifest
+description: >-
+  Builds docs-manifest.json from the checked-out commit and commits it to a
+  manifest branch with scripts/publish-docs-manifest.mjs. The caller checks
+  out with fetch-depth 0 (each file's date comes from its git history) and
+  grants contents: write.
+
+inputs:
+  branch:
+    description: docs-meta, docs-meta-next, or docs-meta-<branch>.
+    required: true
+  dry-run:
+    description: Make the commit without pushing it.
+    default: "false"
+
+outputs:
+  manifest-sha:
+    description: The manifest commit on the branch.
+    value: ${{ steps.publish.outputs.manifest-sha }}
+
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v4
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 24
+        cache: "pnpm"
+
+    # The manifest build parses frontmatter with the `yaml` package.
+    - shell: bash
+      run: pnpm install --frozen-lockfile
+
+    - name: Build and commit the manifest
+      id: publish
+      shell: bash
+      env:
+        BRANCH: ${{ inputs.branch }}
+        DRY_RUN: ${{ inputs.dry-run }}
+        GIT_AUTHOR_NAME: github-actions[bot]
+        GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        GIT_COMMITTER_NAME: github-actions[bot]
+        GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+      run: |
+        args=(--branch "$BRANCH")
+        if [ "$DRY_RUN" = true ]; then args+=(--dry-run); fi
+        node scripts/publish-docs-manifest.mjs "${args[@]}"
