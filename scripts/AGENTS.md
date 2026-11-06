@@ -1,18 +1,19 @@
 # scripts
 
-Node scripts for the docs pipeline and for package verification. Plain ESM
-`.mjs`, no build step; run them from the repo root. How the docs pipeline
-fits together (the manifest, the `revalidate-docs` workflow, the `docs-meta`
-branch) is in
+Node scripts for the docs pipeline, package verification and the release
+workflow. Plain ESM `.mjs`, no build step; run them from the repo root. How
+the docs pipeline fits together (the manifest, the `revalidate-docs`
+workflow, the `docs-meta` branch) is in
 [.claude/rules/docs.md](../.claude/rules/docs.md#the-docs-manifest).
 
-| Script                    | What it does                                                                    |
-| ------------------------- | ------------------------------------------------------------------------------- |
-| `build-docs-manifest.mjs` | Builds `docs-manifest.json`, the one file the website reads all docs from.      |
-| `check-mdx-tags.mjs`      | Fails on any PascalCase tag in the docs that the website does not register.     |
-| `pack-packages.mjs`       | Builds the published packages and packs each into a tarball under `.pack/`.     |
-| `lint-packages.mjs`       | Lints the tarballs with publint and arethetypeswrong.                           |
-| `smoke-packages.mjs`      | Installs the tarballs into the fresh apps under `smoke/` and runs their checks. |
+| Script                    | What it does                                                                     |
+| ------------------------- | -------------------------------------------------------------------------------- |
+| `build-docs-manifest.mjs` | Builds `docs-manifest.json`, the one file the website reads all docs from.       |
+| `check-mdx-tags.mjs`      | Fails on any PascalCase tag in the docs that the website does not register.      |
+| `pack-packages.mjs`       | Builds the published packages and packs each into a tarball under `.pack/`.      |
+| `lint-packages.mjs`       | Lints the tarballs with publint and arethetypeswrong.                            |
+| `smoke-packages.mjs`      | Installs the tarballs into the fresh apps under `smoke/` and runs their checks.  |
+| `release-plan.mjs`        | Decides whether a release run publishes a snapshot, a stable release or nothing. |
 
 ## build-docs-manifest.mjs
 
@@ -88,3 +89,15 @@ A fixture lists its `@gridkitjs/*` dependencies at version `*`, and the run
 replaces each with its tarball. List the transitive ones too (`react` needs
 `core` and `dom`): one fetched from the registry instead of a tarball fails
 the run.
+
+## Release scripts
+
+`.github/workflows/release.yml` runs these on every push to `main`; its
+steps stay thin so the logic can be run, and read, here. Shared helpers are
+in `lib/release.mjs`.
+
+- `release-plan.mjs [--since <commit>] [--mode auto|docs-only]` prints the
+  plan as JSON: `snapshot` while changesets are pending and a published
+  package's `src/` changed since `--since` (always, without it), `stable`
+  when none are pending and a version is not on npm or not tagged, else
+  `none`. It asks npm and `git ls-remote`, so it needs the network.

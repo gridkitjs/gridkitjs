@@ -1,0 +1,110 @@
+name: Release
+
+# Every push to main goes through here, and scripts/release-plan.mjs decides
+# what it calls for. While changesets are pending, the bot opens or updates
+# the "chore: version packages" PR.
+#
+# Run it by hand from any branch with dry run set to see the plan.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Show what would be published, tagged and released, without doing it.
+        type: boolean
+        default: false
+      mode:
+        description: "auto: whatever the repository's state calls for. docs-only: skip npm."
+        type: choice
+        options: [auto, docs-only]
+        default: auto
+
+permissions:
+  contents: read
+
+# Runs queue rather than overlap, so two runs never push the version branch
+# or publish at once. Dry runs change nothing, so they queue among
+# themselves and never displace a real run waiting its turn.
+concurrency:
+  group: ${{ inputs.dry-run && 'release-dry-run' || 'release' }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      # stable, snapshot or none.
+      release: ${{ steps.plan.outputs.release }}
+      has-changesets: ${{ steps.plan.outputs.has-changesets }}
+      # JSON array of { name, version } not yet on npm or not tagged.
+      unreleased: ${{ steps.plan.outputs.unreleased }}
+    steps:
+      # Snapshots publish without an approval, so only main may publish.
+      - name: Allow only dry runs off main
+        if: github.ref != 'refs/heads/main' && !inputs.dry-run
+        run: |
+          echo "::error::Only a dry run can start from $GITHUB_REF_NAME; releases publish from main."
+          exit 1
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # BEFORE is the commit the push replaced, empty on a manual run, which
+      # snapshots whenever changesets are pending.
+      - name: Plan the release
+        id: plan
+        env:
+          BEFORE: ${{ github.event.before }}
+          MODE: ${{ inputs.mode || 'auto' }}
+        run: node scripts/release-plan.mjs --mode "$MODE" --since "$BEFORE"
+
+  version-pr:
+    needs: plan
+    if: github.event_name == 'push' && needs.plan.outputs.has-changesets == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      # The bot opens and pushes the PR: GitHub starts no workflow for a PR
+      # or push made with GITHUB_TOKEN, so CI would never report on it and
+      # main's required checks would block the merge. `workflows: write`
+      # because the version branch is force-pushed onto the latest main, and
+      # GitHub refuses an App's push that brings in a workflow change
+      # without it.
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          client-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-workflows: write
+
+      # changesets/action pushes with the checkout's credentials.
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: "pnpm"
+
+      - run: pnpm install --frozen-lockfile
+
+      # No `publish` input: this only maintains the PR.
+      - uses: changesets/action@v1
+        with:
+          version: pnpm version-packages
+          title: "chore: version packages"
+          commit: "chore: version packages"
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}

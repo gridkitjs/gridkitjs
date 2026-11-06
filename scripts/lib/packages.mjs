@@ -18,6 +18,8 @@ import path from "node:path";
  * @typedef {object} RunResult
  * @property {number} code The exit code; 1 when the command could not start.
  * @property {string} output Its stdout and stderr, interleaved as written.
+ * @property {string} stdout Its stdout alone, for a command whose result is
+ *   read rather than shown.
  */
 
 export const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..");
@@ -119,16 +121,27 @@ export function run(command, args, options = {}) {
   );
   /** @type {Buffer[]} */
   const chunks = [];
-  child.stdout?.on("data", (chunk) => chunks.push(chunk));
+  /** @type {Buffer[]} */
+  const stdout = [];
+  child.stdout?.on("data", (chunk) => {
+    chunks.push(chunk);
+    stdout.push(chunk);
+  });
   child.stderr?.on("data", (chunk) => chunks.push(chunk));
+  /** @param {number} code */
+  const result = (code) => ({
+    code,
+    output: Buffer.concat(chunks).toString(),
+    stdout: Buffer.concat(stdout).toString(),
+  });
   // A command that cannot start emits `error`, and may not emit `close`.
   return new Promise((resolve) => {
     child.on("error", (error) => {
       chunks.push(Buffer.from(`${error.message}\n`));
-      resolve({ code: 1, output: Buffer.concat(chunks).toString() });
+      resolve(result(1));
     });
     child.on("close", (code) => {
-      resolve({ code: code ?? 1, output: Buffer.concat(chunks).toString() });
+      resolve(result(code ?? 1));
     });
   });
 }
