@@ -1,7 +1,7 @@
 /**
  * Shared by the release scripts: what npm and the git remote already hold,
- * the changesets still pending, the manifest inside a tarball, and how a
- * script reports back to GitHub Actions.
+ * the changesets still pending, a version's changelog section, the manifest
+ * inside a tarball, and how a script reports back to GitHub Actions.
  */
 import { appendFileSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
@@ -12,6 +12,14 @@ import { REPO_ROOT, run } from "./packages.mjs";
  * @typedef {object} PackageVersion
  * @property {string} name The npm name, e.g. `@gridkitjs/core`.
  * @property {string} version e.g. `0.15.0`.
+ */
+
+/**
+ * @typedef {object} ChangelogSection
+ * @property {string} body Everything under the version's `##` heading, up
+ *   to the next one, trimmed.
+ * @property {string | null} previous The version of the section below it,
+ *   or `null` for the first release.
  */
 
 /**
@@ -83,6 +91,44 @@ export async function remoteTags() {
       return tag === undefined || tag === "" ? [] : [tag];
     }),
   );
+}
+
+/**
+ * Finds a version's section in a changesets `CHANGELOG.md`, where each
+ * release is a `## <version>` heading, newest first.
+ *
+ * @param {string} markdown
+ * @param {string} version
+ * @returns {ChangelogSection | null} `null` when the version has no section.
+ */
+export function changelogSection(markdown, version) {
+  const lines = markdown.split(/\r?\n/);
+  const start = lines.findIndex((line) => line.trim() === `## ${version}`);
+  if (start === -1) return null;
+  const rest = lines.slice(start + 1);
+  const end = rest.findIndex((line) => line.startsWith("## "));
+  const next = end === -1 ? undefined : rest[end];
+  return {
+    body: (end === -1 ? rest : rest.slice(0, end)).join("\n").trim(),
+    previous: next === undefined ? null : next.slice(3).trim(),
+  };
+}
+
+/**
+ * The `owner/repo` releases go to: the repository the workflow runs in, or
+ * locally the one a package's `repository` field names (npm's trusted
+ * publishing requires that field to match the publishing repository).
+ *
+ * @param {Record<string, any>} manifest A published package's `package.json`.
+ */
+export function githubRepository(manifest) {
+  if (process.env.GITHUB_REPOSITORY) return process.env.GITHUB_REPOSITORY;
+  const url = String(manifest.repository?.url ?? manifest.repository);
+  const match = /github\.com[/:]([^/]+\/[^/]+?)(?:\.git)?$/.exec(url);
+  if (match?.[1] === undefined) {
+    throw new Error(`Cannot read a GitHub repository from ${url}.`);
+  }
+  return match[1];
 }
 
 /**

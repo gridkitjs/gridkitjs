@@ -15,6 +15,7 @@ workflow, the `docs-meta` branch) is in
 | `smoke-packages.mjs`      | Installs the tarballs into the fresh apps under `smoke/` and runs their checks.  |
 | `release-plan.mjs`        | Decides whether a release run publishes a snapshot, a stable release or nothing. |
 | `publish-tarballs.mjs`    | Publishes the verified tarballs to npm, skipping versions npm already has.       |
+| `github-releases.mjs`     | Tags a stable release and writes GitHub Releases from the changelogs.            |
 
 ## build-docs-manifest.mjs
 
@@ -106,6 +107,10 @@ in `lib/release.mjs`.
   runs `npm publish <tarball>` in dependency order for each version npm
   lacks. It refuses to publish outside GitHub Actions, where trusted
   publishing authenticates it; `--dry-run` runs `npm publish --dry-run`.
+- `github-releases.mjs [--packages <json>] [--sha <commit>] [--dry-run]`
+  creates the missing `@gridkitjs/<pkg>@<version>` tags and GitHub Releases,
+  with each version's `CHANGELOG.md` section as the notes. `--dry-run`
+  prints them instead.
 
 To rehearse a snapshot locally, on a branch with a committed changeset,
 version, pack and dry-run the publish. `changeset version` rewrites

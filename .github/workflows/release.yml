@@ -7,14 +7,22 @@ name: Release
 #   packages" PR, and when the push changed a published package's src/, a
 #   dev snapshot (0.0.0-dev-<timestamp>) goes to npm under the `dev`
 #   dist-tag, after the same pack, lint and smoke checks as CI. No git tags.
+# - No changesets pending, but a version that is not on npm or not tagged
+#   (the Version Packages PR just merged, or a release stopped part-way):
+#   CI re-runs on this commit, the `release` environment's reviewer
+#   approves, and the tarballs CI verified are published, tagged and given
+#   GitHub Releases.
 # - Otherwise nothing.
 #
 # npm authenticates through trusted publishing (OIDC); no npm token exists.
 # Each package's trusted publisher names this file with no environment, so
-# snapshots publish without waiting.
+# snapshots publish without waiting; the gate for stable releases is the
+# `release` environment on the publish job.
 #
-# Run it by hand to publish a snapshot, to rehearse one (dry run: everything
-# but the publishing, from any branch), or with mode docs-only to skip npm.
+# Run it by hand to retry a release, to rehearse one (dry run: everything
+# but the publishing, tagging and releasing), or with mode docs-only to skip
+# npm. A dry run can start from any branch, though a stable release's
+# publish job still runs only on main and only once approved.
 on:
   push:
     branches: [main]
@@ -162,4 +170,83 @@ jobs:
           node scripts/publish-tarballs.mjs
           --pack-dir "$RUNNER_TEMP/package-tarballs"
           --tag dev
+          ${{ inputs.dry-run && '--dry-run' || '' }}
+
+  # Every CI check again, on the commit being released; its `packages` job
+  # uploads the tarballs it verified, which are the ones published.
+  checks:
+    needs: plan
+    if: needs.plan.outputs.release == 'stable'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+    with:
+      upload-tarballs: true
+
+  publish:
+    needs: [plan, checks]
+    if: needs.plan.outputs.release == 'stable'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # The approval gate: the job starts once the environment's reviewer
+    # approves. Its deployment branch rule allows main only, so a dry run of
+    # a stable release also runs on main and waits for approval.
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      # JSON: package name to its version, all five.
+      versions: ${{ steps.publish.outputs.versions }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 24 ships npm 11, which trusted publishing needs (11.5.1 or
+      # newer; the script checks).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: package-tarballs
+          path: ${{ runner.temp }}/package-tarballs
+
+      # Skips each version npm already has, so a re-run finishes a release
+      # that stopped part-way.
+      - name: Publish the verified tarballs
+        id: publish
+        run: >-
+          node scripts/publish-tarballs.mjs
+          --pack-dir "$RUNNER_TEMP/package-tarballs"
+          ${{ inputs.dry-run && '--dry-run' || '' }}
+
+  github-release:
+    needs: [plan, publish]
+    if: needs.plan.outputs.release == 'stable'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      # Release notes come from each package's CHANGELOG.md.
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # Skips tags and releases that exist, so a re-run is safe.
+      - name: Tag the release and write GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UNRELEASED: ${{ needs.plan.outputs.unreleased }}
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: >-
+          node scripts/github-releases.mjs
+          --packages "$UNRELEASED"
+          --sha "$GITHUB_SHA"
           ${{ inputs.dry-run && '--dry-run' || '' }}
