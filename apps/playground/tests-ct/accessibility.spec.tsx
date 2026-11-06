@@ -307,7 +307,7 @@ const groupedColumns: readonly ColumnDefinition<GroupedRow>[] = [
 ];
 
 /** Called, not mounted as a component: CT mounts only imported components. */
-function groupedGrid() {
+function groupedGrid(groupAggregateDisplay: "inline" | "row" = "row") {
   return (
     <DataGrid
       columns={groupedColumns}
@@ -315,7 +315,7 @@ function groupedGrid() {
       label="Grouped"
       defaultGroupBy={[{ columnId: "region" }]}
       aggregates={[{ columnId: "amount", fn: "sum" }]}
-      groupAggregateDisplay="row"
+      groupAggregateDisplay={groupAggregateDisplay}
       selectable={{ rows: "multiple" }}
     />
   );
@@ -374,22 +374,35 @@ test("the treegrid owns its rows directly, with a group row's level, expansion a
   await expect(group.getByRole("gridcell")).toHaveCount(1);
 });
 
-test("an axe scan of a grouped grid finds no violations", async ({
-  mount,
-  page,
-}) => {
-  await mountGrid(mount, groupedGrid());
-  const results = await new AxeBuilder({ page })
-    .include(".gridkit-data-grid-viewport")
-    // A colour in the theme rather than the markup this covers: the group
-    // count's `--gridkit-fg-muted` on the group row's background falls short
-    // of 4.5:1, and is a theme fix of its own.
-    .disableRules(["color-contrast"])
-    .analyze();
-  expect(
-    results.violations.map((violation) => ({
-      id: violation.id,
-      targets: violation.nodes.map((node) => node.target.join(" ")),
-    })),
-  ).toEqual([]);
-});
+for (const palette of ["gridkit-light", "gridkit-dark"]) {
+  for (const display of ["inline", "row"] as const) {
+    test(`an axe scan of a grouped grid with ${display} subtotals finds no violations under .${palette}`, async ({
+      mount,
+      page,
+    }) => {
+      await mountGrid(
+        mount,
+        // Data rows take their text colour and background from the page, so
+        // the wrapper sets both from the palette the way a page would.
+        <div
+          className={palette}
+          style={{
+            color: "var(--gridkit-fg)",
+            backgroundColor: "var(--gridkit-surface)",
+          }}
+        >
+          {groupedGrid(display)}
+        </div>,
+      );
+      const results = await new AxeBuilder({ page })
+        .include(".gridkit-data-grid-viewport")
+        .analyze();
+      expect(
+        results.violations.map((violation) => ({
+          id: violation.id,
+          targets: violation.nodes.map((node) => node.target.join(" ")),
+        })),
+      ).toEqual([]);
+    });
+  }
+}

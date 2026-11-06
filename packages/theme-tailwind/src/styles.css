@@ -35,7 +35,12 @@
   --gridkit-hover-line-dark: oklch(0.75 0.09 255);
   --gridkit-fg-light: oklch(0.21 0.01 250);
   --gridkit-fg-dark: oklch(0.97 0.003 250);
-  --gridkit-fg-muted-light: oklch(0.55 0.015 250);
+  /*
+   * Secondary text sits on `surface-muted` and `selected` too (a group row
+   * and its hover), so each `fg-muted` keeps WCAG AA's 4.5:1 against those
+   * as well as against `surface`.
+   */
+  --gridkit-fg-muted-light: oklch(0.5 0.015 250);
   --gridkit-fg-muted-dark: oklch(0.7 0.015 250);
   --gridkit-accent-light: oklch(0.6 0.17 255);
   --gridkit-accent-dark: oklch(0.7 0.15 255);
