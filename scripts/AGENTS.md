@@ -2,20 +2,22 @@
 
 Node scripts for the docs pipeline, package verification and the release
 workflow. Plain ESM `.mjs`, no build step; run them from the repo root. How
-the docs pipeline fits together (the manifest, the `revalidate-docs`
-workflow, the `docs-meta` branch) is in
+the docs pipeline fits together (the manifest, its three channel branches,
+the workflows that write them) is in
 [.claude/rules/docs.md](../.claude/rules/docs.md#the-docs-manifest).
 
-| Script                    | What it does                                                                     |
-| ------------------------- | -------------------------------------------------------------------------------- |
-| `build-docs-manifest.mjs` | Builds `docs-manifest.json`, the one file the website reads all docs from.       |
-| `check-mdx-tags.mjs`      | Fails on any PascalCase tag in the docs that the website does not register.      |
-| `pack-packages.mjs`       | Builds the published packages and packs each into a tarball under `.pack/`.      |
-| `lint-packages.mjs`       | Lints the tarballs with publint and arethetypeswrong.                            |
-| `smoke-packages.mjs`      | Installs the tarballs into the fresh apps under `smoke/` and runs their checks.  |
-| `release-plan.mjs`        | Decides whether a release run publishes a snapshot, a stable release or nothing. |
-| `publish-tarballs.mjs`    | Publishes the verified tarballs to npm, skipping versions npm already has.       |
-| `github-releases.mjs`     | Tags a stable release and writes GitHub Releases from the changelogs.            |
+| Script                       | What it does                                                                     |
+| ---------------------------- | -------------------------------------------------------------------------------- |
+| `build-docs-manifest.mjs`    | Builds `docs-manifest.json`, the one file the website reads all docs from.       |
+| `publish-docs-manifest.mjs`  | Builds the manifest and commits it to a `docs-meta*` branch.                     |
+| `notify-docs-revalidate.mjs` | Sends a website deployment the signed request that revalidates its docs.         |
+| `check-mdx-tags.mjs`         | Fails on any PascalCase tag in the docs that the website does not register.      |
+| `pack-packages.mjs`          | Builds the published packages and packs each into a tarball under `.pack/`.      |
+| `lint-packages.mjs`          | Lints the tarballs with publint and arethetypeswrong.                            |
+| `smoke-packages.mjs`         | Installs the tarballs into the fresh apps under `smoke/` and runs their checks.  |
+| `release-plan.mjs`           | Decides whether a release run publishes a snapshot, a stable release or nothing. |
+| `publish-tarballs.mjs`       | Publishes the verified tarballs to npm, skipping versions npm already has.       |
+| `github-releases.mjs`        | Tags a stable release and writes GitHub Releases from the changelogs.            |
 
 ## build-docs-manifest.mjs
 
@@ -33,6 +35,27 @@ node scripts/build-docs-manifest.mjs
 
 Dates come from `git log`, so a run needs the full history (the workflow
 checks out with `fetch-depth: 0`), and a file with no commit yet gets `null`.
+
+## publish-docs-manifest.mjs and notify-docs-revalidate.mjs
+
+The docs workflows run these through the composite action
+`.github/actions/publish-docs-manifest`, so `docs-preview.yml` and
+`release.yml` publish a manifest the same way.
+
+- `publish-docs-manifest.mjs --branch <name> [--dry-run]` builds the
+  manifest and commits it with git plumbing on top of the branch's tip on
+  `origin`, then pushes; a rejected push is retried on the new tip. The
+  branch must be `docs-meta` or `docs-meta-*`, and slashes become dashes.
+  It prints `{ branch, sourceSha, parent, manifestSha, pushed }`.
+  `--dry-run` makes the commit locally and pushes nothing.
+- `notify-docs-revalidate.mjs --url <url> --manifest-sha <sha> [--dry-run]`
+  POSTs the signed `{ ref, sha, manifestSha, ts }` to a revalidation
+  webhook, with the secret from `DOCS_REVALIDATE_SECRET`. An empty `--url`
+  skips it with a notice. `--dry-run` prints the body.
+
+```bash
+node scripts/publish-docs-manifest.mjs --branch docs-meta-next --dry-run
+```
 
 ## check-mdx-tags.mjs
 

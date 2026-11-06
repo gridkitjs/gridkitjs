@@ -1,0 +1,56 @@
+name: Publish preview docs
+
+# Builds docs-manifest.json and publishes it to docs-meta-next, the branch
+# the next site (next.gridkitjs.com) reads, then asks that site to
+# revalidate. The production branch, docs-meta, is written only by the
+# release workflow, so live docs change with a release and not before.
+on:
+  push:
+    branches: [main]
+    # Docs pages, changelogs and versions: everything the manifest carries.
+    paths:
+      - "packages/*/docs/**"
+      - "packages/*/CHANGELOG.md"
+      - "packages/*/package.json"
+  # Run by hand from another branch to publish a preview manifest to
+  # docs-meta-<branch>, for the website's DOCS_MANIFEST_REF. Only a run on
+  # main notifies the next site.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Each run commits on top of the last one on its manifest branch, so runs
+# for the same ref queue rather than race.
+concurrency:
+  group: docs-preview-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Each file's lastModified comes from its git history.
+          fetch-depth: 0
+
+      # The script turns the slashes in a branch name into dashes.
+      - name: Publish the manifest
+        id: manifest
+        uses: ./.github/actions/publish-docs-manifest
+        with:
+          branch: ${{ github.ref == 'refs/heads/main' && 'docs-meta-next' || format('docs-meta-{0}', github.ref_name) }}
+
+      # Skipped with a notice while WEBSITE_NEXT_REVALIDATE_URL is unset.
+      - name: Ask the next site to revalidate
+        if: github.ref == 'refs/heads/main'
+        env:
+          DOCS_REVALIDATE_SECRET: ${{ secrets.DOCS_REVALIDATE_SECRET }}
+          URL: ${{ vars.WEBSITE_NEXT_REVALIDATE_URL }}
+          MANIFEST_SHA: ${{ steps.manifest.outputs.manifest-sha }}
+        run: >-
+          node scripts/notify-docs-revalidate.mjs
+          --url "$URL"
+          --manifest-sha "$MANIFEST_SHA"
