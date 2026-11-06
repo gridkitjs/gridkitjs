@@ -17,7 +17,7 @@ its tests.
 | [`packages/theme-default`](packages/theme-default/AGENTS.md)                                 | Plain CSS for consumers not using Tailwind. Currently an empty stub. Private, unpublished.              |
 | [`apps/playground`](apps/playground/AGENTS.md)                                               | Vite app used to develop against, and the Playwright component tests. Private, never published.         |
 | [`examples`](examples/AGENTS.md)                                                             | Standalone StackBlitz apps on the published packages. Not in the workspace.                             |
-| [`scripts`](scripts/AGENTS.md)                                                               | Node scripts for the docs pipeline: the docs manifest and the MDX tag check.                            |
+| [`scripts`](scripts/AGENTS.md)                                                               | Node scripts for the docs pipeline and for verifying the packed packages, with their smoke apps.        |
 
 The split is the point: logic lives in `core` so it is testable without a DOM
 and reusable from a future Vue/Svelte adapter, and the browser behaviours a
@@ -41,7 +41,7 @@ hot-reloads the playground immediately; never build to see a change.
 
 ## Standards
 
-CI runs two jobs on pushes and pull requests to `main`. The `ci` job runs
+CI runs three jobs on pushes and pull requests to `main`. The `ci` job runs
 exactly this, in order; run it locally first rather than using CI to find what
 a single command would have:
 
@@ -51,6 +51,9 @@ pnpm format:check && pnpm lint && node scripts/check-mdx-tags.mjs && pnpm typech
 
 The `e2e` job runs `pnpm --filter playground test:e2e:coverage`, failing below
 the threshold in [.claude/rules/testing.md](.claude/rules/testing.md#coverage).
+The `packages` job packs the published packages, lints the tarballs and
+installs them into fresh Vite, Next.js and Node apps; see
+[scripts/AGENTS.md](scripts/AGENTS.md#package-verification).
 
 - **TypeScript** — every tsconfig extends `tsconfig.base.json`: `strict`, plus
   `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`. Do not loosen
