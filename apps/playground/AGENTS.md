@@ -40,7 +40,10 @@ every `pnpm test` (CI runs it as its own job, see the root
 
 `tests-ct/` holds one spec file per area — `rendering`, `column-resize`,
 `keyboard-navigation`, `selection`, `row-virtualization` and so on — so add
-to whichever one already covers the area being changed.
+to whichever one already covers the area being changed. A spec imports `test`
+and `expect` from `./support/coverage` (the only way coverage is collected) and
+mounts the grid with `mountGrid` from `./support/mountGrid`; copy the imports
+of a neighbouring spec such as `keyboard-navigation.spec.tsx`.
 
 ### Stale styles after a stylesheet edit
 
