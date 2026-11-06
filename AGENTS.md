@@ -20,10 +20,8 @@ renderer attaches — pointer gestures, focus movement, observers, the
 virtualizer's measuring — live in `dom` so that adapter reuses them too. If a
 feature can be written without the DOM, it belongs in `core`; if it needs the
 DOM but not React, in `dom`; `react` only draws. The boundary is enforced, not
-just agreed: `core` compiles without the DOM `lib` and ESLint rejects any
-`react`, `react-dom`, `@gridkitjs/react` or `@gridkitjs/dom` import from it,
-and any `react`, `react-dom` or `@gridkitjs/react` import from `dom`.
-`export-xlsx` is held to `core`'s rule, so the writer runs in Node too.
+just agreed, by each package's `tsconfig.json` and by ESLint: each package's
+own `AGENTS.md` states its rule.
 
 ## Development
 
@@ -36,14 +34,9 @@ Packages resolve to **source** locally — `exports` points at `src/index.ts` an
 is swapped to `dist` at publish time via `publishConfig`. Editing a package file
 hot-reloads the playground immediately; never build to see a change.
 
-To add a component: write it in `packages/react/src/`, export it from
-`packages/react/src/index.ts`, use it in the playground.
-
-Styling lives in `theme-tailwind`, not in the components. `packages/react`
-renders semantic class names — `gridkit-data-grid`, `header-cell`, `grid-row` —
-and the theme's stylesheet targets them. Keep it that way: a Tailwind utility
-written in a component would oblige every consumer to scan our source for it,
-which is what `@source` used to paper over.
+Each package and app has its own `AGENTS.md` next to its `package.json`, with
+what belongs in it, its commands and its tests: for example, how to add a
+component and where styling goes are in `packages/react/AGENTS.md`.
 
 ## Docs
 
@@ -116,12 +109,6 @@ One word per idea, across every package: "pagination", not "paging";
 `packages/react/docs/overview.mdx` is the glossary: define a new recurring
 term there and link to it, rather than defining it again on each page.
 
-`packages/dom/docs/` is split by kind of behaviour, and its overview's
-"Exports by page" table names every export of `@gridkitjs/dom` with the
-page that documents it. A new export goes into that table and into its
-page's `## Types` table or a section of its own, so nothing the package
-exports goes unnamed.
-
 Reference actual key presses with `<Kbd>` — `<Kbd>Ctrl</Kbd>+<Kbd>A</Kbd>`,
 not backtick text like `` `Ctrl+A` ``. `<Kbd>` is globally available in
 rendered docs (registered in `gridkit-website`'s MDX component map), so it
@@ -192,12 +179,8 @@ pnpm test                            # all packages
 pnpm --filter @gridkitjs/core test     # one package
 ```
 
-`react` has Vitest tests of its own, next to the code as `*.test.tsx`: an
-SSR `renderToString` test and a jsdom hydration test. `dom` still passes
-`--passWithNoTests`, for good: its behaviours need real layout and are tested
-through Playwright below, and Vitest there covers only pure helpers such as
-overlay placement. Prefer testing logic in `core`,
-where no DOM is required.
+`react` and `dom` each have their own Vitest notes in their `AGENTS.md`.
+Prefer testing logic in `core`, where no DOM is required.
 
 **Playwright component tests** cover `react`'s `DataGrid` and the `dom`
 behaviours it attaches — pointer drags, keyboard navigation, real layout and
