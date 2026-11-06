@@ -3,6 +3,7 @@
 // file for why.
 import type { MountResult } from "@playwright/experimental-ct-react";
 import type { ColumnDefinition, GroupExpansionState } from "@gridkitjs/core";
+import { ariaRowCount, ariaRowIndexes, consecutive } from "./support/ariaRows";
 import { expect, test } from "./support/coverage";
 import ControlledStateGrid from "./support/ControlledStateGrid";
 import { mountGrid } from "./support/mountGrid";
@@ -124,6 +125,35 @@ test("nests a second group-by level inside the first, depth-first", async ({
     { isGroup: false, level: null, id: "r1" },
     { isGroup: false, level: null, id: "r5" },
   ]);
+});
+
+test("every row, from the header through group, data and summary rows to the footer, has its own aria-rowindex in order", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <RowIdentifiedGrid
+      columns={columns}
+      dataSource={buildRows()}
+      label="Grouped row indexes"
+      defaultGroupBy={[{ columnId: "region" }, { columnId: "status" }]}
+      defaultColumnSort={[{ columnId: "amount", direction: "desc" }]}
+      aggregates={[{ columnId: "amount", fn: "sum" }]}
+      groupAggregateDisplay="row"
+    />,
+  );
+
+  // The header, 6 group rows, 5 data rows, 6 summary rows and the footer.
+  await expect(root.locator('[role="row"]')).toHaveCount(19);
+  expect(await ariaRowIndexes(root)).toEqual(consecutive(1, 19));
+  expect(await ariaRowCount(root)).toBe(19);
+
+  // Collapsing West drops its rows, and the indexes close up behind it.
+  await groupHeaders(root).filter({ hasText: "West" }).first().click();
+  const count = await root.locator('[role="row"]').count();
+  expect(count).toBeLessThan(19);
+  expect(await ariaRowIndexes(root)).toEqual(consecutive(1, count));
+  expect(await ariaRowCount(root)).toBe(count);
 });
 
 test("collapsing a group hides its descendants but keeps its own header's count", async ({
