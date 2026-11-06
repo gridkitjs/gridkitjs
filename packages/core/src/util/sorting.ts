@@ -6,6 +6,7 @@ import type {
   SortDirection,
 } from "../types";
 import { accessDotted } from "./grid";
+import { renumberRows } from "./position";
 
 function isEmpty(value: unknown): boolean {
   return value === null || value === undefined;
@@ -116,9 +117,9 @@ export function toggleColumnSort(
 
 /**
  * `rows` ordered by `sort` — each entry read against `columns` for its
- * `field` and `type` — with `rowIndex` renumbered to match the new
- * positions, the invariant the rest of the grid relies on for keyboard
- * navigation and `aria-rowindex`.
+ * `field` and `type` — with `rowIndex` and `datasetIndex` renumbered to
+ * match the new positions, the invariant the rest of the grid relies on for
+ * keyboard navigation and `aria-rowindex`.
  *
  * Stable (`Array.prototype.sort` has been stable since ES2019), so rows
  * equal under every active key keep their relative order. A `null`/
@@ -171,7 +172,5 @@ export function sortRows<Row>(
     return 0;
   });
 
-  return sorted.map((row, index) =>
-    row.rowIndex === index ? row : { ...row, rowIndex: index },
-  );
+  return renumberRows(sorted);
 }

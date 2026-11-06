@@ -14,6 +14,7 @@ import type {
 } from "../types";
 import { accessDotted } from "./grid";
 import { bucketKey } from "./grouping";
+import { renumberRows } from "./position";
 import { compareValues } from "./sorting";
 
 function isEmpty(value: unknown): boolean {
@@ -335,14 +336,5 @@ export function withGroupAggregates<Row>(
     out,
   );
 
-  return out.map((entry, position) => {
-    if ("kind" in entry) {
-      return entry.rowIndex === position && entry.datasetIndex === position
-        ? entry
-        : { ...entry, rowIndex: position, datasetIndex: position };
-    }
-    return entry.rowIndex === position
-      ? entry
-      : { ...entry, rowIndex: position };
-  });
+  return renumberRows(out);
 }

@@ -10,6 +10,7 @@ import type {
 } from "../types";
 import { compileOperatorEntry } from "./filterOperators";
 import { accessDotted } from "./grid";
+import { renumberRows } from "./position";
 
 interface FilterPattern {
   mode: "exact" | "contains" | "startsWith" | "endsWith";
@@ -302,8 +303,9 @@ export function clearAllFilters<Row>(
 
 /**
  * `rows` reduced to those matching every entry in `filter` (AND at the top
- * level — nest a `GroupFilterEntry` for OR). `rowIndex` is renumbered to
- * match the retained positions — the same invariant `sortRows` keeps,
+ * level — nest a `GroupFilterEntry` for OR). `rowIndex` and `datasetIndex`
+ * are renumbered to match the retained positions — the same invariant
+ * `sortRows` keeps,
  * needed here independently since `filterRows` runs before `sortRows` in
  * the composed pipeline (see `resolveShownRows`).
  *
@@ -332,7 +334,5 @@ export function filterRows<Row>(
 
   const filtered = rows.filter((row) => test(row.row));
 
-  return filtered.map((row, index) =>
-    row.rowIndex === index ? row : { ...row, rowIndex: index },
-  );
+  return renumberRows(filtered);
 }

@@ -10,6 +10,7 @@ import type {
   SortDirection,
 } from "../types";
 import { accessDotted } from "./grid";
+import { renumberRows } from "./position";
 import { compareValues } from "./sorting";
 
 /**
@@ -139,9 +140,7 @@ function buildLevel<Row>(
       path,
       expanded,
       count: group.rows.length,
-      // Renumbered globally once `groupRows` has the whole flattened array —
-      // a header has no row of its own to carry a dataset position, so
-      // `datasetIndex` takes the same renumbered value `rowIndex` does.
+      // Both set by `groupRows` once it has the whole flattened array.
       rowIndex: -1,
       datasetIndex: -1,
       // Set by `withGroupAggregates`, downstream of grouping — empty here
@@ -167,10 +166,11 @@ function buildLevel<Row>(
  * this only reshapes their output, and never changes which rows appear or
  * their relative order within a group.
  *
- * `rowIndex` is renumbered across the whole flattened output, header rows
- * included — the same invariant `sortRows`/`filterRows` keep for
- * `ResolvedRow.rowIndex`, extended to `ResolvedGroupRow.rowIndex` since
- * `GridBody` addresses both kinds by the same flat position.
+ * `rowIndex` and `datasetIndex` are renumbered across the whole flattened
+ * output, header rows included — the same invariant `sortRows`/`filterRows`
+ * keep for a `ResolvedRow`, extended to `ResolvedGroupRow` since `GridBody`
+ * addresses both kinds by the same flat position, and `aria-rowindex`
+ * counts both.
  *
  * Returns `rows` itself, untouched, when `groupBy` is empty or names only
  * columns absent from `columns` — a stored grouping tolerates a column
@@ -195,14 +195,7 @@ export function groupRows<Row>(
   const out: DisplayRow<Row>[] = [];
   buildLevel(rows, active, [], expansion, byId, out);
 
-  return out.map((entry, index) => {
-    if ("kind" in entry) {
-      return entry.rowIndex === index && entry.datasetIndex === index
-        ? entry
-        : { ...entry, rowIndex: index, datasetIndex: index };
-    }
-    return entry.rowIndex === index ? entry : { ...entry, rowIndex: index };
-  });
+  return renumberRows(out);
 }
 
 /**
