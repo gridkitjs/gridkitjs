@@ -11,6 +11,8 @@
  * Re-running is safe: a version npm already has is skipped. Packages go out
  * in dependency order (`core` before `react`) and the run stops at the first
  * failure, so no package is published ahead of a dependency npm lacks.
+ * It finishes only once npm serves every version it published, so the jobs
+ * after it can install them.
  *
  * Usage: node scripts/publish-tarballs.mjs [--pack-dir <dir>] [--tag <dist-tag>] [--dry-run]
  * The directory defaults to `.pack/` at the repo root. `--tag` defaults to
@@ -22,6 +24,7 @@
  * name to the version its tarball holds, every package) and `published`
  * (a JSON array of `name@version`) and writes the run summary.
  */
+import { setTimeout } from "node:timers/promises";
 import { parseArgs } from "node:util";
 import { readTarballs, resolvePackDir, run } from "./lib/packages.mjs";
 import {
@@ -42,6 +45,9 @@ import {
 
 /** The first npm release with trusted publishing. */
 const MIN_NPM = [11, 5, 1];
+
+const SERVE_TIMEOUT_MS = 10 * 60_000;
+const SERVE_POLL_MS = 15_000;
 
 const DEPENDENCY_FIELDS = [
   "dependencies",
@@ -64,6 +70,34 @@ function supportsTrustedPublishing(version) {
     if (part !== min) return part > min;
   }
   return true;
+}
+
+/**
+ * Waits until npm serves every published version. The registry takes a few
+ * minutes to serve a new version after accepting it, and the jobs after
+ * this one install what was published.
+ *
+ * @param {Tarball[]} tarballs
+ * @returns {Promise<boolean>} False when some version is still missing at the deadline.
+ */
+async function waitUntilServed(tarballs) {
+  const deadline = Date.now() + SERVE_TIMEOUT_MS;
+  let pending = tarballs;
+  for (;;) {
+    const served = await Promise.all(
+      pending.map((tarball) => isOnNpm(tarball)),
+    );
+    pending = pending.filter((_, index) => !served[index]);
+    if (pending.length === 0) return true;
+    if (Date.now() >= deadline) {
+      console.error(
+        `npm still does not serve ${pending.map(tagName).join(", ")}.`,
+      );
+      return false;
+    }
+    console.error(`waiting  npm to serve ${pending.map(tagName).join(", ")}`);
+    await setTimeout(SERVE_POLL_MS);
+  }
 }
 
 /**
@@ -169,6 +203,11 @@ async function main() {
     }
     published.push(label);
   }
+
+  const publishedTarballs = tarballs.filter((tarball) =>
+    published.includes(tagName(tarball)),
+  );
+  if (!dryRun && !(await waitUntilServed(publishedTarballs))) return 1;
 
   const versions = Object.fromEntries(
     tarballs.map((tarball) => [tarball.name, tarball.version]),
