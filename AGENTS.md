@@ -64,6 +64,25 @@ the threshold in [.claude/rules/testing.md](.claude/rules/testing.md#coverage).
 - **Versioning** — Changesets: see
   [.claude/rules/versioning.md](.claude/rules/versioning.md).
 
+### Comments
+
+A comment describes the code as it is now, for a reader who never saw an
+earlier version. The history of a change belongs in git, the PR and the
+changeset, not in the file.
+
+- Comment only what the code can't say: a reason that isn't obvious, a
+  workaround and what it works around, a constraint from outside the file.
+  Don't restate what the next line does.
+- Never narrate the change: "was x, now y", "changed to fix #12",
+  "instead of the old approach", "new:", "updated to". If a comment only
+  makes sense next to the diff, it belongs in the PR or nowhere.
+- Code you delete takes its comments with it. Leave no "removed X" note and
+  no commented-out code.
+- Code you change: fix or delete the comments it makes wrong.
+
+The test: would this comment still read correctly to someone opening the
+file cold, a year from now?
+
 ## Branches and pull requests
 
 `main` is protected: it takes no direct pushes, and CI must pass before a merge.
@@ -88,6 +107,11 @@ all.
 
 **Doc updates belong in the same PR**, for the same reason: a behaviour
 change and its doc page shouldn't ship in separate PRs, or they drift apart.
+
+A PR description describes the end state and why it's needed, not how the
+branch got there (what was tried, what was reverted, "addressed review
+feedback"). A changeset is the exception: it describes a change on purpose,
+with its before and after.
 
 Squash-merge, so `main` keeps one commit per PR and the branch's messy history
 stays on the branch. The squash subject is the PR title, so it follows the same
