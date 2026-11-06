@@ -10,6 +10,10 @@ on:
         description: Upload the verified tarballs as the `package-tarballs` artifact.
         type: boolean
         default: false
+      snapshot:
+        description: Version the packages as a `dev` snapshot before packing.
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -38,6 +42,13 @@ jobs:
           restore-keys: smoke-npm-${{ runner.os }}-
 
       - run: pnpm install --frozen-lockfile
+
+      # Each package with a pending changeset, and each that depends on one,
+      # takes a 0.0.0-dev-<timestamp> version. The rewrite stays in this
+      # job's checkout; the tarballs carry it.
+      - name: Version the packages as a dev snapshot
+        if: inputs.snapshot
+        run: pnpm changeset version --snapshot dev
 
       - name: Pack the published packages
         run: node scripts/pack-packages.mjs

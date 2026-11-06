@@ -1,18 +1,21 @@
 # scripts
 
-Node scripts for the docs pipeline and for package verification. Plain ESM
-`.mjs`, no build step; run them from the repo root. How the docs pipeline
-fits together (the manifest, the `revalidate-docs` workflow, the `docs-meta`
-branch) is in
+Node scripts for the docs pipeline, package verification and the release
+workflow. Plain ESM `.mjs`, no build step; run them from the repo root. How
+the docs pipeline fits together (the manifest, the `revalidate-docs`
+workflow, the `docs-meta` branch) is in
 [.claude/rules/docs.md](../.claude/rules/docs.md#the-docs-manifest).
 
-| Script                    | What it does                                                                    |
-| ------------------------- | ------------------------------------------------------------------------------- |
-| `build-docs-manifest.mjs` | Builds `docs-manifest.json`, the one file the website reads all docs from.      |
-| `check-mdx-tags.mjs`      | Fails on any PascalCase tag in the docs that the website does not register.     |
-| `pack-packages.mjs`       | Builds the published packages and packs each into a tarball under `.pack/`.     |
-| `lint-packages.mjs`       | Lints the tarballs with publint and arethetypeswrong.                           |
-| `smoke-packages.mjs`      | Installs the tarballs into the fresh apps under `smoke/` and runs their checks. |
+| Script                    | What it does                                                                     |
+| ------------------------- | -------------------------------------------------------------------------------- |
+| `build-docs-manifest.mjs` | Builds `docs-manifest.json`, the one file the website reads all docs from.       |
+| `check-mdx-tags.mjs`      | Fails on any PascalCase tag in the docs that the website does not register.      |
+| `pack-packages.mjs`       | Builds the published packages and packs each into a tarball under `.pack/`.      |
+| `lint-packages.mjs`       | Lints the tarballs with publint and arethetypeswrong.                            |
+| `smoke-packages.mjs`      | Installs the tarballs into the fresh apps under `smoke/` and runs their checks.  |
+| `release-plan.mjs`        | Decides whether a release run publishes a snapshot, a stable release or nothing. |
+| `publish-tarballs.mjs`    | Publishes the verified tarballs to npm, skipping versions npm already has.       |
+| `github-releases.mjs`     | Tags a stable release and writes GitHub Releases from the changelogs.            |
 
 ## build-docs-manifest.mjs
 
@@ -88,3 +91,36 @@ A fixture lists its `@gridkitjs/*` dependencies at version `*`, and the run
 replaces each with its tarball. List the transitive ones too (`react` needs
 `core` and `dom`): one fetched from the registry instead of a tarball fails
 the run.
+
+## Release scripts
+
+`.github/workflows/release.yml` runs these on every push to `main`; its
+steps stay thin so the logic can be run, and read, here. Shared helpers are
+in `lib/release.mjs`.
+
+- `release-plan.mjs [--since <commit>] [--mode auto|docs-only]` prints the
+  plan as JSON: `snapshot` while changesets are pending and a published
+  package's `src/` changed since `--since` (always, without it), `stable`
+  when none are pending and a version is not on npm or not tagged, else
+  `none`. It asks npm and `git ls-remote`, so it needs the network.
+- `publish-tarballs.mjs [--pack-dir <dir>] [--tag <dist-tag>] [--dry-run]`
+  runs `npm publish <tarball>` in dependency order for each version npm
+  lacks. It refuses to publish outside GitHub Actions, where trusted
+  publishing authenticates it; `--dry-run` runs `npm publish --dry-run`.
+- `github-releases.mjs [--packages <json>] [--sha <commit>] [--dry-run]`
+  creates the missing `@gridkitjs/<pkg>@<version>` tags and GitHub Releases,
+  with each version's `CHANGELOG.md` section as the notes. `--dry-run`
+  prints them instead.
+
+To rehearse a snapshot locally, on a branch with a committed changeset,
+version, pack and dry-run the publish. `changeset version` rewrites
+versions and changelogs and deletes the changesets it consumed, so the last
+line restores them all from git (a changeset that was never committed would
+be lost):
+
+```bash
+pnpm changeset version --snapshot dev
+node scripts/pack-packages.mjs && node scripts/lint-packages.mjs
+node scripts/publish-tarballs.mjs --tag dev --dry-run
+git checkout -- packages .changeset
+```
