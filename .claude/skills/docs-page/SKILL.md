@@ -34,9 +34,11 @@ nothing to say. Read a model page before starting:
 - A live example is a bare tag on its own line, named exactly as in
   `https://next.gridkitjs.com/mdx-tags.json`. See
   [Live examples](../../rules/docs.md#live-examples).
-- If the page needs an example that doesn't exist yet, ask for it in the
-  `gridkit-website` repo (an issue or a PR) and use a complete code sample
-  until it lands. Don't add an unregistered tag.
+- If the page needs an example that doesn't exist yet, build it in the
+  `gridkit-website` repo, in a PR into its `development` branch. That
+  deploys to next.gridkitjs.com, where you can preview it, and it reaches
+  production with the release. Until it is merged there, use a complete code
+  sample; don't add an unregistered tag.
 
 ## 4. Check every code sample
 
