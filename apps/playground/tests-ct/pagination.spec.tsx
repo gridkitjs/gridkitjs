@@ -3,6 +3,7 @@
 // file for why.
 import type { MountResult } from "@playwright/experimental-ct-react";
 import type { ColumnDefinition, PaginationState } from "@gridkitjs/core";
+import { ariaRowCount, ariaRowIndexes, consecutive } from "./support/ariaRows";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
 import ControlledStateGrid from "./support/ControlledStateGrid";
@@ -500,6 +501,74 @@ test.describe("pager bar", () => {
     await expect(pagerStatus(root)).toHaveText("Page 3 of 3");
   });
 
+  for (const variant of ["compact", "numbered"] as const) {
+    test(`${variant}: an arrow that pages to the end it leads to keeps focus, and pressing it again stays put`, async ({
+      mount,
+    }) => {
+      const root = await mountGrid(
+        mount,
+        <RowIdentifiedGrid
+          columns={columns}
+          dataSource={buildRows()}
+          label="Pager focus at the ends"
+          paginated
+          defaultPagination={{ pageIndex: 0, pageSize: 3 }}
+          pager={{ variant }}
+        />,
+      );
+      const keyboard = root.page().keyboard;
+      const onPage = (page: number) =>
+        variant === "compact"
+          ? expect(pagerStatus(root)).toHaveText(`Page ${String(page)} of 3`)
+          : expect(
+              root.locator('.grid-pager-page[aria-current="page"]'),
+            ).toHaveText(String(page));
+
+      const next = pagerButton(root, "Next");
+      await next.focus();
+      await keyboard.press("Enter");
+      await onPage(2);
+      await keyboard.press("Enter");
+      await onPage(3);
+      await expect(next).toHaveAttribute("aria-disabled", "true");
+      await expect(next).toBeFocused();
+      await keyboard.press("Enter");
+      await onPage(3);
+      await expect(next).toBeFocused();
+
+      const previous = pagerButton(root, "Previous");
+      await previous.focus();
+      await keyboard.press("Enter");
+      await onPage(2);
+      await keyboard.press("Space");
+      await onPage(1);
+      await expect(previous).toHaveAttribute("aria-disabled", "true");
+      await expect(previous).toBeFocused();
+      await keyboard.press("Enter");
+      await onPage(1);
+
+      const last = pagerButton(root, "Last");
+      await last.focus();
+      await keyboard.press("Enter");
+      await onPage(3);
+      await expect(last).toHaveAttribute("aria-disabled", "true");
+      await expect(last).toBeFocused();
+
+      const first = pagerButton(root, "First");
+      await first.focus();
+      await keyboard.press("Enter");
+      await onPage(1);
+      await expect(first).toHaveAttribute("aria-disabled", "true");
+      await expect(first).toBeFocused();
+
+      // Still in the tab order while it leads nowhere.
+      await keyboard.press("Tab");
+      await expect(previous).toBeFocused();
+      await keyboard.press("Shift+Tab");
+      await expect(first).toBeFocused();
+    });
+  }
+
   test("numbered: the next button holds its place and the window keeps its slot count from the first page to the last", async ({
     mount,
   }) => {
@@ -695,6 +764,43 @@ test("aria-rowindex reports each row's absolute dataset position, not its page-r
 
   // aria-rowcount stays the full dataset count regardless of the page shown.
   await expect(root.getByRole("grid")).toHaveAttribute("aria-rowcount", "8");
+});
+
+test("a grouped page carries on the aria-rowindex sequence where the page before it ended", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <RowIdentifiedGrid
+      columns={columns}
+      dataSource={buildRows()}
+      label="Grouped aria-rowindex"
+      defaultGroupBy={[{ columnId: "region" }]}
+      defaultColumnSort={[{ columnId: "amount", direction: "desc" }]}
+      aggregates={[{ columnId: "amount", fn: "sum" }]}
+      groupAggregateDisplay="row"
+      paginated
+      defaultPagination={{ pageIndex: 0, pageSize: 1 }}
+    />,
+  );
+
+  // The header, East (group row, 2 rows, summary), West (group row, 5 rows,
+  // summary) and the footer.
+  const rowCount = 1 + 4 + 7 + 1;
+  expect(await ariaRowCount(root)).toBe(rowCount);
+
+  // Page 1: the header, East's 4 rows at 2 to 5, and the footer.
+  expect(await ariaRowIndexes(root)).toEqual([...consecutive(1, 5), rowCount]);
+
+  // Page 2: the header, West's 7 rows at 6 to 12, and the footer.
+  await root.getByRole("button", { name: "Next" }).click();
+  await expect(groupHeaders(root).first()).toContainText("West");
+  expect(await ariaRowIndexes(root)).toEqual([
+    1,
+    ...consecutive(6, 7),
+    rowCount,
+  ]);
+  expect(await ariaRowCount(root)).toBe(rowCount);
 });
 
 test("a controlled pagination ignores Next until the parent applies the page it asked for", async ({

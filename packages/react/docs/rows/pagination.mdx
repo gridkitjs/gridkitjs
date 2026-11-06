@@ -41,7 +41,7 @@ The bar holds still as the user pages: the status keeps the width of its widest 
 
 It's semantically classed (`gridkit-grid-pager`, `grid-pager-bar`, `grid-pager-button`, `grid-pager-page`, `grid-pager-status`, `grid-pager-page-size` and a few more, listed in the [theme's pager classes](/docs/theme-tailwind#pager)) rather than carrying its own layout, the same as the rest of `@gridkitjs/react`; style it via `@gridkitjs/theme-tailwind` or your own CSS targeting those classes.
 
-A button that leads nowhere, First and Previous on the first page or Next and Last on the last, is disabled.
+A button that leads nowhere, First and Previous on the first page or Next and Last on the last, is disabled with `aria-disabled="true"` rather than the `disabled` attribute, so it stays focusable. Pressing Next with <Kbd>Enter</Kbd> until the last page leaves focus on Next, announced as unavailable, rather than dropping it to the page, and pressing it again does nothing. First, Previous and Last behave the same way at their own end.
 
 To suppress the built-in pager while keeping row-windowing and the imperative API active, pass `pager={{ template: () => null }}` rather than turning `paginated` off — see [Custom pager template](#custom-pager-template) below.
 
@@ -228,7 +228,7 @@ export default function App() {
 }
 ```
 
-Use `rowIndex` for anything about the row's position on screen (alternating row styling, "row 3 of this page"); use `datasetIndex` for anything that should stay stable across pages (a running row number, a reference back to the full dataset).
+Use `rowIndex` for anything about the row's position on screen (alternating row styling, "row 3 of this page"); use `datasetIndex` for anything that should stay stable across pages, such as a running row number. It counts rows as shown, so it follows the sort and filter, and in a grouped grid it counts group rows and summary rows too. It is not the row's index in `dataSource`: to find the row there, use its `row` or `rowId`.
 
 This is also why `aria-rowindex` on a rendered row reports the dataset position, not the page-relative one — the WAI-ARIA grid pattern expects a row's index to reflect its true position in the full set even when only one page of it is in the DOM. `aria-rowcount` stays the total row count the same way. Neither of these changes for a grid that never turns `paginated` on: `datasetIndex` equals `rowIndex` whenever there's only one page, so this is additive rather than a behavior change for an existing, unpaginated grid.
 

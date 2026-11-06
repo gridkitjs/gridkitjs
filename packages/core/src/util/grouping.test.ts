@@ -171,7 +171,7 @@ describe("groupRows", () => {
     expect(ids).toEqual([3, 1, 5]);
   });
 
-  test("rowIndex is contiguous across the flattened output, header rows included", () => {
+  test("rowIndex and datasetIndex are contiguous across the flattened output, header rows included", () => {
     const groupBy: GroupByState = [
       { columnId: "Region" },
       { columnId: "Status" },
@@ -179,6 +179,9 @@ describe("groupRows", () => {
     const result = groupRows(rows, groupBy, [], columns);
 
     expect(result.map((entry) => entry.rowIndex)).toEqual(
+      result.map((_entry, index) => index),
+    );
+    expect(result.map((entry) => entry.datasetIndex)).toEqual(
       result.map((_entry, index) => index),
     );
   });

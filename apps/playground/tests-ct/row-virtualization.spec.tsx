@@ -4,6 +4,7 @@
 import type { MountResult } from "@playwright/experimental-ct-react";
 import type { ColumnDefinition } from "@gridkitjs/core";
 import RowIdentifiedGrid from "./support/RowIdentifiedGrid";
+import { ariaRowCount, ariaRowIndexes, consecutive } from "./support/ariaRows";
 import { expect, test } from "./support/coverage";
 import { mountGrid, updateGrid } from "./support/mountGrid";
 import ImperativeApiGrid from "./support/ImperativeApiGrid";
@@ -318,6 +319,42 @@ test.describe("row virtualization", () => {
     const count = await mountedDataRows(root).count();
     expect(count).toBeGreaterThan(0);
     expect(count).toBeLessThan(60);
+  });
+
+  test("a grouped, virtualized grid's mounted rows keep their aria-rowindex in the whole result, scrolled anywhere", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildRows(300)}
+        label="Virtualized grouped indexes"
+        height={300}
+        virtualized
+        defaultGroupBy={[{ columnId: "region" }]}
+      />,
+    );
+
+    // The header, 4 group rows and 300 data rows.
+    expect(await ariaRowCount(root)).toBe(305);
+
+    const indexes = await ariaRowIndexes(root);
+    expect(indexes).toEqual(consecutive(1, indexes.length));
+
+    const body = root.locator(".gridkit-data-grid-body");
+    await body.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    await expect(root.getByText("Row 299", { exact: true })).toBeVisible();
+
+    // The header stays row 1; the mounted window ends on the last row.
+    const [header, ...mounted] = await ariaRowIndexes(root);
+    expect(header).toBe(1);
+    expect(mounted.length).toBeLessThan(60);
+    expect(mounted).toEqual(
+      consecutive(305 - mounted.length + 1, mounted.length),
+    );
   });
 
   test("virtualized without height set does not crash and renders every row (dev warning aside)", async ({

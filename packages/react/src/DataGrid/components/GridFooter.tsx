@@ -14,6 +14,8 @@ interface GridFooterProps<Row> {
   rows: readonly Row[];
   /** The grid's `locale`, which values are formatted for. */
   locale: FormatLocale;
+  /** This row's `aria-rowindex`: the last of the grid's `aria-rowcount`. */
+  ariaRowIndex: number;
 }
 
 /**
@@ -34,9 +36,9 @@ interface GridFooterProps<Row> {
  * spec's own override (if it disagrees) applies only to its value, not the
  * cell.
  *
- * Sits outside `<tbody>`'s row count on purpose — a `<tfoot>` is not part
- * of `aria-rowcount`/`aria-rowindex`/keyboard navigation's `rowCount`, the
- * same way `<thead>`'s header row is counted separately from data rows.
+ * A row of the grid like the header, so it is counted in `aria-rowcount`
+ * and takes the index after the last body row, on any page. It is not a
+ * stop for keyboard navigation, which moves among body rows only.
  */
 export default function GridFooter<Row>({
   columns,
@@ -44,10 +46,11 @@ export default function GridFooter<Row>({
   results,
   rows,
   locale,
+  ariaRowIndex,
 }: GridFooterProps<Row>) {
   return (
     <tfoot role="rowgroup">
-      <tr className="grid-footer" role="row">
+      <tr className="grid-footer" role="row" aria-rowindex={ariaRowIndex}>
         {columns.map((entry) => {
           const specs = aggregates.filter(
             (candidate) => candidate.columnId === entry.id,

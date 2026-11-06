@@ -297,7 +297,7 @@ describe("sortRows", () => {
     expect(idsOf(sorted)).toEqual([1, 3, 2]);
   });
 
-  test("renumbers rowIndex to match the new positions", () => {
+  test("renumbers rowIndex and datasetIndex to match the new positions", () => {
     const sorted = sortRows(
       rows,
       [{ columnId: "Id", direction: "asc" }],
@@ -305,6 +305,7 @@ describe("sortRows", () => {
     );
 
     expect(sorted.map((entry) => entry.rowIndex)).toEqual([0, 1, 2]);
+    expect(sorted.map((entry) => entry.datasetIndex)).toEqual([0, 1, 2]);
   });
 
   test("sorts nulls last, under either direction", () => {

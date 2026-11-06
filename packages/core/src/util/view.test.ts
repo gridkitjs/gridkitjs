@@ -150,6 +150,70 @@ describe("resolveGridView", () => {
     expect(idsOf(view.displayDataRows)).toEqual([2, 5]);
   });
 
+  describe("datasetIndex", () => {
+    const sequence = (length: number) =>
+      Array.from({ length }, (_unused, index) => index);
+
+    test("numbers a filtered, sorted grid's rows in the order shown", () => {
+      const view = resolveGridView(
+        input({
+          filter: [{ columnId: "Region", query: "%e%" }],
+          columnSort: [{ columnId: "Amount", direction: "desc" }],
+        }),
+      );
+
+      expect(idsOf(view.rows)).toEqual([5, 3, 2, 1]);
+      expect(view.displayRows.map((entry) => entry.datasetIndex)).toEqual(
+        sequence(4),
+      );
+    });
+
+    test("numbers group headers, data rows and summary rows as one sequence", () => {
+      const view = resolveGridView(
+        input(
+          { groupBy: [{ columnId: "Region" }] },
+          { aggregates: amountTotal, groupAggregateDisplay: "row" },
+        ),
+      );
+
+      // East: header, 2, 5, summary; North: header, 4, summary; West:
+      // header, 1, 3, summary.
+      expect(view.displayRows).toHaveLength(11);
+      expect(view.displayRows.map((entry) => entry.datasetIndex)).toEqual(
+        sequence(11),
+      );
+      // A group's first data row comes after its header, not alongside it.
+      const [header, firstRow] = view.displayRows;
+      expect(header?.datasetIndex).toBe(0);
+      expect(firstRow?.datasetIndex).toBe(1);
+    });
+
+    test("keeps each row's place in the whole result on every page", () => {
+      const state = {
+        columnSort: [{ columnId: "Id", direction: "desc" as const }],
+        groupBy: [{ columnId: "Region" }],
+      };
+      const pages = [0, 1, 2].map(
+        (pageIndex) =>
+          resolveGridView(
+            input(
+              { ...state, pagination: { pageIndex, pageSize: 1 } },
+              { paginated: true },
+            ),
+          ).pageRows,
+      );
+
+      expect(pages.flat().map((entry) => entry.datasetIndex)).toEqual(
+        sequence(8),
+      );
+      expect(pages.map((rows) => rows.map((entry) => entry.rowIndex))).toEqual([
+        [0, 1, 2],
+        [0, 1],
+        [0, 1, 2],
+      ]);
+    });
+  });
+
   test("reports one page at index 0 when not paginated, whatever pagination holds", () => {
     const view = resolveGridView(
       input({ pagination: { pageIndex: 3, pageSize: 2 } }),

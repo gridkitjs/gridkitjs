@@ -485,13 +485,16 @@ describe("filterRows", () => {
     expect(idsOf(filterRows(rows, filter, columns))).toEqual([1, 3]);
   });
 
-  test("renumbers rowIndex to match the retained positions", () => {
+  test("renumbers rowIndex and datasetIndex to match the retained positions", () => {
     const filter: FilterState<SampleRow> = [
       { columnId: "Active", value: true },
     ];
 
     expect(
       filterRows(rows, filter, columns).map((entry) => entry.rowIndex),
+    ).toEqual([0, 1]);
+    expect(
+      filterRows(rows, filter, columns).map((entry) => entry.datasetIndex),
     ).toEqual([0, 1]);
   });
 

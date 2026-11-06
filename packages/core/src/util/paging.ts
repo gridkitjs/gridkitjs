@@ -73,9 +73,9 @@ function unitsOf<Row>(rows: readonly DisplayRow<Row>[]): readonly Unit[] {
  * state, matching `sortRows`/`filterRows`), and the returned page's
  * `rowIndex` is renumbered to be page-relative — 0-based from the top of the
  * page, header rows included, mirroring `groupRows`'s own renumbering
- * invariant. `datasetIndex` is left untouched: it is assigned once, ahead of
- * filter/sort/group/paginate, and reports each row's position in the whole
- * dataset regardless of which page is showing.
+ * invariant. `datasetIndex` is left untouched: the stages ahead of this one
+ * set it to each row's position in the whole displayed result, which stays
+ * the same whichever page is showing.
  */
 export function paginateRows<Row>(
   rows: readonly DisplayRow<Row>[],

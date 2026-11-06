@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { paginationWindow, type GridMessages } from "@gridkitjs/core";
 import type { PagerConfig, PagerTemplateContext } from "../DataGrid";
+import { ariaAttr } from "../ariaAttr";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -25,7 +26,16 @@ interface PagerNavButtonProps {
   children: ReactNode;
 }
 
-/** One of the bar's four arrow segments: an icon, named by its message. */
+/**
+ * One of the bar's four arrow segments: an icon, named by its message.
+ *
+ * Disabled with `aria-disabled` rather than the `disabled` attribute, the
+ * way the toolbar's buttons are: the button that reaches an end is the one
+ * that has focus, and a natively disabled button drops it to `<body>`. This
+ * one keeps it, announced as unavailable, and pressing it again does nothing
+ * rather than paging back the other way, as moving focus onto the opposite
+ * arrow would.
+ */
 function PagerNavButton({
   className,
   label,
@@ -39,8 +49,10 @@ function PagerNavButton({
       className={`grid-pager-button grid-pager-nav ${className}`}
       aria-label={label}
       title={label}
-      disabled={disabled}
-      onClick={onClick}
+      {...ariaAttr(disabled, "aria-disabled", true)}
+      onClick={() => {
+        if (!disabled) onClick();
+      }}
     >
       {children}
     </button>
