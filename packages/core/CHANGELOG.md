@@ -1,5 +1,16 @@
 # @gridkitjs/core
 
+## 0.14.0
+
+### Minor Changes
+
+- 2ac1c45: Count messages such as `filterResults`, `filterSearchFirst`, `copied` and `selectedCount` now format numbers with the grid's `locale` — "1,204 of 10,000 rows" under `en`, "1.204 of 10.000 rows" under `de-DE` — and in the runtime's locale when none is given, where they printed bare digits ("1204 of 10000 rows"). Overrides keep their signatures and still receive plain numbers.
+
+  `resolveMessages` takes the locale as an optional second argument, `resolveMessages(messages, locale)`, and the new `createDefaultMessages(locale)` returns the English defaults for a locale; `defaultMessages` is the one for the runtime's locale.
+
+- 6a4c6c2: `GridMessages` has two new keys, `firstPage` ("First") and `lastPage` ("Last"), naming the pager's buttons to the first and last page. A partial `messages` override keeps working unchanged; a complete `GridMessages` object written out in full needs the two keys added.
+- 6a4c6c2: `paginationWindow` now returns the same number of entries for every page once `pageCount` exceeds `2 * boundaryCount + 2 * siblingCount + 3` (7 with the defaults), so a numbered pager no longer grows and shrinks as the user pages through. Near either end the run of sibling pages slides inwards instead of being cut short: page 1 of 10 gives `[1, 2, 3, 4, 5, "ellipsis", 10]` where it gave `[1, 2, "ellipsis", 10]`, and page 10 of 10 gives `[1, "ellipsis", 6, 7, 8, 9, 10]` where it gave `[1, "ellipsis", 9, 10]`. Middle pages and page counts small enough to show every page are unchanged.
+
 ## 0.13.0
 
 ### Minor Changes

@@ -1,5 +1,16 @@
 # @gridkitjs/theme-tailwind
 
+## 0.10.0
+
+### Minor Changes
+
+- 6a4c6c2: New `--gridkit-radius` token (default `0.25rem`) rounds the grid's outer frame and the pager bar's outer corners; the header and rows clip to it. Set `--gridkit-radius: 0` on `:root` or an ancestor of the grid to keep square corners.
+
+### Patch Changes
+
+- 6a4c6c2: The pager is styled as one connected bar: a shared hairline between segments, the radius on its outer corners only, the active page in the accent with a subtle ring, and every page-number slot the same width in tabular numerals, so the next and last buttons stay put from the first page to the last. The page-size control now sits beside the bar instead of at the pager's far end.
+- 6a4c6c2: The grid's scroll regions (the viewport, the row area, menus, the column chooser and the filter checklist) now show thin scrollbars in the theme's muted colour, in light and dark. Only the grid's own elements are styled, never the page.
+
 ## 0.9.0
 
 ### Minor Changes
