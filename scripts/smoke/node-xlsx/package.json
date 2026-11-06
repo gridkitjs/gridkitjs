@@ -1,0 +1,13 @@
+{
+  "name": "gridkit-smoke-node-xlsx",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "smoke": "node export.mjs"
+  },
+  "dependencies": {
+    "@gridkitjs/core": "*",
+    "@gridkitjs/export-xlsx": "*"
+  }
+}

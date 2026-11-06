@@ -5,7 +5,9 @@ description: Run GridKit's CI checks locally, in CI's order, before pushing or o
 
 # Run the CI checks locally
 
-CI runs two jobs, `ci` and `e2e`, defined in `.github/workflows/ci.yml`. Run
+CI runs three jobs, `ci`, `e2e` and `packages`, defined in
+`.github/workflows/ci.yml` (`packages` through
+`.github/workflows/verify-packages.yml`). Run
 the same steps here first rather than using CI to find what one command would
 have. What each check enforces is under
 [Standards](../../../AGENTS.md#standards) in the root `AGENTS.md`.
@@ -41,18 +43,34 @@ but delete `apps/playground/playwright/.cache` first after editing
 `packages/theme-tailwind/src/styles.css`, or it tests the old styles (see
 [apps/playground/AGENTS.md](../../../apps/playground/AGENTS.md#stale-styles-after-a-stylesheet-edit)).
 
-## 3. Reading a failure
+## 3. The `packages` job, optional last step
 
-| Step              | Fix                                                                                                     |
-| ----------------- | ------------------------------------------------------------------------------------------------------- |
-| `format:check`    | Run `pnpm format`, then review the diff. Line endings must be LF.                                       |
-| `lint`            | Fix the code; don't add a disable comment. The failing package's name prefixes each line.               |
-| `check-mdx-tags`  | It names the file and line of an unregistered tag. See [scripts/AGENTS.md](../../../scripts/AGENTS.md). |
-| `typecheck`       | Fix the types; don't loosen the tsconfig. A missing DOM type in `core` means it belongs in `dom`.       |
-| `test`            | Rerun one package with `pnpm --filter @gridkitjs/<pkg> test`.                                           |
-| `build`           | Rerun one package with `pnpm --filter @gridkitjs/<pkg> build` to see its full error.                    |
-| `test:e2e`        | Rerun one area with `pnpm --filter playground test:e2e tests-ct/<area>.spec.tsx`.                       |
-| coverage under 80 | Add a Playwright test for the uncovered code in the spec file for that area.                            |
+Run it when the change touches a published package's `package.json`, its
+build config, `exports` or anything else about what it ships, or
+`scripts/smoke/`. It builds, packs and lints the tarballs, then installs them
+into fresh Vite, Next.js and Node apps, which takes a minute or two:
+
+```bash
+node scripts/pack-packages.mjs && node scripts/lint-packages.mjs && node scripts/smoke-packages.mjs
+```
+
+What each script does is in
+[scripts/AGENTS.md](../../../scripts/AGENTS.md#package-verification).
+
+## 4. Reading a failure
+
+| Step              | Fix                                                                                                       |
+| ----------------- | --------------------------------------------------------------------------------------------------------- |
+| `format:check`    | Run `pnpm format`, then review the diff. Line endings must be LF.                                         |
+| `lint`            | Fix the code; don't add a disable comment. The failing package's name prefixes each line.                 |
+| `check-mdx-tags`  | It names the file and line of an unregistered tag. See [scripts/AGENTS.md](../../../scripts/AGENTS.md).   |
+| `typecheck`       | Fix the types; don't loosen the tsconfig. A missing DOM type in `core` means it belongs in `dom`.         |
+| `test`            | Rerun one package with `pnpm --filter @gridkitjs/<pkg> test`.                                             |
+| `build`           | Rerun one package with `pnpm --filter @gridkitjs/<pkg> build` to see its full error.                      |
+| `test:e2e`        | Rerun one area with `pnpm --filter playground test:e2e tests-ct/<area>.spec.tsx`.                         |
+| coverage under 80 | Add a Playwright test for the uncovered code in the spec file for that area.                              |
+| `lint-packages`   | publint or attw names the packaging mistake; fix the package's `package.json`, with a patch changeset.    |
+| `smoke-packages`  | It prints the failing fixture's step and output; rerun one with `node scripts/smoke-packages.mjs <name>`. |
 
 `check-mdx-tags` skipping with a warning (the hosted tag list returned a 404)
 is a pass, as in CI.

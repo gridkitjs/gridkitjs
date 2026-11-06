@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, indev]
+    branches: [main]
   pull_request:
-    branches: [main, indev]
+    branches: [main]
 
 jobs:
   ci:
@@ -72,3 +72,10 @@ jobs:
           name: coverage-report
           path: apps/playground/coverage/
           retention-days: 7
+
+  # The packages as consumers install them: packed, linted, and smoke-tested
+  # in fresh apps. Check name: `packages / verify`.
+  packages:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/verify-packages.yml
