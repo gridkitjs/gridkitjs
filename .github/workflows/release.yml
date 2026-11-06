@@ -290,3 +290,84 @@ jobs:
         with:
           branch: docs-meta
           dry-run: ${{ inputs.dry-run == true }}
+
+  # The website installs these versions on its development branch, which
+  # deploys to next.gridkitjs.com, and reads the docs from docs-meta-next.
+  website-snapshot:
+    needs: snapshot
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      # A token for the website's repository: sending it an event needs
+      # contents: write there. A dry run sends nothing, so it mints none.
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        if: ${{ !inputs.dry-run }}
+        with:
+          client-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: website
+          permission-contents: write
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Send gridkit-snapshot to the website
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          VERSIONS: ${{ needs.snapshot.outputs.versions }}
+        run: >-
+          node scripts/website-dispatch.mjs
+          --event gridkit-snapshot
+          --sha "$GITHUB_SHA"
+          --versions "$VERSIONS"
+          ${{ inputs.dry-run && '--dry-run' || '' }}
+
+  # The website opens its own release PR from this: the versions to
+  # install, and the docs-meta commit to pin.
+  website-release:
+    needs: [publish, docs]
+    if: ${{ !cancelled() && needs.docs.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        if: ${{ !inputs.dry-run }}
+        with:
+          client-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: website
+          permission-contents: write
+
+      # On a docs-only run the versions come from this commit's packages.
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # A docs-only run publishes nothing, so `versions` is empty and the
+      # script sends each package's current version, once it has checked
+      # npm has it.
+      - name: Send gridkit-release to the website
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          VERSIONS: ${{ needs.publish.outputs.versions }}
+          MANIFEST_SHA: ${{ needs.docs.outputs.manifest-sha }}
+        run: >-
+          node scripts/website-dispatch.mjs
+          --event gridkit-release
+          --sha "$GITHUB_SHA"
+          --versions "$VERSIONS"
+          --manifest-sha "$MANIFEST_SHA"
+          ${{ inputs.dry-run && '--dry-run' || '' }}

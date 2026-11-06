@@ -18,6 +18,7 @@ the workflows that write them) is in
 | `release-plan.mjs`           | Decides whether a release run publishes a snapshot, a stable release or nothing. |
 | `publish-tarballs.mjs`       | Publishes the verified tarballs to npm, skipping versions npm already has.       |
 | `github-releases.mjs`        | Tags a stable release and writes GitHub Releases from the changelogs.            |
+| `website-dispatch.mjs`       | Tells the website which versions to install after a snapshot or a release.       |
 
 ## build-docs-manifest.mjs
 
@@ -134,6 +135,15 @@ in `lib/release.mjs`.
   creates the missing `@gridkitjs/<pkg>@<version>` tags and GitHub Releases,
   with each version's `CHANGELOG.md` section as the notes. `--dry-run`
   prints them instead.
+- `website-dispatch.mjs --event <event> [--versions <json>] [--dry-run]`
+  (its header lists every option) sends the website a `repository_dispatch` with the versions to install:
+  after a snapshot, `{ sha, versions, manifestRef: "docs-meta-next" }`;
+  after a stable or docs-only release, `{ sha, versions, manifestSha }`,
+  `manifestSha` being the new `docs-meta` commit. `versions` always names
+  all five packages at exact versions; without `--versions` it is each
+  `package.json` version, which must be on npm. These payloads are the
+  contract with the website's receiving workflows, which validate them
+  strictly. `--dry-run` prints the event and payload.
 
 To rehearse a snapshot locally, on a branch with a committed changeset,
 version, pack and dry-run the publish. `changeset version` rewrites
