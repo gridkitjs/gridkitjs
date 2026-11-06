@@ -165,7 +165,7 @@ See [AGENTS.md](AGENTS.md) for the full contributor guide.
 CI runs exactly this, in order:
 
 ```bash
-pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build
+pnpm format:check && pnpm lint && node scripts/check-mdx-tags.mjs && pnpm typecheck && pnpm test && pnpm build
 ```
 
 TypeScript is `strict` with `noUncheckedIndexedAccess` and
