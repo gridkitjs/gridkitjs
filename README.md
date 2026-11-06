@@ -171,7 +171,7 @@ pnpm format:check && pnpm lint && node scripts/check-mdx-tags.mjs && pnpm typech
 TypeScript is `strict` with `noUncheckedIndexedAccess` and
 `exactOptionalPropertyTypes`; ESLint is flat config, `strictTypeChecked`;
 Prettier enforces formatting. ESM only, LF line endings, Changesets for
-versioning.
+versioning. Releases are published by GitHub Actions, not from a laptop.
 
 Requires Node 22 or newer. See [AGENTS.md](AGENTS.md) for the full contributor
 guide.

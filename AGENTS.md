@@ -113,6 +113,13 @@ Squash-merge, so `main` keeps one commit per PR and the branch's messy history
 stays on the branch. The squash subject is the PR title, so it follows the same
 Conventional Commits rules as any other commit.
 
+**Releases are not made by hand.** The release workflow starts on a push to
+`main`: it keeps the "Version Packages" PR current, publishes a `dev`
+snapshot after a merge that changes a published package, and publishes a
+stable release, once the maintainer approves it, after that PR merges. There
+is no npm token and no release command to run; see
+[Releasing](.claude/rules/versioning.md#releasing).
+
 ## Commits
 
 [Conventional Commits](https://www.conventionalcommits.org):

@@ -72,52 +72,67 @@ still lands in the changelog as its own entry under that one version.
 
 ## Releasing
 
-Both modes need a clean tree and `npm login` already done.
+Releases are made by GitHub Actions, never from a laptop. Nobody runs
+`changeset publish` or `npm publish` by hand, there is no npm token, and
+contributors never release: a contributor's part ends with the changeset and
+the docs in the PR. The workflow is
+[`.github/workflows/release.yml`](../../.github/workflows/release.yml); it
+authenticates to npm through trusted publishing, and the scripts it calls are
+listed in [scripts/AGENTS.md](../../scripts/AGENTS.md#release-scripts).
 
-**A stable release is two steps, not one.** `pnpm release` only publishes what
-is already in the `version` fields — it bumps nothing. The bump is
-`pnpm version-packages`, and skipping it means `changeset publish` finds the
-current version already on npm and exits having done nothing.
+### What a merge to `main` does
 
-`version-packages` rewrites `version` fields, appends to each `CHANGELOG.md`,
-and deletes the changeset files it consumed. Review that diff before committing
-it — all of it belongs in the commit.
+Every push to `main` runs the workflow, which looks at the repository and does
+one of three things:
 
-**Releases go out from `main`, never from a feature branch.** Merge the work
-first, then cut the release. The version bump is itself a commit to a protected
-branch, so it takes the same route as anything else (see
-[Branches and pull requests](../../AGENTS.md#branches-and-pull-requests) in
-the root `AGENTS.md`):
+- **Changesets are pending.** The release bot opens or updates the
+  "chore: version packages" PR, which holds the `version` bumps and changelog
+  entries that `pnpm version-packages` produces from the pending changesets.
+  If the push also changed a published package's `src/`, the packages go out
+  as a **snapshot**: version `0.0.0-dev-<timestamp>`, published under the
+  `dev` dist-tag after the same pack, lint and smoke checks as CI, with no git
+  tags. `pnpm add @gridkitjs/core` keeps resolving to the last stable release;
+  only `@dev` sees a snapshot. The website is told, so
+  [next.gridkitjs.com](https://next.gridkitjs.com) installs it.
+- **No changesets are pending, and a version is not on npm or not tagged.**
+  That is what merging the Version Packages PR leaves behind, and it starts a
+  **stable release**.
+- **Neither.** Nothing is published.
 
-```bash
-git checkout main && git pull
-git checkout -b chore/version-packages
-pnpm version-packages
-git commit -am "chore: version packages"
-git push -u origin chore/version-packages
-gh pr create --fill          # merge once CI is green
-git checkout main && git pull
-pnpm release                 # publish the versions now on main
-```
+A merge that touches a package's `docs/`, `CHANGELOG.md` or `package.json`
+also publishes preview docs, in a separate workflow; see
+[docs.md](docs.md#the-docs-manifest).
 
-`pnpm release` is the only step that runs off `main` directly, and it publishes
-rather than committing — so it never pushes anything.
+### A stable release
 
-### Snapshot releases
+1. Review the Version Packages PR: the versions, the changelogs, and that
+   every changeset summary reads well for a consumer. Merge it like any other
+   PR.
+2. The workflow re-runs the CI checks, the e2e suite and the package
+   verification on the merge commit.
+3. The `publish` job then waits for approval on the `release` environment.
+   The maintainer approves the pending deployment on the run's page on
+   GitHub, or from the GitHub mobile app.
+4. Once approved, it publishes the exact tarballs the checks verified, pushes
+   the `@gridkitjs/<pkg>@<version>` tags, writes the GitHub Releases from the
+   changelogs, publishes the production docs to `docs-meta`, and tells the
+   website which versions and docs commit to ship. It also opens the bot's PR
+   that bumps `examples/`.
 
-```bash
-pnpm release:dev   # snapshot: 0.0.0-dev-<timestamp>, published under the `dev` tag
-```
+### Docs-only release
 
-`release:dev` is the one to reach for while iterating, and unlike the stable
-path it is a single command — it runs the version step itself. It cuts a
-throwaway version off the `latest` tag, so `pnpm add @gridkitjs/core` keeps
-resolving to the last stable release and only `@dev` sees the snapshot.
+Production docs change only with a release. To ship docs without a version
+bump, run the Release workflow by hand on `main` from the Actions tab with
+`mode` set to `docs-only`. It skips npm and still waits for the `release`
+approval, then publishes the manifest of `main`'s head to `docs-meta` and
+tells the website.
 
-The version step rewrites versions and changelogs and consumes changeset
-files, and the script undoes most of that itself once publishing ends, even
-when it fails: it restores every `package.json` and `.changeset/` from git
-and deletes any `CHANGELOG.md` it created, so the changesets survive to drive
-the next stable release. Entries it appended to a `CHANGELOG.md` that was
-already committed are left behind: discard them with `git checkout -- "*/*/CHANGELOG.md"`
-rather than committing them.
+### Re-running a release
+
+Every publishing step skips what is already done, so a release that stopped
+part-way (a flaky job, a missed approval) is finished by re-running the failed
+workflow run from its page on GitHub. Versions npm already has are not
+published again, and existing tags and GitHub Releases are left alone. To
+rehearse, run the workflow by hand with `dry-run` ticked: it does everything
+but publish, tag, release and push (a stable or docs-only dry run also waits
+for approval).

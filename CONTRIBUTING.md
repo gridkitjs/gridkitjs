@@ -24,6 +24,12 @@ git push -u origin feat/sortable-columns
 gh pr create --fill
 ```
 
+You never release. Once your PR is merged, the release workflow takes it from
+there: the changeset in your PR feeds the "Version Packages" PR, and the
+maintainer approves the release when that one merges. Don't bump a `version`
+field or publish anything yourself; see
+[Releasing](.claude/rules/versioning.md#releasing).
+
 ## Before you open a pull request
 
 The [changeset](.claude/skills/changeset/SKILL.md),
