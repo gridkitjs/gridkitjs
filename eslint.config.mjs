@@ -5,13 +5,16 @@ import reactHooks from "eslint-plugin-react-hooks";
 export default tseslint.config(
   {
     // Generated output, plus config files that sit outside any tsconfig
-    // project and so cannot be type-checked by the rules below.
+    // project and so cannot be type-checked by the rules below. The smoke
+    // fixtures resolve their imports only once installed into a temp copy,
+    // where their own builds type-check them.
     ignores: [
       "**/dist/**",
       "**/coverage/**",
       ".history/**",
       "**/*.config.{js,mjs,cjs,ts}",
       "**/playwright/.cache/**",
+      "scripts/smoke/**",
     ],
   },
   js.configs.recommended,

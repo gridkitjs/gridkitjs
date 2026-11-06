@@ -1,0 +1,26 @@
+{
+  "name": "gridkit-smoke-next-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "smoke": "next build && node verify.mjs"
+  },
+  "dependencies": {
+    "@gridkitjs/core": "*",
+    "@gridkitjs/dom": "*",
+    "@gridkitjs/react": "*",
+    "@gridkitjs/theme-tailwind": "*",
+    "next": "16.3.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "20.19.43",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3"
+  }
+}
