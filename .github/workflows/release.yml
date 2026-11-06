@@ -371,3 +371,63 @@ jobs:
           --versions "$VERSIONS"
           --manifest-sha "$MANIFEST_SHA"
           ${{ inputs.dry-run && '--dry-run' || '' }}
+
+  # The apps under examples/ install from npm, so after a release the bot
+  # opens a PR moving them to the new versions. A dry run prints the diff.
+  examples:
+    needs: [plan, publish]
+    if: needs.plan.outputs.release == 'stable'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      # The bot opens the PR so CI runs on it; one opened with GITHUB_TOKEN
+      # starts no workflow, and main's required checks would never report.
+      # `workflows: write` because an open PR's branch is moved onto the
+      # latest main, which may bring in a workflow change.
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        if: ${{ !inputs.dry-run }}
+        with:
+          client-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-workflows: write
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Bump the examples to the released versions
+        id: bump
+        env:
+          VERSIONS: ${{ needs.publish.outputs.versions }}
+        run: >-
+          node scripts/bump-examples.mjs
+          --versions "$VERSIONS"
+          ${{ inputs.dry-run && '--dry-run' || '' }}
+
+      # Updates the same branch and PR when one is still open from an
+      # earlier release. Signed commits are made through the API, as the
+      # bot.
+      - name: Open the pull request
+        if: ${{ !inputs.dry-run && steps.bump.outputs.changed == 'true' }}
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: chore/bump-examples
+          delete-branch: true
+          sign-commits: true
+          add-paths: |
+            examples/*/package.json
+            examples/*/package-lock.json
+          commit-message: "chore(examples): bump to the latest releases"
+          title: "chore(examples): bump to the latest releases"
+          body: >-
+            Moves the apps under `examples/` to the versions just released,
+            with their lockfiles refreshed. Examples are not published, so
+            this needs no changeset.

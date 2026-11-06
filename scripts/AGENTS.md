@@ -19,6 +19,7 @@ the workflows that write them) is in
 | `publish-tarballs.mjs`       | Publishes the verified tarballs to npm, skipping versions npm already has.       |
 | `github-releases.mjs`        | Tags a stable release and writes GitHub Releases from the changelogs.            |
 | `website-dispatch.mjs`       | Tells the website which versions to install after a snapshot or a release.       |
+| `bump-examples.mjs`          | Moves the apps under `examples/` to the released versions.                       |
 
 ## build-docs-manifest.mjs
 
@@ -144,6 +145,11 @@ in `lib/release.mjs`.
   `package.json` version, which must be on npm. These payloads are the
   contract with the website's receiving workflows, which validate them
   strictly. `--dry-run` prints the event and payload.
+- `bump-examples.mjs [--versions <json>] [--dry-run]` sets each example's
+  `@gridkitjs/*` ranges to `^<version>` and refreshes its lockfile with
+  `npm install --package-lock-only`, retrying while npm catches up with a
+  version just published. The workflow then opens the PR. `--dry-run`
+  prints the diff.
 
 To rehearse a snapshot locally, on a branch with a committed changeset,
 version, pack and dry-run the publish. `changeset version` rewrites
