@@ -47,6 +47,8 @@ counts toward its coverage threshold.
 `packages/react/docs/`, with nested topics in `cells/`, `columns/` and
 `rows/`, each with its own `_meta.json`. The writing rules, the page template
 and the glossary are in [.claude/rules/docs.md](../../.claude/rules/docs.md).
+A new `DataGrid` prop or component needs a page or a section there in the same
+PR, and so does changed behaviour.
 
 ## Releasing
 
