@@ -176,6 +176,10 @@ versioning.
 Requires Node 22 or newer. See [AGENTS.md](AGENTS.md) for the full contributor
 guide.
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and the pull request checklist.
+
 ## License
 
 [MIT](LICENSE) © Blagoja Blazhevski

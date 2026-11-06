@@ -86,15 +86,8 @@ file cold, a year from now?
 ## Branches and pull requests
 
 `main` is protected: it takes no direct pushes, and CI must pass before a merge.
-Every change reaches it through a pull request, including your own.
-
-```bash
-git checkout main && git pull
-git checkout -b feat/sortable-columns
-# work, commit, and write the changeset
-git push -u origin feat/sortable-columns
-gh pr create --fill
-```
+Every change reaches it through a pull request, including your own; the
+commands are in [CONTRIBUTING.md](CONTRIBUTING.md#workflow).
 
 Branch names take the commit type as their prefix — `feat/`, `fix/`,
 `docs/`, `refactor/`, `chore/` — then a short kebab-case subject:
@@ -153,3 +146,4 @@ another tool, open the one the work touches.
 | [.claude/rules/docs.md](.claude/rules/docs.md)             | Writing docs: the manifest pipeline, page template, samples, tags |
 | [.claude/rules/testing.md](.claude/rules/testing.md)       | The two test layers, where each test goes, coverage               |
 | [.claude/rules/versioning.md](.claude/rules/versioning.md) | Changesets, which bump, writing the summary, releasing            |
+| [CONTRIBUTING.md](CONTRIBUTING.md)                         | Setup, the workflow and the PR checklist, on one screen           |
