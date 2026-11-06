@@ -139,11 +139,15 @@ subject line and the code already make it clear.
 ## Where the rest lives
 
 Topics that cut across folders. Claude Code loads each rule by path; with
-another tool, open the one the work touches.
+another tool, open the one the work touches. The skills are step-by-step
+procedures that apply those rules; they read as checklists too.
 
-| File                                                       | What it covers                                                    |
-| ---------------------------------------------------------- | ----------------------------------------------------------------- |
-| [.claude/rules/docs.md](.claude/rules/docs.md)             | Writing docs: the manifest pipeline, page template, samples, tags |
-| [.claude/rules/testing.md](.claude/rules/testing.md)       | The two test layers, where each test goes, coverage               |
-| [.claude/rules/versioning.md](.claude/rules/versioning.md) | Changesets, which bump, writing the summary, releasing            |
-| [CONTRIBUTING.md](CONTRIBUTING.md)                         | Setup, the workflow and the PR checklist, on one screen           |
+| File                                                          | What it covers                                                    |
+| ------------------------------------------------------------- | ----------------------------------------------------------------- |
+| [.claude/rules/docs.md](.claude/rules/docs.md)                | Writing docs: the manifest pipeline, page template, samples, tags |
+| [.claude/rules/testing.md](.claude/rules/testing.md)          | The two test layers, where each test goes, coverage               |
+| [.claude/rules/versioning.md](.claude/rules/versioning.md)    | Changesets, which bump, writing the summary, releasing            |
+| [CONTRIBUTING.md](CONTRIBUTING.md)                            | Setup, the workflow and the PR checklist, on one screen           |
+| [.claude/skills/changeset](.claude/skills/changeset/SKILL.md) | Skill: writing a changeset, for a change to a published package   |
+| [.claude/skills/docs-page](.claude/skills/docs-page/SKILL.md) | Skill: writing or updating a docs page, for a public API change   |
+| [.claude/skills/verify](.claude/skills/verify/SKILL.md)       | Skill: running the CI checks locally, before a push or PR         |

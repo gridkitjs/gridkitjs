@@ -26,6 +26,11 @@ gh pr create --fill
 
 ## Before you open a pull request
 
+The [changeset](.claude/skills/changeset/SKILL.md),
+[docs-page](.claude/skills/docs-page/SKILL.md) and
+[verify](.claude/skills/verify/SKILL.md) skills walk through the first,
+second and fourth items step by step.
+
 - [ ] **Changeset.** A change to a published package has one, from
       `pnpm changeset`, in the same commit. See
       [versioning](.claude/rules/versioning.md).
