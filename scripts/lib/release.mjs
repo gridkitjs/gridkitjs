@@ -1,10 +1,11 @@
 /**
  * Shared by the release scripts: what npm and the git remote already hold,
- * the changesets still pending, and how a script reports back to GitHub
- * Actions.
+ * the changesets still pending, the manifest inside a tarball, and how a
+ * script reports back to GitHub Actions.
  */
 import { appendFileSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
+import { gunzipSync } from "node:zlib";
 import { REPO_ROOT, run } from "./packages.mjs";
 
 /**
@@ -82,6 +83,40 @@ export async function remoteTags() {
       return tag === undefined || tag === "" ? [] : [tag];
     }),
   );
+}
+
+/**
+ * Reads `package/package.json` out of a `.tgz` that `pnpm pack` wrote, so
+ * a script knows the name and version a tarball really holds without
+ * unpacking it. Tar is 512-byte blocks: a header (name at 0, octal size at
+ * 124, type flag at 156, name prefix at 345), then the file's content padded
+ * to a whole block.
+ *
+ * @param {string} file
+ * @returns {Record<string, any>}
+ */
+export function readTarballManifest(file) {
+  const tar = gunzipSync(readFileSync(file));
+  /** @param {number} start @param {number} length */
+  const field = (start, length) =>
+    tar
+      .subarray(start, start + length)
+      .toString("utf8")
+      .replace(/\0.*$/s, "");
+  for (let offset = 0; offset + 512 <= tar.length;) {
+    const name = field(offset, 100);
+    if (name === "") break;
+    const prefix = field(offset + 345, 155);
+    const size = Number.parseInt(field(offset + 124, 12).trim() || "0", 8);
+    const type = field(offset + 156, 1);
+    const content = offset + 512;
+    const fullName = prefix === "" ? name : `${prefix}/${name}`;
+    if (fullName === "package/package.json" && (type === "" || type === "0")) {
+      return JSON.parse(tar.subarray(content, content + size).toString("utf8"));
+    }
+    offset = content + Math.ceil(size / 512) * 512;
+  }
+  throw new Error(`${file} holds no package/package.json.`);
 }
 
 /**

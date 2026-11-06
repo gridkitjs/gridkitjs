@@ -14,6 +14,7 @@ workflow, the `docs-meta` branch) is in
 | `lint-packages.mjs`       | Lints the tarballs with publint and arethetypeswrong.                            |
 | `smoke-packages.mjs`      | Installs the tarballs into the fresh apps under `smoke/` and runs their checks.  |
 | `release-plan.mjs`        | Decides whether a release run publishes a snapshot, a stable release or nothing. |
+| `publish-tarballs.mjs`    | Publishes the verified tarballs to npm, skipping versions npm already has.       |
 
 ## build-docs-manifest.mjs
 
@@ -101,3 +102,20 @@ in `lib/release.mjs`.
   package's `src/` changed since `--since` (always, without it), `stable`
   when none are pending and a version is not on npm or not tagged, else
   `none`. It asks npm and `git ls-remote`, so it needs the network.
+- `publish-tarballs.mjs [--pack-dir <dir>] [--tag <dist-tag>] [--dry-run]`
+  runs `npm publish <tarball>` in dependency order for each version npm
+  lacks. It refuses to publish outside GitHub Actions, where trusted
+  publishing authenticates it; `--dry-run` runs `npm publish --dry-run`.
+
+To rehearse a snapshot locally, on a branch with a committed changeset,
+version, pack and dry-run the publish. `changeset version` rewrites
+versions and changelogs and deletes the changesets it consumed, so the last
+line restores them all from git (a changeset that was never committed would
+be lost):
+
+```bash
+pnpm changeset version --snapshot dev
+node scripts/pack-packages.mjs && node scripts/lint-packages.mjs
+node scripts/publish-tarballs.mjs --tag dev --dry-run
+git checkout -- packages .changeset
+```

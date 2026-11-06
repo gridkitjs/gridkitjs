@@ -1,10 +1,20 @@
 name: Release
 
 # Every push to main goes through here, and scripts/release-plan.mjs decides
-# what it calls for. While changesets are pending, the bot opens or updates
-# the "chore: version packages" PR.
+# what it calls for:
 #
-# Run it by hand from any branch with dry run set to see the plan.
+# - Changesets pending: the bot opens or updates the "chore: version
+#   packages" PR, and when the push changed a published package's src/, a
+#   dev snapshot (0.0.0-dev-<timestamp>) goes to npm under the `dev`
+#   dist-tag, after the same pack, lint and smoke checks as CI. No git tags.
+# - Otherwise nothing.
+#
+# npm authenticates through trusted publishing (OIDC); no npm token exists.
+# Each package's trusted publisher names this file with no environment, so
+# snapshots publish without waiting.
+#
+# Run it by hand to publish a snapshot, to rehearse one (dry run: everything
+# but the publishing, from any branch), or with mode docs-only to skip npm.
 on:
   push:
     branches: [main]
@@ -100,7 +110,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # No `publish` input: this only maintains the PR.
+      # No `publish` input: this only maintains the PR. Publishing is the
+      # jobs below, from verified tarballs.
       - uses: changesets/action@v1
         with:
           version: pnpm version-packages
@@ -108,3 +119,47 @@ jobs:
           commit: "chore: version packages"
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+
+  snapshot-packages:
+    needs: plan
+    if: needs.plan.outputs.release == 'snapshot'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/verify-packages.yml
+    with:
+      snapshot: true
+      upload-tarballs: true
+
+  snapshot:
+    needs: [plan, snapshot-packages]
+    if: needs.plan.outputs.release == 'snapshot'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      # JSON: package name to the version its tarball holds, all five; a
+      # package with no pending changeset keeps its released version.
+      versions: ${{ steps.publish.outputs.versions }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 24 ships npm 11, which trusted publishing needs (11.5.1 or
+      # newer; the script checks).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: package-tarballs
+          path: ${{ runner.temp }}/package-tarballs
+
+      - name: Publish the snapshot under the dev dist-tag
+        id: publish
+        run: >-
+          node scripts/publish-tarballs.mjs
+          --pack-dir "$RUNNER_TEMP/package-tarballs"
+          --tag dev
+          ${{ inputs.dry-run && '--dry-run' || '' }}
