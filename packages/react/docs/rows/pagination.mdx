@@ -228,7 +228,7 @@ export default function App() {
 }
 ```
 
-Use `rowIndex` for anything about the row's position on screen (alternating row styling, "row 3 of this page"); use `datasetIndex` for anything that should stay stable across pages (a running row number, a reference back to the full dataset).
+Use `rowIndex` for anything about the row's position on screen (alternating row styling, "row 3 of this page"); use `datasetIndex` for anything that should stay stable across pages, such as a running row number. It counts rows as shown, so it follows the sort and filter, and in a grouped grid it counts group rows and summary rows too. It is not the row's index in `dataSource`: to find the row there, use its `row` or `rowId`.
 
 This is also why `aria-rowindex` on a rendered row reports the dataset position, not the page-relative one — the WAI-ARIA grid pattern expects a row's index to reflect its true position in the full set even when only one page of it is in the DOM. `aria-rowcount` stays the total row count the same way. Neither of these changes for a grid that never turns `paginated` on: `datasetIndex` equals `rowIndex` whenever there's only one page, so this is additive rather than a behavior change for an existing, unpaginated grid.
 
