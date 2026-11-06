@@ -51,9 +51,8 @@ The website does not read those files one by one. It reads a single
 `docs-manifest.json`, built by `scripts/build-docs-manifest.mjs`: every
 published package's name, `version` and `CHANGELOG.md`, every `.mdx` page
 with its frontmatter, body, blob SHA and last commit date, and every parsed
-`_meta.json`. The script's JSDoc typedefs are the manifest's contract with
-the website, so a field changed there is a change to the website too; bump
-`schemaVersion` when a field changes meaning or goes away.
+`_meta.json`. Its contract with the website, and how to run it locally, are
+in `scripts/AGENTS.md`.
 
 The `revalidate-docs` workflow builds it on every push to `main` that touches
 `packages/*/docs/**`, `packages/*/CHANGELOG.md` or `packages/*/package.json`,
@@ -63,9 +62,7 @@ website's revalidation webhook. Never commit to `docs-meta` by hand; every
 commit on it is the workflow's. To preview a branch's docs, run the workflow
 on that branch from the Actions tab: it publishes to `docs-meta-<branch>`
 (slashes become dashes) and does not notify the website, so point the
-website's `DOCS_MANIFEST_REF` at that branch. To inspect the manifest
-locally, run `node scripts/build-docs-manifest.mjs`; it writes the gitignored
-`docs-manifest.json` at the repo root, or to the path given as its argument.
+website's `DOCS_MANIFEST_REF` at that branch.
 
 Keeping these current is a priority, not a follow-up task. A new public API,
 component, or prop needs a doc page — or a new section on an existing one —
@@ -154,17 +151,8 @@ example doesn't is fine. The examples live in the
 `scripts/check-mdx-tags.mjs` holds the docs to that list: it collects every
 PascalCase tag in `packages/*/docs/**/*.mdx`, ignoring fenced code, code
 spans and comments, and fails with the file and line of any tag the website
-does not register. CI runs it after lint. While the hosted list is missing
-(a 404, before the website first publishes it) it skips with a warning;
-any other failure to read the list fails it. To run it locally against the
-website's current tags, generate the list in the `gridkit-website` repo
-with `node scripts/export-mdx-tags.mjs` and point the check at it:
-
-```bash
-MDX_TAGS_FILE=../gridkit-website/public/mdx-tags.json node scripts/check-mdx-tags.mjs
-```
-
-`MDX_TAGS_URL` points it at another hosted list instead.
+does not register. How CI runs it and how to run it locally against the
+website's current tags are in `scripts/AGENTS.md`.
 
 ## Tests
 
