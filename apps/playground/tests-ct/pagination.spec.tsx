@@ -501,6 +501,74 @@ test.describe("pager bar", () => {
     await expect(pagerStatus(root)).toHaveText("Page 3 of 3");
   });
 
+  for (const variant of ["compact", "numbered"] as const) {
+    test(`${variant}: an arrow that pages to the end it leads to keeps focus, and pressing it again stays put`, async ({
+      mount,
+    }) => {
+      const root = await mountGrid(
+        mount,
+        <RowIdentifiedGrid
+          columns={columns}
+          dataSource={buildRows()}
+          label="Pager focus at the ends"
+          paginated
+          defaultPagination={{ pageIndex: 0, pageSize: 3 }}
+          pager={{ variant }}
+        />,
+      );
+      const keyboard = root.page().keyboard;
+      const onPage = (page: number) =>
+        variant === "compact"
+          ? expect(pagerStatus(root)).toHaveText(`Page ${String(page)} of 3`)
+          : expect(
+              root.locator('.grid-pager-page[aria-current="page"]'),
+            ).toHaveText(String(page));
+
+      const next = pagerButton(root, "Next");
+      await next.focus();
+      await keyboard.press("Enter");
+      await onPage(2);
+      await keyboard.press("Enter");
+      await onPage(3);
+      await expect(next).toHaveAttribute("aria-disabled", "true");
+      await expect(next).toBeFocused();
+      await keyboard.press("Enter");
+      await onPage(3);
+      await expect(next).toBeFocused();
+
+      const previous = pagerButton(root, "Previous");
+      await previous.focus();
+      await keyboard.press("Enter");
+      await onPage(2);
+      await keyboard.press("Space");
+      await onPage(1);
+      await expect(previous).toHaveAttribute("aria-disabled", "true");
+      await expect(previous).toBeFocused();
+      await keyboard.press("Enter");
+      await onPage(1);
+
+      const last = pagerButton(root, "Last");
+      await last.focus();
+      await keyboard.press("Enter");
+      await onPage(3);
+      await expect(last).toHaveAttribute("aria-disabled", "true");
+      await expect(last).toBeFocused();
+
+      const first = pagerButton(root, "First");
+      await first.focus();
+      await keyboard.press("Enter");
+      await onPage(1);
+      await expect(first).toHaveAttribute("aria-disabled", "true");
+      await expect(first).toBeFocused();
+
+      // Still in the tab order while it leads nowhere.
+      await keyboard.press("Tab");
+      await expect(previous).toBeFocused();
+      await keyboard.press("Shift+Tab");
+      await expect(first).toBeFocused();
+    });
+  }
+
   test("numbered: the next button holds its place and the window keeps its slot count from the first page to the last", async ({
     mount,
   }) => {
