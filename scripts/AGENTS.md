@@ -141,8 +141,8 @@ in `lib/release.mjs`.
   with each version's `CHANGELOG.md` section as the notes. `--dry-run`
   prints them instead.
 - `website-dispatch.mjs --event <event> [--versions <json>] [--dry-run]`
-  (its header lists every option) sends the website a `repository_dispatch` with the versions to install:
-  after a snapshot, `{ sha, versions, manifestRef: "docs-meta-next" }`;
+  (its header lists every option) sends the website a `repository_dispatch`
+  with the versions to install: after a snapshot, `{ sha, versions, manifestRef: "docs-meta-next" }`;
   after a stable or docs-only release, `{ sha, versions, manifestSha }`,
   `manifestSha` being the new `docs-meta` commit. `versions` always names
   all five packages at exact versions; without `--versions` it is each
