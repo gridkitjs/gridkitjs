@@ -7,7 +7,7 @@ description: "Palette tokens, dark mode, and the grid's styles."
 
 ## Requirements
 
-The stylesheet is written for Tailwind CSS v4 and needs `tailwindcss` 4.3.3 or later, a peer dependency. It is not plain CSS: it uses Tailwind's `@variant dark` to follow your app's dark mode and `@theme inline` to register the palette as colour utilities (`text-accent`, `bg-surface`), so your app's Tailwind build has to compile it. Tailwind v3 cannot.
+The stylesheet is written for Tailwind CSS v4 and needs `tailwindcss` 4.3.3 or later, a peer dependency. It is not plain CSS: it uses Tailwind's `@variant dark` to follow your app's dark mode and `@theme inline` to register the palette as colour utilities (`text-gridkit-accent`, `bg-gridkit-surface`), so your app's Tailwind build has to compile it. Tailwind v3 cannot.
 
 ## Install
 
@@ -242,6 +242,10 @@ It prints only what the grid has drawn: not the rows on another page, nor those 
   --gridkit-line: oklch(0.9 0.01 145);
 }
 ```
+
+### Colour utilities
+
+Each colour token is also a Tailwind colour named after it with a `gridkit-` prefix, so it works with any colour utility: `bg-gridkit-surface`, `text-gridkit-fg-muted`, `border-gridkit-line`, `ring-gridkit-accent`. The nine colours are `gridkit-surface`, `gridkit-surface-muted`, `gridkit-line`, `gridkit-hover-line`, `gridkit-fg`, `gridkit-fg-muted`, `gridkit-accent`, `gridkit-selected` and `gridkit-selected-strong`. The prefix keeps them from colliding with an `accent` or `surface` colour in your app's own theme. A utility reads the live token on the element it sits on, so it follows light and dark mode, `.gridkit-light` and `.gridkit-dark`, and any override of the token.
 
 ### Corner radius
 
