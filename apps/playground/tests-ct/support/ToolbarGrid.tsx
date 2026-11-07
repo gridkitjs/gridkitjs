@@ -1,5 +1,9 @@
 import { useState } from "react";
-import type { ColumnDefinition, ToolbarEntry } from "@gridkitjs/core";
+import type {
+  ColumnDefinition,
+  GridToolbarOptions,
+  ToolbarEntry,
+} from "@gridkitjs/core";
 import { DataGrid, type DataGridProps } from "@gridkitjs/react";
 
 interface Row {
@@ -34,6 +38,8 @@ export interface ToolbarGridProps extends Omit<
   readonly extraItems?: readonly ToolbarEntry<Row>[];
   /** Lists only `extraItems`, without the fixture's own. */
   readonly onlyExtra?: boolean;
+  /** The toolbar's `itemAttributes`. */
+  readonly itemAttributes?: GridToolbarOptions<Row>["itemAttributes"];
 }
 
 /**
@@ -48,6 +54,7 @@ export interface ToolbarGridProps extends Omit<
 export default function ToolbarGrid({
   extraItems = [],
   onlyExtra = false,
+  itemAttributes,
   ...props
 }: ToolbarGridProps) {
   const [log, setLog] = useState<readonly string[]>([]);
@@ -108,7 +115,10 @@ export default function ToolbarGrid({
         columns={columns}
         dataSource={rows}
         getRowId={(row) => row.id}
-        toolbar={{ items: onlyExtra ? extraItems : [...items, ...extraItems] }}
+        toolbar={{
+          items: onlyExtra ? extraItems : [...items, ...extraItems],
+          itemAttributes,
+        }}
         renderToolbarItem={(id) => (
           <button type="button">
             {id}: {compact ? "compact" : "roomy"}

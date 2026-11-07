@@ -5,6 +5,7 @@ import {
   toolbarEntries,
   type GridMessages,
   type GridOptions,
+  type GridToolbarOptions,
   type ResolvedMenuEntry,
   type ResolvedToolbarItem,
   type ToolbarEntry,
@@ -110,15 +111,21 @@ export default function GridToolbar<Row>(props: GridToolbarProps<Row>) {
   if (entries.length === 0) {
     return null;
   }
-  const label =
-    (typeof props.toolbar === "object" ? props.toolbar.label : undefined) ??
-    props.messages.toolbarLabel;
-  return <Toolbar {...props} entries={entries} label={label} />;
+  const options = typeof props.toolbar === "object" ? props.toolbar : undefined;
+  return (
+    <Toolbar
+      {...props}
+      entries={entries}
+      label={options?.label ?? props.messages.toolbarLabel}
+      itemAttributes={options?.itemAttributes}
+    />
+  );
 }
 
 function Toolbar<Row>({
   entries,
   label,
+  itemAttributes,
   renderItem,
   gridId,
   controller,
@@ -128,6 +135,7 @@ function Toolbar<Row>({
 }: GridToolbarProps<Row> & {
   entries: readonly ToolbarEntry<Row>[];
   label: string;
+  itemAttributes: GridToolbarOptions<Row>["itemAttributes"];
 }) {
   const toolbarRef = useRef<HTMLDivElement>(null);
   /** Set when a menu closes, for the layout effect below. */
@@ -136,6 +144,7 @@ function Toolbar<Row>({
   const items = resolveToolbar(entries, {
     commands: commands.commands,
     contextFor: commands.contextFor,
+    itemAttributes,
   }).map((item) =>
     reportingItem(item, (commandId, itemId) => {
       commands.report(commandId, { area: "toolbar", itemId }, "toolbar");
@@ -178,6 +187,7 @@ function Toolbar<Row>({
         return (
           <button
             key={item.key}
+            {...item.attributes}
             type="button"
             className="toolbar-button"
             data-gridkit-toolbar-item={item.key}
@@ -209,6 +219,7 @@ function Toolbar<Row>({
           <ToolbarMenuButton
             key={item.key}
             itemKey={item.key}
+            attributes={item.attributes}
             label={item.label}
             icon={item.icon}
             entries={item.items}
@@ -220,6 +231,7 @@ function Toolbar<Row>({
           <ToolbarSearch<Row>
             key={item.key}
             itemKey={item.key}
+            attributes={item.attributes}
             controller={controller}
             messages={messages}
             announce={announce}
@@ -247,6 +259,7 @@ function Toolbar<Row>({
         return (
           <div
             key={item.key}
+            {...item.attributes}
             className="toolbar-custom"
             data-gridkit-toolbar-item={item.key}
           >

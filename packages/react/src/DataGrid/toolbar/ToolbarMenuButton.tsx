@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import type { ResolvedMenuEntry } from "@gridkitjs/core";
+import type { ResolvedMenuEntry, ToolbarItemAttributes } from "@gridkitjs/core";
 import type { AttachedMenu } from "@gridkitjs/dom";
 import { ariaAttr } from "../ariaAttr";
 import { classNames } from "../classNames";
@@ -10,6 +10,8 @@ import Overlay, { ANCHOR_GAP, overlayThemeClassName } from "../overlay/Overlay";
 interface ToolbarMenuButtonProps {
   /** Its `data-gridkit-toolbar-item`. */
   itemKey: string;
+  /** The app's attributes for the button, under the button's own. */
+  attributes?: ToolbarItemAttributes | undefined;
   /** The button's label, and its menu's accessible name. */
   label: string;
   icon?: string | undefined;
@@ -37,6 +39,7 @@ interface OpenMenu {
  */
 export default function ToolbarMenuButton({
   itemKey,
+  attributes,
   label,
   icon,
   entries,
@@ -72,6 +75,7 @@ export default function ToolbarMenuButton({
   return (
     <>
       <button
+        {...attributes}
         type="button"
         className={classNames("toolbar-button", more && "toolbar-more")}
         data-gridkit-toolbar-item={itemKey}

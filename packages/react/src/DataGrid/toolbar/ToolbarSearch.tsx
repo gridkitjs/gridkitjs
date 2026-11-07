@@ -3,6 +3,7 @@ import {
   searchTextOf,
   setSearchText,
   type GridMessages,
+  type ToolbarItemAttributes,
 } from "@gridkitjs/core";
 import type { DataGridController } from "../useGridController";
 
@@ -23,6 +24,8 @@ interface Draft {
 interface ToolbarSearchProps<Row> {
   /** Its `data-gridkit-toolbar-item`. */
   itemKey: string;
+  /** The app's attributes for the box, under the box's own. */
+  attributes: ToolbarItemAttributes | undefined;
   controller: DataGridController<Row>;
   messages: GridMessages;
   announce: (text: string) => void;
@@ -40,6 +43,7 @@ interface ToolbarSearchProps<Row> {
  */
 export default function ToolbarSearch<Row>({
   itemKey,
+  attributes,
   controller,
   messages,
   announce,
@@ -84,6 +88,7 @@ export default function ToolbarSearch<Row>({
 
   return (
     <input
+      {...attributes}
       type="search"
       className="toolbar-search"
       data-gridkit-toolbar-item={itemKey}

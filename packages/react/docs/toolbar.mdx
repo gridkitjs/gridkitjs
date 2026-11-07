@@ -139,6 +139,48 @@ A custom entry, `{ type: "custom", id }`, holds whatever `renderToolbarItem` dra
 />
 ```
 
+### Ids and data attributes
+
+`itemAttributes` gives an item's element an `id` and `data-*` attributes of your own, as hooks for end-to-end tests, analytics or styles. It is keyed by the item: a command id, `"search"`, `"export"`, or the id of an inline item, submenu or custom entry. So the built-in items, written as plain strings, can carry them too.
+
+```tsx title="App.tsx"
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
+
+interface Order {
+  id: number;
+  customer: string;
+}
+
+const orders: Order[] = [
+  { id: 1, customer: "Alfreds" },
+  { id: 2, customer: "Bon app'" },
+];
+
+const columns: ColumnDefinition<Order>[] = [
+  { field: "id", header: "Order", type: "number" },
+  { field: "customer", header: "Customer" },
+];
+
+export default function App() {
+  return (
+    <DataGrid
+      columns={columns}
+      dataSource={orders}
+      toolbar={{
+        items: ["search", "spacer", "filter.clearAll", "export"],
+        itemAttributes: {
+          search: { "data-test": "order-search" },
+          "filter.clearAll": { "data-analytics": "clear-filters" },
+          export: { id: "export-button", "data-test": "order-export" },
+        },
+      }}
+    />
+  );
+}
+```
+
+They go on the element the item draws as: the button, the dropdown's button, the search box's input, or the custom entry's wrapper. Only an `id` and `data-*` attributes are allowed, and the toolbar's own attributes (its `data-gridkit-*`, roles, ARIA states and handlers) always win, so they can't change what an item means or does. Separators and spacers take none. An item moved into ["More"](#when-it-is-narrow) leaves its attributes behind until it comes back out, so an `id` is never on the page twice.
+
 ## Export
 
 `"export"` is a dropdown, "Export", of the formats the grid can export now: "Export to CSV" and "Export to JSON", Excel and PDF once a writer for them is registered, and — while rows are selected — exports of the selected rows alone. Choosing one downloads the file. It is not among the defaults, so list it where you want it:
@@ -218,12 +260,12 @@ A dropdown's menu works as the context menu's does — see its [keys](/docs/reac
 
 ## Props
 
-| Prop                | Type                                 | Default | Description                                                                                       |
-| ------------------- | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------------- |
-| `toolbar`           | `boolean \| GridToolbarOptions<Row>` |         | The toolbar. `true` shows the defaults; `{ items, label }` lists the items and names the toolbar. |
-| `renderToolbarItem` | `(id: string) => ReactNode`          |         | Draws a custom entry, `{ type: "custom", id }`, by its id.                                        |
-| `commands`          | `readonly GridCommand<Row>[]`        |         | Your own commands, for the toolbar and menus to list by id. One with a built-in's id replaces it. |
-| `onCommand`         | `(event: GridCommandEvent) => void`  |         | Called after a command or an inline item runs, with `{ commandId, target, source }`.              |
+| Prop                | Type                                 | Default | Description                                                                                                                                                                       |
+| ------------------- | ------------------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `toolbar`           | `boolean \| GridToolbarOptions<Row>` |         | The toolbar. `true` shows the defaults; `{ items, label, itemAttributes }` lists the items, names the toolbar and gives items [attributes of your own](#ids-and-data-attributes). |
+| `renderToolbarItem` | `(id: string) => ReactNode`          |         | Draws a custom entry, `{ type: "custom", id }`, by its id.                                                                                                                        |
+| `commands`          | `readonly GridCommand<Row>[]`        |         | Your own commands, for the toolbar and menus to list by id. One with a built-in's id replaces it.                                                                                 |
+| `onCommand`         | `(event: GridCommandEvent) => void`  |         | Called after a command or an inline item runs, with `{ commandId, target, source }`.                                                                                              |
 
 The toolbar's name, the search box's name and placeholder, the "N rows found" announcement, the "More" button and every built-in button's label are messages — `toolbarLabel`, `searchLabel`, `searchPlaceholder`, `searchResults`, `moreToolbarItems` — see [localization](/docs/react/localization). The theme's classes for it are listed under [toolbar](/docs/theme-tailwind#toolbar).
 

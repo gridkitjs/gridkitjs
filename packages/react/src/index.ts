@@ -62,6 +62,7 @@ export type {
   SelectionMode,
   SelectionState,
   ToolbarEntry,
+  ToolbarItemAttributes,
 } from "@gridkitjs/core";
 
 // Re-exported for the same reason: saving `getState()` as JSON goes through it.

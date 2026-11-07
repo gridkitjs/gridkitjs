@@ -762,3 +762,76 @@ test.describe("DataGrid toolbar overflow", () => {
     ).toBeFocused();
   });
 });
+
+test.describe("DataGrid toolbar item attributes", () => {
+  const itemAttributes = {
+    search: { "data-test": "grid-search" },
+    "sort.clearAll": { "data-test": "clear-sort" },
+    actions: { id: "actions-button" },
+    export: { id: "export-button", "data-test": "export" },
+    status: { id: "status-slot" },
+  };
+
+  test("put an id and data attributes on each entry's element, which keeps its own", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ToolbarGrid extraItems={["export"]} itemAttributes={itemAttributes} />,
+      { width: 1200 },
+    );
+
+    const exportButton = page.locator("#export-button");
+    await expect(exportButton).toHaveRole("button");
+    await expect(exportButton).toHaveAccessibleName("Export");
+    await expect(exportButton).toHaveAttribute("aria-haspopup", "menu");
+    await expect(exportButton).toHaveAttribute("data-test", "export");
+    await expect(exportButton).toHaveAttribute(
+      "data-gridkit-toolbar-item",
+      "export",
+    );
+
+    const search = page.locator('[data-test="grid-search"]');
+    await expect(search).toHaveRole("searchbox");
+    await expect(search).toHaveAttribute("type", "search");
+
+    const clearSort = page.locator('[data-test="clear-sort"]');
+    await expect(clearSort).toHaveRole("button");
+    await expect(clearSort).toHaveAccessibleName("Clear all sorting");
+    await expect(clearSort).toHaveAttribute("aria-disabled", "true");
+
+    await expect(page.locator("#actions-button")).toHaveAttribute(
+      "aria-haspopup",
+      "menu",
+    );
+    await expect(page.locator("#status-slot")).toHaveClass("toolbar-custom");
+    await expect(
+      page.locator("#status-slot").getByRole("button", {
+        name: "status: roomy",
+      }),
+    ).toBeVisible();
+    await expect(toolbarButton(root, "Clear filters")).not.toHaveAttribute(
+      "id",
+    );
+  });
+
+  test("an entry moved into More takes its id with it out of the page", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ToolbarGrid itemAttributes={itemAttributes} />,
+      { width: 520 },
+    );
+
+    await toolbarButton(root, "More").click();
+    await expect(
+      page
+        .getByRole("menu", { name: "More" })
+        .getByRole("menuitem", { name: "Actions" }),
+    ).toBeVisible();
+    await expect(page.locator("#actions-button")).toHaveCount(0);
+  });
+});
