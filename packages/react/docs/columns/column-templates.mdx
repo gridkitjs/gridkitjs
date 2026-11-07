@@ -32,7 +32,7 @@ A template is for markup: a link or a button in a cell, a badge, a style that de
 
 A class in a template is your own code, so it reaches the page the way any class in your app does. Tailwind utilities work as long as your app's Tailwind build scans the file the template is in. Tailwind v4 scans your project's source files automatically; a template in a file it skips, such as one in `node_modules` or a gitignored folder, needs an `@source` line for that path. The theme itself ships no utilities for your templates.
 
-The theme does register its palette as colours, so `text-accent`, `text-fg-muted`, `bg-selected` and the rest follow the grid's light and dark mode with no colours of your own:
+The theme does register its palette as colours, so `text-gridkit-accent`, `text-gridkit-fg-muted`, `bg-gridkit-selected` and the rest follow the grid's light and dark mode with no colours of your own:
 
 ```tsx title="App.tsx"
 import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
@@ -64,8 +64,8 @@ const columns: readonly ColumnDefinition<Deployment>[] = [
       <span
         className={
           row.status === "healthy"
-            ? "text-fg-muted"
-            : "font-semibold text-accent"
+            ? "text-gridkit-fg-muted"
+            : "font-semibold text-gridkit-accent"
         }
       >
         {row.status}

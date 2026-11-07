@@ -26,7 +26,7 @@ They are mutually exclusive: with both set, only `paginated` takes effect, and t
 
 ## Tailwind classes in a template do not apply
 
-A class in a `cellTemplate` or `headerTemplate` is your own code, so your Tailwind build must scan the file it is in. Tailwind v4 scans your project's source automatically, but skips `node_modules` and gitignored folders; a template in one of those needs an `@source` line for its path. The theme also registers its palette as colours (`text-accent`, `text-fg-muted`, `bg-selected` and the rest) that follow the grid's light and dark mode. See [styling a template](/docs/react/column-templates#styling-a-template).
+A class in a `cellTemplate` or `headerTemplate` is your own code, so your Tailwind build must scan the file it is in. Tailwind v4 scans your project's source automatically, but skips `node_modules` and gitignored folders; a template in one of those needs an `@source` line for its path. The theme also registers its palette as colours (`text-gridkit-accent`, `text-gridkit-fg-muted`, `bg-gridkit-selected` and the rest) that follow the grid's light and dark mode. See [styling a template](/docs/react/column-templates#styling-a-template).
 
 GridKit's own packages need no `@source`: the grid renders semantic class names such as `gridkit-data-grid` and `grid-row`, and the theme's stylesheet styles them.
 
