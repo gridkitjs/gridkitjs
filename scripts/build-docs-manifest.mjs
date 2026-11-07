@@ -1,13 +1,18 @@
 /**
- * Builds `docs-manifest.json`: every published package's docs pages,
- * `_meta.json` files, changelog and version, with each file's last commit
- * date, in one file the website fetches in a single request.
+ * Builds `docs-manifest.json`, the index the website reads the docs from:
+ * every published package's version and changelog, every docs page's
+ * frontmatter and every parsed `_meta.json`, with each file's git blob SHA
+ * and last commit date. Page and changelog bodies are left out; the website
+ * fetches each from GitHub by its blob SHA, a response it can cache for
+ * good, which keeps the index small enough for its fetch cache.
  * `publish-docs-manifest.mjs` runs it and commits the result to an orphan
  * manifest branch: `docs-meta-next` on a docs push, `docs-meta` on a
  * release.
  *
- * Usage: node scripts/build-docs-manifest.mjs [output-path]
+ * Usage: node scripts/build-docs-manifest.mjs [--inline-bodies] [output-path]
  * The output path defaults to `docs-manifest.json` at the repo root.
+ * `--inline-bodies` writes every body into the index, for a local preview:
+ * its files may not be pushed, so GitHub may not hold their blobs.
  *
  * Dates come from `git log`, so the checkout needs full history
  * (`fetch-depth: 0`); a file with no commit yet gets `null`.
@@ -15,11 +20,12 @@
 import { execFileSync } from "node:child_process";
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { parseArgs } from "node:util";
 import { parse as parseYaml } from "yaml";
 
 /**
  * @typedef {object} DocsManifest
- * @property {1} schemaVersion Bumped when a field changes meaning or goes
+ * @property {2} schemaVersion Bumped when a field changes meaning or goes
  *   away, so the website can tell a manifest it cannot read.
  * @property {string} generatedAt ISO 8601 time the manifest was built.
  * @property {string} sha The gridkit commit the manifest was built from.
@@ -41,8 +47,11 @@ import { parse as parseYaml } from "yaml";
 
 /**
  * @typedef {object} ChangelogEntry
- * @property {string} body The whole `CHANGELOG.md`.
+ * @property {string} blobSha The git blob SHA of `CHANGELOG.md`, as for a
+ *   page.
  * @property {string | null} lastModified ISO 8601 date of its last commit.
+ * @property {string} [body] The whole `CHANGELOG.md`, only with
+ *   `--inline-bodies`.
  */
 
 /**
@@ -56,9 +65,16 @@ import { parse as parseYaml } from "yaml";
  * @property {string | null} description Frontmatter `description`, if a string.
  * @property {number | null} order Index of `fileName` in its folder's
  *   `_meta.json` `order`, or `null` when unlisted.
- * @property {string} body The MDX with its frontmatter stripped.
- * @property {string} blobSha The git blob SHA, as GitHub's trees API reports it.
+ * @property {string} blobSha The git blob SHA, as GitHub's trees API reports
+ *   it. The blob is the whole file, frontmatter included.
  * @property {string | null} lastModified ISO 8601 date of its last commit.
+ * @property {string} [body] The MDX with its frontmatter stripped, only with
+ *   `--inline-bodies`.
+ */
+
+/**
+ * @typedef {object} BuildOptions
+ * @property {boolean} inlineBodies Write each page's and changelog's `body`.
  */
 
 /**
@@ -191,9 +207,10 @@ async function readMetaJson(repoPath) {
  * @param {string} slug
  * @param {Record<string, MetaJson>} meta The package's `_meta.json` files,
  *   for the page's `order`.
+ * @param {BuildOptions} options
  * @returns {Promise<DocEntry>}
  */
-async function readDocEntry(repoPath, slug, meta) {
+async function readDocEntry(repoPath, slug, meta, { inlineBodies }) {
   const { data, body } = splitFrontmatter(
     await readRepoFile(repoPath),
     repoPath,
@@ -202,7 +219,8 @@ async function readDocEntry(repoPath, slug, meta) {
   const groupPath = path.posix.relative(`packages/${slug}/docs`, dirPath);
   const fileName = path.posix.basename(repoPath, ".mdx");
   const index = meta[dirPath]?.order?.indexOf(fileName) ?? -1;
-  return {
+  /** @type {DocEntry} */
+  const entry = {
     repoPath,
     pkg: slug,
     group: groupPath === "" ? null : groupPath,
@@ -210,34 +228,40 @@ async function readDocEntry(repoPath, slug, meta) {
     title: stringOrNull(data.title),
     description: stringOrNull(data.description),
     order: index === -1 ? null : index,
-    body,
     blobSha: blobSha(repoPath),
     lastModified: lastModified(repoPath),
   };
+  return inlineBodies ? { ...entry, body } : entry;
 }
 
 /**
  * @param {string} slug
+ * @param {BuildOptions} options
  * @returns {Promise<ChangelogEntry | null>}
  */
-async function readChangelog(slug) {
+async function readChangelog(slug, { inlineBodies }) {
   const repoPath = `packages/${slug}/CHANGELOG.md`;
+  let body;
   try {
-    return {
-      body: await readRepoFile(repoPath),
-      lastModified: lastModified(repoPath),
-    };
+    body = await readRepoFile(repoPath);
   } catch (error) {
     if (isMissingFile(error)) return null;
     throw error;
   }
+  /** @type {ChangelogEntry} */
+  const entry = {
+    blobSha: blobSha(repoPath),
+    lastModified: lastModified(repoPath),
+  };
+  return inlineBodies ? { ...entry, body } : entry;
 }
 
 /**
  * @param {string} slug
+ * @param {BuildOptions} options
  * @returns {Promise<{ pages: DocEntry[], meta: Record<string, MetaJson> }>}
  */
-async function readPackageDocs(slug) {
+async function readPackageDocs(slug, options) {
   const files = await listDocsFiles(slug);
 
   /** @type {Record<string, MetaJson>} */
@@ -249,13 +273,16 @@ async function readPackageDocs(slug) {
   const pages = await Promise.all(
     files
       .filter((file) => file.endsWith(".mdx"))
-      .map((repoPath) => readDocEntry(repoPath, slug, meta)),
+      .map((repoPath) => readDocEntry(repoPath, slug, meta, options)),
   );
   return { pages, meta };
 }
 
-/** @returns {Promise<DocsManifest>} */
-async function buildManifest() {
+/**
+ * @param {BuildOptions} options
+ * @returns {Promise<DocsManifest>}
+ */
+async function buildManifest(options) {
   /** @type {DocEntry[]} */
   const docs = [];
   /** @type {Record<string, MetaJson>} */
@@ -264,18 +291,18 @@ async function buildManifest() {
   const packageEntries = {};
 
   for (const { slug, name, version } of await readPublishedPackages()) {
-    const packageDocs = await readPackageDocs(slug);
+    const packageDocs = await readPackageDocs(slug, options);
     docs.push(...packageDocs.pages);
     Object.assign(meta, packageDocs.meta);
     packageEntries[slug] = {
       name,
       version,
-      changelog: await readChangelog(slug),
+      changelog: await readChangelog(slug, options),
     };
   }
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt: new Date().toISOString(),
     sha: git("rev-parse", "HEAD"),
     packages: packageEntries,
@@ -284,10 +311,14 @@ async function buildManifest() {
   };
 }
 
+const { values, positionals } = parseArgs({
+  allowPositionals: true,
+  options: { "inline-bodies": { type: "boolean", default: false } },
+});
 const outFile = path.resolve(
-  process.argv[2] ?? path.join(REPO_ROOT, "docs-manifest.json"),
+  positionals[0] ?? path.join(REPO_ROOT, "docs-manifest.json"),
 );
-const manifest = await buildManifest();
+const manifest = await buildManifest({ inlineBodies: values["inline-bodies"] });
 const json = `${JSON.stringify(manifest)}\n`;
 await writeFile(outFile, json);
 console.log(
