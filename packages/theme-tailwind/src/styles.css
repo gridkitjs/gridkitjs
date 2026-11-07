@@ -828,6 +828,16 @@
     transform: rotate(90deg);
   }
 
+  /*
+   * Set on the rule rather than on `--gridkit-transition-duration`, so a
+   * theme's own duration can't bring the motion back.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .gridkit-data-grid .grid-group-row .group-toggle {
+      transition: none;
+    }
+  }
+
   .gridkit-data-grid .grid-group-row .group-count {
     font-weight: 400;
     color: var(--gridkit-fg-muted);
