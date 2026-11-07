@@ -274,6 +274,16 @@ export interface PaginationState {
   readonly pageSize: number;
 }
 
+/**
+ * What a grouped grid's `pageSize` counts. `"group"` counts top-level groups,
+ * each with everything beneath it, so a page never splits a group. `"row"`
+ * counts data rows and collapsed group headers, so every page holds
+ * `pageSize` of them however large the groups are; a page continuing a group
+ * starts with that group's headers again. An ungrouped grid pages by data
+ * rows under either.
+ */
+export type PaginationUnit = "group" | "row";
+
 /** Reports a user page/page-size change whole — the one to persist from, mirroring ColumnSortEvent. */
 export interface PaginationChangeEvent {
   readonly pagination: PaginationState;
@@ -1016,6 +1026,8 @@ export type GridViewState<Row> = Omit<
 export interface GridViewOptions<Row> {
   /** Whether `pageRows` is one page of `displayRows` rather than all of it. Defaults to `false`. */
   readonly paginated?: boolean | undefined;
+  /** What a page's `pageSize` counts once grouped. Defaults to `"group"`. */
+  readonly paginationUnit?: PaginationUnit | undefined;
   readonly aggregates?: AggregateState<Row> | undefined;
   /** Defaults to `"inline"`. */
   readonly groupAggregateDisplay?: GroupAggregateDisplay | undefined;

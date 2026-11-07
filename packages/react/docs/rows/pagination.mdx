@@ -16,12 +16,13 @@ Off by default. `defaultPagination` seeds the uncontrolled starting page and pag
 | Prop                 | Type                                     | Default                          | Description                                                                                                                                             |
 | -------------------- | ---------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `paginated`          | `boolean`                                | `false`                          | Whether the grid's rows are split into pages.                                                                                                           |
+| `paginationUnit`     | `PaginationUnit`                         | `"group"`                        | What `pageSize` counts once the rows are grouped: top-level groups or data rows. See [pages of groups or of rows](#pages-of-groups-or-of-rows).         |
 | `defaultPagination`  | `PaginationState`                        | `{ pageIndex: 0, pageSize: 25 }` | The page and page size to start on. Uncontrolled.                                                                                                       |
 | `pagination`         | `PaginationState`                        |                                  | The page and page size, controlled — changed only through `onPaginationChange`, and never reset by the grid. See [controlled state](/docs/react/state). |
 | `pager`              | `PagerConfig`                            |                                  | Presentation options for the built-in pager.                                                                                                            |
 | `onPaginationChange` | `(event: PaginationChangeEvent) => void` |                                  | Once when the user changes the page or the page size.                                                                                                   |
 
-`PaginationState` is `{ pageIndex: number; pageSize: number }` (`pageIndex` 0-based). `PaginationChangeEvent` is `{ pagination: PaginationState; pageCount: number }` — the state to persist, plus the page count it produces, so a consumer doesn't have to recompute it. `PagerConfig` is `{ sizeOptions?: readonly number[]; variant?: "compact" | "numbered"; boundaryCount?: number; siblingCount?: number; template?: (context: PagerTemplateContext) => ReactNode }`.
+`PaginationState` is `{ pageIndex: number; pageSize: number }` (`pageIndex` 0-based). `PaginationUnit` is `"group" | "row"`. `PaginationChangeEvent` is `{ pagination: PaginationState; pageCount: number }` — the state to persist, plus the page count it produces, so a consumer doesn't have to recompute it. `PagerConfig` is `{ sizeOptions?: readonly number[]; variant?: "compact" | "numbered"; boundaryCount?: number; siblingCount?: number; template?: (context: PagerTemplateContext) => ReactNode }`.
 
 ### `pager` fields
 
@@ -129,9 +130,12 @@ export default function App() {
 
 Return `null` from `pager.template` to hide the built-in pager while keeping row windowing and the imperative API active. `variant` is ignored when `template` is given.
 
-## A page's unit is a group, not a leaf row
+## Pages of groups or of rows
 
-When grouping and pagination are both on, `pageSize` counts top-level groups, not leaf rows — a group is never split across a page boundary. A group header on one page and its remaining rows on the next would read as broken, so a group always stays whole.
+When row grouping and pagination are both on, `paginationUnit` sets what `pageSize` counts:
+
+- `"group"`, the default, counts top-level groups. A page holds `pageSize` whole groups, each with everything beneath it: nested group headers, data rows and summary rows. A group is never split across two pages, so a page is as long as its groups are, and a grid of a few large groups draws a few very long pages.
+- `"row"` counts data rows. A page holds `pageSize` of them however large the groups are, so it draws as quickly as a page of an ungrouped grid.
 
 ```tsx title="App.tsx"
 import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
@@ -169,15 +173,23 @@ export default function App() {
       groupableColumns
       defaultGroupBy={[{ columnId: "region" }]}
       paginated
-      defaultPagination={{ pageIndex: 0, pageSize: 2 }}
+      paginationUnit="row"
+      defaultPagination={{ pageIndex: 0, pageSize: 10 }}
     />
   );
 }
 ```
 
-With `pageSize: 2`, each page holds two whole top-level regions — however many rows each contains — never half of one. Without `groupBy` the units are just rows, so `paginated` alone pages by row count.
+Each region has 12 sales. With `pageSize: 10`, page 1 holds Central's header and its first ten rows; page 2 opens with Central's header again, then its last two rows, East's header and East's first eight rows. Under `"group"` the same `pageSize` would put all five regions, all 60 rows, on one page.
 
-Nested group levels don't add extra units of their own — a top-level group's whole subtree (nested headers and their rows alike) counts as the one unit its own top-level header started.
+Under `"row"`:
+
+- A page that continues a group starts with that group's header again, outermost group first when the groups are nested. The repeated header is the same group row as on the page before: it shows the whole group's count and aggregates, and collapsing it on either page collapses the group.
+- A collapsed group's header counts as one row, standing in for the rows it hides.
+- A group's summary row, under `groupAggregateDisplay: "row"`, is on the page holding the group's last row.
+- A repeated header keeps its `aria-rowindex`, its place in the whole set, so the indexes on a page still rise from top to bottom.
+
+Without `groupBy`, both units page by data rows. Changing `paginationUnit` sends an uncontrolled pagination back to the first page.
 
 ## `rowIndex` vs. the row's dataset position
 
@@ -238,7 +250,7 @@ Arrow-key navigation and <Kbd>Shift</Kbd>+click range selection both operate on 
 
 ## Filtering, sorting, or regrouping resets to page 1
 
-A user looking at page 7 of a result that filtering, sorting, or regrouping just shrank to 2 pages is not silently stranded on an empty page — under uncontrolled pagination, any of the three resets `pageIndex` back to `0`. That reset fires no `onPaginationChange` of its own. A controlled `pagination` is yours to reset; until you do, the grid shows the last page that exists. See [controlled state](/docs/react/state#the-page-goes-back-to-the-first-page).
+A user looking at page 7 of a result that filtering, sorting, or regrouping just shrank to 2 pages is not silently stranded on an empty page — under uncontrolled pagination, any of the three resets `pageIndex` back to `0`, as does a change of `paginationUnit`. That reset fires no `onPaginationChange` of its own. A controlled `pagination` is yours to reset; until you do, the grid shows the last page that exists. See [controlled state](/docs/react/state#the-page-goes-back-to-the-first-page).
 
 ## Keyboard
 
@@ -350,7 +362,7 @@ The pagination methods on `DataGridApi`:
 
 ## See also
 
-- [Row grouping](/docs/react/row-grouping) for `groupBy` and the group-boundary rule pagination respects.
+- [Row grouping](/docs/react/row-grouping) for `groupBy` and collapsing groups, which `paginationUnit` pages around.
 - [Column sorting](/docs/react/column-sorting) and [column filtering](/docs/react/column-filtering) for the transforms that run ahead of pagination in the pipeline.
 - [Accessibility](/docs/react/accessibility) for the WAI-ARIA grid pattern `aria-rowindex`/`aria-rowcount` follow.
 - [Imperative handle](/docs/react/imperative-handle) for the full `DataGridApi` surface.

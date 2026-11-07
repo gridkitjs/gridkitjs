@@ -36,6 +36,7 @@ import {
   type GroupExpansionState,
   type HoverableConfig,
   type PaginationState,
+  type PaginationUnit,
   type ResizeMode,
   type ResolvedRow,
   type CellSelectionState,
@@ -324,7 +325,13 @@ export interface DataGridApi<Row>
  * Defined in `@gridkitjs/core` with the rest of `GridOptions`, and exported
  * from here too so a React consumer needs one import.
  */
-export type { Borders, GroupByBarVisibility, HoverableConfig, ResizeMode };
+export type {
+  Borders,
+  GroupByBarVisibility,
+  HoverableConfig,
+  PaginationUnit,
+  ResizeMode,
+};
 
 /**
  * A stable empty fallback for an omitted `aggregates` prop, for the parts of

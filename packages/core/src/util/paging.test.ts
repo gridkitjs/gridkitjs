@@ -8,7 +8,7 @@ import type {
   ResolvedRow,
 } from "../types";
 import { withGroupAggregates } from "./aggregation";
-import { groupRows } from "./grouping";
+import { groupRowId, groupRows } from "./grouping";
 import { paginateRows } from "./paging";
 
 interface SampleRow {
@@ -260,5 +260,204 @@ describe("paginateRows", () => {
       const result = paginateRows([], { pageIndex: 0, pageSize: 10 });
       expect(result).toEqual({ rows: [], pageCount: 0, pageIndex: 0 });
     });
+  });
+});
+
+describe('paginateRows with unit "row"', () => {
+  interface OrderRow {
+    Id: number;
+    Region: string;
+    Status: string;
+  }
+
+  function orderColumn(field: string): ResolvedColumn<OrderRow, unknown> {
+    return {
+      column: { field },
+      id: field,
+      width: 100,
+      sized: false,
+      label: field,
+      resizable: false,
+      reorderable: false,
+      groupByDraggable: false,
+      alignment: "left",
+    };
+  }
+
+  const columns = [orderColumn("Region"), orderColumn("Status")];
+
+  // East: Closed (3), Open (1, 2). West: Open (4, 5, 6).
+  const rows: readonly ResolvedRow<OrderRow>[] = [
+    { Id: 1, Region: "East", Status: "Open" },
+    { Id: 2, Region: "East", Status: "Open" },
+    { Id: 3, Region: "East", Status: "Closed" },
+    { Id: 4, Region: "West", Status: "Open" },
+    { Id: 5, Region: "West", Status: "Open" },
+    { Id: 6, Region: "West", Status: "Open" },
+  ].map((row, index) => ({
+    rowId: String(row.Id),
+    row,
+    rowIndex: index,
+    datasetIndex: index,
+  }));
+
+  const byRegion: GroupByState = [{ columnId: "Region" }];
+  const byRegionAndStatus: GroupByState = [
+    { columnId: "Region" },
+    { columnId: "Status" },
+  ];
+
+  /** Each row as a label: its id, its group's path, or `total` for a summary row. */
+  function labels(page: readonly DisplayRow<OrderRow>[]): readonly string[] {
+    return page.map((entry) => {
+      if (!("kind" in entry)) {
+        return String(entry.row.Id);
+      }
+      return entry.kind === "group" ? entry.path.join("/") : "total";
+    });
+  }
+
+  function page(
+    displayRows: readonly DisplayRow<OrderRow>[],
+    pageIndex: number,
+    pageSize: number,
+  ) {
+    return paginateRows(displayRows, { pageIndex, pageSize }, { unit: "row" });
+  }
+
+  test("counts data rows, repeating the header of a group continued from the page before", () => {
+    const displayRows = groupRows(rows, byRegion, [], columns);
+
+    expect(page(displayRows, 0, 4).pageCount).toBe(2);
+    expect(labels(page(displayRows, 0, 4).rows)).toEqual([
+      "East",
+      "1",
+      "2",
+      "3",
+      "West",
+      "4",
+    ]);
+    expect(labels(page(displayRows, 1, 4).rows)).toEqual(["West", "5", "6"]);
+  });
+
+  test("a repeated header is the same group row, renumbered to the top of its page", () => {
+    const displayRows = groupRows(rows, byRegion, [], columns);
+    const [first] = page(displayRows, 1, 4).rows;
+    const original = displayRows.find(
+      (entry) => isGroup(entry) && entry.value === "West",
+    );
+
+    expect(first).toEqual({ ...original, rowIndex: 0 });
+    expect(
+      page(displayRows, 1, 4).rows.map((entry) => entry.datasetIndex),
+    ).toEqual([4, 6, 7]);
+  });
+
+  test("repeats every enclosing header of nested groups, outermost first", () => {
+    const displayRows = groupRows(rows, byRegionAndStatus, [], columns);
+
+    expect(page(displayRows, 0, 2).pageCount).toBe(3);
+    expect(labels(page(displayRows, 0, 2).rows)).toEqual([
+      "East",
+      "East/Closed",
+      "3",
+      "East/Open",
+      "1",
+    ]);
+    expect(labels(page(displayRows, 1, 2).rows)).toEqual([
+      "East",
+      "East/Open",
+      "2",
+      "West",
+      "West/Open",
+      "4",
+    ]);
+    expect(labels(page(displayRows, 2, 2).rows)).toEqual([
+      "West",
+      "West/Open",
+      "5",
+      "6",
+    ]);
+  });
+
+  test("a collapsed group takes one place on a page, under its own enclosing headers", () => {
+    const displayRows = groupRows(
+      rows,
+      byRegionAndStatus,
+      [groupRowId(["East", "Closed"]), groupRowId(["West"])],
+      columns,
+    );
+
+    expect(page(displayRows, 0, 2).pageCount).toBe(2);
+    expect(labels(page(displayRows, 0, 2).rows)).toEqual([
+      "East",
+      "East/Closed",
+      "East/Open",
+      "1",
+    ]);
+    expect(labels(page(displayRows, 1, 2).rows)).toEqual([
+      "East",
+      "East/Open",
+      "2",
+      "West",
+    ]);
+  });
+
+  test("puts a group's summary row on the page holding its last row", () => {
+    const specs: AggregateState<OrderRow> = [{ columnId: "Id", fn: "count" }];
+    const displayRows = withGroupAggregates(
+      groupRows(rows, byRegionAndStatus, [], columns),
+      rows,
+      byRegionAndStatus,
+      specs,
+      columns,
+      "row",
+    );
+
+    expect(labels(page(displayRows, 0, 3).rows)).toEqual([
+      "East",
+      "East/Closed",
+      "3",
+      "total",
+      "East/Open",
+      "1",
+      "2",
+      "total",
+      "total",
+    ]);
+    expect(labels(page(displayRows, 1, 3).rows)).toEqual([
+      "West",
+      "West/Open",
+      "4",
+      "5",
+      "6",
+      "total",
+      "total",
+    ]);
+    // East/Open and East continue onto the next page, so their totals wait.
+    expect(labels(page(displayRows, 0, 2).rows)).toEqual([
+      "East",
+      "East/Closed",
+      "3",
+      "total",
+      "East/Open",
+      "1",
+    ]);
+  });
+
+  test("clamps a stale pageIndex to the last page, headers included", () => {
+    const displayRows = groupRows(rows, byRegion, [], columns);
+    const result = page(displayRows, 99, 4);
+
+    expect(result.pageIndex).toBe(1);
+    expect(labels(result.rows)).toEqual(["West", "5", "6"]);
+  });
+
+  test("pages an ungrouped grid exactly as the group unit does", () => {
+    for (const pageIndex of [0, 1, 2, 9]) {
+      expect(page(rows, pageIndex, 4)).toEqual(
+        paginateRows(rows, { pageIndex, pageSize: 4 }),
+      );
+    }
   });
 });

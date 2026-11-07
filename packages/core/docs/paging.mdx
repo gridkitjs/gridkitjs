@@ -11,10 +11,10 @@ A `PaginationState` is `{ pageIndex, pageSize }`, with `pageIndex` 0-based.
 
 | Function                                             | Type                               | Description                                                                                                                                                                                                                    |
 | ---------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `paginateRows(rows, pagination)`                     | `PaginatedRows<Row>`               | The page `pagination` names, from rows already filtered, sorted, grouped and aggregated. A `pageIndex` out of range is clamped, and a `pageSize` below `1` is taken as `1`.                                                    |
+| `paginateRows(rows, pagination, options?)`           | `PaginatedRows<Row>`               | The page `pagination` names, from rows already filtered, sorted, grouped and aggregated. A `pageIndex` out of range is clamped, and a `pageSize` below `1` is taken as `1`. `options` is `{ unit? }`, see below.               |
 | `paginationWindow(currentPage, pageCount, options?)` | `readonly PaginationWindowEntry[]` | The 1-based page numbers a numbered pager shows for `currentPage` of `pageCount`, always the same number of entries once there are more pages than fit. `options` is `{ boundaryCount?, siblingCount? }`, both `1` by default. |
 
-A page counts **units**, not rows: a top-level group with everything under it is one unit, as is a bare data row outside any group, so a group never splits across pages and a page of 25 holds 25 top-level groups when the grid is grouped. A group's summary row stays with its group.
+A page counts **units**: a top-level group with everything under it by default, or a data row, as [what a page counts](#what-a-page-counts) sets out.
 
 `PaginatedRows<Row>` is what `paginateRows` returns:
 
@@ -44,9 +44,33 @@ paginationWindow(10, 20); // [1, "ellipsis", 9, 10, 11, "ellipsis", 20]
 paginationWindow(20, 20); // [1, "ellipsis", 16, 17, 18, 19, 20]
 ```
 
+## What a page counts
+
+`pageSize` counts **units**, and `options.unit`, a `PaginationUnit`, says what a unit is once the rows are grouped. An ungrouped grid pages by data rows under either.
+
+| Unit                | A unit is                                       | A page of 25 holds                                                                      |
+| ------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `"group"` (default) | A top-level group with everything under it.     | 25 top-level groups, however many rows they have. A group never splits across pages.    |
+| `"row"`             | A data row, or the header of a collapsed group. | 25 data rows and collapsed groups, plus the headers and summary rows that go with them. |
+
+Under `"group"`, a group's summary row stays with its group. Under `"row"`, a page that continues a group starts with that group's header again, and every enclosing group's header above it, so the rows on it are never shown without their group. A repeated header is the same row as on the page before: the same `groupId`, `datasetIndex` and aggregates, so expanding or collapsing it acts on the one group. Expanded headers and summary rows take no place of their own: a header goes with its group's first row, and a summary row with its group's last, on whichever page that is. A collapsed group takes one place, so it is never left off every page.
+
+```ts
+import { paginateRows } from "@gridkitjs/core";
+
+// 100,000 rows in 4 groups: a page holds 25 data rows and their groups' headers.
+const page = paginateRows(
+  displayRows,
+  { pageIndex: 0, pageSize: 25 },
+  { unit: "row" },
+);
+```
+
+The view pipeline and the controller take the unit from the `paginationUnit` option, so the page shown, the page count and a clamped `pageIndex` always agree.
+
 ## In the React grid
 
-`paginated` and `pager` turn pagination on — see [pagination](/docs/react/pagination).
+`paginated` and `pager` turn pagination on, and `paginationUnit` sets what a page counts: see [pagination](/docs/react/pagination).
 
 ## See also
 

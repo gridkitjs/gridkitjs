@@ -33,7 +33,7 @@ With `groupBy` active, every group header shows its own subtotal next to its lea
 
 Every nesting level gets its own summary row under `"row"`, the same way every level already gets its own `aggregates` — a nested `Status` group inside `Region` shows its own row right after its own last entry, and `Region`'s own summary row follows every nested one beneath it.
 
-A group's summary row is presentational: it takes up a real row (`aria-rowindex` counts it, matching a header or data row), but it is never a keyboard tab stop — <Kbd>ArrowUp</Kbd>/<Kbd>ArrowDown</Kbd>/<Kbd>PageUp</Kbd>/<Kbd>PageDown</Kbd> step over it to the nearest row that isn't a summary row. It also never splits from its own group across a page boundary: a page's unit is still the whole group, summary row included.
+A group's summary row is presentational: it takes up a real row (`aria-rowindex` counts it, matching a header or data row), but it is never a keyboard tab stop — <Kbd>ArrowUp</Kbd>/<Kbd>ArrowDown</Kbd>/<Kbd>PageUp</Kbd>/<Kbd>PageDown</Kbd> step over it to the nearest row that isn't a summary row. On a paginated grid it is on the same page as its group's last row, whether pages hold whole groups or rows (see [pages of groups or of rows](/docs/react/pagination#pages-of-groups-or-of-rows)).
 
 ## The six built-in reducers
 

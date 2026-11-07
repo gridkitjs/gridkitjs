@@ -24,6 +24,7 @@ import type {
   GroupExpansionState,
   PaginationChangeEvent,
   PaginationState,
+  PaginationUnit,
   ResizeMode,
   ResolvedRow,
   RowPointerEvent,
@@ -326,11 +327,23 @@ export interface GridOptions<Row> {
    */
   filterMenu?: GridFilterMenuOptions | undefined;
   /**
-   * Whether the grid's rows are split into pages. A page's unit is a
-   * top-level group or a bare data row, never a leaf row — a group is never
-   * split across a page boundary. Off by default, matching `sortableColumns`.
+   * Whether the grid's rows are split into pages. Off by default, matching
+   * `sortableColumns`. What a page's `pageSize` counts once the rows are
+   * grouped is `paginationUnit`'s choice.
    */
   paginated?: boolean | undefined;
+  /**
+   * What `pageSize` counts in a grouped grid. `"group"` (the default) counts
+   * top-level groups, each with everything beneath it, so a page never
+   * splits a group but can grow as large as its groups. `"row"` counts data
+   * rows, plus collapsed group headers, which stand in for their hidden
+   * rows: every page holds `pageSize` of them, and a page continuing a group
+   * starts with that group's headers again, with a group's summary row on
+   * the page holding its last row. An ungrouped grid pages by data rows
+   * under either. Selection, export and aggregates behave the same under
+   * either unit.
+   */
+  paginationUnit?: PaginationUnit | undefined;
   /**
    * The page and page size to start on. Uncontrolled. Defaults to
    * `{ pageIndex: 0, pageSize: 25 }` when `paginated` is on and this is
@@ -343,9 +356,9 @@ export interface GridOptions<Row> {
    * them itself, starting from `defaultPagination`.
    *
    * The grid sends an uncontrolled pagination back to the first page when
-   * the filter, sort or grouping changes; a controlled one is the parent's
-   * to reset alongside that change. Until it does, the grid shows the last
-   * page that exists rather than an empty one.
+   * the filter, sort, grouping or `paginationUnit` changes; a controlled
+   * one is the parent's to reset alongside that change. Until it does, the
+   * grid shows the last page that exists rather than an empty one.
    */
   pagination?: PaginationState | undefined;
   /** Called once when the user changes the page or the page size. */
