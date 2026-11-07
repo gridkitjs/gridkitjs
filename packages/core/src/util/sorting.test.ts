@@ -46,6 +46,41 @@ describe("compareValues", () => {
   test("treats equal values as equal", () => {
     expect(compareValues("a", "a")).toBe(0);
   });
+
+  describe("with no type", () => {
+    test("compares two numbers numerically", () => {
+      expect(compareValues(9, 10)).toBeLessThan(0);
+      expect(compareValues(100, 10)).toBeGreaterThan(0);
+      expect(compareValues(-5, 2)).toBeLessThan(0);
+      expect(compareValues(1.5, 1.25)).toBeGreaterThan(0);
+      expect(compareValues(7, 7)).toBe(0);
+      expect([1000, 9, 100, 10, 1].sort(compareValues)).toEqual([
+        1, 9, 10, 100, 1000,
+      ]);
+    });
+
+    test("compares two Dates chronologically", () => {
+      expect(
+        compareValues(new Date(2024, 0, 2), new Date(2024, 0, 4)),
+      ).toBeLessThan(0);
+    });
+
+    test("compares any other pair as text", () => {
+      expect(compareValues("10", "9")).toBeLessThan(0);
+      expect(compareValues(10, "9")).toBeLessThan(0);
+      expect(compareValues(Number.NaN, 1)).toBeGreaterThan(0);
+      expect(compareValues(new Date(Number.NaN), new Date(0))).toBeLessThan(0);
+    });
+
+    test("sorts empties after numbers on either side", () => {
+      expect(compareValues(null, 1)).toBeGreaterThan(0);
+      expect(compareValues(1, undefined)).toBeLessThan(0);
+    });
+
+    test("leaves an explicit string type comparing as text", () => {
+      expect(compareValues(9, 10, "string")).toBeGreaterThan(0);
+    });
+  });
 });
 
 describe("sortDirectionFor", () => {
@@ -219,6 +254,23 @@ function idsOf(sorted: readonly ResolvedRow<SampleRow>[]): number[] {
 describe("sortRows", () => {
   test("returns rows unchanged for an empty sort", () => {
     expect(sortRows(rows, [], columns)).toBe(rows);
+  });
+
+  test("sorts an untyped column of numbers numerically", () => {
+    const untypedRows = [998, 2, 1000, 97, 999, 1, 10].map((Id, index) =>
+      resolvedRow(index, {
+        Id,
+        Name: "",
+        Score: null,
+        Application: { Name: "" },
+      }),
+    );
+    const sorted = sortRows(
+      untypedRows,
+      [{ columnId: "Id", direction: "desc" }],
+      [resolvedColumn("Id")],
+    );
+    expect(idsOf(sorted)).toEqual([1000, 999, 998, 97, 10, 2, 1]);
   });
 
   test("returns rows unchanged for a sort naming only a removed column", () => {
