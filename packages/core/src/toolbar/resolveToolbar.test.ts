@@ -10,7 +10,7 @@ import type { ExportWriter } from "../export/writer";
 import { defaultMessages } from "../messages";
 import type { ColumnDefinition } from "../types";
 import { defaultToolbar, toolbarEntries } from "./options";
-import { resolveToolbar } from "./resolveToolbar";
+import { resolveToolbar, type ToolbarResolveOptions } from "./resolveToolbar";
 import type {
   GridToolbarTarget,
   ResolvedToolbarItem,
@@ -54,10 +54,18 @@ const host = {
 
 function resolve(
   entries: readonly ToolbarEntry<Order>[],
-  { controller = create(), commands = resolveCommands<Order>(undefined) } = {},
+  {
+    controller = create(),
+    commands = resolveCommands<Order>(undefined),
+    itemAttributes,
+  }: Pick<ToolbarResolveOptions<Order>, "itemAttributes"> & {
+    controller?: ReturnType<typeof create>;
+    commands?: ToolbarResolveOptions<Order>["commands"];
+  } = {},
 ) {
   return resolveToolbar(entries, {
     commands,
+    itemAttributes,
     contextFor: (target) =>
       createCommandContext({
         controller,
@@ -498,6 +506,64 @@ describe("resolveToolbar: the export entry", () => {
 
   test("is not among the defaults", () => {
     expect(defaultToolbar).not.toContain("export");
+  });
+});
+
+describe("resolveToolbar: item attributes", () => {
+  test("a command's button carries the attributes keyed by its id", () => {
+    const [clear] = resolve(["sort.clearAll"], {
+      itemAttributes: { "sort.clearAll": { id: "clear-sort" } },
+    });
+
+    expect(clear).toMatchObject({
+      type: "button",
+      key: "sort.clearAll",
+      attributes: { id: "clear-sort" },
+    });
+  });
+
+  test("an inline item's button carries them by the item's id", () => {
+    const [go] = resolve([item("app.go")], {
+      itemAttributes: { "app.go": { "data-test": "go" } },
+    });
+
+    expect(go).toMatchObject({ attributes: { "data-test": "go" } });
+  });
+
+  test("the search box, export dropdown and custom entries carry them by key", () => {
+    const attributes = {
+      search: { "data-test": "search" },
+      export: { id: "export-button", "data-test": "export" },
+      "app.status": { id: "status" },
+    };
+
+    expect(
+      resolve(["search", "export", { type: "custom", id: "app.status" }], {
+        itemAttributes: attributes,
+      }).map((entry) => [
+        entry.type,
+        "attributes" in entry && entry.attributes,
+      ]),
+    ).toEqual([
+      ["search", attributes.search],
+      ["menu", attributes.export],
+      ["custom", attributes["app.status"]],
+    ]);
+  });
+
+  test("an entry no key names carries none, and a key naming no entry is ignored", () => {
+    const items = resolve(["search", "spacer", "filter.clearAll"], {
+      itemAttributes: {
+        "filter.clearAll": { id: "clear-filters" },
+        "group.expandAll": { id: "expand" },
+        "spacer-1": { id: "gap" },
+      },
+    });
+
+    expect(items[0]).toEqual({ type: "search", key: "search" });
+    expect(items[1]).toEqual({ type: "spacer", key: "spacer-1" });
+    expect(items[2]).toMatchObject({ attributes: { id: "clear-filters" } });
+    expect(items).toHaveLength(3);
   });
 });
 

@@ -159,6 +159,7 @@ export type {
   ResolvedToolbarSpacer,
   ToolbarCustomEntry,
   ToolbarEntry,
+  ToolbarItemAttributes,
 } from "./toolbar/types";
 export type { GridToolbarOptions } from "./toolbar/options";
 export { defaultToolbar, toolbarEntries } from "./toolbar/options";

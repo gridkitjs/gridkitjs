@@ -1,12 +1,22 @@
 import type { BuiltInCommandId } from "../commands/builtInCommands";
-import type { ToolbarEntry } from "./types";
+import type { ToolbarEntry, ToolbarItemAttributes } from "./types";
 
-/** A grid's toolbar: what it lists, and what a screen reader calls it. */
+/**
+ * A grid's toolbar: what it lists, what a screen reader calls it, and the
+ * attributes of the app's own its entries' elements carry.
+ */
 export interface GridToolbarOptions<Row> {
   /** The toolbar's entries, in order. Left out, the defaults. */
   readonly items?: readonly ToolbarEntry<Row>[] | undefined;
   /** The toolbar's accessible name. Left out, `messages.toolbarLabel`. */
   readonly label?: string | undefined;
+  /**
+   * Attributes for entries' elements, by the entry's key: a command's,
+   * inline item's, dropdown's or custom entry's id, `"search"` or
+   * `"export"`. A key naming no entry, or a separator or spacer, is ignored.
+   */
+  readonly itemAttributes?:
+    Readonly<Record<string, ToolbarItemAttributes>> | undefined;
 }
 
 /**

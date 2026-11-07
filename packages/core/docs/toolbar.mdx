@@ -57,16 +57,40 @@ For a different list — a single CSV button, or exports beside other actions �
 
 A grid's `toolbar` option — `boolean | GridToolbarOptions<Row>` — says whether it has a toolbar and what it lists. `true` lists `defaultToolbar`; an object lists its `items` (the defaults when it leaves them out) and may name the toolbar for a screen reader with `label`, which is otherwise `messages.toolbarLabel`.
 
-| Field   | Type                           | Description                                      |
-| ------- | ------------------------------ | ------------------------------------------------ |
-| `items` | `readonly ToolbarEntry<Row>[]` | The entries, in order. Defaults to the defaults. |
-| `label` | `string`                       | The toolbar's accessible name.                   |
+| Field            | Type                                    | Description                                                                                   |
+| ---------------- | --------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `items`          | `readonly ToolbarEntry<Row>[]`          | The entries, in order. Defaults to the defaults.                                              |
+| `label`          | `string`                                | The toolbar's accessible name.                                                                |
+| `itemAttributes` | `Record<string, ToolbarItemAttributes>` | An `id` and `data-*` attributes for entries' elements, by key. See [below](#item-attributes). |
 
 `defaultToolbar` is the search box, a spacer, `filter.clearAll` and `column.choose`: search on the left, "Clear filters" and "Choose columns" at the far end. Exporting is not among the defaults; list `"export"` to add it. `toolbarEntries(toolbar)` reads the option — no entries while it is off, else the defaults or its `items` — for `resolveToolbar` to resolve.
 
+### Item attributes
+
+`itemAttributes` gives an entry's element attributes of your own, as hooks for tests, analytics or styles. It is keyed by the entry's `key` (see [resolving](#resolving)), so entries written as strings carry them too: a command id, `"search"`, `"export"`, or the id of an inline item, submenu or custom entry. A `ToolbarItemAttributes` holds an `id` and `data-*` attributes, nothing else, so it can't change what an entry means or does. A key naming no entry, or a separator's or spacer's, is ignored.
+
+```ts
+import type { GridToolbarOptions } from "@gridkitjs/core";
+
+interface Order {
+  id: number;
+  customer: string;
+}
+
+export const toolbar: GridToolbarOptions<Order> = {
+  items: ["search", "spacer", "export"],
+  itemAttributes: {
+    search: { "data-test": "order-search" },
+    export: { id: "export-button", "data-test": "order-export" },
+  },
+};
+```
+
+`resolveToolbar` hands them on as each resolved item's `attributes`. A renderer puts them on the element it draws for the entry, with its own attributes taking precedence.
+
 ## Resolving
 
-`resolveToolbar(entries, { commands, contextFor })` — a `ToolbarResolveOptions` — resolves a toolbar against the grid and returns the `ResolvedToolbarItem[]` to draw, by `resolveMenu`'s rules: hidden commands and items are left out, and so is an id naming no command, reported once per command map with a `console.error`; labels become strings and flags booleans; `"export"` becomes the [export dropdown](#the-export-dropdown); a dropdown whose items all hide is left out; and separators never lead, trail, double up — or sit beside a spacer, which already parts what is on either side of it.
+`resolveToolbar(entries, { commands, contextFor, itemAttributes })` — a `ToolbarResolveOptions` — resolves a toolbar against the grid and returns the `ResolvedToolbarItem[]` to draw, by `resolveMenu`'s rules: hidden commands and items are left out, and so is an id naming no command, reported once per command map with a `console.error`; labels become strings and flags booleans; `"export"` becomes the [export dropdown](#the-export-dropdown); a dropdown whose items all hide is left out; and separators never lead, trail, double up — or sit beside a spacer, which already parts what is on either side of it. A button, dropdown, search box or custom entry whose key `itemAttributes` names carries those [attributes](#item-attributes) as `attributes`.
 
 Each item resolves and runs in a context of its own, from `contextFor(target)`: its target is a `GridToolbarTarget`, `{ area: "toolbar", itemId }`, naming the item — or, for an item in a dropdown, the dropdown — so a command opening a [panel](/docs/core/commands#panels), as `column.choose` does, can anchor it there.
 
@@ -81,8 +105,11 @@ import {
 const commands = resolveCommands(options.commands);
 
 function draw() {
-  const items = resolveToolbar(toolbarEntries(options.toolbar), {
+  const toolbar = options.toolbar;
+  const items = resolveToolbar(toolbarEntries(toolbar), {
     commands,
+    itemAttributes:
+      typeof toolbar === "object" ? toolbar.itemAttributes : undefined,
     contextFor: (target) =>
       createCommandContext({ controller, target, messages, host }),
   });
@@ -91,14 +118,14 @@ function draw() {
 controller.subscribe(draw); // resolve again on every change
 ```
 
-| Resolved item           | Fields                                                                                                                            |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `ResolvedToolbarButton` | `type: "button"`, `id`, `key`, `label`, `icon`, `shortcut`, `disabled`, `pressed` (`boolean \| undefined`, for a toggle), `run()` |
-| `ResolvedToolbarMenu`   | `type: "menu"`, `id`, `key`, `label`, `icon`, `items` — resolved menu entries, never empty                                        |
-| `ResolvedToolbarSearch` | `type: "search"`, `key`                                                                                                           |
-| `ResolvedToolbarSpacer` | `type: "spacer"`, `key`                                                                                                           |
-| `ResolvedMenuSeparator` | `type: "separator"`, `key`                                                                                                        |
-| `ResolvedToolbarCustom` | `type: "custom"`, `id`, `key`                                                                                                     |
+| Resolved item           | Fields                                                                                                                                          |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ResolvedToolbarButton` | `type: "button"`, `id`, `key`, `label`, `icon`, `shortcut`, `disabled`, `pressed` (`boolean \| undefined`, for a toggle), `run()`, `attributes` |
+| `ResolvedToolbarMenu`   | `type: "menu"`, `id`, `key`, `label`, `icon`, `items` — resolved menu entries, never empty, `attributes`                                        |
+| `ResolvedToolbarSearch` | `type: "search"`, `key`, `attributes`                                                                                                           |
+| `ResolvedToolbarSpacer` | `type: "spacer"`, `key`                                                                                                                         |
+| `ResolvedMenuSeparator` | `type: "separator"`, `key`                                                                                                                      |
+| `ResolvedToolbarCustom` | `type: "custom"`, `id`, `key`, `attributes`                                                                                                     |
 
 Every item has a `key`, unique among the toolbar's: an item's id, `"search"`, or `separator-<index>` and `spacer-<index>` from the entry's place in the list. A renderer writes it into the element's `data-gridkit-toolbar-item`, which @gridkitjs/dom's behaviours find entries by. `run()` runs a button against its context and says whether it ran, as a menu item's does.
 
