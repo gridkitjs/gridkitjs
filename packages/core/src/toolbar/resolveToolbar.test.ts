@@ -565,6 +565,14 @@ describe("resolveToolbar: item attributes", () => {
     expect(items[2]).toMatchObject({ attributes: { id: "clear-filters" } });
     expect(items).toHaveLength(3);
   });
+
+  test("an entry keyed like an Object.prototype member carries none", () => {
+    const [entry] = resolve([{ type: "custom", id: "toString" }], {
+      itemAttributes: { search: { id: "search" } },
+    });
+
+    expect(entry).toEqual({ type: "custom", id: "toString", key: "toString" });
+  });
 });
 
 describe("resolveToolbar: print", () => {

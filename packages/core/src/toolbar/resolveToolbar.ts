@@ -79,10 +79,17 @@ export function resolveToolbar<Row>(
   const { commands, contextFor, itemAttributes } = options;
 
   function withAttributes(item: ResolvedToolbarItem): ResolvedToolbarItem {
-    if (item.type === "separator" || item.type === "spacer") {
+    // An own key only: an entry id such as "toString" must not pick up an
+    // `Object.prototype` member of the map.
+    if (
+      item.type === "separator" ||
+      item.type === "spacer" ||
+      itemAttributes === undefined ||
+      !Object.hasOwn(itemAttributes, item.key)
+    ) {
       return item;
     }
-    const attributes = itemAttributes?.[item.key];
+    const attributes = itemAttributes[item.key];
     return attributes === undefined ? item : { ...item, attributes };
   }
 
