@@ -67,9 +67,9 @@ jobs:
           echo "::error::Only a dry run can start from $GITHUB_REF_NAME; releases publish from main."
           exit 1
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
 
@@ -106,13 +106,13 @@ jobs:
           permission-workflows: write
 
       # changesets/action pushes with the checkout's credentials.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           token: ${{ steps.app-token.outputs.token }}
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: "pnpm"
@@ -152,15 +152,15 @@ jobs:
       # package with no pending changeset keeps its released version.
       versions: ${{ steps.publish.outputs.versions }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Node 24 ships npm 11, which trusted publishing needs (11.5.1 or
       # newer; the script checks).
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: package-tarballs
           path: ${{ runner.temp }}/package-tarballs
@@ -207,17 +207,17 @@ jobs:
       # JSON: package name to its version, all five.
       versions: ${{ steps.publish.outputs.versions }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: needs.plan.outputs.release == 'stable'
 
       # Node 24 ships npm 11, which trusted publishing needs (11.5.1 or
       # newer; the script checks).
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: needs.plan.outputs.release == 'stable'
         with:
           node-version: 24
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         if: needs.plan.outputs.release == 'stable'
         with:
           name: package-tarballs
@@ -242,9 +242,9 @@ jobs:
       contents: write
     steps:
       # Release notes come from each package's CHANGELOG.md.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
 
@@ -278,7 +278,7 @@ jobs:
     outputs:
       manifest-sha: ${{ steps.manifest.outputs.manifest-sha }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Each file's lastModified comes from its git history.
           fetch-depth: 0
@@ -312,9 +312,9 @@ jobs:
           repositories: website
           permission-contents: write
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
 
@@ -350,9 +350,9 @@ jobs:
           permission-contents: write
 
       # On a docs-only run the versions come from this commit's packages.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
 
@@ -396,9 +396,9 @@ jobs:
           permission-pull-requests: write
           permission-workflows: write
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
 
@@ -416,7 +416,7 @@ jobs:
       # bot.
       - name: Open the pull request
         if: ${{ !inputs.dry-run && steps.bump.outputs.changed == 'true' }}
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ steps.app-token.outputs.token }}
           branch: chore/bump-examples
