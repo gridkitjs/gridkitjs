@@ -31,3 +31,25 @@ in a stylesheet loaded after the theme.
   --gridkit-row-stripe-bg-dark: oklch(0.24 0.011 250);
 }
 ```
+
+Breaking if your theme overrides a palette colour by its live name on
+`:root`, such as `--gridkit-accent`: the parts these tokens now set default
+to the palette colour's light and dark pair, so they no longer follow the
+live name. That covers focus rings and the error colour (`--gridkit-accent`),
+the header background and the tick on an accent fill (`--gridkit-surface`),
+group rows and row hover (`--gridkit-surface-muted`) and the scrollbar thumb
+(`--gridkit-fg-muted`). Override the pair instead, which reaches them all
+and grids pinned with `.gridkit-light` or `.gridkit-dark` too:
+
+```css
+/* Before */
+:root {
+  --gridkit-accent: oklch(0.6 0.17 145);
+}
+
+/* After */
+:root {
+  --gridkit-accent-light: oklch(0.6 0.17 145);
+  --gridkit-accent-dark: oklch(0.7 0.15 145);
+}
+```
