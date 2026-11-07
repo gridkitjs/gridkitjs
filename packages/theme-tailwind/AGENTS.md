@@ -7,11 +7,11 @@ styles. Published. `tailwindcss` is a peer dependency.
 
 The package ships `src/` as source, with no build step.
 
-| Path              | What it holds                                                                                                                         |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/styles.css`  | The stylesheet, exported as `@gridkitjs/theme-tailwind/styles.css`.                                                                   |
-| `src/tokens.json` | The token manifest, exported as `@gridkitjs/theme-tailwind/tokens.json`: every theme token's group, tier, type and default.           |
-| `scripts/`        | Not shipped. The token test, and the helpers it reads the two files with: `css.mjs` parses a stylesheet, `manifest.mjs` the manifest. |
+| Path              | What it holds                                                                                                                                                                                                                    |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/styles.css`  | The stylesheet, exported as `@gridkitjs/theme-tailwind/styles.css`.                                                                                                                                                              |
+| `src/tokens.json` | The token manifest, exported as `@gridkitjs/theme-tailwind/tokens.json`: every theme token's group, tier, type and default.                                                                                                      |
+| `scripts/`        | Not shipped. The token test, and the helpers it reads the two files with: `css.mjs` parses a stylesheet, `manifest.mjs` the manifest. `token-docs.mjs` generates the docs' token tables, and `write-token-docs.mjs` writes them. |
 
 There is no `typecheck` or `lint` script: `scripts/` is plain ESM `.mjs`
 with JSDoc types, like the repo's own [scripts](../../scripts/AGENTS.md).
@@ -51,6 +51,17 @@ To add a token:
 3. Add its entry to `tokens.json`, among its group's, with the default exactly
    as `styles.css` declares it (whitespace collapsed to single spaces). A
    colour's entry is named for the live token and gives both sides of the pair.
+4. Regenerate the token tables on `docs/tokens.mdx`, then write any prose the
+   new token needs around them:
+
+   ```bash
+   pnpm --filter @gridkitjs/theme-tailwind docs:tokens
+   ```
+
+Each group's table on that page sits between two MDX comments,
+`{/* tokens:<group> */}` and `{/* /tokens:<group> */}`. The script rewrites
+only what is between them, so never edit a table by hand: change
+`tokens.json` and regenerate.
 
 A default declared on `:root` may read only raw colours of its own side or
 tokens that are not colours, for the reason the comment at the top of
@@ -77,7 +88,8 @@ pnpm --filter @gridkitjs/theme-tailwind test
 It fails when a manifest entry is malformed or out of group order, when the
 manifest and `:root` disagree on which tokens exist or on a default, when a
 default reads a value the palette swaps, when a colour is missing from a palette block or
-`@theme inline`, or when no rule reads a token.
+`@theme inline`, when no rule reads a token, or when the token tables on
+`docs/tokens.mdx` differ from what `tokens.json` generates.
 
 The Playwright suite mounts `DataGrid` against this stylesheet, so measured
 widths and paddings come from it; see
@@ -87,7 +99,9 @@ stale-cache gotcha after editing `styles.css`.
 ## Docs
 
 `packages/theme-tailwind/docs/`. The writing rules are in
-[.claude/rules/docs.md](../../.claude/rules/docs.md).
+[.claude/rules/docs.md](../../.claude/rules/docs.md). The token tables on
+`tokens.mdx` are generated from `tokens.json`, as
+[adding a token](#theme-tokens) describes.
 
 ## Releasing
 

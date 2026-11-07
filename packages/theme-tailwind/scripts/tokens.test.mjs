@@ -1,9 +1,10 @@
 /**
- * Keeps `src/tokens.json` and `src/styles.css` in step. The stylesheet's
- * theme tokens are the custom properties its `:root` block declares; the
- * manifest has to list each of them with the default declared there, and
- * each colour has to be wired up the way the palette comment in
- * `styles.css` describes.
+ * Keeps `src/tokens.json`, `src/styles.css` and `docs/tokens.mdx` in
+ * step. The stylesheet's theme tokens are the custom properties its `:root`
+ * block declares; the manifest has to list each of them with the default
+ * declared there, each colour has to be wired up the way the palette
+ * comment in `styles.css` describes, and the docs page's tables have to be
+ * the ones the manifest generates.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -22,6 +23,7 @@ import {
   defaultDeclarations,
   readManifest,
 } from "./manifest.mjs";
+import { DOCS_PAGE, withTokenTables } from "./token-docs.mjs";
 
 /** @import { Token } from "./manifest.mjs" */
 
@@ -256,6 +258,17 @@ describe("styles.css", () => {
     assert.deepEqual(
       unread.map(({ name }) => name),
       [],
+    );
+  });
+});
+
+describe("docs/tokens.mdx", () => {
+  test("shows the tables tokens.json generates", () => {
+    const page = readFileSync(DOCS_PAGE, "utf8");
+    assert.equal(
+      withTokenTables(page, tokens),
+      page,
+      "The token tables are stale: run pnpm --filter @gridkitjs/theme-tailwind docs:tokens",
     );
   });
 });

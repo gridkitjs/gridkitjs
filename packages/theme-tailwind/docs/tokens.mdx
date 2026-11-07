@@ -1,0 +1,199 @@
+---
+title: "Theme tokens"
+description: "Every --gridkit-* custom property that sets the grid's look, with its default, and the tokens.json manifest that lists them."
+---
+
+{/* The tables between the tokens:<group> comments are generated from src/tokens.json: run pnpm --filter @gridkitjs/theme-tailwind docs:tokens after changing it. */}
+
+Every value that sets the grid's look is a theme token: a `--gridkit-*` custom property the stylesheet declares on `:root`, for its colours, type, spacing, lines, corners and details. Each defaults to the grid's own look, so a theme sets only the tokens it changes, and `@gridkitjs/theme-tailwind/tokens.json` lists every one for tools built on the theme.
+
+## Overriding tokens
+
+Set tokens on `:root`, in CSS that comes after the theme's import:
+
+```css title="src/index.css"
+@import "tailwindcss";
+@import "@gridkitjs/theme-tailwind/styles.css";
+
+:root {
+  --gridkit-spacing: 0.1875rem;
+  --gridkit-radius: 0;
+  --gridkit-header-font-weight: 600;
+  --gridkit-accent-light: oklch(0.6 0.17 145);
+  --gridkit-accent-dark: oklch(0.7 0.15 145);
+}
+```
+
+- **On `:root`.** The grid's menus, column chooser and filter menu render into `document.body`, outside any wrapper around the grid, so a token set on a wrapper does not reach them (see [overlays and menus](/docs/theme-tailwind#overlays-and-menus)). A token that derives from another follows it only from `:root` as well, as [derived tokens](#derived-tokens) explains.
+- **Outside `@layer`.** The theme declares its tokens outside any cascade layer, and a declaration outside a layer beats one inside, whatever their order, so a `:root` block inside `@layer base` changes nothing.
+- **A colour by its pair.** Set a colour's `-light` and `-dark` pair, such as `--gridkit-accent-light` and `--gridkit-accent-dark`, rather than the `--gridkit-accent` the rules read. The grid points that live name at one side of the pair for light or dark mode, and the colours that default to the accent read its pair, so only the pair reaches them all. [Light and dark values](/docs/theme-tailwind#light-and-dark-values) has the details.
+
+Each token is `basic` or `advanced`. The basic ones are the palette and the base knobs, which reach across the whole grid: `--gridkit-spacing` alone makes it denser or roomier. An advanced token tunes one part, such as the header's padding or the menus' corners.
+
+## Derived tokens
+
+Many defaults read another token. `--gridkit-cell-padding-x` is `calc(var(--gridkit-spacing) * 2)`, `--gridkit-header-padding-x` is the cells' padding, and `--gridkit-header-bg-light` is `var(--gridkit-surface-light)`. So a base knob or a palette colour carries over to every token derived from it, until a theme sets the derived token itself.
+
+That holds for an override on `:root` only. A custom property that reads another with `var()` is worked out on the element that declares it, and elements below it inherit the result. The defaults are declared on `:root`, so they are worked out from `:root`'s values: `--gridkit-spacing` set on a wrapper reaches the gaps and control heights that read it directly, but not the paddings derived from it.
+
+## Colours
+
+The palette's nine colours are used across the grid. Each colour after them sets one part and, by default, follows a palette colour or the page's text. A colour is listed by its live name, with both sides of its pair: set `--gridkit-<name>-light` and `--gridkit-<name>-dark` to change it. Each is a Tailwind colour too, such as `bg-gridkit-header-bg` (see [colour utilities](/docs/theme-tailwind#colour-utilities)).
+
+{/* tokens:colors */}
+
+| Token                            | Tier     | Light                                                                 | Dark                                                                 | Description                                                                                                    |
+| -------------------------------- | -------- | --------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `--gridkit-surface`              | basic    | `oklch(1 0 0)`                                                        | `oklch(0.21 0.01 250)`                                               | The background of the header, footer, toolbar, group-by bar, pager and menus, and of their buttons and fields. |
+| `--gridkit-surface-muted`        | basic    | `oklch(0.97 0.003 250)`                                               | `oklch(0.26 0.012 250)`                                              | The background of a hovered row, cell, header, button or option, and of group rows.                            |
+| `--gridkit-line`                 | basic    | `oklch(0.92 0.005 250)`                                               | `oklch(0.33 0.014 250)`                                              | Borders, separators and the lines between rows and columns.                                                    |
+| `--gridkit-hover-line`           | basic    | `oklch(0.65 0.09 255)`                                                | `oklch(0.75 0.09 255)`                                               | The outline of a hovered cell and the edge of a column being resized.                                          |
+| `--gridkit-fg`                   | basic    | `oklch(0.21 0.01 250)`                                                | `oklch(0.97 0.003 250)`                                              | The text of the toolbar, pager, menus and fields, while cells and headers keep the page's own text colour.     |
+| `--gridkit-fg-muted`             | basic    | `oklch(0.5 0.015 250)`                                                | `oklch(0.7 0.015 250)`                                               | Secondary text, icons and the scrollbar thumb.                                                                 |
+| `--gridkit-accent`               | basic    | `oklch(0.6 0.17 255)`                                                 | `oklch(0.7 0.15 255)`                                                | Focus rings, drop indicators, the current page, and the marks of an active sort, group, filter or check.       |
+| `--gridkit-selected`             | basic    | `oklch(0.94 0.03 255)`                                                | `oklch(0.32 0.05 255)`                                               | The background of a selected row, column or cell, a focused menu item and a group-by chip.                     |
+| `--gridkit-selected-strong`      | basic    | `oklch(0.9 0.05 255)`                                                 | `oklch(0.38 0.07 255)`                                               | The background of a selected row, column or cell while hovered, and of a toolbar toggle that is on.            |
+| `--gridkit-header-bg`            | advanced | `var(--gridkit-surface-light)`                                        | `var(--gridkit-surface-dark)`                                        | The background of the header row, and of a header while it is dragged.                                         |
+| `--gridkit-header-fg`            | advanced | `currentColor`                                                        | `currentColor`                                                       | The text colour of the header row, which by default keeps the page's own, as cells do.                         |
+| `--gridkit-group-row-bg`         | advanced | `var(--gridkit-surface-muted-light)`                                  | `var(--gridkit-surface-muted-dark)`                                  | The background of group rows and of their summary rows.                                                        |
+| `--gridkit-row-hover-bg`         | advanced | `var(--gridkit-surface-muted-light)`                                  | `var(--gridkit-surface-muted-dark)`                                  | The background of a hovered row.                                                                               |
+| `--gridkit-row-stripe-bg`        | advanced | `transparent`                                                         | `transparent`                                                        | The background of every second row, transparent by default so that rows are not striped.                       |
+| `--gridkit-focus-ring`           | advanced | `var(--gridkit-accent-light)`                                         | `var(--gridkit-accent-dark)`                                         | The ring around a focused cell, header, button or field.                                                       |
+| `--gridkit-accent-fg`            | advanced | `var(--gridkit-surface-light)`                                        | `var(--gridkit-surface-dark)`                                        | A mark drawn on an accent fill, such as the tick in a checked filter value.                                    |
+| `--gridkit-error`                | advanced | `oklch(from var(--gridkit-accent-light) l c 25)`                      | `oklch(from var(--gridkit-accent-dark) l c 25)`                      | The border of an invalid filter value and the message under it, by default the accent turned red.              |
+| `--gridkit-scrollbar-thumb`      | advanced | `color-mix(in oklch, var(--gridkit-fg-muted-light) 45%, transparent)` | `color-mix(in oklch, var(--gridkit-fg-muted-dark) 45%, transparent)` | The thumb of the grid's own scrollbars.                                                                        |
+| `--gridkit-overlay-shadow-color` | advanced | `oklch(0 0 0 / 0.15)`                                                 | `oklch(0 0 0 / 0.15)`                                                | The colour of the shadow under menus, the column chooser and the filter menu.                                  |
+
+{/* /tokens:colors */}
+
+## Typography
+
+A default of `inherit` leaves the value to the page: the grid sets none of its own, so whatever the element around it sets carries through.
+
+{/* tokens:typography */}
+
+| Token                             | Tier     | Type                      | Default     | Description                                                                                                             |
+| --------------------------------- | -------- | ------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `--gridkit-font-family`           | basic    | `font-family`             | `inherit`   | The grid's font, the page's own by default.                                                                             |
+| `--gridkit-font-size`             | basic    | `length`                  | `1em`       | The size of the text in cells, headers, group rows and the footer.                                                      |
+| `--gridkit-menu-font-size`        | advanced | `length`                  | `0.875rem`  | The size of the text in menus, the column chooser and the filter menu.                                                  |
+| `--gridkit-bar-font-size`         | advanced | `length`                  | `0.8125rem` | The size of the text in the toolbar, the group-by bar and the pager.                                                    |
+| `--gridkit-hint-font-size`        | advanced | `length`                  | `0.75rem`   | The size of a menu item's shortcut and a filter value's count, and five sixths of the size of a header's sort priority. |
+| `--gridkit-header-font-weight`    | advanced | `font-weight`             | `700`       | The weight of header labels.                                                                                            |
+| `--gridkit-header-text-transform` | advanced | `text-transform`          | `inherit`   | The case of header labels, such as uppercase, the page's own by default.                                                |
+| `--gridkit-header-letter-spacing` | advanced | `length`                  | `inherit`   | The letter spacing of header labels, the page's own by default.                                                         |
+| `--gridkit-group-font-weight`     | advanced | `font-weight`             | `600`       | The weight of a group row's label, of subtotals and of grand totals.                                                    |
+| `--gridkit-font-variant-numeric`  | advanced | `inherit`, `tabular-nums` | `inherit`   | Set to tabular-nums to give every digit the same width, so that numbers line up down a column.                          |
+
+{/* /tokens:typography */}
+
+## Density
+
+Every padding, gap and control height is a multiple of `--gridkit-spacing`. The padding tokens set one part's padding on their own, and the header's follows the cells' until it is set.
+
+{/* tokens:density */}
+
+| Token                            | Tier     | Type     | Default                              | Description                                                                                                                                     |
+| -------------------------------- | -------- | -------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--gridkit-spacing`              | basic    | `length` | `0.25rem`                            | The unit the grid's paddings, gaps and control heights are multiples of, so a smaller one makes the whole grid denser and a larger one roomier. |
+| `--gridkit-cell-padding-x`       | advanced | `length` | `calc(var(--gridkit-spacing) * 2)`   | The horizontal padding of cells, group rows, summary rows, the footer and the loading row.                                                      |
+| `--gridkit-cell-padding-y`       | advanced | `length` | `calc(var(--gridkit-spacing) * 2)`   | The vertical padding of cells, group rows, summary rows, the footer and the loading row, which sets how tall a row is.                          |
+| `--gridkit-header-padding-x`     | advanced | `length` | `var(--gridkit-cell-padding-x)`      | The horizontal padding of header cells, the cells' own by default.                                                                              |
+| `--gridkit-header-padding-y`     | advanced | `length` | `var(--gridkit-cell-padding-y)`      | The vertical padding of header cells, which sets how tall the header is, the cells' own by default.                                             |
+| `--gridkit-toolbar-padding`      | advanced | `length` | `calc(var(--gridkit-spacing) * 2)`   | The padding around the toolbar's entries.                                                                                                       |
+| `--gridkit-group-by-bar-padding` | advanced | `length` | `calc(var(--gridkit-spacing) * 2)`   | The padding around the group-by bar's chips.                                                                                                    |
+| `--gridkit-pager-padding`        | advanced | `length` | `calc(var(--gridkit-spacing) * 2)`   | The padding around the pager's bar and page-size picker.                                                                                        |
+| `--gridkit-menu-item-padding-x`  | advanced | `length` | `calc(var(--gridkit-spacing) * 3)`   | The horizontal padding of a menu item.                                                                                                          |
+| `--gridkit-menu-item-padding-y`  | advanced | `length` | `calc(var(--gridkit-spacing) * 1.5)` | The vertical padding of a menu item, and of the filter menu's sort and submenu entries, which are drawn as menu items.                          |
+
+{/* /tokens:density */}
+
+## Borders
+
+{/* tokens:borders */}
+
+| Token                          | Tier     | Type                        | Default                       | Description                                                                                                                                      |
+| ------------------------------ | -------- | --------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--gridkit-border-width`       | basic    | `length`                    | `1px`                         | The width of every line the grid draws, from the lines between rows and columns to the borders of its bars, menus, buttons and fields.           |
+| `--gridkit-border-style`       | advanced | `solid`, `dashed`, `dotted` | `solid`                       | The style of the lines between rows and columns, around the grid, and between the grid and its toolbar, group-by bar and pager.                  |
+| `--gridkit-row-line-width`     | advanced | `length`                    | `var(--gridkit-border-width)` | The width of the lines between rows, and under the header and over the footer, wherever the grid's borders setting draws them; 0 turns them off. |
+| `--gridkit-column-line-width`  | advanced | `length`                    | `var(--gridkit-border-width)` | The width of the lines between columns, wherever the grid's borders setting draws them; 0 turns them off.                                        |
+| `--gridkit-outer-border-width` | advanced | `length`                    | `0`                           | The width of a border around the whole grid, which has none by default.                                                                          |
+
+{/* /tokens:borders */}
+
+`--gridkit-border-style` covers the lines in and around the grid: between rows and columns, its outer border, and the lines that set the toolbar, the group-by bar and the pager apart. Buttons, fields, menus, the column chooser and the filter menu keep solid borders.
+
+The line widths thin, thicken or remove the lines the grid's [`borders`](/docs/react/data-grid#props) setting draws, but cannot add one it leaves out: under `borders="horizontal"`, `--gridkit-column-line-width` changes nothing.
+
+## Shape
+
+{/* tokens:shape */}
+
+| Token                      | Tier     | Type     | Default    | Description                                                                                                                                                     |
+| -------------------------- | -------- | -------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--gridkit-radius`         | basic    | `length` | `0.25rem`  | The corner radius of the grid's outer frame and of the pager bar.                                                                                               |
+| `--gridkit-menu-radius`    | advanced | `length` | `0.375rem` | The corner radius of menus, the column chooser and the filter menu.                                                                                             |
+| `--gridkit-control-radius` | advanced | `length` | `0.25rem`  | The corner radius of buttons, fields and options in the toolbar, the pager, the column chooser and the filter menu, whose checkboxes take three quarters of it. |
+
+{/* /tokens:shape */}
+
+`--gridkit-radius` rounds the grid's outer frame, `.gridkit-data-grid-viewport`, which clips the header and rows to it, and the outer corners of the pager bar; `0` squares them. Group-by chips stay pill-shaped whatever the radii.
+
+## Details
+
+{/* tokens:details */}
+
+| Token                                 | Tier     | Type       | Default      | Description                                                                                                                                                                          |
+| ------------------------------------- | -------- | ---------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--gridkit-icon-size`                 | advanced | `length`   | `1rem`       | The size of the icons in the toolbar, the pager, menus and the filter menu, of the filter menu's checkboxes and a group-by chip's remove button, and of the triangle on a group row. |
+| `--gridkit-header-icon-size`          | advanced | `length`   | `14px`       | The size of a header's sort, group and filter icons.                                                                                                                                 |
+| `--gridkit-focus-ring-width`          | advanced | `length`   | `2px`        | The width of the ring around a focused cell, header, button or field.                                                                                                                |
+| `--gridkit-indicator-width`           | advanced | `length`   | `2px`        | The width of the line along a column being resized, of the marks where a dragged column or chip would land, and of the group-by bar's outline while it is a drop target.             |
+| `--gridkit-overlay-shadow`            | advanced | `shadow`   | `0 4px 12px` | The offsets and blur of the shadow under menus, the column chooser and the filter menu, whose colour is `--gridkit-overlay-shadow-color`.                                            |
+| `--gridkit-menu-min-width`            | advanced | `length`   | `12rem`      | The narrowest a menu can be.                                                                                                                                                         |
+| `--gridkit-column-chooser-width`      | advanced | `length`   | `16rem`      | The width of the column chooser.                                                                                                                                                     |
+| `--gridkit-filter-menu-width`         | advanced | `length`   | `18rem`      | The width of a column's filter menu.                                                                                                                                                 |
+| `--gridkit-column-chooser-max-height` | advanced | `length`   | `17.5rem`    | The tallest the column chooser's list grows before it scrolls.                                                                                                                       |
+| `--gridkit-filter-checklist-height`   | advanced | `length`   | `12rem`      | The height of the list of values in a column's filter menu.                                                                                                                          |
+| `--gridkit-transition-duration`       | advanced | `duration` | `0.1s`       | How long the triangle on a group row takes to turn as the group opens or closes, which it does at once for a user who prefers reduced motion.                                        |
+
+{/* /tokens:details */}
+
+`--gridkit-overlay-shadow` holds only the shadow's offsets and blur. Its colour is `--gridkit-overlay-shadow-color`, a palette pair, since a single value on `:root` cannot change with light and dark mode. Set the shadow to `0 0` to remove it.
+
+`--gridkit-transition-duration` times the triangle on a group row as it turns. When the user's system asks for reduced motion (`prefers-reduced-motion: reduce`), the triangle turns at once whatever the token says: the stylesheet turns the transition off on the triangle's own rule, which a token cannot undo.
+
+## The token manifest
+
+`@gridkitjs/theme-tailwind/tokens.json` lists every token on this page, group by group in the same order, for building theme tools or docs on top of the theme:
+
+```ts title="tokens.ts"
+import manifest from "@gridkitjs/theme-tailwind/tokens.json" with { type: "json" };
+
+export const basicTokens = manifest.tokens.filter(
+  (token) => token.tier === "basic",
+);
+```
+
+| Field           | Type      | Description                                                                                         |
+| --------------- | --------- | --------------------------------------------------------------------------------------------------- |
+| `schemaVersion` | `1`       | The manifest's format. It goes up when a field changes meaning or goes away.                        |
+| `tokens`        | `Token[]` | Every token, grouped in the order `colors`, `typography`, `density`, `borders`, `shape`, `details`. |
+
+Each entry in `tokens`:
+
+| Field         | Type                                        | Description                                                                                                                                                                                                                                                   |
+| ------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`        | `string`                                    | The custom property. For a colour, the live name the rules read: a theme sets `<name>-light` and `<name>-dark` instead.                                                                                                                                       |
+| `group`       | `string`                                    | `colors`, `typography`, `density`, `borders`, `shape` or `details`.                                                                                                                                                                                           |
+| `tier`        | `string`                                    | `basic` for the palette and the base knobs, `advanced` for a token that tunes one part.                                                                                                                                                                       |
+| `type`        | `string`                                    | The kind of value: `color`, `length`, `number`, `font-family`, `font-weight`, `text-transform`, `shadow`, `duration`, or `enum` for one of a fixed list.                                                                                                      |
+| `options`     | `string[]`                                  | An `enum`'s values. Only an `enum` has them.                                                                                                                                                                                                                  |
+| `default`     | `string \| { light: string; dark: string }` | The value the stylesheet declares, with its whitespace collapsed, and both sides of the pair for a colour. It may read another token with `var()`, such as `calc(var(--gridkit-spacing) * 2)`, so read an element's computed style for the value it comes to. |
+| `description` | `string`                                    | One sentence, in plain text.                                                                                                                                                                                                                                  |
+
+## See also
+
+- [Overview](/docs/theme-tailwind) for the classes the stylesheet targets, dark mode, and forcing a theme on one grid.
+- [Column templates](/docs/react/column-templates) for styling cell content with the colour utilities.
