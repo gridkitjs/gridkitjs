@@ -21,6 +21,16 @@ the workflows that write them) is in
 | `website-dispatch.mjs`       | Tells the website which versions to install after a snapshot or a release.       |
 | `bump-examples.mjs`          | Moves the apps under `examples/` to the released versions.                       |
 
+## Tests
+
+A script's tests sit beside it as `*.test.mjs` and run on Node's built-in
+test runner, with no dependencies; `pnpm test` runs them after the
+packages' Vitest suites. To run only these:
+
+```bash
+node --test "scripts/**/*.test.mjs"
+```
+
 ## build-docs-manifest.mjs
 
 The script's JSDoc typedefs are the manifest's contract with the website, so
