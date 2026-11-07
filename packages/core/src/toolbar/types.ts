@@ -32,6 +32,16 @@ export type ToolbarEntry<Row> =
   MenuEntry<Row> | "search" | "spacer" | "export" | ToolbarCustomEntry;
 
 /**
+ * Attributes of the app's own for a toolbar entry's element, as hooks for
+ * its tests, analytics or styles: an `id` and `data-*` attributes, nothing
+ * that could change what the entry means or does.
+ */
+export interface ToolbarItemAttributes {
+  readonly id?: string | undefined;
+  readonly [name: `data-${string}`]: string;
+}
+
+/**
  * A toolbar button ready to draw — a command, or an inline item — with
  * every label a string, every flag a boolean, and `run` bound to the
  * context of its place in the toolbar.
@@ -54,6 +64,8 @@ export interface ResolvedToolbarButton {
   readonly pressed: boolean | undefined;
   /** Runs the button, and says whether it ran — see `ResolvedMenuItem.run`. */
   readonly run: () => boolean;
+  /** The app's attributes for its element, from `itemAttributes`. */
+  readonly attributes?: ToolbarItemAttributes | undefined;
 }
 
 /** A dropdown button, opening the menu its submenu entry lists. */
@@ -66,6 +78,8 @@ export interface ResolvedToolbarMenu {
   readonly icon?: string | undefined;
   /** Never empty: a dropdown with nothing to show is left out. */
   readonly items: readonly ResolvedMenuEntry[];
+  /** The app's attributes for its element, from `itemAttributes`. */
+  readonly attributes?: ToolbarItemAttributes | undefined;
 }
 
 /** The search box, over the grid's global text filter. */
@@ -73,6 +87,8 @@ export interface ResolvedToolbarSearch {
   readonly type: "search";
   /** Always `"search"`. */
   readonly key: string;
+  /** The app's attributes for its element, from `itemAttributes`. */
+  readonly attributes?: ToolbarItemAttributes | undefined;
 }
 
 /** The free space between the entries either side of it. */
@@ -88,6 +104,8 @@ export interface ResolvedToolbarCustom {
   readonly id: string;
   /** The same as `id`. */
   readonly key: string;
+  /** The app's attributes for its element, from `itemAttributes`. */
+  readonly attributes?: ToolbarItemAttributes | undefined;
 }
 
 /**

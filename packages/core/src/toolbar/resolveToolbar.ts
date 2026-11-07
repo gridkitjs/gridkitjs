@@ -5,6 +5,7 @@ import type {
   GridToolbarTarget,
   ResolvedToolbarItem,
   ToolbarEntry,
+  ToolbarItemAttributes,
 } from "./types";
 
 /** What `resolveToolbar` resolves a toolbar's entries against. */
@@ -17,6 +18,9 @@ export interface ToolbarResolveOptions<Row> {
    * opens a panel anchors it there.
    */
   readonly contextFor: (target: GridToolbarTarget) => GridCommandContext<Row>;
+  /** Attributes for entries' elements, by key — see `GridToolbarOptions`. */
+  readonly itemAttributes?:
+    Readonly<Record<string, ToolbarItemAttributes>> | undefined;
 }
 
 function isSpacer(entry: ResolvedToolbarItem): boolean {
@@ -62,6 +66,8 @@ function exportMenu<Row>(): MenuSubmenuEntry<Row> {
  * - `"search"`, `"spacer"` and custom entries stay as they are.
  * - Separators never lead, trail, double up or sit next to a spacer, which
  *   already parts what is on either side of it.
+ * - A button, dropdown, search box or custom entry whose key
+ *   `itemAttributes` names carries those `attributes`.
  *
  * Resolve again whenever the grid changes, so each button's label, flags
  * and `run` follow its state.
@@ -70,7 +76,22 @@ export function resolveToolbar<Row>(
   entries: readonly ToolbarEntry<Row>[],
   options: ToolbarResolveOptions<Row>,
 ): readonly ResolvedToolbarItem[] {
-  const { commands, contextFor } = options;
+  const { commands, contextFor, itemAttributes } = options;
+
+  function withAttributes(item: ResolvedToolbarItem): ResolvedToolbarItem {
+    // An own key only: an entry id such as "toString" must not pick up an
+    // `Object.prototype` member of the map.
+    if (
+      item.type === "separator" ||
+      item.type === "spacer" ||
+      itemAttributes === undefined ||
+      !Object.hasOwn(itemAttributes, item.key)
+    ) {
+      return item;
+    }
+    const attributes = itemAttributes[item.key];
+    return attributes === undefined ? item : { ...item, attributes };
+  }
 
   function resolveEntry(
     entry: ToolbarEntry<Row>,
@@ -107,7 +128,10 @@ export function resolveToolbar<Row>(
   }
 
   return collapseSeparators(
-    entries.map(resolveEntry).filter((entry) => entry !== null),
+    entries
+      .map(resolveEntry)
+      .filter((entry) => entry !== null)
+      .map(withAttributes),
     isSpacer,
   );
 }
