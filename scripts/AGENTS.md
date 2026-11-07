@@ -8,7 +8,7 @@ the workflows that write them) is in
 
 | Script                       | What it does                                                                     |
 | ---------------------------- | -------------------------------------------------------------------------------- |
-| `build-docs-manifest.mjs`    | Builds `docs-manifest.json`, the one file the website reads all docs from.       |
+| `build-docs-manifest.mjs`    | Builds `docs-manifest.json`, the index the website reads all docs from.          |
 | `publish-docs-manifest.mjs`  | Builds the manifest and commits it to a `docs-meta*` branch.                     |
 | `notify-docs-revalidate.mjs` | Sends a website deployment the signed request that revalidates its docs.         |
 | `check-mdx-tags.mjs`         | Fails on any PascalCase tag in the docs that the website does not register.      |
@@ -21,11 +21,28 @@ the workflows that write them) is in
 | `website-dispatch.mjs`       | Tells the website which versions to install after a snapshot or a release.       |
 | `bump-examples.mjs`          | Moves the apps under `examples/` to the released versions.                       |
 
+## Tests
+
+A script's tests sit beside it as `*.test.mjs` and run on Node's built-in
+test runner, with no dependencies; `pnpm test` runs them after the
+packages' Vitest suites. To run only these:
+
+```bash
+node --test "scripts/**/*.test.mjs"
+```
+
 ## build-docs-manifest.mjs
 
 The script's JSDoc typedefs are the manifest's contract with the website, so
 a field changed there is a change to the website too; bump `schemaVersion`
 when a field changes meaning or goes away.
+
+The manifest is an index: it carries each page's frontmatter and each
+changelog's date, but not their bodies. Every page and `CHANGELOG.md` has
+its git blob SHA, and the website fetches each body from GitHub's git blobs
+API by that SHA, a response it caches for good. That keeps the manifest at
+tens of KB however the docs grow, well under the 2 MB above which Next's
+fetch cache stops caching it.
 
 To inspect the manifest locally, run `node scripts/build-docs-manifest.mjs`;
 it writes the gitignored `docs-manifest.json` at the repo root, or to the
@@ -34,6 +51,20 @@ path given as its argument.
 ```bash
 node scripts/build-docs-manifest.mjs
 ```
+
+`--inline-bodies` writes every body into the manifest as well: each page's
+without its frontmatter, each changelog whole. A local preview needs it,
+because the website fetches a body by its blob SHA and GitHub holds no blob
+for a change that is not pushed. Build with it, then point the website's
+`DOCS_MANIFEST_FILE` at the file, as the `gridkit-website` repo's
+`lib/docs/AGENTS.md` describes:
+
+```bash
+node scripts/build-docs-manifest.mjs --inline-bodies
+```
+
+`publish-docs-manifest.mjs` never passes it: a published manifest's files
+are in a pushed commit, so their blobs are on GitHub.
 
 Dates come from `git log`, so a run needs the full history (the workflow
 checks out with `fetch-depth: 0`), and a file with no commit yet gets `null`.

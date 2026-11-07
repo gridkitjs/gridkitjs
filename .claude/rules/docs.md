@@ -22,12 +22,15 @@ after the PR merges, or locally against a branch's manifest (see
 
 ## The docs manifest
 
-The website does not read those files one by one. It reads a single
-`docs-manifest.json`, built by `scripts/build-docs-manifest.mjs`: every
-published package's name, `version` and `CHANGELOG.md`, every `.mdx` page
-with its frontmatter, body, blob SHA and last commit date, and every parsed
-`_meta.json`. Its contract with the website, and how to run it locally, are
-in [scripts/AGENTS.md](../../scripts/AGENTS.md).
+The website does not find those files by listing the repo. It reads a
+single `docs-manifest.json`, built by `scripts/build-docs-manifest.mjs`, an
+index: every published package's name, `version` and `CHANGELOG.md`, every
+`.mdx` page with its frontmatter, and every parsed `_meta.json`, each page
+and changelog with its git blob SHA and last commit date. The page and
+changelog bodies are not in it; the website fetches each from GitHub by its
+blob SHA. A local preview of unpushed docs builds the manifest with the
+bodies in place, with `--inline-bodies`. Its contract with the website, and how to run it
+locally, are in [scripts/AGENTS.md](../../scripts/AGENTS.md).
 
 `scripts/publish-docs-manifest.mjs` commits it, as the only file, to an
 orphan manifest branch (`main` is protected, so it cannot live there). There
