@@ -120,7 +120,7 @@ passed straight through.
 | `setFilter(filter)`               | `onFilterChange`              | Replaces the filter and goes back to the first page. See [column filtering](/docs/react/column-filtering#change-the-filter-from-your-own-ui). |
 | `setGroupBy(groupBy)`             | `onGroupByChange`             | Replaces the group-by stack, naming the first level that changed.                                                                             |
 | `setGroupExpansion(expansion)`    | `onGroupExpansionChange`      | Replaces the collapsed groups, reported with `groupId: null`.                                                                                 |
-| `setPagination(pagination)`       | `onPaginationChange`          | Replaces the page and page size as given; a page past the last shows the last.                                                                |
+| `setPagination(pagination)`       | `onPaginationChange`          | Replaces the page and page size; a page past the last shows the last, and an uncontrolled grid stores and reports it as the last.             |
 | `setColumnSizing(sizing)`         | `onColumnResize`              | Replaces the widths, reported as the `"end"` of a resize of the first column that changed.                                                    |
 | `setColumnOrder(order)`           | `onColumnOrderChange`         | Replaces the order, naming the first column whose position changed.                                                                           |
 | `setColumnVisibility(visibility)` | `onColumnVisibilityChange`    | Replaces the visibility state, naming every column whose entry changed.                                                                       |

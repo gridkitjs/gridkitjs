@@ -221,6 +221,24 @@ test.describe('paginationUnit="row"', () => {
     await expect(pagerStatus(root)).toHaveText("Page 1 of 3");
     expect(await rowIds(root)).toEqual(["r2", "r4", "r1"]);
   });
+
+  test("expanding a group collapsed from a later page stays on the page the collapse left shown", async ({
+    mount,
+  }) => {
+    const root = await mountRowPaged(mount);
+    await root.getByRole("button", { name: "Next" }).click();
+    await root.getByRole("button", { name: "Next" }).click();
+    await expect(pagerStatus(root)).toHaveText("Page 3 of 3");
+
+    const west = groupHeaders(root).filter({ hasText: "West" });
+    await west.click();
+    await expect(pagerStatus(root)).toHaveText("Page 1 of 1");
+
+    await west.click();
+    await expect(west).toHaveAttribute("aria-expanded", "true");
+    await expect(pagerStatus(root)).toHaveText("Page 1 of 3");
+    expect(await rowIds(root)).toEqual(["r2", "r4", "r1"]);
+  });
 });
 
 test("changing the page size recomputes the page count and clamps the current page", async ({

@@ -267,8 +267,10 @@ export interface GridController<Row, Node = string> {
   readonly collapseAllGroups: () => void;
 
   /**
-   * Replaces the page and page size as given; the view clamps a page past
-   * the last one. An equal pagination reports nothing.
+   * Replaces the page and page size. A controlled pagination asks for them
+   * as given and the view clamps a page past the last one; an uncontrolled
+   * one stores and reports that page clamped. An equal pagination reports
+   * nothing.
    */
   readonly setPagination: (pagination: PaginationState) => void;
   /**

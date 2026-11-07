@@ -253,6 +253,39 @@ export function createGridController<Row, Node = string>(
       }
     }
     state = SLICE_KEYS.every((key) => next[key] === state[key]) ? state : next;
+    storeShownPage();
+  }
+
+  /**
+   * Rows that shrink under a later page — a collapsed group, a shorter
+   * `dataSource` — leave the view clamped to the last page that exists. An
+   * uncontrolled pagination stores that page, so the rows growing back keep
+   * the user on the page they saw rather than one they never chose. Like the
+   * reset in `refresh`, it reports nothing. A controlled pagination is left
+   * to the caller, and an empty grid has no page to clamp to, so a page
+   * waiting for its rows to load is kept.
+   */
+  function storeShownPage(): void {
+    const stored = storedPagination(state.pagination);
+    if (stored !== state.pagination) {
+      own.pagination = stored;
+      state = { ...state, pagination: stored };
+    }
+  }
+
+  /**
+   * `pagination` as an uncontrolled paginated grid with rows stores it: its
+   * page clamped to the one the view would show. Anything else, and a page
+   * already in range, is the same object.
+   */
+  function storedPagination(pagination: PaginationState): PaginationState {
+    if (options.paginated !== true || isControlled("pagination")) {
+      return pagination;
+    }
+    const { pageCount, pageIndex } = pageOf(pagination);
+    return pageCount === 0 || pageIndex === pagination.pageIndex
+      ? pagination
+      : { ...pagination, pageIndex };
   }
 
   function notify(): void {
@@ -392,15 +425,22 @@ export function createGridController<Row, Node = string>(
    * grid is paginated, which is what a pager built on the event shows. A
    * pagination equal to the current one — `nextPage` on the last page,
    * `goToPage` to the page shown — reports nothing.
+   *
+   * An uncontrolled grid reports the pagination it stored, which clamps a
+   * page past the last one. While `restoreState` holds its reports the view
+   * does not yet reflect the slices it restored, so the clamp waits for the
+   * `refresh` that ends the restore, and the report reads what it stored.
    */
-  function commitPagination(next: PaginationState): void {
+  function commitPagination(asked: PaginationState): void {
+    const next = heldReports === undefined ? storedPagination(asked) : asked;
     if (samePagination(state.pagination, next)) {
       return;
     }
     commit("pagination", next, () => {
+      const pagination = isControlled("pagination") ? next : own.pagination;
       options.onPaginationChange?.({
-        pagination: next,
-        pageCount: pageOf(next).pageCount,
+        pagination,
+        pageCount: pageOf(pagination).pageCount,
       });
     });
   }

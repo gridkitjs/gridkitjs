@@ -250,7 +250,7 @@ Arrow-key navigation and <Kbd>Shift</Kbd>+click range selection both operate on 
 
 ## Filtering, sorting, or regrouping resets to page 1
 
-A user looking at page 7 of a result that filtering, sorting, or regrouping just shrank to 2 pages is not silently stranded on an empty page — under uncontrolled pagination, any of the three resets `pageIndex` back to `0`, as does a change of `paginationUnit`. That reset fires no `onPaginationChange` of its own. A controlled `pagination` is yours to reset; until you do, the grid shows the last page that exists. See [controlled state](/docs/react/state#the-page-goes-back-to-the-first-page).
+A user looking at page 7 of a result that filtering, sorting, or regrouping just shrank to 2 pages is not silently stranded on an empty page — under uncontrolled pagination, any of the three resets `pageIndex` back to `0`, as does a change of `paginationUnit`. That reset fires no `onPaginationChange` of its own. Rows that shrink under a later page without such a change (a collapsed group, a shorter `dataSource`) leave the grid on the last page that exists, and an uncontrolled pagination stores that page, just as silently, so expanding the group again stays on the page shown. A controlled `pagination` is yours to reset; until you do, the grid shows the last page that exists. See [controlled state](/docs/react/state#the-page-goes-back-to-the-first-page).
 
 ## Keyboard
 
@@ -347,16 +347,16 @@ See [imperative handle](/docs/react/imperative-handle) for `subscribe`, the prim
 
 The pagination methods on `DataGridApi`:
 
-| Method                      | Description                                                                                                      |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `getPagination()`           | The active page and page size.                                                                                   |
-| `getPageCount()`            | How many pages the current page size splits the rows into.                                                       |
-| `getPageRows()`             | The current page of `getDisplayRows()` — exactly the rows the body renders. All of them when `paginated` is off. |
-| `setPagination(pagination)` | Replaces the page and page size as given. Fires `onPaginationChange`.                                            |
-| `goToPage(pageIndex)`       | Moves to the given page, clamped into range.                                                                     |
-| `nextPage()`                | Moves to the next page. A no-op on the last page.                                                                |
-| `previousPage()`            | Moves to the previous page. A no-op on the first page.                                                           |
-| `setPageSize(pageSize)`     | Changes the page size, resetting to the first page.                                                              |
+| Method                      | Description                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `getPagination()`           | The active page and page size.                                                                                         |
+| `getPageCount()`            | How many pages the current page size splits the rows into.                                                             |
+| `getPageRows()`             | The current page of `getDisplayRows()` — exactly the rows the body renders. All of them when `paginated` is off.       |
+| `setPagination(pagination)` | Replaces the page and page size; uncontrolled, a page past the last is stored as the last. Fires `onPaginationChange`. |
+| `goToPage(pageIndex)`       | Moves to the given page, clamped into range.                                                                           |
+| `nextPage()`                | Moves to the next page. A no-op on the last page.                                                                      |
+| `previousPage()`            | Moves to the previous page. A no-op on the first page.                                                                 |
+| `setPageSize(pageSize)`     | Changes the page size, resetting to the first page.                                                                    |
 
 `getRows()`/`getDisplayRows()` are unaffected — they still return every row (filtered, sorted, and optionally grouped), never just the current page's slice; `getPageRows()` is that slice.
 
