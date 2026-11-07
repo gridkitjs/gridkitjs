@@ -60,7 +60,10 @@ tokens that are not colours, for the reason the comment at the top of
 
 Every style the grid has. The stylesheet targets the semantic class names
 `@gridkitjs/react` renders; components carry no styles of their own (see
-[packages/react/AGENTS.md](../react/AGENTS.md#styling)).
+[packages/react/AGENTS.md](../react/AGENTS.md#styling)). The row stripe also
+reads each row's `data-gridkit-row-index`, which holds under virtualization
+where `:nth-child` does not; a test in `row-virtualization.spec.tsx` fails if
+it stops working.
 
 ## Tests
 

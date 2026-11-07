@@ -173,7 +173,7 @@ The [column chooser](/docs/react/column-chooser) is an overlay too, in a `.gridk
 
 ### Filter menu
 
-A column's [filter menu](/docs/react/column-filter-menu) is an overlay too. Its buttons and fields are native, so a disabled button is `:disabled`; a sort entry for the direction the column sorts in is `[aria-pressed="true"]`, a value box marked invalid `[aria-invalid="true"]`, and a checklist value `[aria-checked="true"]` while checked. No token names an error colour, so a marked box and its message take `--gridkit-accent` turned red, as light or dark as the accent.
+A column's [filter menu](/docs/react/column-filter-menu) is an overlay too. Its buttons and fields are native, so a disabled button is `:disabled`; a sort entry for the direction the column sorts in is `[aria-pressed="true"]`, a value box marked invalid `[aria-invalid="true"]`, and a checklist value `[aria-checked="true"]` while checked. A marked box and its message take `--gridkit-error`, by default the accent turned red, as light or dark as the accent.
 
 | Class                            | Element               | Description                                                                                                                 |
 | -------------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------- |
@@ -245,7 +245,7 @@ It prints only what the grid has drawn: not the rows on another page, nor those 
 
 ### Colour utilities
 
-Each colour token is also a Tailwind colour named after it with a `gridkit-` prefix, so it works with any colour utility: `bg-gridkit-surface`, `text-gridkit-fg-muted`, `border-gridkit-line`, `ring-gridkit-accent`. The nine colours are `gridkit-surface`, `gridkit-surface-muted`, `gridkit-line`, `gridkit-hover-line`, `gridkit-fg`, `gridkit-fg-muted`, `gridkit-accent`, `gridkit-selected` and `gridkit-selected-strong`. The prefix keeps them from colliding with an `accent` or `surface` colour in your app's own theme. A utility reads the live token on the element it sits on, so it follows light and dark mode, `.gridkit-light` and `.gridkit-dark`, and any override of the token.
+Each colour token is also a Tailwind colour named after it with a `gridkit-` prefix, so it works with any colour utility: `bg-gridkit-surface`, `text-gridkit-fg-muted`, `border-gridkit-line`, `ring-gridkit-accent`. The palette's nine are `gridkit-surface`, `gridkit-surface-muted`, `gridkit-line`, `gridkit-hover-line`, `gridkit-fg`, `gridkit-fg-muted`, `gridkit-accent`, `gridkit-selected` and `gridkit-selected-strong`, and each colour that tunes one part of the grid is registered the same way, such as `gridkit-header-bg` or `gridkit-focus-ring`. The prefix keeps them from colliding with an `accent` or `surface` colour in your app's own theme. A utility reads the live token on the element it sits on, so it follows light and dark mode, `.gridkit-light` and `.gridkit-dark`, and any override of the token.
 
 ### Corner radius
 
@@ -253,7 +253,7 @@ Each colour token is also a Tailwind colour named after it with a `gridkit-` pre
 
 ### Scrollbars
 
-The viewport, the row area, the menus, the column chooser list and the filter checklist show thin scrollbars (`scrollbar-width: thin`) whose thumb is `--gridkit-fg-muted` at 45%, on a transparent track, so they follow light and dark with the other tokens. Engines without `scrollbar-color` get an 8px rounded `::-webkit-scrollbar` equivalent. Only the grid's own elements are styled, never `html` or `body`. To change them, set `scrollbar-width` or `scrollbar-color` on any of those classes.
+The viewport, the row area, the menus, the column chooser list and the filter checklist show thin scrollbars (`scrollbar-width: thin`) whose thumb is `--gridkit-scrollbar-thumb`, by default `--gridkit-fg-muted` at 45%, on a transparent track, so they follow light and dark with the other tokens. Engines without `scrollbar-color` get an 8px rounded `::-webkit-scrollbar` equivalent. Only the grid's own elements are styled, never `html` or `body`. To recolour the thumb, override the token's light and dark pair; to change the rest, set `scrollbar-width` or `scrollbar-color` on any of those classes.
 
 ### Light and dark values
 

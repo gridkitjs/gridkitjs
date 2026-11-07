@@ -45,6 +45,23 @@
  */
 :root {
   --gridkit-radius: 0.25rem;
+
+  /*
+   * A default of `inherit` is the CSS-wide keyword even here: it leaves the
+   * token with no value, so a declaration reading it falls back to `unset`,
+   * and the property, being one that inherits, takes the page's value.
+   */
+  --gridkit-font-family: inherit;
+  --gridkit-font-size: 1em;
+  --gridkit-menu-font-size: 0.875rem;
+  --gridkit-bar-font-size: 0.8125rem;
+  --gridkit-hint-font-size: 0.75rem;
+  --gridkit-header-font-weight: 700;
+  --gridkit-header-text-transform: inherit;
+  --gridkit-header-letter-spacing: inherit;
+  --gridkit-group-font-weight: 600;
+  --gridkit-font-variant-numeric: inherit;
+
   --gridkit-surface-light: oklch(1 0 0);
   --gridkit-surface-dark: oklch(0.21 0.01 250);
   --gridkit-surface-muted-light: oklch(0.97 0.003 250);
@@ -69,6 +86,41 @@
   --gridkit-selected-strong-light: oklch(0.9 0.05 255);
   --gridkit-selected-strong-dark: oklch(0.38 0.07 255);
 
+  /*
+   * The colours of single parts. Most default to a palette colour, so a
+   * change to the palette carries over to them; the header's text keeps the
+   * page's colour, as the cells' does, and rows are not striped.
+   */
+  --gridkit-header-bg-light: var(--gridkit-surface-light);
+  --gridkit-header-bg-dark: var(--gridkit-surface-dark);
+  --gridkit-header-fg-light: currentColor;
+  --gridkit-header-fg-dark: currentColor;
+  --gridkit-group-row-bg-light: var(--gridkit-surface-muted-light);
+  --gridkit-group-row-bg-dark: var(--gridkit-surface-muted-dark);
+  --gridkit-row-hover-bg-light: var(--gridkit-surface-muted-light);
+  --gridkit-row-hover-bg-dark: var(--gridkit-surface-muted-dark);
+  --gridkit-row-stripe-bg-light: transparent;
+  --gridkit-row-stripe-bg-dark: transparent;
+  --gridkit-focus-ring-light: var(--gridkit-accent-light);
+  --gridkit-focus-ring-dark: var(--gridkit-accent-dark);
+  --gridkit-accent-fg-light: var(--gridkit-surface-light);
+  --gridkit-accent-fg-dark: var(--gridkit-surface-dark);
+  /* The accent turned red, as light or dark as the accent. */
+  --gridkit-error-light: oklch(from var(--gridkit-accent-light) l c 25);
+  --gridkit-error-dark: oklch(from var(--gridkit-accent-dark) l c 25);
+  --gridkit-scrollbar-thumb-light: color-mix(
+    in oklch,
+    var(--gridkit-fg-muted-light) 45%,
+    transparent
+  );
+  --gridkit-scrollbar-thumb-dark: color-mix(
+    in oklch,
+    var(--gridkit-fg-muted-dark) 45%,
+    transparent
+  );
+  --gridkit-overlay-shadow-color-light: oklch(0 0 0 / 0.15);
+  --gridkit-overlay-shadow-color-dark: oklch(0 0 0 / 0.15);
+
   color-scheme: light;
   --gridkit-surface: var(--gridkit-surface-light);
   --gridkit-surface-muted: var(--gridkit-surface-muted-light);
@@ -79,6 +131,16 @@
   --gridkit-accent: var(--gridkit-accent-light);
   --gridkit-selected: var(--gridkit-selected-light);
   --gridkit-selected-strong: var(--gridkit-selected-strong-light);
+  --gridkit-header-bg: var(--gridkit-header-bg-light);
+  --gridkit-header-fg: var(--gridkit-header-fg-light);
+  --gridkit-group-row-bg: var(--gridkit-group-row-bg-light);
+  --gridkit-row-hover-bg: var(--gridkit-row-hover-bg-light);
+  --gridkit-row-stripe-bg: var(--gridkit-row-stripe-bg-light);
+  --gridkit-focus-ring: var(--gridkit-focus-ring-light);
+  --gridkit-accent-fg: var(--gridkit-accent-fg-light);
+  --gridkit-error: var(--gridkit-error-light);
+  --gridkit-scrollbar-thumb: var(--gridkit-scrollbar-thumb-light);
+  --gridkit-overlay-shadow-color: var(--gridkit-overlay-shadow-color-light);
 
   @variant dark {
     color-scheme: dark;
@@ -91,6 +153,29 @@
     --gridkit-accent: var(--gridkit-accent-dark);
     --gridkit-selected: var(--gridkit-selected-dark);
     --gridkit-selected-strong: var(--gridkit-selected-strong-dark);
+    --gridkit-header-bg: var(--gridkit-header-bg-dark);
+    --gridkit-header-fg: var(--gridkit-header-fg-dark);
+    --gridkit-group-row-bg: var(--gridkit-group-row-bg-dark);
+    --gridkit-row-hover-bg: var(--gridkit-row-hover-bg-dark);
+    --gridkit-row-stripe-bg: var(--gridkit-row-stripe-bg-dark);
+    --gridkit-focus-ring: var(--gridkit-focus-ring-dark);
+    --gridkit-accent-fg: var(--gridkit-accent-fg-dark);
+    --gridkit-error: var(--gridkit-error-dark);
+    --gridkit-scrollbar-thumb: var(--gridkit-scrollbar-thumb-dark);
+    --gridkit-overlay-shadow-color: var(--gridkit-overlay-shadow-color-dark);
+  }
+}
+
+/*
+ * Without relative colour syntax the error default above is invalid, and a
+ * declaration reading it would draw nothing at all, so there it is the text
+ * colour instead. A theme's own error colour, set on `:root` after this
+ * stylesheet, still wins.
+ */
+@supports not (color: oklch(from red l c h)) {
+  :root {
+    --gridkit-error-light: var(--gridkit-fg-light);
+    --gridkit-error-dark: var(--gridkit-fg-dark);
   }
 }
 
@@ -105,6 +190,16 @@
   --gridkit-accent: var(--gridkit-accent-light);
   --gridkit-selected: var(--gridkit-selected-light);
   --gridkit-selected-strong: var(--gridkit-selected-strong-light);
+  --gridkit-header-bg: var(--gridkit-header-bg-light);
+  --gridkit-header-fg: var(--gridkit-header-fg-light);
+  --gridkit-group-row-bg: var(--gridkit-group-row-bg-light);
+  --gridkit-row-hover-bg: var(--gridkit-row-hover-bg-light);
+  --gridkit-row-stripe-bg: var(--gridkit-row-stripe-bg-light);
+  --gridkit-focus-ring: var(--gridkit-focus-ring-light);
+  --gridkit-accent-fg: var(--gridkit-accent-fg-light);
+  --gridkit-error: var(--gridkit-error-light);
+  --gridkit-scrollbar-thumb: var(--gridkit-scrollbar-thumb-light);
+  --gridkit-overlay-shadow-color: var(--gridkit-overlay-shadow-color-light);
 }
 
 .gridkit-dark {
@@ -118,10 +213,20 @@
   --gridkit-accent: var(--gridkit-accent-dark);
   --gridkit-selected: var(--gridkit-selected-dark);
   --gridkit-selected-strong: var(--gridkit-selected-strong-dark);
+  --gridkit-header-bg: var(--gridkit-header-bg-dark);
+  --gridkit-header-fg: var(--gridkit-header-fg-dark);
+  --gridkit-group-row-bg: var(--gridkit-group-row-bg-dark);
+  --gridkit-row-hover-bg: var(--gridkit-row-hover-bg-dark);
+  --gridkit-row-stripe-bg: var(--gridkit-row-stripe-bg-dark);
+  --gridkit-focus-ring: var(--gridkit-focus-ring-dark);
+  --gridkit-accent-fg: var(--gridkit-accent-fg-dark);
+  --gridkit-error: var(--gridkit-error-dark);
+  --gridkit-scrollbar-thumb: var(--gridkit-scrollbar-thumb-dark);
+  --gridkit-overlay-shadow-color: var(--gridkit-overlay-shadow-color-dark);
 }
 
 /*
- * The palette as Tailwind colours, prefixed so they never claim a name like
+ * Every colour as a Tailwind colour, prefixed so it never claims a name like
  * `accent` or `surface` in the app's own theme: `bg-gridkit-accent`,
  * `text-gridkit-fg-muted`.
  *
@@ -142,6 +247,16 @@
   --color-gridkit-accent: var(--gridkit-accent);
   --color-gridkit-selected: var(--gridkit-selected);
   --color-gridkit-selected-strong: var(--gridkit-selected-strong);
+  --color-gridkit-header-bg: var(--gridkit-header-bg);
+  --color-gridkit-header-fg: var(--gridkit-header-fg);
+  --color-gridkit-group-row-bg: var(--gridkit-group-row-bg);
+  --color-gridkit-row-hover-bg: var(--gridkit-row-hover-bg);
+  --color-gridkit-row-stripe-bg: var(--gridkit-row-stripe-bg);
+  --color-gridkit-focus-ring: var(--gridkit-focus-ring);
+  --color-gridkit-accent-fg: var(--gridkit-accent-fg);
+  --color-gridkit-error: var(--gridkit-error);
+  --color-gridkit-scrollbar-thumb: var(--gridkit-scrollbar-thumb);
+  --color-gridkit-overlay-shadow-color: var(--gridkit-overlay-shadow-color);
 }
 
 /*
@@ -157,7 +272,20 @@
    */
   .gridkit-data-grid-viewport {
     overflow-x: auto;
+    font-size: var(--gridkit-font-size);
     border-radius: var(--gridkit-radius);
+  }
+
+  /*
+   * The grid's text, set on its root and again on what it renders into
+   * `document.body`, which sits outside that root.
+   */
+  .gridkit-data-grid-viewport,
+  .gridkit-data-grid.drag-ghost,
+  .group-by-chip.drag-ghost,
+  .gridkit-overlay {
+    font-family: var(--gridkit-font-family);
+    font-variant-numeric: var(--gridkit-font-variant-numeric);
   }
 
   /*
@@ -183,11 +311,10 @@
   /*
    * Slim scrollbars on the grid's own scroll regions, never on the page: the
    * viewport, the row area, the menus, and the column chooser and filter
-   * checklist lists. The thumb is the muted text colour thinned out, so it
-   * follows the light/dark swap above with no tokens of its own. Chromium
-   * and Firefox honour `scrollbar-width`/`scrollbar-color`; the
-   * `::-webkit-scrollbar` rules are only for engines that do not, since a
-   * browser that supports the standard properties ignores them anyway.
+   * checklist lists. Chromium and Firefox honour
+   * `scrollbar-width`/`scrollbar-color`; the `::-webkit-scrollbar` rules are
+   * only for engines that do not, since a browser that supports the standard
+   * properties ignores them anyway.
    */
   .gridkit-data-grid-viewport,
   .gridkit-data-grid-body,
@@ -195,12 +322,7 @@
   .column-chooser-list,
   .filter-menu-checklist {
     scrollbar-width: thin;
-    scrollbar-color: color-mix(
-        in oklch,
-        var(--gridkit-fg-muted) 45%,
-        transparent
-      )
-      transparent;
+    scrollbar-color: var(--gridkit-scrollbar-thumb) transparent;
   }
 
   @supports not (scrollbar-color: auto) {
@@ -226,11 +348,7 @@
     .gridkit-menu::-webkit-scrollbar-thumb,
     .column-chooser-list::-webkit-scrollbar-thumb,
     .filter-menu-checklist::-webkit-scrollbar-thumb {
-      background-color: color-mix(
-        in oklch,
-        var(--gridkit-fg-muted) 45%,
-        transparent
-      );
+      background-color: var(--gridkit-scrollbar-thumb);
       border-radius: 4px;
     }
   }
@@ -299,12 +417,16 @@
   }
 
   .gridkit-data-grid .grid-header {
-    background-color: var(--gridkit-surface);
+    color: var(--gridkit-header-fg);
+    background-color: var(--gridkit-header-bg);
   }
 
   .gridkit-data-grid .grid-header .header-cell {
     padding: 0.5rem;
     position: relative;
+    font-weight: var(--gridkit-header-font-weight);
+    letter-spacing: var(--gridkit-header-letter-spacing);
+    text-transform: var(--gridkit-header-text-transform);
   }
 
   .gridkit-data-grid .header-resize-handle {
@@ -341,7 +463,7 @@
    */
   .gridkit-data-grid .header-cell:focus-visible,
   .gridkit-data-grid .grid-cell:focus-visible {
-    outline: 2px solid var(--gridkit-accent);
+    outline: 2px solid var(--gridkit-focus-ring);
     outline-offset: -2px;
   }
 
@@ -393,12 +515,14 @@
     left: 0;
     z-index: 50;
     padding: 0.5rem;
-    font-weight: 700;
+    font-size: var(--gridkit-font-size);
+    font-weight: var(--gridkit-header-font-weight);
+    letter-spacing: var(--gridkit-header-letter-spacing);
+    text-transform: var(--gridkit-header-text-transform);
     text-align: center;
-    background-color: var(--gridkit-surface);
+    color: var(--gridkit-header-fg);
+    background-color: var(--gridkit-header-bg);
     border: 1px dashed var(--gridkit-accent);
-    /* border-radius: 0.25rem; */
-    /* box-shadow: 0 4px 12px oklch(0 0 0 / 0.15); */
     opacity: 0.75;
     pointer-events: none;
     /*
@@ -484,8 +608,7 @@
   }
 
   .gridkit-data-grid .header-sort-priority {
-    font-size: 0.625rem;
-    font-weight: 700;
+    font-size: calc(var(--gridkit-hint-font-size) * 5 / 6);
     line-height: 1;
   }
 
@@ -585,8 +708,26 @@
     background-color: var(--gridkit-surface-muted);
   }
 
+  /*
+   * Every second row, told by its `data-gridkit-row-index` ending in an odd
+   * digit. Not `:nth-child`: a virtualized grid mounts only the rows near the
+   * scroll position, after a spacer row, so a row's place among its siblings
+   * changes as it scrolls while its index does not. Ahead of the hover and
+   * selection rules, which win over it.
+   */
+  .gridkit-data-grid
+    .grid-row:where(
+      [data-gridkit-row-index$="1"],
+      [data-gridkit-row-index$="3"],
+      [data-gridkit-row-index$="5"],
+      [data-gridkit-row-index$="7"],
+      [data-gridkit-row-index$="9"]
+    ) {
+    background-color: var(--gridkit-row-stripe-bg);
+  }
+
   .gridkit-data-grid:not(.no-hover-rows) .grid-row:hover {
-    background-color: var(--gridkit-surface-muted);
+    background-color: var(--gridkit-row-hover-bg);
   }
 
   /*
@@ -595,7 +736,7 @@
    */
   .gridkit-data-grid .grid-group-row {
     cursor: pointer;
-    background-color: var(--gridkit-surface-muted);
+    background-color: var(--gridkit-group-row-bg);
   }
 
   .gridkit-data-grid .grid-group-row:hover {
@@ -612,7 +753,7 @@
   }
 
   .gridkit-data-grid .grid-group-cell:focus-visible {
-    outline: 2px solid var(--gridkit-accent);
+    outline: 2px solid var(--gridkit-focus-ring);
     outline-offset: -2px;
   }
 
@@ -621,7 +762,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem;
-    font-weight: 600;
+    font-weight: var(--gridkit-group-font-weight);
   }
 
   /* A right-pointing triangle that rotates open on expand. */
@@ -662,8 +803,9 @@
   }
 
   /*
-   * The grand-total footer, styled as the header's counterpart: same
-   * surface, same cell padding. No border by default, matching the
+   * The grand-total footer, styled as the header's counterpart: the
+   * surface the header has by default, the same cell padding, and the weight
+   * of the group rows' totals. No border by default, matching the
    * header's own `.header-cell` — see the `borders-*` variants below for
    * the opt-in top border that echoes the header's bottom one.
    */
@@ -673,23 +815,23 @@
 
   .gridkit-data-grid .grid-footer-cell {
     padding: 0.5rem;
-    font-weight: 600;
+    font-weight: var(--gridkit-group-font-weight);
   }
 
   /*
    * A group's own summary row (`groupAggregateDisplay: "row"`) — the
    * per-column-cell alternative to `.group-aggregates`' inline text.
-   * Shares the group header's muted surface so the pair read as one unit,
+   * Shares the group header's background so the pair read as one unit,
    * but is presentational: no hover state, no pointer cursor, matching
    * `GridGroupSummaryRow`'s own lack of any click/focus handling.
    */
   .gridkit-data-grid .grid-group-summary-row {
-    background-color: var(--gridkit-surface-muted);
+    background-color: var(--gridkit-group-row-bg);
   }
 
   .gridkit-data-grid .grid-group-summary-cell {
     padding: 0.5rem;
-    font-weight: 600;
+    font-weight: var(--gridkit-group-font-weight);
   }
 
   /*
@@ -893,7 +1035,7 @@
     gap: 0.5rem;
     padding: 0.5rem;
     overflow: hidden;
-    font-size: 0.8125rem;
+    font-size: var(--gridkit-bar-font-size);
     color: var(--gridkit-fg);
     background-color: var(--gridkit-surface);
     border-bottom: 1px solid var(--gridkit-line);
@@ -935,7 +1077,7 @@
   }
 
   .toolbar-button:focus-visible {
-    outline: 2px solid var(--gridkit-accent);
+    outline: 2px solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
@@ -995,7 +1137,7 @@
   }
 
   .toolbar-search:focus-visible {
-    outline: 2px solid var(--gridkit-accent);
+    outline: 2px solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
@@ -1058,7 +1200,7 @@
   }
 
   .group-by-bar-placeholder {
-    font-size: 0.8125rem;
+    font-size: var(--gridkit-bar-font-size);
     color: var(--gridkit-fg-muted);
   }
 
@@ -1068,7 +1210,7 @@
     align-items: center;
     gap: 0.375rem;
     padding: 0.25rem 0.5rem;
-    font-size: 0.8125rem;
+    font-size: var(--gridkit-bar-font-size);
     color: var(--gridkit-fg);
     background-color: var(--gridkit-selected);
     border-radius: 9999px;
@@ -1078,7 +1220,7 @@
   }
 
   .group-by-chip:focus-visible {
-    outline: 2px solid var(--gridkit-accent);
+    outline: 2px solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
@@ -1151,7 +1293,7 @@
   }
 
   .group-by-chip-remove:focus-visible {
-    outline: 2px solid var(--gridkit-accent);
+    outline: 2px solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
@@ -1166,7 +1308,7 @@
     align-items: center;
     gap: 0.5rem 1rem;
     padding: 0.5rem;
-    font-size: 0.8125rem;
+    font-size: var(--gridkit-bar-font-size);
     color: var(--gridkit-fg);
     background-color: var(--gridkit-surface);
     border-top: 1px solid var(--gridkit-line);
@@ -1249,7 +1391,7 @@
 
   .grid-pager-button:focus-visible {
     z-index: 2;
-    outline: 2px solid var(--gridkit-accent);
+    outline: 2px solid var(--gridkit-focus-ring);
     outline-offset: -2px;
   }
 
@@ -1325,7 +1467,7 @@
   }
 
   .grid-pager-page-size select:focus-visible {
-    outline: 2px solid var(--gridkit-accent);
+    outline: 2px solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
@@ -1356,11 +1498,11 @@
     max-height: 100vh;
     overflow-y: auto;
     padding: 0.25rem 0;
-    font-size: 0.875rem;
+    font-size: var(--gridkit-menu-font-size);
     background-color: var(--gridkit-surface);
     border: 1px solid var(--gridkit-line);
     border-radius: 0.375rem;
-    box-shadow: 0 4px 12px oklch(0 0 0 / 0.15);
+    box-shadow: 0 4px 12px var(--gridkit-overlay-shadow-color);
   }
 
   .menu-item {
@@ -1434,7 +1576,7 @@
 
   .menu-item-shortcut {
     margin-inline-start: 1.5rem;
-    font-size: 0.75rem;
+    font-size: var(--gridkit-hint-font-size);
     color: var(--gridkit-fg-muted);
   }
 
@@ -1461,11 +1603,11 @@
     gap: 0.375rem;
     width: 16rem;
     padding: 0.5rem;
-    font-size: 0.875rem;
+    font-size: var(--gridkit-menu-font-size);
     background-color: var(--gridkit-surface);
     border: 1px solid var(--gridkit-line);
     border-radius: 0.375rem;
-    box-shadow: 0 4px 12px oklch(0 0 0 / 0.15);
+    box-shadow: 0 4px 12px var(--gridkit-overlay-shadow-color);
   }
 
   .column-chooser-search {
@@ -1484,7 +1626,7 @@
   }
 
   .column-chooser-search:focus-visible {
-    outline: 2px solid var(--gridkit-accent);
+    outline: 2px solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
@@ -1530,7 +1672,7 @@
   }
 
   .column-chooser-option input:focus-visible {
-    outline: 2px solid var(--gridkit-accent);
+    outline: 2px solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
@@ -1559,11 +1701,11 @@
     box-sizing: border-box;
     width: 18rem;
     padding: 0.5rem;
-    font-size: 0.875rem;
+    font-size: var(--gridkit-menu-font-size);
     background-color: var(--gridkit-surface);
     border: 1px solid var(--gridkit-line);
     border-radius: 0.375rem;
-    box-shadow: 0 4px 12px oklch(0 0 0 / 0.15);
+    box-shadow: 0 4px 12px var(--gridkit-overlay-shadow-color);
   }
 
   .filter-menu-form {
@@ -1600,7 +1742,7 @@
   }
 
   .filter-menu-sort-item:focus-visible {
-    outline: 2px solid var(--gridkit-accent);
+    outline: 2px solid var(--gridkit-focus-ring);
     outline-offset: -2px;
   }
 
@@ -1685,24 +1827,17 @@
 
   .filter-menu-operator:focus-visible,
   .filter-menu-value:focus-visible {
-    outline: 2px solid var(--gridkit-accent);
+    outline: 2px solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
-  /*
-   * No palette token names an error colour, so a marked box and its message
-   * take the accent turned red — as light or dark as the accent, in either
-   * palette — over the text colour where that syntax is not supported.
-   */
   .filter-menu-value[aria-invalid="true"] {
-    border-color: var(--gridkit-fg);
-    border-color: oklch(from var(--gridkit-accent) l c 25);
+    border-color: var(--gridkit-error);
   }
 
   .filter-menu-invalid {
     margin: 0;
-    color: var(--gridkit-fg);
-    color: oklch(from var(--gridkit-accent) l c 25);
+    color: var(--gridkit-error);
   }
 
   /* And/Or, native radio buttons between the two conditions. */
@@ -1725,7 +1860,7 @@
   }
 
   .filter-menu-combinator-option input:focus-visible {
-    outline: 2px solid var(--gridkit-accent);
+    outline: 2px solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
@@ -1768,7 +1903,7 @@
 
   .filter-menu-submenu:focus-visible,
   .filter-menu-back:focus-visible {
-    outline: 2px solid var(--gridkit-accent);
+    outline: 2px solid var(--gridkit-focus-ring);
     outline-offset: -2px;
   }
 
@@ -1816,7 +1951,7 @@
   }
 
   .filter-menu-search:focus-visible {
-    outline: 2px solid var(--gridkit-accent);
+    outline: 2px solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
@@ -1839,7 +1974,7 @@
   }
 
   .filter-menu-select-all input:focus-visible {
-    outline: 2px solid var(--gridkit-accent);
+    outline: 2px solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
@@ -1889,12 +2024,12 @@
   }
 
   .filter-menu-option:focus-visible {
-    outline: 2px solid var(--gridkit-accent);
+    outline: 2px solid var(--gridkit-focus-ring);
     outline-offset: -2px;
   }
 
   /*
-   * An outline, filled with the accent and ticked in the surface colour
+   * An outline, filled with the accent and ticked in `--gridkit-accent-fg`
    * while the option is checked, as the native "Select all" above it is.
    */
   .filter-menu-option-check {
@@ -1905,7 +2040,7 @@
     box-sizing: border-box;
     width: 1rem;
     height: 1rem;
-    color: var(--gridkit-surface);
+    color: var(--gridkit-accent-fg);
     border: 1px solid var(--gridkit-fg-muted);
     border-radius: 0.1875rem;
   }
@@ -1937,7 +2072,7 @@
   /* How many rows hold the value, muted at the end of its line. */
   .filter-menu-option-count {
     flex-shrink: 0;
-    font-size: 0.75rem;
+    font-size: var(--gridkit-hint-font-size);
     font-variant-numeric: tabular-nums;
     color: var(--gridkit-fg-muted);
   }
@@ -1971,7 +2106,7 @@
   }
 
   .filter-menu-actions button:focus-visible {
-    outline: 2px solid var(--gridkit-accent);
+    outline: 2px solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
