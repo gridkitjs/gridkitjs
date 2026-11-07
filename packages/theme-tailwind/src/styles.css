@@ -44,8 +44,6 @@
  *    than `:root` simply wins.
  */
 :root {
-  --gridkit-radius: 0.25rem;
-
   /*
    * A default of `inherit` is the CSS-wide keyword even here: it leaves the
    * token with no value, so a declaration reading it falls back to `unset`,
@@ -61,6 +59,49 @@
   --gridkit-header-letter-spacing: inherit;
   --gridkit-group-font-weight: 600;
   --gridkit-font-variant-numeric: inherit;
+
+  /*
+   * Every padding, gap and control height in the rules is a multiple of the
+   * spacing unit, unless a token below sets it for one part.
+   */
+  --gridkit-spacing: 0.25rem;
+  --gridkit-cell-padding-x: calc(var(--gridkit-spacing) * 2);
+  --gridkit-cell-padding-y: calc(var(--gridkit-spacing) * 2);
+  --gridkit-header-padding-x: var(--gridkit-cell-padding-x);
+  --gridkit-header-padding-y: var(--gridkit-cell-padding-y);
+  --gridkit-toolbar-padding: calc(var(--gridkit-spacing) * 2);
+  --gridkit-group-by-bar-padding: calc(var(--gridkit-spacing) * 2);
+  --gridkit-pager-padding: calc(var(--gridkit-spacing) * 2);
+  --gridkit-menu-item-padding-x: calc(var(--gridkit-spacing) * 3);
+  --gridkit-menu-item-padding-y: calc(var(--gridkit-spacing) * 1.5);
+
+  /* A line width of 0 turns that kind of line off. */
+  --gridkit-border-width: 1px;
+  --gridkit-border-style: solid;
+  --gridkit-row-line-width: var(--gridkit-border-width);
+  --gridkit-column-line-width: var(--gridkit-border-width);
+  --gridkit-outer-border-width: 0;
+
+  --gridkit-radius: 0.25rem;
+  --gridkit-menu-radius: 0.375rem;
+  --gridkit-control-radius: 0.25rem;
+
+  --gridkit-icon-size: 1rem;
+  --gridkit-header-icon-size: 14px;
+  --gridkit-focus-ring-width: 2px;
+  --gridkit-indicator-width: 2px;
+  /*
+   * The shadow's offset and blur. Its colour is the palette pair
+   * `--gridkit-overlay-shadow-color`, since a value declared here can't
+   * follow the palette.
+   */
+  --gridkit-overlay-shadow: 0 4px 12px;
+  --gridkit-menu-min-width: 12rem;
+  --gridkit-column-chooser-width: 16rem;
+  --gridkit-filter-menu-width: 18rem;
+  --gridkit-column-chooser-max-height: 17.5rem;
+  --gridkit-filter-checklist-height: 12rem;
+  --gridkit-transition-duration: 0.1s;
 
   --gridkit-surface-light: oklch(1 0 0);
   --gridkit-surface-dark: oklch(0.21 0.01 250);
@@ -274,6 +315,8 @@
     overflow-x: auto;
     font-size: var(--gridkit-font-size);
     border-radius: var(--gridkit-radius);
+    border: var(--gridkit-outer-border-width) var(--gridkit-border-style)
+      var(--gridkit-line);
   }
 
   /*
@@ -422,7 +465,7 @@
   }
 
   .gridkit-data-grid .grid-header .header-cell {
-    padding: 0.5rem;
+    padding: var(--gridkit-header-padding-y) var(--gridkit-header-padding-x);
     position: relative;
     font-weight: var(--gridkit-header-font-weight);
     letter-spacing: var(--gridkit-header-letter-spacing);
@@ -450,7 +493,8 @@
    */
   .gridkit-data-grid .header-cell.is-resizing,
   .gridkit-data-grid .grid-cell.is-resizing {
-    box-shadow: inset -2px 0 0 0 var(--gridkit-hover-line);
+    box-shadow: inset calc(var(--gridkit-indicator-width) * -1) 0 0 0
+      var(--gridkit-hover-line);
   }
 
   /*
@@ -463,8 +507,8 @@
    */
   .gridkit-data-grid .header-cell:focus-visible,
   .gridkit-data-grid .grid-cell:focus-visible {
-    outline: 2px solid var(--gridkit-focus-ring);
-    outline-offset: -2px;
+    outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
+    outline-offset: calc(var(--gridkit-focus-ring-width) * -1);
   }
 
   /*
@@ -514,7 +558,7 @@
     top: 0;
     left: 0;
     z-index: 50;
-    padding: 0.5rem;
+    padding: var(--gridkit-header-padding-y) var(--gridkit-header-padding-x);
     font-size: var(--gridkit-font-size);
     font-weight: var(--gridkit-header-font-weight);
     letter-spacing: var(--gridkit-header-letter-spacing);
@@ -522,7 +566,7 @@
     text-align: center;
     color: var(--gridkit-header-fg);
     background-color: var(--gridkit-header-bg);
-    border: 1px dashed var(--gridkit-accent);
+    border: var(--gridkit-border-width) dashed var(--gridkit-accent);
     opacity: 0.75;
     pointer-events: none;
     /*
@@ -546,11 +590,12 @@
    * as a column out.
    */
   .gridkit-data-grid .header-cell.is-drop-before {
-    box-shadow: inset 2px 0 0 0 var(--gridkit-accent);
+    box-shadow: inset var(--gridkit-indicator-width) 0 0 0 var(--gridkit-accent);
   }
 
   .gridkit-data-grid .header-cell.is-drop-after {
-    box-shadow: inset -2px 0 0 0 var(--gridkit-accent);
+    box-shadow: inset calc(var(--gridkit-indicator-width) * -1) 0 0 0
+      var(--gridkit-accent);
   }
 
   /*
@@ -568,17 +613,17 @@
     display: inline-flex;
     position: absolute;
     top: 50%;
-    right: 0.75rem;
+    right: calc(var(--gridkit-spacing) * 3);
     transform: translateY(-50%);
     align-items: center;
-    gap: 0.125rem;
+    gap: calc(var(--gridkit-spacing) * 0.5);
     cursor: pointer;
     color: var(--gridkit-fg-muted);
   }
 
   .gridkit-data-grid .header-sort-toggle svg {
-    width: 14px;
-    height: 14px;
+    width: var(--gridkit-header-icon-size);
+    height: var(--gridkit-header-icon-size);
     flex-shrink: 0;
   }
 
@@ -626,14 +671,14 @@
     display: inline-flex;
     align-items: center;
     vertical-align: middle;
-    margin-right: 0.375rem;
+    margin-right: calc(var(--gridkit-spacing) * 1.5);
     cursor: pointer;
     color: var(--gridkit-fg-muted);
   }
 
   .gridkit-data-grid .header-group-toggle svg {
-    width: 14px;
-    height: 14px;
+    width: var(--gridkit-header-icon-size);
+    height: var(--gridkit-header-icon-size);
     flex-shrink: 0;
   }
 
@@ -663,7 +708,7 @@
     display: inline-flex;
     position: absolute;
     top: 50%;
-    right: 0.75rem;
+    right: calc(var(--gridkit-spacing) * 3);
     transform: translateY(-50%);
     align-items: center;
     cursor: pointer;
@@ -671,8 +716,8 @@
   }
 
   .gridkit-data-grid .header-filter-toggle svg {
-    width: 14px;
-    height: 14px;
+    width: var(--gridkit-header-icon-size);
+    height: var(--gridkit-header-icon-size);
     flex-shrink: 0;
   }
 
@@ -696,15 +741,16 @@
   .gridkit-data-grid
     .header-cell:has(> .header-filter-toggle)
     .header-sort-toggle {
-    right: 2rem;
+    /* The filter button's offset and width, then a gap. */
+    right: calc(var(--gridkit-spacing) * 4.5 + var(--gridkit-header-icon-size));
   }
 
   .gridkit-data-grid .grid-cell {
-    padding: 0.5rem;
+    padding: var(--gridkit-cell-padding-y) var(--gridkit-cell-padding-x);
   }
 
   .gridkit-data-grid:not(.no-hover-cells) .grid-cell:hover {
-    outline: 1px solid var(--gridkit-hover-line);
+    outline: var(--gridkit-border-width) solid var(--gridkit-hover-line);
     background-color: var(--gridkit-surface-muted);
   }
 
@@ -753,15 +799,15 @@
   }
 
   .gridkit-data-grid .grid-group-cell:focus-visible {
-    outline: 2px solid var(--gridkit-focus-ring);
-    outline-offset: -2px;
+    outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
+    outline-offset: calc(var(--gridkit-focus-ring-width) * -1);
   }
 
   .gridkit-data-grid .grid-group-cell-content {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem;
+    gap: calc(var(--gridkit-spacing) * 2);
+    padding: var(--gridkit-cell-padding-y) var(--gridkit-cell-padding-x);
     font-weight: var(--gridkit-group-font-weight);
   }
 
@@ -772,9 +818,10 @@
     width: 0;
     height: 0;
     border-style: solid;
-    border-width: 0.25rem 0 0.25rem 0.4rem;
+    border-width: calc(var(--gridkit-icon-size) / 4) 0
+      calc(var(--gridkit-icon-size) / 4) calc(var(--gridkit-icon-size) * 0.4);
     border-color: transparent transparent transparent var(--gridkit-fg-muted);
-    transition: transform 0.1s ease;
+    transition: transform var(--gridkit-transition-duration) ease;
   }
 
   .gridkit-data-grid .grid-group-row .group-toggle.is-expanded {
@@ -793,8 +840,8 @@
    */
   .gridkit-data-grid .grid-group-row .group-aggregates {
     display: flex;
-    gap: 0.75rem;
-    margin-inline-start: 0.5rem;
+    gap: calc(var(--gridkit-spacing) * 3);
+    margin-inline-start: calc(var(--gridkit-spacing) * 2);
     font-weight: 400;
   }
 
@@ -814,7 +861,7 @@
   }
 
   .gridkit-data-grid .grid-footer-cell {
-    padding: 0.5rem;
+    padding: var(--gridkit-cell-padding-y) var(--gridkit-cell-padding-x);
     font-weight: var(--gridkit-group-font-weight);
   }
 
@@ -830,7 +877,7 @@
   }
 
   .gridkit-data-grid .grid-group-summary-cell {
-    padding: 0.5rem;
+    padding: var(--gridkit-cell-padding-y) var(--gridkit-cell-padding-x);
     font-weight: var(--gridkit-group-font-weight);
   }
 
@@ -840,7 +887,7 @@
    * announced one.
    */
   .gridkit-data-grid .grid-loading-cell {
-    padding: 0.5rem;
+    padding: var(--gridkit-cell-padding-y) var(--gridkit-cell-padding-x);
     color: var(--gridkit-fg-muted);
     text-align: center;
   }
@@ -928,7 +975,8 @@
   .gridkit-data-grid.borders-horizontal .grid-cell,
   .gridkit-data-grid.borders-horizontal .grid-group-cell,
   .gridkit-data-grid.borders-horizontal .grid-group-summary-cell {
-    border-bottom: 1px solid var(--gridkit-line);
+    border-bottom: var(--gridkit-row-line-width) var(--gridkit-border-style)
+      var(--gridkit-line);
   }
 
   /*
@@ -938,12 +986,13 @@
    */
   .gridkit-data-grid.borders-horizontal .grid-footer-cell,
   .gridkit-data-grid.borders-all .grid-footer-cell {
-    border-top: 1px solid var(--gridkit-line);
+    border-top: var(--gridkit-row-line-width) var(--gridkit-border-style)
+      var(--gridkit-line);
   }
 
   /*
    * The last row's bottom edge has no row below it to collapse with, so
-   * unlike every internal boundary it is a genuinely extra pixel — the same
+   * unlike every internal boundary it is a genuinely extra line — the same
    * reason `borders-vertical` drops its `:last-child` border-right below.
    * Matched against both row kinds: the last rendered row can just as well
    * be a collapsed group header as a data row.
@@ -963,7 +1012,8 @@
   .gridkit-data-grid.borders-vertical .grid-cell,
   .gridkit-data-grid.borders-vertical .grid-footer-cell,
   .gridkit-data-grid.borders-vertical .grid-group-summary-cell {
-    border-right: 1px solid var(--gridkit-line);
+    border-right: var(--gridkit-column-line-width) var(--gridkit-border-style)
+      var(--gridkit-line);
   }
 
   .gridkit-data-grid.borders-vertical .grid-header .header-cell:last-child,
@@ -978,18 +1028,21 @@
   .gridkit-data-grid.borders-all .grid-cell,
   .gridkit-data-grid.borders-all .grid-group-cell,
   .gridkit-data-grid.borders-all .grid-group-summary-cell {
-    border-bottom: 1px solid var(--gridkit-line);
-    border-right: 1px solid var(--gridkit-line);
+    border-bottom: var(--gridkit-row-line-width) var(--gridkit-border-style)
+      var(--gridkit-line);
+    border-right: var(--gridkit-column-line-width) var(--gridkit-border-style)
+      var(--gridkit-line);
   }
 
   .gridkit-data-grid.borders-all .grid-footer-cell {
-    border-right: 1px solid var(--gridkit-line);
+    border-right: var(--gridkit-column-line-width) var(--gridkit-border-style)
+      var(--gridkit-line);
   }
 
   /*
    * The outer left/right edges have no neighbouring cell to collapse with, so
-   * unlike every internal boundary they are a genuinely extra pixel — without
-   * this the table would render 2px wider than the sum of its columns. A
+   * unlike every internal boundary they are a genuinely extra line — without
+   * this the table would render two lines wider than the sum of its columns. A
    * group cell is both its row's first and last child at once (it is the
    * only cell), so it takes both exceptions.
    */
@@ -1032,13 +1085,14 @@
     inset-inline-start: 0;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem;
+    gap: calc(var(--gridkit-spacing) * 2);
+    padding: var(--gridkit-toolbar-padding);
     overflow: hidden;
     font-size: var(--gridkit-bar-font-size);
     color: var(--gridkit-fg);
     background-color: var(--gridkit-surface);
-    border-bottom: 1px solid var(--gridkit-line);
+    border-bottom: var(--gridkit-border-width) var(--gridkit-border-style)
+      var(--gridkit-line);
   }
 
   .gridkit-toolbar > * {
@@ -1053,22 +1107,22 @@
   .gridkit-toolbar > .toolbar-more {
     position: sticky;
     /* Counted from the toolbar's padding edge, so its padding again. */
-    inset-inline-end: 0.5rem;
+    inset-inline-end: var(--gridkit-toolbar-padding);
   }
 
   /* A command, a dropdown, or "More". */
   .toolbar-button {
     display: inline-flex;
     align-items: center;
-    gap: 0.375rem;
-    padding: 0.25rem 0.625rem;
+    gap: calc(var(--gridkit-spacing) * 1.5);
+    padding: var(--gridkit-spacing) calc(var(--gridkit-spacing) * 2.5);
     font: inherit;
     color: var(--gridkit-fg);
     white-space: nowrap;
     cursor: pointer;
     background-color: var(--gridkit-surface);
-    border: 1px solid var(--gridkit-line);
-    border-radius: 0.25rem;
+    border: var(--gridkit-border-width) solid var(--gridkit-line);
+    border-radius: var(--gridkit-control-radius);
   }
 
   .toolbar-button:hover:not([aria-disabled="true"]),
@@ -1077,7 +1131,7 @@
   }
 
   .toolbar-button:focus-visible {
-    outline: 2px solid var(--gridkit-focus-ring);
+    outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
@@ -1108,12 +1162,12 @@
 
   .toolbar-button-icon svg,
   .toolbar-button-indicator svg {
-    width: 1rem;
-    height: 1rem;
+    width: var(--gridkit-icon-size);
+    height: var(--gridkit-icon-size);
   }
 
   .toolbar-button-indicator {
-    margin-inline-end: -0.25rem;
+    margin-inline-end: calc(var(--gridkit-spacing) * -1);
   }
 
   /*
@@ -1124,12 +1178,12 @@
   .toolbar-search {
     width: 12rem;
     max-width: 50%;
-    padding: 0.25rem 0.5rem;
+    padding: var(--gridkit-spacing) calc(var(--gridkit-spacing) * 2);
     font: inherit;
     color: var(--gridkit-fg);
     background-color: var(--gridkit-surface);
-    border: 1px solid var(--gridkit-line);
-    border-radius: 0.25rem;
+    border: var(--gridkit-border-width) solid var(--gridkit-line);
+    border-radius: var(--gridkit-control-radius);
   }
 
   .toolbar-search::placeholder {
@@ -1137,14 +1191,14 @@
   }
 
   .toolbar-search:focus-visible {
-    outline: 2px solid var(--gridkit-focus-ring);
+    outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
   .toolbar-separator {
     align-self: stretch;
-    width: 1px;
-    margin: 0.125rem 0;
+    width: var(--gridkit-border-width);
+    margin: calc(var(--gridkit-spacing) * 0.5) 0;
     background-color: var(--gridkit-line);
   }
 
@@ -1168,10 +1222,11 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem;
+    gap: calc(var(--gridkit-spacing) * 2);
+    padding: var(--gridkit-group-by-bar-padding);
     background-color: var(--gridkit-surface);
-    border-bottom: 1px solid var(--gridkit-line);
+    border-bottom: var(--gridkit-border-width) var(--gridkit-border-style)
+      var(--gridkit-line);
   }
 
   /*
@@ -1183,8 +1238,8 @@
    * the bar's background once hovered — the marks are enough on their own.
    */
   .gridkit-group-by-bar.is-drag-target {
-    outline: 2px dashed var(--gridkit-accent);
-    outline-offset: -2px;
+    outline: var(--gridkit-indicator-width) dashed var(--gridkit-accent);
+    outline-offset: calc(var(--gridkit-indicator-width) * -1);
   }
 
   /*
@@ -1195,8 +1250,8 @@
    */
   .gridkit-group-by-bar.is-drag-blocked {
     cursor: not-allowed;
-    outline: 2px dashed var(--gridkit-line);
-    outline-offset: -2px;
+    outline: var(--gridkit-indicator-width) dashed var(--gridkit-line);
+    outline-offset: calc(var(--gridkit-indicator-width) * -1);
   }
 
   .group-by-bar-placeholder {
@@ -1208,8 +1263,8 @@
     position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 0.375rem;
-    padding: 0.25rem 0.5rem;
+    gap: calc(var(--gridkit-spacing) * 1.5);
+    padding: var(--gridkit-spacing) calc(var(--gridkit-spacing) * 2);
     font-size: var(--gridkit-bar-font-size);
     color: var(--gridkit-fg);
     background-color: var(--gridkit-selected);
@@ -1220,7 +1275,7 @@
   }
 
   .group-by-chip:focus-visible {
-    outline: 2px solid var(--gridkit-focus-ring);
+    outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
@@ -1234,7 +1289,7 @@
    * draw this as an inset line, but an inset line on a pill this round would
    * be clipped by the chip's own `border-radius` into a curved sliver rather
    * than a clean mark — so this is a `::before`/`::after` mark of its own
-   * instead, sitting in the gap beside the chip. Absolutely positioned and
+   * instead, centred in the bar's gap beside the chip. Absolutely positioned and
    * so out of flow, it never shifts the chip or its neighbors the way a
    * change to border or padding would.
    */
@@ -1244,17 +1299,21 @@
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 2px;
-    border-radius: 1px;
+    width: var(--gridkit-indicator-width);
+    border-radius: calc(var(--gridkit-indicator-width) / 2);
     background-color: var(--gridkit-accent);
   }
 
   .group-by-chip.is-drop-before::before {
-    left: calc(-0.25rem - 1px);
+    left: calc(
+      var(--gridkit-spacing) * -1 - var(--gridkit-indicator-width) / 2
+    );
   }
 
   .group-by-chip.is-drop-after::after {
-    right: calc(-0.25rem - 1px);
+    right: calc(
+      var(--gridkit-spacing) * -1 - var(--gridkit-indicator-width) / 2
+    );
   }
 
   /*
@@ -1268,7 +1327,7 @@
     top: 0;
     left: 0;
     z-index: 50;
-    border: 1px dashed var(--gridkit-accent);
+    border: var(--gridkit-border-width) dashed var(--gridkit-accent);
     opacity: 0.75;
     pointer-events: none;
     will-change: transform;
@@ -1278,8 +1337,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 1rem;
-    height: 1rem;
+    width: var(--gridkit-icon-size);
+    height: var(--gridkit-icon-size);
     padding: 0;
     line-height: 1;
     color: inherit;
@@ -1293,7 +1352,7 @@
   }
 
   .group-by-chip-remove:focus-visible {
-    outline: 2px solid var(--gridkit-focus-ring);
+    outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
@@ -1306,12 +1365,13 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.5rem 1rem;
-    padding: 0.5rem;
+    gap: calc(var(--gridkit-spacing) * 2) calc(var(--gridkit-spacing) * 4);
+    padding: var(--gridkit-pager-padding);
     font-size: var(--gridkit-bar-font-size);
     color: var(--gridkit-fg);
     background-color: var(--gridkit-surface);
-    border-top: 1px solid var(--gridkit-line);
+    border-top: var(--gridkit-border-width) var(--gridkit-border-style)
+      var(--gridkit-line);
   }
 
   /*
@@ -1323,13 +1383,13 @@
    * `paginationWindow`'s constant slot count the arrows never move.
    */
   .grid-pager-bar {
-    --gridkit-pager-segment: 2rem;
+    --gridkit-pager-segment: calc(var(--gridkit-spacing) * 8);
     display: inline-flex;
     align-items: stretch;
     height: var(--gridkit-pager-segment);
     font-variant-numeric: tabular-nums;
     background-color: var(--gridkit-surface);
-    border: 1px solid var(--gridkit-line);
+    border: var(--gridkit-border-width) solid var(--gridkit-line);
     border-radius: var(--gridkit-radius);
   }
 
@@ -1349,19 +1409,27 @@
     color: var(--gridkit-fg);
     background-color: transparent;
     border: 0;
-    border-inline-start: 1px solid var(--gridkit-line);
+    border-inline-start: var(--gridkit-border-width) solid var(--gridkit-line);
     border-radius: 0;
   }
 
   .grid-pager-bar > :first-child {
     border-inline-start: 0;
-    border-start-start-radius: calc(var(--gridkit-radius) - 1px);
-    border-end-start-radius: calc(var(--gridkit-radius) - 1px);
+    border-start-start-radius: calc(
+      var(--gridkit-radius) - var(--gridkit-border-width)
+    );
+    border-end-start-radius: calc(
+      var(--gridkit-radius) - var(--gridkit-border-width)
+    );
   }
 
   .grid-pager-bar > :last-child {
-    border-start-end-radius: calc(var(--gridkit-radius) - 1px);
-    border-end-end-radius: calc(var(--gridkit-radius) - 1px);
+    border-start-end-radius: calc(
+      var(--gridkit-radius) - var(--gridkit-border-width)
+    );
+    border-end-end-radius: calc(
+      var(--gridkit-radius) - var(--gridkit-border-width)
+    );
   }
 
   .grid-pager-button {
@@ -1372,13 +1440,13 @@
   .grid-pager-ellipsis {
     width: max(
       var(--gridkit-pager-segment),
-      calc(var(--gridkit-pager-digits, 1) * 1ch + 1rem)
+      calc(var(--gridkit-pager-digits, 1) * 1ch + var(--gridkit-spacing) * 4)
     );
   }
 
   .grid-pager-nav svg {
-    width: 1rem;
-    height: 1rem;
+    width: var(--gridkit-icon-size);
+    height: var(--gridkit-icon-size);
   }
 
   .grid-pager-nav:dir(rtl) svg {
@@ -1391,8 +1459,8 @@
 
   .grid-pager-button:focus-visible {
     z-index: 2;
-    outline: 2px solid var(--gridkit-focus-ring);
-    outline-offset: -2px;
+    outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
+    outline-offset: calc(var(--gridkit-focus-ring-width) * -1);
   }
 
   .grid-pager-button[aria-disabled="true"] {
@@ -1414,7 +1482,7 @@
     z-index: 1;
     color: var(--gridkit-accent);
     background-color: var(--gridkit-selected);
-    box-shadow: inset 0 0 0 1px var(--gridkit-accent);
+    box-shadow: inset 0 0 0 var(--gridkit-border-width) var(--gridkit-accent);
   }
 
   .grid-pager-ellipsis {
@@ -1429,7 +1497,7 @@
    */
   .grid-pager-status-slot {
     display: inline-grid;
-    padding: 0 0.75rem;
+    padding: 0 calc(var(--gridkit-spacing) * 3);
     white-space: nowrap;
   }
 
@@ -1450,24 +1518,25 @@
   .grid-pager-page-size {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: calc(var(--gridkit-spacing) * 2);
     color: var(--gridkit-fg-muted);
   }
 
   .grid-pager-page-size select {
     box-sizing: border-box;
-    height: 2rem;
-    padding: 0 0.375rem;
+    /* As tall as the pager bar beside it. */
+    height: calc(var(--gridkit-spacing) * 8);
+    padding: 0 calc(var(--gridkit-spacing) * 1.5);
     font: inherit;
     font-variant-numeric: tabular-nums;
     color: var(--gridkit-fg);
     background-color: var(--gridkit-surface);
-    border: 1px solid var(--gridkit-line);
-    border-radius: 0.25rem;
+    border: var(--gridkit-border-width) solid var(--gridkit-line);
+    border-radius: var(--gridkit-control-radius);
   }
 
   .grid-pager-page-size select:focus-visible {
-    outline: 2px solid var(--gridkit-focus-ring);
+    outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
@@ -1494,22 +1563,24 @@
    * does not dismiss it, as one outside would.
    */
   .gridkit-menu {
-    min-width: 12rem;
+    min-width: var(--gridkit-menu-min-width);
     max-height: 100vh;
     overflow-y: auto;
-    padding: 0.25rem 0;
+    padding: var(--gridkit-spacing) 0;
     font-size: var(--gridkit-menu-font-size);
     background-color: var(--gridkit-surface);
-    border: 1px solid var(--gridkit-line);
-    border-radius: 0.375rem;
-    box-shadow: 0 4px 12px var(--gridkit-overlay-shadow-color);
+    border: var(--gridkit-border-width) solid var(--gridkit-line);
+    border-radius: var(--gridkit-menu-radius);
+    box-shadow: var(--gridkit-overlay-shadow)
+      var(--gridkit-overlay-shadow-color);
   }
 
   .menu-item {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.375rem 0.75rem;
+    gap: calc(var(--gridkit-spacing) * 2);
+    padding: var(--gridkit-menu-item-padding-y)
+      var(--gridkit-menu-item-padding-x);
     white-space: nowrap;
     cursor: pointer;
     user-select: none;
@@ -1555,15 +1626,15 @@
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    width: 1rem;
-    height: 1rem;
+    width: var(--gridkit-icon-size);
+    height: var(--gridkit-icon-size);
     color: var(--gridkit-fg-muted);
   }
 
   .menu-item-icon svg,
   .menu-submenu-indicator svg {
-    width: 1rem;
-    height: 1rem;
+    width: var(--gridkit-icon-size);
+    height: var(--gridkit-icon-size);
   }
 
   .menu-item[aria-checked="true"] .menu-item-icon {
@@ -1575,20 +1646,20 @@
   }
 
   .menu-item-shortcut {
-    margin-inline-start: 1.5rem;
+    margin-inline-start: calc(var(--gridkit-spacing) * 6);
     font-size: var(--gridkit-hint-font-size);
     color: var(--gridkit-fg-muted);
   }
 
   .menu-submenu-indicator {
     display: inline-flex;
-    margin-inline-end: -0.25rem;
+    margin-inline-end: calc(var(--gridkit-spacing) * -1);
     color: var(--gridkit-fg-muted);
   }
 
   .menu-separator {
-    height: 1px;
-    margin: 0.25rem 0;
+    height: var(--gridkit-border-width);
+    margin: var(--gridkit-spacing) 0;
     background-color: var(--gridkit-line);
   }
 
@@ -1600,25 +1671,26 @@
   .gridkit-column-chooser {
     display: flex;
     flex-direction: column;
-    gap: 0.375rem;
-    width: 16rem;
-    padding: 0.5rem;
+    gap: calc(var(--gridkit-spacing) * 1.5);
+    width: var(--gridkit-column-chooser-width);
+    padding: calc(var(--gridkit-spacing) * 2);
     font-size: var(--gridkit-menu-font-size);
     background-color: var(--gridkit-surface);
-    border: 1px solid var(--gridkit-line);
-    border-radius: 0.375rem;
-    box-shadow: 0 4px 12px var(--gridkit-overlay-shadow-color);
+    border: var(--gridkit-border-width) solid var(--gridkit-line);
+    border-radius: var(--gridkit-menu-radius);
+    box-shadow: var(--gridkit-overlay-shadow)
+      var(--gridkit-overlay-shadow-color);
   }
 
   .column-chooser-search {
     box-sizing: border-box;
     width: 100%;
-    padding: 0.25rem 0.5rem;
+    padding: var(--gridkit-spacing) calc(var(--gridkit-spacing) * 2);
     font: inherit;
     color: var(--gridkit-fg);
     background-color: var(--gridkit-surface);
-    border: 1px solid var(--gridkit-line);
-    border-radius: 0.25rem;
+    border: var(--gridkit-border-width) solid var(--gridkit-line);
+    border-radius: var(--gridkit-control-radius);
   }
 
   .column-chooser-search::placeholder {
@@ -1626,7 +1698,7 @@
   }
 
   .column-chooser-search:focus-visible {
-    outline: 2px solid var(--gridkit-focus-ring);
+    outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
@@ -1636,7 +1708,7 @@
    * box and "Show all" stay put above it.
    */
   .column-chooser-list {
-    max-height: 17.5rem;
+    max-height: var(--gridkit-column-chooser-max-height);
     margin: 0;
     padding: 0;
     overflow-y: auto;
@@ -1647,9 +1719,9 @@
   .column-chooser-option {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.25rem;
-    border-radius: 0.25rem;
+    gap: calc(var(--gridkit-spacing) * 2);
+    padding: var(--gridkit-spacing);
+    border-radius: var(--gridkit-control-radius);
     cursor: pointer;
     user-select: none;
   }
@@ -1660,8 +1732,8 @@
 
   /* "Show all", set apart from the columns it acts on. */
   .column-chooser-all {
-    padding-bottom: 0.375rem;
-    border-bottom: 1px solid var(--gridkit-line);
+    padding-bottom: calc(var(--gridkit-spacing) * 1.5);
+    border-bottom: var(--gridkit-border-width) solid var(--gridkit-line);
     border-radius: 0;
   }
 
@@ -1672,7 +1744,7 @@
   }
 
   .column-chooser-option input:focus-visible {
-    outline: 2px solid var(--gridkit-focus-ring);
+    outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
@@ -1688,7 +1760,7 @@
 
   .column-chooser-empty {
     margin: 0;
-    padding: 0.25rem;
+    padding: var(--gridkit-spacing);
     color: var(--gridkit-fg-muted);
   }
 
@@ -1699,19 +1771,20 @@
    */
   .gridkit-filter-menu {
     box-sizing: border-box;
-    width: 18rem;
-    padding: 0.5rem;
+    width: var(--gridkit-filter-menu-width);
+    padding: calc(var(--gridkit-spacing) * 2);
     font-size: var(--gridkit-menu-font-size);
     background-color: var(--gridkit-surface);
-    border: 1px solid var(--gridkit-line);
-    border-radius: 0.375rem;
-    box-shadow: 0 4px 12px var(--gridkit-overlay-shadow-color);
+    border: var(--gridkit-border-width) solid var(--gridkit-line);
+    border-radius: var(--gridkit-menu-radius);
+    box-shadow: var(--gridkit-overlay-shadow)
+      var(--gridkit-overlay-shadow-color);
   }
 
   .filter-menu-form {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: calc(var(--gridkit-spacing) * 2);
     margin: 0;
   }
 
@@ -1719,21 +1792,21 @@
   .filter-menu-sort {
     display: flex;
     flex-direction: column;
-    padding-bottom: 0.375rem;
-    border-bottom: 1px solid var(--gridkit-line);
+    padding-bottom: calc(var(--gridkit-spacing) * 1.5);
+    border-bottom: var(--gridkit-border-width) solid var(--gridkit-line);
   }
 
   .filter-menu-sort-item {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.375rem 0.5rem;
+    gap: calc(var(--gridkit-spacing) * 2);
+    padding: var(--gridkit-menu-item-padding-y) calc(var(--gridkit-spacing) * 2);
     font: inherit;
     color: inherit;
     text-align: start;
     background: none;
     border: 0;
-    border-radius: 0.25rem;
+    border-radius: var(--gridkit-control-radius);
     cursor: pointer;
   }
 
@@ -1742,8 +1815,8 @@
   }
 
   .filter-menu-sort-item:focus-visible {
-    outline: 2px solid var(--gridkit-focus-ring);
-    outline-offset: -2px;
+    outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
+    outline-offset: calc(var(--gridkit-focus-ring-width) * -1);
   }
 
   .filter-menu-sort-item:disabled {
@@ -1758,14 +1831,14 @@
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    width: 1rem;
-    height: 1rem;
+    width: var(--gridkit-icon-size);
+    height: var(--gridkit-icon-size);
     color: var(--gridkit-fg-muted);
   }
 
   .filter-menu-sort-icon svg {
-    width: 1rem;
-    height: 1rem;
+    width: var(--gridkit-icon-size);
+    height: var(--gridkit-icon-size);
   }
 
   /* The direction the column sorts in now. */
@@ -1780,7 +1853,7 @@
   .filter-menu-conditions {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: calc(var(--gridkit-spacing) * 2);
   }
 
   /*
@@ -1789,10 +1862,10 @@
    */
   .filter-menu-custom {
     margin: 0;
-    padding: 0.25rem 0.5rem;
+    padding: var(--gridkit-spacing) calc(var(--gridkit-spacing) * 2);
     color: var(--gridkit-fg-muted);
     background-color: var(--gridkit-surface-muted);
-    border-radius: 0.25rem;
+    border-radius: var(--gridkit-control-radius);
   }
 
   /*
@@ -1802,19 +1875,19 @@
   .filter-menu-condition {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.375rem;
+    gap: calc(var(--gridkit-spacing) * 1.5);
   }
 
   .filter-menu-operator,
   .filter-menu-value {
     box-sizing: border-box;
     min-width: 0;
-    padding: 0.25rem 0.5rem;
+    padding: var(--gridkit-spacing) calc(var(--gridkit-spacing) * 2);
     font: inherit;
     color: var(--gridkit-fg);
     background-color: var(--gridkit-surface);
-    border: 1px solid var(--gridkit-line);
-    border-radius: 0.25rem;
+    border: var(--gridkit-border-width) solid var(--gridkit-line);
+    border-radius: var(--gridkit-control-radius);
   }
 
   .filter-menu-operator {
@@ -1827,7 +1900,7 @@
 
   .filter-menu-operator:focus-visible,
   .filter-menu-value:focus-visible {
-    outline: 2px solid var(--gridkit-focus-ring);
+    outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
@@ -1843,13 +1916,13 @@
   /* And/Or, native radio buttons between the two conditions. */
   .filter-menu-combinator {
     display: flex;
-    gap: 1rem;
+    gap: calc(var(--gridkit-spacing) * 4);
   }
 
   .filter-menu-combinator-option {
     display: inline-flex;
     align-items: center;
-    gap: 0.375rem;
+    gap: calc(var(--gridkit-spacing) * 1.5);
     cursor: pointer;
     user-select: none;
   }
@@ -1860,7 +1933,7 @@
   }
 
   .filter-menu-combinator-option input:focus-visible {
-    outline: 2px solid var(--gridkit-focus-ring);
+    outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
@@ -1871,7 +1944,7 @@
   .filter-menu-values {
     display: flex;
     flex-direction: column;
-    gap: 0.375rem;
+    gap: calc(var(--gridkit-spacing) * 1.5);
   }
 
   /*
@@ -1884,14 +1957,14 @@
   .filter-menu-back {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.375rem 0.5rem;
+    gap: calc(var(--gridkit-spacing) * 2);
+    padding: var(--gridkit-menu-item-padding-y) calc(var(--gridkit-spacing) * 2);
     font: inherit;
     color: inherit;
     text-align: start;
     background: none;
     border: 0;
-    border-radius: 0.25rem;
+    border-radius: var(--gridkit-control-radius);
     cursor: pointer;
   }
 
@@ -1903,8 +1976,8 @@
 
   .filter-menu-submenu:focus-visible,
   .filter-menu-back:focus-visible {
-    outline: 2px solid var(--gridkit-focus-ring);
-    outline-offset: -2px;
+    outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
+    outline-offset: calc(var(--gridkit-focus-ring-width) * -1);
   }
 
   .filter-menu-submenu-icon,
@@ -1914,15 +1987,15 @@
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    width: 1rem;
-    height: 1rem;
+    width: var(--gridkit-icon-size);
+    height: var(--gridkit-icon-size);
     color: var(--gridkit-fg-muted);
   }
 
   .filter-menu-submenu svg,
   .filter-menu-back svg {
-    width: 1rem;
-    height: 1rem;
+    width: var(--gridkit-icon-size);
+    height: var(--gridkit-icon-size);
   }
 
   /* Ticked while the column is filtered by conditions, as Excel's is. */
@@ -1938,12 +2011,12 @@
   .filter-menu-search {
     box-sizing: border-box;
     width: 100%;
-    padding: 0.25rem 0.5rem;
+    padding: var(--gridkit-spacing) calc(var(--gridkit-spacing) * 2);
     font: inherit;
     color: var(--gridkit-fg);
     background-color: var(--gridkit-surface);
-    border: 1px solid var(--gridkit-line);
-    border-radius: 0.25rem;
+    border: var(--gridkit-border-width) solid var(--gridkit-line);
+    border-radius: var(--gridkit-control-radius);
   }
 
   .filter-menu-search::placeholder {
@@ -1951,7 +2024,7 @@
   }
 
   .filter-menu-search:focus-visible {
-    outline: 2px solid var(--gridkit-focus-ring);
+    outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
@@ -1959,22 +2032,23 @@
   .filter-menu-select-all {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.25rem calc(0.5rem + 1px);
+    gap: calc(var(--gridkit-spacing) * 2);
+    padding: var(--gridkit-spacing)
+      calc(var(--gridkit-spacing) * 2 + var(--gridkit-border-width));
     cursor: pointer;
     user-select: none;
   }
 
   .filter-menu-select-all input {
     flex-shrink: 0;
-    width: 1rem;
-    height: 1rem;
+    width: var(--gridkit-icon-size);
+    height: var(--gridkit-icon-size);
     margin: 0;
     accent-color: var(--gridkit-accent);
   }
 
   .filter-menu-select-all input:focus-visible {
-    outline: 2px solid var(--gridkit-focus-ring);
+    outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
@@ -1993,10 +2067,10 @@
   .filter-menu-checklist,
   .filter-menu-search-first {
     box-sizing: border-box;
-    height: 12rem;
+    height: var(--gridkit-filter-checklist-height);
     margin: 0;
-    border: 1px solid var(--gridkit-line);
-    border-radius: 0.25rem;
+    border: var(--gridkit-border-width) solid var(--gridkit-line);
+    border-radius: var(--gridkit-control-radius);
   }
 
   .filter-menu-checklist {
@@ -2004,7 +2078,7 @@
   }
 
   .filter-menu-search-first {
-    padding: 0.5rem;
+    padding: calc(var(--gridkit-spacing) * 2);
     color: var(--gridkit-fg-muted);
   }
 
@@ -2012,8 +2086,8 @@
   .filter-menu-option {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.25rem 0.5rem;
+    gap: calc(var(--gridkit-spacing) * 2);
+    padding: var(--gridkit-spacing) calc(var(--gridkit-spacing) * 2);
     line-height: 1.25rem;
     cursor: pointer;
     user-select: none;
@@ -2024,8 +2098,8 @@
   }
 
   .filter-menu-option:focus-visible {
-    outline: 2px solid var(--gridkit-focus-ring);
-    outline-offset: -2px;
+    outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
+    outline-offset: calc(var(--gridkit-focus-ring-width) * -1);
   }
 
   /*
@@ -2038,16 +2112,16 @@
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    width: 1rem;
-    height: 1rem;
+    width: var(--gridkit-icon-size);
+    height: var(--gridkit-icon-size);
     color: var(--gridkit-accent-fg);
-    border: 1px solid var(--gridkit-fg-muted);
-    border-radius: 0.1875rem;
+    border: var(--gridkit-border-width) solid var(--gridkit-fg-muted);
+    border-radius: calc(var(--gridkit-control-radius) * 0.75);
   }
 
   .filter-menu-option-check svg {
-    width: 0.75rem;
-    height: 0.75rem;
+    width: calc(var(--gridkit-icon-size) * 0.75);
+    height: calc(var(--gridkit-icon-size) * 0.75);
     visibility: hidden;
   }
 
@@ -2080,7 +2154,7 @@
   /* "250 more, refine the search", under a list the value limit cut short. */
   .filter-menu-more {
     margin: 0;
-    padding: 0 0.5rem;
+    padding: 0 calc(var(--gridkit-spacing) * 2);
     color: var(--gridkit-fg-muted);
   }
 
@@ -2088,16 +2162,16 @@
   .filter-menu-actions {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: calc(var(--gridkit-spacing) * 2);
   }
 
   .filter-menu-actions button {
-    padding: 0.25rem 0.75rem;
+    padding: var(--gridkit-spacing) calc(var(--gridkit-spacing) * 3);
     font: inherit;
     color: var(--gridkit-fg);
     background-color: var(--gridkit-surface);
-    border: 1px solid var(--gridkit-line);
-    border-radius: 0.25rem;
+    border: var(--gridkit-border-width) solid var(--gridkit-line);
+    border-radius: var(--gridkit-control-radius);
     cursor: pointer;
   }
 
@@ -2106,7 +2180,7 @@
   }
 
   .filter-menu-actions button:focus-visible {
-    outline: 2px solid var(--gridkit-focus-ring);
+    outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
