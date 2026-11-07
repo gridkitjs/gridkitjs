@@ -23,19 +23,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Reads the pnpm version from the `packageManager` field in package.json.
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: "pnpm"
 
       # The smoke apps install with npm, as a consumer would, so they get
       # npm's cache rather than pnpm's store; keyed on their pinned versions.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.npm
           key: smoke-npm-${{ runner.os }}-${{ hashFiles('scripts/smoke/*/package.json') }}
@@ -61,7 +61,7 @@ jobs:
 
       # `.pack/` is a dot-directory, which upload-artifact skips by default.
       - if: inputs.upload-tarballs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: package-tarballs
           path: .pack/
