@@ -59,7 +59,7 @@ Keep a controlled value stable — the same array or object until it changes, as
 
 ## The page goes back to the first page
 
-When the filter, the sort or the grouping changes, the grid sends its own page back to the first one, so nobody is left on page 7 of a result that now has two. That reset is a consequence of the change, not a page change of its own, so it does not call `onPaginationChange`.
+When the filter, the sort, the grouping or `paginationUnit` changes, the grid sends its own page back to the first one, so nobody is left on page 7 of a result that now has two. That reset is a consequence of the change, not a page change of its own, so it does not call `onPaginationChange`.
 
 A controlled `pagination` is never changed behind your back. Reset it alongside the change if you want the same behaviour; until you do, the grid shows the last page that exists rather than an empty one.
 

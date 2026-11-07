@@ -1,7 +1,10 @@
 // Coverage is only collected when tests import `test`/`expect` from
 // ./support/coverage rather than directly from the CT package — see that
 // file for why.
-import type { MountResult } from "@playwright/experimental-ct-react";
+import type {
+  ComponentFixtures,
+  MountResult,
+} from "@playwright/experimental-ct-react";
 import type { ColumnDefinition, PaginationState } from "@gridkitjs/core";
 import { ariaRowCount, ariaRowIndexes, consecutive } from "./support/ariaRows";
 import { expect, test } from "./support/coverage";
@@ -144,6 +147,80 @@ test("a page never contains a partial group, even when that shifts the row count
   await expect(groupHeaders(root)).toHaveCount(1);
   await expect(groupHeaders(root).first()).toContainText("West");
   expect(await rowIds(root)).toEqual(["r1", "r3", "r5", "r6", "r7"]);
+});
+
+test.describe('paginationUnit="row"', () => {
+  function mountRowPaged(mount: ComponentFixtures["mount"]) {
+    return mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildRows()}
+        label="Pagination by row"
+        defaultGroupBy={[{ columnId: "region" }]}
+        paginated
+        paginationUnit="row"
+        defaultPagination={{ pageIndex: 0, pageSize: 3 }}
+      />,
+    );
+  }
+
+  test("each page holds pageSize data rows, repeating the header of the group it continues", async ({
+    mount,
+  }) => {
+    const root = await mountRowPaged(mount);
+
+    // aria-rowindex: the column header row is 1, then East 2, r2 3, r4 4,
+    // West 5, r1 6, r3 7, r5 8, r6 9, r7 10.
+    await expect(pagerStatus(root)).toHaveText("Page 1 of 3");
+    await expect(groupHeaders(root)).toHaveText([/East/, /West/]);
+    expect(await rowIds(root)).toEqual(["r2", "r4", "r1"]);
+    expect(await ariaRowIndexes(root)).toEqual(consecutive(1, 6));
+
+    await root.getByRole("button", { name: "Next" }).click();
+    await expect(pagerStatus(root)).toHaveText("Page 2 of 3");
+    await expect(groupHeaders(root)).toHaveCount(1);
+    await expect(groupHeaders(root).first()).toContainText("West");
+    expect(await rowIds(root)).toEqual(["r3", "r5", "r6"]);
+    expect(await ariaRowIndexes(root)).toEqual([1, 5, 7, 8, 9]);
+
+    await root.getByRole("button", { name: "Next" }).click();
+    await expect(groupHeaders(root).first()).toContainText("West");
+    expect(await rowIds(root)).toEqual(["r7"]);
+    expect(await ariaRowIndexes(root)).toEqual([1, 5, 10]);
+  });
+
+  test("collapsing the repeated header collapses the group it continues", async ({
+    mount,
+  }) => {
+    const root = await mountRowPaged(mount);
+    await root.getByRole("button", { name: "Next" }).click();
+
+    const west = groupHeaders(root).filter({ hasText: "West" });
+    await west.click();
+
+    // A collapsed West is one row, so East's two rows and West fit one page.
+    await expect(west).toHaveAttribute("aria-expanded", "false");
+    await expect(pagerStatus(root)).toHaveText("Page 1 of 1");
+    expect(await rowIds(root)).toEqual(["r2", "r4"]);
+  });
+
+  test("collapsing the group from the page it starts on removes its rows from the pages after", async ({
+    mount,
+  }) => {
+    const root = await mountRowPaged(mount);
+
+    const west = groupHeaders(root).filter({ hasText: "West" });
+    await west.click();
+
+    await expect(west).toHaveAttribute("aria-expanded", "false");
+    await expect(pagerStatus(root)).toHaveText("Page 1 of 1");
+    expect(await rowIds(root)).toEqual(["r2", "r4"]);
+
+    await west.click();
+    await expect(pagerStatus(root)).toHaveText("Page 1 of 3");
+    expect(await rowIds(root)).toEqual(["r2", "r4", "r1"]);
+  });
 });
 
 test("changing the page size recomputes the page count and clamps the current page", async ({

@@ -195,7 +195,7 @@ A poll fits the same shape: fetch on an interval, and pass the rows that come ba
 
 - **Selection follows the row.** Selection is held as row ids, so a selected row stays selected wherever the update moves it. A selected row that leaves `dataSource` drops out of `getSelectedRows()`, though its id stays in `getRowSelection()`, so the row is selected again if it comes back. Without `getRowId` a row's id is its position, and a selection stays on the position as different rows move through it.
 - **Sort and filter apply to the new values.** A row whose sorted value changed moves to its new place, and a row whose value no longer passes the filter disappears. There is no setting to hold rows in place; pause the updates while the user works, as the sample does, or leave the grid unsorted.
-- **The page stays put.** An update does not send the grid back to the first page; only a change of sort, filter or row grouping does. A page past the new end shows the last page.
+- **The page stays put.** An update does not send the grid back to the first page; only a change of sort, filter, row grouping or `paginationUnit` does. A page past the new end shows the last page.
 - **Focus stays at its position.** The focused cell is a row and column position, not a row, so a re-sort moves a different row under it.
 - **Only changed rows re-render.** A row re-renders when its object changes, so keeping the objects of unchanged rows, as both samples do, keeps a tick cheap. Keep `columns` and `getRowId` stable too; see [performance](/docs/react/performance).
 

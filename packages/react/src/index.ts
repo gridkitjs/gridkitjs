@@ -16,6 +16,7 @@ export {
   type InfiniteScrollConfig,
   type PagerConfig,
   type PagerTemplateContext,
+  type PaginationUnit,
   type ReactRenderSlots,
   type ResizeMode,
   type ResolvedColumn,
