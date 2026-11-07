@@ -1,10 +1,11 @@
 /**
  * Builds `docs-manifest.json`, the index the website reads the docs from:
  * every published package's version and changelog, every docs page's
- * frontmatter and every parsed `_meta.json`, with each file's git blob SHA
- * and last commit date. Page and changelog bodies are left out; the website
- * fetches each from GitHub by its blob SHA, a response it can cache for
- * good, which keeps the index small enough for its fetch cache.
+ * frontmatter and every parsed `_meta.json`, with each page's and
+ * changelog's git blob SHA and last commit date. Page and changelog bodies
+ * are left out; the website fetches each from GitHub by its blob SHA, a
+ * response it can cache for good, which keeps the index small enough for
+ * its fetch cache.
  * `publish-docs-manifest.mjs` runs it and commits the result to an orphan
  * manifest branch: `docs-meta-next` on a docs push, `docs-meta` on a
  * release.
