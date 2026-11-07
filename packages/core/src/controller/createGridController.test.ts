@@ -388,17 +388,48 @@ describe("createGridController: pagination", () => {
     });
   });
 
-  test("a page action from a stored page past the last reports the clamped page", () => {
+  test("a page action from a controlled page past the last asks for the clamped page", () => {
     const onPaginationChange = vi.fn<(event: PaginationChangeEvent) => void>();
-    const controller = paginated({ onPaginationChange });
+    const controller = create({
+      paginated: true,
+      pagination: { pageIndex: 9, pageSize: 2 },
+      onPaginationChange,
+    });
 
-    controller.setPagination({ pageIndex: 9, pageSize: 2 });
-    onPaginationChange.mockClear();
     controller.nextPage();
 
     expect(onPaginationChange.mock.calls.map(([event]) => event)).toEqual([
       { pagination: { pageIndex: 2, pageSize: 2 }, pageCount: 3 },
     ]);
+  });
+
+  test("setPagination past the last page stores and reports the last page", () => {
+    const onPaginationChange = vi.fn<(event: PaginationChangeEvent) => void>();
+    const controller = paginated({ onPaginationChange });
+
+    controller.setPagination({ pageIndex: 9, pageSize: 2 });
+    controller.setPagination({ pageIndex: 7, pageSize: 2 });
+
+    expect(onPaginationChange.mock.calls.map(([event]) => event)).toEqual([
+      { pagination: { pageIndex: 2, pageSize: 2 }, pageCount: 3 },
+    ]);
+    expect(controller.getState().pagination.pageIndex).toBe(2);
+  });
+
+  test("restoreState clamps a restored page against the slices it restored", () => {
+    const onPaginationChange = vi.fn<(event: PaginationChangeEvent) => void>();
+    const controller = paginated({ onPaginationChange });
+
+    // Grouped by Region, the five rows make two pages of two groups.
+    controller.restoreState({
+      groupBy: [{ columnId: "Region" }],
+      pagination: { pageIndex: 9, pageSize: 2 },
+    });
+
+    expect(onPaginationChange.mock.calls.map(([event]) => event)).toEqual([
+      { pagination: { pageIndex: 1, pageSize: 2 }, pageCount: 2 },
+    ]);
+    expect(controller.getState().pagination.pageIndex).toBe(1);
   });
 
   test("a controlled pagination asking for the page it already has asks nothing", () => {
@@ -536,6 +567,79 @@ describe("createGridController: pagination", () => {
     controller.setOptions({ ...options, paginationUnit: "row" });
 
     expect(controller.getState().pagination.pageIndex).toBe(0);
+    expect(onPaginationChange).not.toHaveBeenCalled();
+  });
+
+  test("collapsing groups under a later page stores the page shown, without reporting it", () => {
+    const onPaginationChange = vi.fn();
+    const controller = paginated({
+      defaultGroupBy: [{ columnId: "Region" }],
+      paginationUnit: "row",
+      onPaginationChange,
+    });
+
+    // Five rows make three pages of two; three collapsed groups make two.
+    controller.goToPage(2);
+    onPaginationChange.mockClear();
+    controller.collapseAllGroups();
+
+    expect(controller.getView().pageIndex).toBe(1);
+    expect(controller.getState().pagination.pageIndex).toBe(1);
+
+    controller.expandAllGroups();
+
+    expect(controller.getView().pageIndex).toBe(1);
+    expect(controller.getState().pagination.pageIndex).toBe(1);
+    expect(onPaginationChange).not.toHaveBeenCalled();
+  });
+
+  test("a dataSource shrinking under a later page stores the page shown", () => {
+    const options: GridControllerOptions<SampleRow> = {
+      dataSource: data,
+      columns,
+      paginated: true,
+      defaultGroupBy: [{ columnId: "Region" }],
+      defaultPagination: { pageIndex: 2, pageSize: 1 },
+    };
+    const controller = createGridController(options);
+
+    controller.setOptions({ ...options, dataSource: data.slice(0, 2) });
+
+    expect(controller.getState().pagination.pageIndex).toBe(1);
+
+    controller.setOptions(options);
+
+    expect(controller.getState().pagination.pageIndex).toBe(1);
+  });
+
+  test("a page waiting for its rows to load is kept", () => {
+    const options: GridControllerOptions<SampleRow> = {
+      dataSource: [],
+      columns,
+      paginated: true,
+      defaultPagination: { pageIndex: 2, pageSize: 2 },
+    };
+    const controller = createGridController(options);
+
+    controller.setOptions({ ...options, dataSource: data });
+
+    expect(controller.getState().pagination.pageIndex).toBe(2);
+  });
+
+  test("a controlled pagination past the last page is shown clamped and left as given", () => {
+    const onPaginationChange = vi.fn();
+    const controller = create({
+      paginated: true,
+      defaultGroupBy: [{ columnId: "Region" }],
+      paginationUnit: "row",
+      pagination: { pageIndex: 2, pageSize: 2 },
+      onPaginationChange,
+    });
+
+    controller.collapseAllGroups();
+
+    expect(controller.getView().pageIndex).toBe(1);
+    expect(controller.getState().pagination.pageIndex).toBe(2);
     expect(onPaginationChange).not.toHaveBeenCalled();
   });
 });
