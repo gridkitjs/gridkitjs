@@ -253,6 +253,17 @@ describe("columnValueOptions", () => {
     ]);
   });
 
+  test("orders an untyped column of numbers numerically", () => {
+    const options = columnValueOptions(
+      rows,
+      [dataColumn({ field: "Amount" })],
+      [],
+      "Amount",
+    ).options.map((option) => option.value);
+
+    expect(options).toEqual([2, 10, 30]);
+  });
+
   test("cascades: counts only rows the other columns' filters keep", () => {
     const filter: FilterState<SampleRow> = [
       amountAbove,

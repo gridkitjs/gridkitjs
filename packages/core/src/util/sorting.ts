@@ -19,11 +19,37 @@ function toTime(value: unknown): number {
     : new Date(String(value)).getTime();
 }
 
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function isValidDate(value: unknown): value is Date {
+  return value instanceof Date && !Number.isNaN(value.getTime());
+}
+
+/**
+ * Two values of a column with no `type`. A column left untyped often holds
+ * plain numbers or `Date`s, which read wrongly as text (`"10"` before `"9"`),
+ * so two finite numbers compare numerically and two valid `Date`s
+ * chronologically. Any other pair compares as text: numeric strings are not
+ * guessed at, and a number against a string, `NaN` or an invalid `Date` has
+ * no order by value.
+ */
+function compareUntyped(a: unknown, b: unknown): number {
+  if (isFiniteNumber(a) && isFiniteNumber(b)) {
+    return a - b;
+  }
+  if (isValidDate(a) && isValidDate(b)) {
+    return a.getTime() - b.getTime();
+  }
+  return String(a).localeCompare(String(b));
+}
+
 /**
  * Compares two cell values the way `type` implies — numerically for the
  * numeric types, chronologically for the date/time types, lexically
- * otherwise. Defaults to string comparison when `type` is absent, mirroring
- * `ColumnDefinition.type`'s own default.
+ * otherwise. With no `type`, two numbers or two `Date`s compare by value and
+ * anything else as text; see `compareUntyped`.
  *
  * `null`/`undefined` sort after every value on both sides. Used directly,
  * that ordering is fixed; `sortRows` applies it directionally without
@@ -53,6 +79,8 @@ export function compareValues(
     case "dateTime":
     case "time":
       return toTime(a) - toTime(b);
+    case undefined:
+      return compareUntyped(a, b);
     default:
       return String(a).localeCompare(String(b));
   }

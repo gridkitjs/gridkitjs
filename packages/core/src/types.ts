@@ -128,8 +128,9 @@ export interface ColumnDefinition<Row, Node = string> {
    */
   footerTemplate?: ((context: FooterTemplateContext<Row>) => Node) | undefined;
   /**
-   * The value type of this column's cells. This package is framework-agnostic so it
-   * defaults to `string`;
+   * The value type of this column's cells. Absent, the column has none: it
+   * sorts as `compareValues` does without a type, two numbers or two `Date`s
+   * by value and any other pair as text.
    */
   type?: ColumnType;
   /**
