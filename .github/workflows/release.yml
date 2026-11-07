@@ -90,12 +90,12 @@ jobs:
     permissions:
       contents: read
     steps:
-      # The bot opens and pushes the PR: GitHub starts no workflow for a PR
-      # or push made with GITHUB_TOKEN, so CI would never report on it and
-      # main's required checks would block the merge. `workflows: write`
-      # because the version branch is force-pushed onto the latest main, and
-      # GitHub refuses an App's push that brings in a workflow change
-      # without it.
+      # The bot opens the PR and commits to it: GitHub starts no workflow for
+      # a PR or commit made with GITHUB_TOKEN, so CI would never report on
+      # it and main's required checks would block the merge. `workflows:
+      # write` because the version branch is force-moved onto the latest
+      # main, and GitHub refuses an App's ref update that brings in a
+      # workflow change without it.
       - uses: actions/create-github-app-token@v3
         id: app-token
         with:
@@ -105,10 +105,7 @@ jobs:
           permission-pull-requests: write
           permission-workflows: write
 
-      # changesets/action pushes with the checkout's credentials.
       - uses: actions/checkout@v7
-        with:
-          token: ${{ steps.app-token.outputs.token }}
 
       - uses: pnpm/action-setup@v6
 
@@ -119,15 +116,16 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # No `publish` input: this only maintains the PR. Publishing is the
-      # jobs below, from verified tarballs.
-      - uses: changesets/action@v1
+      # No `publish-script`: this only maintains the PR. Publishing is the
+      # jobs below, from verified tarballs. The version commit goes through
+      # the GitHub API as the bot, signed, so no git credentials are needed;
+      # it is built on a `changesets-ghcommit-temp/` branch, then deleted.
+      - uses: changesets/action@v2
         with:
-          version: pnpm version-packages
-          title: "chore: version packages"
-          commit: "chore: version packages"
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          github-token: ${{ steps.app-token.outputs.token }}
+          version-script: pnpm version-packages
+          pr-title: "chore: version packages"
+          commit-message: "chore: version packages"
 
   snapshot-packages:
     needs: plan
