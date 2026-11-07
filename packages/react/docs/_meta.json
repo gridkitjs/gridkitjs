@@ -2,7 +2,6 @@
   "order": [
     "overview",
     "choosing-packages",
-    "migrating",
     "data-grid",
     "typescript",
     "accessibility",

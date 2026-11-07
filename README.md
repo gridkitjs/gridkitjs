@@ -135,6 +135,27 @@ announced through a live region.
 Give the grid an accessible name with `label`, or `labelledBy` for a heading
 already on the page — without one a screen reader announces only "grid".
 
+## Roadmap
+
+Not in GridKit yet:
+
+- [ ] **Editing**: inline cell and row editing, edit forms and edit events. A
+      `cellTemplate` can render inputs of your own that write back to your
+      rows meanwhile.
+- [ ] **Master-detail**: a detail row or panel that expands under a row.
+- [ ] **Frozen columns**: pinned columns that stay put while the rest scroll
+      sideways.
+- [ ] **Column groups and spanning**: grouped headers over several columns,
+      and row or column spanning of cells.
+- [ ] **Row drag**: dragging rows to reorder them or to move them between
+      grids.
+- [ ] **A server-side data adapter**: today server-side sorting, filtering and
+      pagination work through controlled state.
+- [ ] **Tree data**: hierarchical rows from a parent id or a path.
+- [ ] **Cell ranges**: selecting more than one cell at a time.
+- [ ] **PDF export**: a built-in `pdf` export writer. Printing to the
+      browser's "Save as PDF" works today.
+
 ## Development
 
 ```bash
