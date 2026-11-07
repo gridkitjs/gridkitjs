@@ -1,6 +1,26 @@
 /*
  * GridKit tailwind theme.
  *
+ * The theme tokens are the `--gridkit-*` custom properties declared on
+ * `:root` below. `tokens.json` lists each one with its default, marked
+ * `basic` (the palette and the base knobs) or `advanced` (a token that
+ * tunes one part of the grid), and a test keeps the two files in step.
+ *
+ * A theme overrides tokens on `:root`, in a stylesheet loaded after this
+ * one; an override on a wrapper around the grid misses its menus, which
+ * render into `document.body`. A token is one of two kinds:
+ *
+ *  - A colour: a raw `-light`/`-dark` pair, which a theme sets, and the
+ *    live name the rules read. The palette comment below has the details.
+ *  - Anything else: a single value, which may derive from another token
+ *    with `calc()`.
+ *
+ * A custom property holding `var()` resolves on the element that declares
+ * it, and descendants inherit the result. So a default declared on `:root`
+ * reads only what holds still across palettes: raw colours of its own side,
+ * or tokens that are not colours. Reading a live colour, it would keep the
+ * light value inside `.gridkit-dark`. A default that reads another token
+ * still follows an override of it, since both resolve on `:root`.
  */
 
 /*

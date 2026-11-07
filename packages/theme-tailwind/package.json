@@ -19,13 +19,17 @@
     "css"
   ],
   "exports": {
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./src/styles.css",
+    "./tokens.json": "./src/tokens.json"
   },
   "files": [
     "src",
     "LICENSE",
     "README.md"
   ],
+  "scripts": {
+    "test": "node --test \"scripts/*.test.mjs\""
+  },
   "peerDependencies": {
     "tailwindcss": "^4.3.3"
   }
