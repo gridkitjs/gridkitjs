@@ -61,6 +61,7 @@ export type {
   OperatorFilterEntry,
   PaginationChangeEvent,
   PaginationState,
+  PaginationUnit,
   PredicateFilterEntry,
   ResizeMode,
   ResolvedColumn,
@@ -246,7 +247,7 @@ export {
   resolveRows,
   resolveShownRows,
 } from "./util/rows";
-export type { PaginatedRows } from "./util/paging";
+export type { PaginatedRows, PaginateRowsOptions } from "./util/paging";
 export { paginateRows } from "./util/paging";
 export type { PaginationWindowEntry } from "./util/paginationWindow";
 export { paginationWindow } from "./util/paginationWindow";

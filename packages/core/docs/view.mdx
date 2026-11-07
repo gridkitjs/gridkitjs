@@ -45,7 +45,7 @@ view.grandTotal.get("Amount"); // the sum over every filtered row, on every page
 | `columns`         | `readonly ResolvedColumn<Row>[]` | The columns as rendered: visible, ordered and sized.                                                                                |
 | `rows`            | `readonly ResolvedRow<Row>[]`    | The rows, filtered then sorted.                                                                                                     |
 | `displayRows`     | `readonly DisplayRow<Row>[]`     | `rows` grouped, each group header carrying its aggregates — every page.                                                             |
-| `pageRows`        | `readonly DisplayRow<Row>[]`     | The current page of `displayRows`. All of it when not paginated. A page never splits a top-level group.                             |
+| `pageRows`        | `readonly DisplayRow<Row>[]`     | The current page of `displayRows`. All of it when not paginated. What a page holds follows `paginationUnit`.                        |
 | `displayDataRows` | `readonly ResolvedRow<Row>[]`    | `pageRows` without group headers or summary rows — the data rows on screen, in display order.                                       |
 | `pageCount`       | `number`                         | `1` when not paginated.                                                                                                             |
 | `pageIndex`       | `number`                         | The page shown, clamped into range. `0` when not paginated.                                                                         |
@@ -55,15 +55,16 @@ view.grandTotal.get("Amount"); // the sum over every filtered row, on every page
 
 `state` is a `GridViewState<Row>`: `columnSizing`, `columnOrder`, `columnVisibility`, `columnSort`, `filter`, `groupBy`, `groupExpansion` and `pagination`, each the same type as the matching `default*` prop on DataGrid — every slice of `GridState` but the three selections, which change what is highlighted and never what is shown, so a whole `GridState` serves too. `options` is a `GridViewOptions<Row>`; every field is optional and defaults the way DataGrid's prop of the same name does:
 
-| Option                                                              | Default    | Description                                                                                  |
-| ------------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------- |
-| `paginated`                                                         | `false`    | Whether `pageRows` is one page rather than every row.                                        |
-| `aggregates`                                                        | `[]`       | The aggregates to compute, per group and in `grandTotal`.                                    |
-| `groupAggregateDisplay`                                             | `"inline"` | `"row"` adds a summary row after each group.                                                 |
-| `columnSizeDefaults`                                                | —          | Width and bounds for a column that sets none.                                                |
-| `resizableColumns`, `reorderableColumns`, `groupByDraggableColumns` | `false`    | Grid-level defaults a column's own setting overrides.                                        |
-| `resizeMode`                                                        | `"fit"`    | `"fit"` stretches or squeezes columns to fill `viewportWidth`; `"fixed"` keeps their widths. |
-| `viewportWidth`                                                     | `null`     | The width to fit. Leave it out where there is no viewport, such as an export.                |
+| Option                                                              | Default    | Description                                                                                                                                               |
+| ------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `paginated`                                                         | `false`    | Whether `pageRows` is one page rather than every row.                                                                                                     |
+| `paginationUnit`                                                    | `"group"`  | What a page's `pageSize` counts once grouped: top-level groups, or `"row"` for data rows. See [what a page counts](/docs/core/paging#what-a-page-counts). |
+| `aggregates`                                                        | `[]`       | The aggregates to compute, per group and in `grandTotal`.                                                                                                 |
+| `groupAggregateDisplay`                                             | `"inline"` | `"row"` adds a summary row after each group.                                                                                                              |
+| `columnSizeDefaults`                                                | —          | Width and bounds for a column that sets none.                                                                                                             |
+| `resizableColumns`, `reorderableColumns`, `groupByDraggableColumns` | `false`    | Grid-level defaults a column's own setting overrides.                                                                                                     |
+| `resizeMode`                                                        | `"fit"`    | `"fit"` stretches or squeezes columns to fill `viewportWidth`; `"fixed"` keeps their widths.                                                              |
+| `viewportWidth`                                                     | `null`     | The width to fit. Leave it out where there is no viewport, such as an export.                                                                             |
 
 A column hidden by its definition's `hidden` or by `columnVisibility` leaves `columns` but stays in `dataColumns`, so a sort, filter or grouping on it still applies, and it keeps its slot in the column order for when it is shown again. `isColumnVisible(column, visibility)` answers for one column, `applyColumnVisibility(dataColumns, visibility)` drops the hidden ones, and `setColumnVisibility(dataColumns, visibility, columnIds, visible)` returns the next state, or the same one when nothing changes.
 

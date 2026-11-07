@@ -150,6 +150,23 @@ describe("resolveGridView", () => {
     expect(idsOf(view.displayDataRows)).toEqual([2, 5]);
   });
 
+  test('pages by data rows under paginationUnit "row"', () => {
+    const view = resolveGridView(
+      input(
+        {
+          groupBy: [{ columnId: "Region" }],
+          pagination: { pageIndex: 1, pageSize: 1 },
+        },
+        { paginated: true, paginationUnit: "row" },
+      ),
+    );
+
+    // East's second row, under East's header repeated from page 0.
+    expect(view.pageCount).toBe(5);
+    expect(view.pageRows).toHaveLength(2);
+    expect(idsOf(view.displayDataRows)).toEqual([5]);
+  });
+
   describe("datasetIndex", () => {
     const sequence = (length: number) =>
       Array.from({ length }, (_unused, index) => index);

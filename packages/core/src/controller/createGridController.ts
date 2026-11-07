@@ -8,6 +8,7 @@ import type {
   GroupByState,
   GroupExpansionState,
   PaginationState,
+  PaginationUnit,
 } from "../types";
 import { defineColumnsFromRows } from "../util/grid";
 import {
@@ -18,7 +19,7 @@ import {
 } from "../util/grouping";
 import { memoizeLast } from "../util/memoize";
 import { moveColumnBefore } from "../util/ordering";
-import { paginateRows } from "../util/paging";
+import { paginateRows, type PaginatedRows } from "../util/paging";
 import { reportError } from "../util/report";
 import { reviveFilter } from "../util/serialize";
 import { resolveColumnWidths, revertColumnSize } from "../util/sizing";
@@ -86,11 +87,16 @@ type ControlledState<Row> = {
   readonly [K in SliceKey]?: GridState<Row>[K] | undefined;
 };
 
-/** The slices a filter, sort or grouping change sends back to the first page. */
-type PagingInputs<Row> = Pick<
+/**
+ * What sends an uncontrolled pagination back to the first page when it
+ * changes: the filter, sort and grouping slices, and the unit a page counts.
+ */
+interface PagingInputs<Row> extends Pick<
   GridState<Row>,
   "filter" | "columnSort" | "groupBy"
->;
+> {
+  readonly paginationUnit: PaginationUnit;
+}
 
 function startingState<Row>(options: GridOptions<Row>): OwnState<Row> {
   return {
@@ -128,11 +134,15 @@ function definedColumns<Row, Node>(
   return NO_COLUMNS;
 }
 
-function pagingInputsOf<Row>(state: GridState<Row>): PagingInputs<Row> {
+function pagingInputsOf<Row>(
+  state: GridState<Row>,
+  options: GridOptions<Row>,
+): PagingInputs<Row> {
   return {
     filter: state.filter,
     columnSort: state.columnSort,
     groupBy: state.groupBy,
+    paginationUnit: options.paginationUnit ?? "group",
   };
 }
 
@@ -158,7 +168,7 @@ export function createGridController<Row, Node = string>(
   let heldReports: (() => void)[] | undefined;
 
   let state = resolveSlices();
-  let pagingInputs = pagingInputsOf(state);
+  let pagingInputs = pagingInputsOf(state, options);
   reportConflicts();
 
   function controlledValue<K extends SliceKey>(
@@ -221,19 +231,22 @@ export function createGridController<Row, Node = string>(
    *
    * Applies the one rule linking slices: a user on page 7 of a result that
    * filtering, sorting or regrouping just shrank to 2 pages must not be left
-   * on an empty page, so a change to any of the three sends an uncontrolled
-   * pagination back to the first page. It is a consequence of that change,
-   * not a page change of its own, so it reports nothing — the change that
-   * caused it already did. A controlled pagination is the caller's to reset.
+   * on an empty page, so a change to any of the three, or to the unit a page
+   * counts, sends an uncontrolled pagination back to the first page. It is a
+   * consequence of that change, not a page change of its own, so it reports
+   * nothing — the change that caused it already did. A controlled pagination
+   * is the caller's to reset.
    */
   function refresh(): void {
     let next = resolveSlices();
+    const inputs = pagingInputsOf(next, options);
     if (
-      next.filter !== pagingInputs.filter ||
-      next.columnSort !== pagingInputs.columnSort ||
-      next.groupBy !== pagingInputs.groupBy
+      inputs.filter !== pagingInputs.filter ||
+      inputs.columnSort !== pagingInputs.columnSort ||
+      inputs.groupBy !== pagingInputs.groupBy ||
+      inputs.paginationUnit !== pagingInputs.paginationUnit
     ) {
-      pagingInputs = pagingInputsOf(next);
+      pagingInputs = inputs;
       if (!isControlled("pagination") && own.pagination.pageIndex !== 0) {
         own.pagination = { ...own.pagination, pageIndex: 0 };
         next = { ...next, pagination: own.pagination };
@@ -281,6 +294,7 @@ export function createGridController<Row, Node = string>(
       state,
       options: {
         paginated: options.paginated,
+        paginationUnit: options.paginationUnit,
         aggregates: options.aggregates,
         groupAggregateDisplay: options.groupAggregateDisplay,
         columnSizeDefaults: options.columnSizeDefaults,
@@ -386,28 +400,32 @@ export function createGridController<Row, Node = string>(
     commit("pagination", next, () => {
       options.onPaginationChange?.({
         pagination: next,
-        pageCount: paginateRows(getView().displayRows, next).pageCount,
+        pageCount: pageOf(next).pageCount,
       });
     });
   }
 
   /**
-   * `pageIndex` clamped into the pages that exist, by `paginateRows` itself
-   * rather than by hand, so it can never disagree with the page the view
-   * shows.
+   * The page `pagination` names, over every display row and in the grid's
+   * `paginationUnit`. Page counts and clamping all go through this rather
+   * than by hand, so none can disagree with the page the view shows.
    */
+  function pageOf(pagination: PaginationState): PaginatedRows<Row> {
+    return paginateRows(getView().displayRows, pagination, {
+      unit: options.paginationUnit,
+    });
+  }
+
+  /** `pageIndex` clamped into the pages that exist. */
   function goToPage(pageIndex: number): void {
     const current = state.pagination;
-    const clamped = paginateRows(getView().displayRows, {
-      ...current,
-      pageIndex,
-    }).pageIndex;
+    const clamped = pageOf({ ...current, pageIndex }).pageIndex;
     commitPagination({ ...current, pageIndex: clamped });
   }
 
   /** The page shown, which may sit below a stored index past the last page. */
   function shownPageIndex(): number {
-    return paginateRows(getView().displayRows, state.pagination).pageIndex;
+    return pageOf(state.pagination).pageIndex;
   }
 
   const selection = createSelectionActions<Row, Node>({
@@ -438,7 +456,7 @@ export function createGridController<Row, Node = string>(
       if (saved.pagination !== undefined) {
         // Taken as already seen, so the sort, filter or grouping this same
         // call restored does not send the restored page back to the first.
-        pagingInputs = pagingInputsOf(resolveSlices());
+        pagingInputs = pagingInputsOf(resolveSlices(), options);
       }
       refresh();
       for (const report of reports) {
@@ -610,7 +628,7 @@ export function createGridController<Row, Node = string>(
       const first = { pageIndex: 0, pageSize };
       commitPagination({
         ...first,
-        pageIndex: paginateRows(getView().displayRows, first).pageIndex,
+        pageIndex: pageOf(first).pageIndex,
       });
     },
   };

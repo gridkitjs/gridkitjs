@@ -8,6 +8,7 @@ import type {
   GridView,
   GridViewInput,
   PaginationState,
+  PaginationUnit,
   ResizeMode,
   ResolvedColumn,
   ResolvedRow,
@@ -100,8 +101,8 @@ function totalAggregates<Row>(
 }
 
 /**
- * Always last, after grouping and aggregation, so a page never splits a
- * group and a subtotal never changes value depending on which page is
+ * Always last, after grouping and aggregation, so a page knows the groups
+ * it holds and a subtotal never changes value depending on which page is
  * showing. Unpaginated, the grid is a single page over every row, and
  * `pageCount`/`pageIndex` report that (`1`/`0`) rather than whatever a
  * stored `pagination` might still carry.
@@ -110,9 +111,10 @@ function paginate<Row>(
   displayRows: readonly DisplayRow<Row>[],
   paginated: boolean,
   pagination: PaginationState,
+  unit: PaginationUnit,
 ): PaginatedRows<Row> {
   return paginated
-    ? paginateRows(displayRows, pagination)
+    ? paginateRows(displayRows, pagination, { unit })
     : { rows: displayRows, pageCount: 1, pageIndex: 0 };
 }
 
@@ -229,7 +231,12 @@ export function createGridViewResolver<Row, Node = string>(): (
       rows: pageRows,
       pageCount,
       pageIndex,
-    } = page(displayRows, paginated, state.pagination);
+    } = page(
+      displayRows,
+      paginated,
+      state.pagination,
+      options.paginationUnit ?? "group",
+    );
 
     return assemble(
       dataColumns,

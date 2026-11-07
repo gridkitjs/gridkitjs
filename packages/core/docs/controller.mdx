@@ -49,7 +49,7 @@ Each slice of `GridState` is controlled or not on its own, the way a form input 
 
 Giving both the controlled option and its default reports a `console.error` once; the controlled value wins.
 
-A change to the filter, the sort or the grouping sends an uncontrolled pagination back to the first page, so a user is never left on a page the change emptied. That reset reports nothing of its own — the change that caused it already did. A controlled pagination is the caller's to reset; until it is, the view shows the last page that exists.
+A change to the filter, the sort, the grouping or the `paginationUnit` option sends an uncontrolled pagination back to the first page, so a user is never left on a page the change emptied. That reset reports nothing of its own — the change that caused it already did. A controlled pagination is the caller's to reset; until it is, the view shows the last page that exists.
 
 ## Reading
 

@@ -497,6 +497,47 @@ describe("createGridController: pagination", () => {
     });
     expect(controller.getState().pagination.pageIndex).toBe(0);
   });
+
+  test('page actions count and clamp in data rows under paginationUnit "row"', () => {
+    const onPaginationChange = vi.fn<(event: PaginationChangeEvent) => void>();
+    const controller = paginated({
+      defaultGroupBy: [{ columnId: "Region" }],
+      paginationUnit: "row",
+      onPaginationChange,
+    });
+
+    controller.goToPage(9);
+    controller.setPageSize(4);
+
+    // Five rows: three pages of two, then two pages of four.
+    expect(onPaginationChange.mock.calls.map(([event]) => event)).toEqual([
+      { pagination: { pageIndex: 2, pageSize: 2 }, pageCount: 3 },
+      { pagination: { pageIndex: 0, pageSize: 4 }, pageCount: 2 },
+    ]);
+    expect(controller.getView().pageCount).toBe(2);
+  });
+
+  test("a paginationUnit change sends the page back to 0 without reporting it", () => {
+    const onPaginationChange = vi.fn();
+    const options: GridControllerOptions<SampleRow> = {
+      dataSource: data,
+      columns,
+      paginated: true,
+      defaultGroupBy: [{ columnId: "Region" }],
+      defaultPagination: { pageIndex: 1, pageSize: 2 },
+      onPaginationChange,
+    };
+    const controller = createGridController(options);
+
+    controller.setOptions({ ...options, paginationUnit: "group" });
+
+    expect(controller.getState().pagination.pageIndex).toBe(1);
+
+    controller.setOptions({ ...options, paginationUnit: "row" });
+
+    expect(controller.getState().pagination.pageIndex).toBe(0);
+    expect(onPaginationChange).not.toHaveBeenCalled();
+  });
 });
 
 describe("createGridController: filter", () => {
