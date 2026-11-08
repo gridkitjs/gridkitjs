@@ -120,6 +120,7 @@ function rendered(messages: GridMessages): Record<keyof GridMessages, string> {
     copied: messages.copied(3, "rows"),
     copyFailed: messages.copyFailed,
     print: messages.print,
+    printFailed: messages.printFailed,
   };
 }
 
@@ -237,6 +238,7 @@ describe("defaultMessages", () => {
       copied: "3 rows copied",
       copyFailed: "Copy failed",
       print: "Print",
+      printFailed: "Print failed",
     });
   });
 
