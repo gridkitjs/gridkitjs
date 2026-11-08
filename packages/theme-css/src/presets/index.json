@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "presets": [
+    {
+      "id": "default",
+      "label": "Default",
+      "description": "The grid's own look, with every token at its default: a template to copy.",
+      "file": "default.css"
+    },
+    {
+      "id": "spreadsheet",
+      "label": "Spreadsheet",
+      "description": "Dense rows, square corners, a grey header and firm lines between every cell.",
+      "file": "spreadsheet.css"
+    },
+    {
+      "id": "comfortable",
+      "label": "Comfortable",
+      "description": "Roomy rows, soft violet tints, rounded corners and no lines between columns.",
+      "file": "comfortable.css"
+    },
+    {
+      "id": "high-contrast",
+      "label": "High contrast",
+      "description": "Black and white with strong lines, larger small text and thick focus rings, at WCAG AAA contrast.",
+      "file": "high-contrast.css"
+    },
+    {
+      "id": "midnight",
+      "label": "Midnight",
+      "description": "Deep indigo and a vivid violet accent, with an uppercase header and striped rows.",
+      "file": "midnight.css"
+    }
+  ]
+}

@@ -41,6 +41,17 @@ Every colour, size and line the stylesheet draws comes from a theme token, a `--
 
 The tokens are the Tailwind theme's, so [theme tokens](/docs/theme-tailwind/tokens) lists every one with its default, and explains why an override goes on `:root`, outside any cascade layer, and why a colour is set by its pair. The machine-readable list of them, `tokens.json`, ships with `@gridkitjs/theme-tailwind`.
 
+## Presets
+
+A preset is a ready-made theme: a stylesheet of token values that restyles the grid in one line. This package ships the same presets as the Tailwind theme, under `presets/`. Import one after the stylesheet:
+
+```css title="src/index.css"
+@import "@gridkitjs/theme-css/styles.css";
+@import "@gridkitjs/theme-css/presets/spreadsheet.css";
+```
+
+[Presets](/docs/theme-tailwind/presets) lists each one, and shows how to start a theme of your own from `presets/default.css`.
+
 ## Dark mode
 
 The grid follows the system's colour scheme: its colours switch to the `-dark` side of each pair under `prefers-color-scheme: dark`.
@@ -77,6 +88,7 @@ Everything else, the rules, tokens, defaults and class names, is the same.
 ## See also
 
 - [Theme tokens](/docs/theme-tailwind/tokens) for every token and its default.
+- [Presets](/docs/theme-tailwind/presets) for ready-made themes.
 - [Tailwind theme](/docs/theme-tailwind) for the class names and the rest of the theme's behaviour.
 - [Choosing packages](/docs/react/choosing-packages) for what each package does.
 - [React quick start](/docs/react) for rendering a first grid.

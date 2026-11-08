@@ -1,0 +1,58 @@
+/*
+ * GridKit preset: Comfortable. Roomy rows, soft violet tints, rounded
+ * corners and no lines between columns.
+ *
+ * Load it after the theme's stylesheet, from the same package:
+ *
+ *   @import "@gridkitjs/theme-tailwind/styles.css";
+ *   @import "@gridkitjs/theme-tailwind/presets/comfortable.css";
+ *
+ * or the same two files from @gridkitjs/theme-css.
+ */
+:root {
+  --gridkit-surface-light: oklch(1 0 0);
+  --gridkit-surface-dark: oklch(0.23 0.015 285);
+  --gridkit-surface-muted-light: oklch(0.975 0.007 285);
+  --gridkit-surface-muted-dark: oklch(0.28 0.02 285);
+  --gridkit-line-light: oklch(0.93 0.01 285);
+  --gridkit-line-dark: oklch(0.33 0.02 285);
+  --gridkit-hover-line-light: oklch(0.72 0.08 285);
+  --gridkit-hover-line-dark: oklch(0.7 0.08 285);
+  --gridkit-fg-light: oklch(0.27 0.02 285);
+  --gridkit-fg-dark: oklch(0.95 0.006 285);
+  --gridkit-fg-muted-light: oklch(0.5 0.03 285);
+  --gridkit-fg-muted-dark: oklch(0.75 0.025 285);
+  --gridkit-accent-light: oklch(0.56 0.15 285);
+  --gridkit-accent-dark: oklch(0.75 0.12 285);
+  --gridkit-selected-light: oklch(0.955 0.025 285);
+  --gridkit-selected-dark: oklch(0.33 0.05 285);
+  --gridkit-selected-strong-light: oklch(0.92 0.045 285);
+  --gridkit-selected-strong-dark: oklch(0.39 0.07 285);
+  --gridkit-header-fg-light: var(--gridkit-fg-muted-light);
+  --gridkit-header-fg-dark: var(--gridkit-fg-muted-dark);
+  --gridkit-overlay-shadow-color-light: oklch(0.3 0.05 285 / 0.16);
+  --gridkit-overlay-shadow-color-dark: oklch(0 0 0 / 0.45);
+
+  --gridkit-menu-font-size: 0.9375rem;
+  --gridkit-bar-font-size: 0.875rem;
+  --gridkit-header-font-weight: 600;
+
+  --gridkit-spacing: 0.3125rem;
+  --gridkit-cell-padding-x: calc(var(--gridkit-spacing) * 3);
+  --gridkit-cell-padding-y: calc(var(--gridkit-spacing) * 2.5);
+
+  --gridkit-column-line-width: 0;
+  --gridkit-outer-border-width: var(--gridkit-border-width);
+
+  --gridkit-radius: 0.75rem;
+  --gridkit-menu-radius: 0.75rem;
+  --gridkit-control-radius: 0.5rem;
+
+  --gridkit-icon-size: 1.125rem;
+  --gridkit-header-icon-size: 16px;
+  --gridkit-overlay-shadow: 0 8px 24px;
+  --gridkit-menu-min-width: 14rem;
+  --gridkit-column-chooser-width: 18rem;
+  --gridkit-filter-menu-width: 20rem;
+  --gridkit-transition-duration: 0.15s;
+}

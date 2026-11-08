@@ -1,0 +1,57 @@
+/*
+ * GridKit preset: Spreadsheet. Dense rows, square corners, a grey header and
+ * firm lines between every cell, with a green accent.
+ *
+ * It restyles the lines the grid's borders prop draws, so pair it with
+ * borders="all" for lines between columns too. Load it after the theme's
+ * stylesheet, from the same package:
+ *
+ *   @import "@gridkitjs/theme-tailwind/styles.css";
+ *   @import "@gridkitjs/theme-tailwind/presets/spreadsheet.css";
+ *
+ * or the same two files from @gridkitjs/theme-css.
+ */
+:root {
+  --gridkit-surface-light: oklch(1 0 0);
+  --gridkit-surface-dark: oklch(0.2 0 0);
+  --gridkit-surface-muted-light: oklch(0.96 0 0);
+  --gridkit-surface-muted-dark: oklch(0.26 0 0);
+  --gridkit-line-light: oklch(0.85 0 0);
+  --gridkit-line-dark: oklch(0.38 0 0);
+  --gridkit-hover-line-light: oklch(0.6 0.1 150);
+  --gridkit-hover-line-dark: oklch(0.7 0.1 150);
+  --gridkit-fg-light: oklch(0.2 0 0);
+  --gridkit-fg-dark: oklch(0.95 0 0);
+  --gridkit-fg-muted-light: oklch(0.47 0 0);
+  --gridkit-fg-muted-dark: oklch(0.74 0 0);
+  --gridkit-accent-light: oklch(0.52 0.13 150);
+  --gridkit-accent-dark: oklch(0.72 0.15 150);
+  --gridkit-selected-light: oklch(0.94 0.04 150);
+  --gridkit-selected-dark: oklch(0.31 0.05 150);
+  --gridkit-selected-strong-light: oklch(0.89 0.07 150);
+  --gridkit-selected-strong-dark: oklch(0.37 0.07 150);
+  --gridkit-header-bg-light: oklch(0.94 0 0);
+  --gridkit-header-bg-dark: oklch(0.27 0 0);
+  --gridkit-overlay-shadow-color-light: oklch(0 0 0 / 0.2);
+  --gridkit-overlay-shadow-color-dark: oklch(0 0 0 / 0.4);
+
+  --gridkit-font-size: 0.875em;
+  --gridkit-menu-font-size: 0.8125rem;
+  --gridkit-bar-font-size: 0.8125rem;
+  --gridkit-header-font-weight: 600;
+  --gridkit-font-variant-numeric: tabular-nums;
+
+  --gridkit-spacing: 0.1875rem;
+  --gridkit-cell-padding-y: var(--gridkit-spacing);
+
+  --gridkit-outer-border-width: var(--gridkit-border-width);
+
+  --gridkit-radius: 0;
+  --gridkit-menu-radius: 0;
+  --gridkit-control-radius: 0;
+
+  --gridkit-icon-size: 0.875rem;
+  --gridkit-header-icon-size: 12px;
+  --gridkit-overlay-shadow: 0 2px 6px;
+  --gridkit-transition-duration: 0s;
+}

@@ -1,0 +1,56 @@
+/*
+ * GridKit preset: Midnight. Deep indigo and a vivid violet accent, with an
+ * uppercase header and striped rows, at its strongest in dark mode.
+ *
+ * Load it after the theme's stylesheet, from the same package:
+ *
+ *   @import "@gridkitjs/theme-tailwind/styles.css";
+ *   @import "@gridkitjs/theme-tailwind/presets/midnight.css";
+ *
+ * or the same two files from @gridkitjs/theme-css.
+ */
+:root {
+  --gridkit-surface-light: oklch(0.985 0.008 275);
+  --gridkit-surface-dark: oklch(0.2 0.04 272);
+  --gridkit-surface-muted-light: oklch(0.955 0.016 275);
+  --gridkit-surface-muted-dark: oklch(0.25 0.05 272);
+  --gridkit-line-light: oklch(0.9 0.02 275);
+  --gridkit-line-dark: oklch(0.32 0.05 272);
+  --gridkit-hover-line-light: oklch(0.6 0.16 290);
+  --gridkit-hover-line-dark: oklch(0.72 0.14 290);
+  --gridkit-fg-light: oklch(0.25 0.06 275);
+  --gridkit-fg-dark: oklch(0.95 0.015 275);
+  --gridkit-fg-muted-light: oklch(0.47 0.06 275);
+  --gridkit-fg-muted-dark: oklch(0.76 0.04 275);
+  --gridkit-accent-light: oklch(0.5 0.22 290);
+  --gridkit-accent-dark: oklch(0.72 0.17 295);
+  --gridkit-selected-light: oklch(0.93 0.04 290);
+  --gridkit-selected-dark: oklch(0.32 0.09 285);
+  --gridkit-selected-strong-light: oklch(0.88 0.07 290);
+  --gridkit-selected-strong-dark: oklch(0.38 0.11 285);
+  --gridkit-header-bg-light: oklch(0.93 0.03 275);
+  --gridkit-header-bg-dark: oklch(0.16 0.04 272);
+  --gridkit-header-fg-light: oklch(0.32 0.1 280);
+  --gridkit-header-fg-dark: oklch(0.86 0.06 285);
+  --gridkit-row-stripe-bg-light: oklch(0.975 0.01 275);
+  --gridkit-row-stripe-bg-dark: oklch(0.22 0.04 272);
+  --gridkit-accent-fg-light: oklch(1 0 0);
+  --gridkit-overlay-shadow-color-light: oklch(0.25 0.1 275 / 0.2);
+  --gridkit-overlay-shadow-color-dark: oklch(0 0 0 / 0.5);
+
+  --gridkit-bar-font-size: 0.75rem;
+  --gridkit-header-font-weight: 600;
+  --gridkit-header-text-transform: uppercase;
+  --gridkit-header-letter-spacing: 0.06em;
+
+  --gridkit-cell-padding-x: calc(var(--gridkit-spacing) * 3);
+
+  --gridkit-row-line-width: 0;
+
+  --gridkit-radius: 0.5rem;
+  --gridkit-menu-radius: 0.5rem;
+  --gridkit-control-radius: 0.375rem;
+
+  --gridkit-indicator-width: 3px;
+  --gridkit-overlay-shadow: 0 10px 30px;
+}
