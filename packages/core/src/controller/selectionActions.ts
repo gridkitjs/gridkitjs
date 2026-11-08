@@ -3,6 +3,8 @@ import type {
   GridState,
   GridView,
   ResolvedRow,
+  SelectIntent,
+  SelectionMode,
   SelectionState,
 } from "../types";
 import { memoizeLast } from "../util/memoize";
@@ -63,6 +65,37 @@ function distinct(ids: readonly string[]): readonly string[] {
 }
 
 /**
+ * One click or key press on a row or column, and where its axis's anchor
+ * goes after it. An anchor no longer among `orderedIds` (its row paged,
+ * filtered or grouped out of sight) counts as none, so a range from it
+ * starts afresh at `id`, as a first Shift-click does. A range from a live
+ * anchor keeps it; anything else moves it to `id`; an axis that can't be
+ * selected leaves it alone.
+ */
+function click(
+  selection: SelectionState,
+  orderedIds: readonly string[],
+  anchor: string | null,
+  id: string,
+  intent: SelectIntent,
+  mode: SelectionMode,
+): { readonly selection: SelectionState; readonly anchor: string | null } {
+  const live = anchor !== null && orderedIds.includes(anchor) ? anchor : null;
+  const keepsAnchor = mode === false || (intent === "range" && live !== null);
+  return {
+    selection: applySelectionIntent(
+      selection,
+      orderedIds,
+      live,
+      id,
+      intent,
+      mode,
+    ),
+    anchor: keepsAnchor ? anchor : id,
+  };
+}
+
+/**
  * The row, column and cell selection actions of one controller. Kept in a
  * module of their own as the largest group of actions, and the only one with
  * memory beyond the state: the anchor a range is measured from.
@@ -77,7 +110,9 @@ export function createSelectionActions<Row, Node>(
   /**
    * Where a range is measured from: the last row or column selected by
    * anything but a range, so that repeated Shift-clicks re-draw one span
-   * instead of walking the anchor along with them.
+   * instead of walking the anchor along with them. Replacing or clearing an
+   * axis's selection lets go of its anchor, which belonged to the selection
+   * that went.
    */
   let rowAnchor: string | null = null;
   let columnAnchor: string | null = null;
@@ -148,6 +183,7 @@ export function createSelectionActions<Row, Node>(
 
   return {
     setRowSelection(selection) {
+      rowAnchor = null;
       if (!sameItems(grid.getState().rowSelection, selection)) {
         commitRows(selection);
       }
@@ -173,7 +209,7 @@ export function createSelectionActions<Row, Node>(
       }
     },
     selectRow(rowId, intent) {
-      const next = applySelectionIntent(
+      const next = click(
         grid.getState().rowSelection,
         rowIds(),
         rowAnchor,
@@ -181,10 +217,8 @@ export function createSelectionActions<Row, Node>(
         intent,
         modes().rows,
       );
-      if (intent !== "range") {
-        rowAnchor = rowId;
-      }
-      commitRows(next);
+      rowAnchor = next.anchor;
+      commitRows(next.selection);
     },
     selectAllRows() {
       commitRows(
@@ -192,6 +226,8 @@ export function createSelectionActions<Row, Node>(
       );
     },
     clearSelection() {
+      rowAnchor = null;
+      columnAnchor = null;
       grid.transaction(() => {
         commitRows(clearSelection(grid.getState().rowSelection));
         commitColumns(clearSelection(grid.getState().columnSelection));
@@ -200,12 +236,13 @@ export function createSelectionActions<Row, Node>(
     },
 
     setColumnSelection(selection) {
+      columnAnchor = null;
       if (!sameItems(grid.getState().columnSelection, selection)) {
         commitColumns(selection);
       }
     },
     selectColumn(columnId, intent) {
-      const next = applySelectionIntent(
+      const next = click(
         grid.getState().columnSelection,
         columnIds(),
         columnAnchor,
@@ -213,10 +250,8 @@ export function createSelectionActions<Row, Node>(
         intent,
         modes().columns,
       );
-      if (intent !== "range") {
-        columnAnchor = columnId;
-      }
-      commitColumns(next);
+      columnAnchor = next.anchor;
+      commitColumns(next.selection);
     },
 
     setCellSelection(selection) {

@@ -246,7 +246,7 @@ This is also why `aria-rowindex` on a rendered row reports the dataset position,
 
 ## Changing pages resets keyboard navigation and range selection to the page
 
-Arrow-key navigation and <Kbd>Shift</Kbd>+click range selection both operate on what's actually rendered — the current page — not the whole dataset. A <Kbd>Shift</Kbd>+click range drawn on page 1 and then paged away from does not retroactively include rows revealed by a later page, the same way a range spanning a collapsed group excludes the rows hidden beneath it (see [row grouping](/docs/react/row-grouping)).
+Arrow-key navigation and <Kbd>Shift</Kbd>+click range selection both operate on what's actually rendered — the current page — not the whole dataset. A <Kbd>Shift</Kbd>+click range drawn on page 1 and then paged away from does not retroactively include rows revealed by a later page, the same way a range spanning a collapsed group excludes the rows hidden beneath it (see [row grouping](/docs/react/row-grouping)). A <Kbd>Shift</Kbd>+click on a later page, whose rows don't include the last row clicked, selects just the row clicked, and the next <Kbd>Shift</Kbd>+click extends from there.
 
 ## Filtering, sorting, or regrouping resets to page 1
 

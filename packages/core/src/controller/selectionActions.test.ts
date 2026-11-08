@@ -178,6 +178,77 @@ describe("createGridController: row selection", () => {
     expect(onRowSelectionChange).toHaveBeenCalledTimes(1);
   });
 
+  test("a range after clearSelection starts afresh at the row clicked", () => {
+    const controller = create();
+    controller.selectRow("1", "replace");
+
+    controller.clearSelection();
+    controller.selectRow("3", "range");
+
+    expect(controller.getState().rowSelection).toEqual(["3"]);
+  });
+
+  test("a range from an anchor paged away selects the row clicked and anchors there", () => {
+    const controller = create({
+      paginated: true,
+      defaultPagination: { pageIndex: 0, pageSize: 2 },
+    });
+    controller.selectRow("1", "replace");
+    controller.nextPage();
+
+    controller.selectRow("4", "range");
+    expect(controller.getState().rowSelection).toEqual(["4"]);
+
+    controller.selectRow("3", "range");
+    expect(controller.getState().rowSelection).toEqual(["3", "4"]);
+  });
+
+  test("a range from an anchor filtered away selects the row clicked", () => {
+    const controller = create();
+    controller.selectRow("2", "replace");
+    controller.setFilter([{ columnId: "Region", query: "West" }]);
+
+    controller.selectRow("3", "range");
+
+    expect(controller.getState().rowSelection).toEqual(["3"]);
+  });
+
+  test("a range after setRowSelection starts afresh at the row clicked", () => {
+    const controller = create();
+    controller.selectRow("1", "replace");
+
+    controller.setRowSelection([]);
+    controller.selectRow("3", "range");
+
+    expect(controller.getState().rowSelection).toEqual(["3"]);
+  });
+
+  test("a range after restoreState sets the rows starts afresh at the row clicked", () => {
+    const controller = create();
+    controller.selectRow("1", "replace");
+
+    controller.restoreState({ rowSelection: ["4"] });
+    controller.selectRow("3", "range");
+
+    expect(controller.getState().rowSelection).toEqual(["3"]);
+  });
+
+  test("a click while rows can't be selected leaves the anchor where it was", () => {
+    const options: GridControllerOptions<SampleRow> = {
+      dataSource: data,
+      getRowId: (row) => String(row.Id),
+      columns,
+      selectable: { rows: false },
+    };
+    const controller = createGridController(options);
+    controller.selectRow("1", "replace");
+
+    controller.setOptions({ ...options, selectable: { rows: "multiple" } });
+    controller.selectRow("3", "range");
+
+    expect(controller.getState().rowSelection).toEqual(["3"]);
+  });
+
   test("a controlled row selection only asks", () => {
     const onRowSelectionChange =
       vi.fn<(event: RowSelectionChangeEvent<SampleRow>) => void>();
@@ -201,6 +272,16 @@ describe("createGridController: column and cell selection", () => {
     const event = onColumnSelectionChange.mock.calls[0]?.[0];
     expect(event?.added.map((entry) => entry.columnIndex)).toEqual([1]);
     expect(event?.selection).toEqual(["Region"]);
+  });
+
+  test("a column range after setColumnSelection starts afresh at the column clicked", () => {
+    const controller = create();
+    controller.selectColumn("Id", "replace");
+
+    controller.setColumnSelection([]);
+    controller.selectColumn("Region", "range");
+
+    expect(controller.getState().columnSelection).toEqual(["Region"]);
   });
 
   test("selectCell moves between cells as one change, and a toggle lets go", () => {

@@ -199,7 +199,9 @@ export interface GridController<Row, Node = string> {
   /**
    * Applies one click or key press to a row: `"replace"`, `"toggle"` or
    * `"range"` from the last row selected by anything but a range, across
-   * the data rows on the current page.
+   * the data rows on the current page. That anchor goes when the selection is
+   * cleared or replaced, or its row leaves the page; a range without one
+   * selects just this row and anchors there.
    */
   readonly selectRow: (rowId: string, intent: SelectIntent) => void;
   /** Selects every data row on the current page, when `selectable.rows` is `"multiple"`. */
