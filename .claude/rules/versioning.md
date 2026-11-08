@@ -13,8 +13,8 @@ change needs a changeset, how to write one, and how a release goes out.
 ## Versioning
 
 Every change that reaches a **published** package — `core`, `dom`, `react`,
-`theme-tailwind`, `export-xlsx` — needs a changeset, in the same commit as the
-change:
+`theme-tailwind`, `theme-css`, `export-xlsx` — needs a changeset, in the same
+commit as the change:
 
 ```bash
 pnpm changeset
@@ -38,10 +38,9 @@ at `0.0.1` is correct — a package with no pending changeset does not move.
 | `minor` | New API, changed behaviour, or anything breaking. Say so in the summary.    |
 | `major` | Not until 1.0.                                                              |
 
-**What does not need one:** the playground, `theme-default` while it is
-private, and anything that leaves shipped output untouched — tests, CI, README
-and doc edits, tooling config. When in doubt, ask whether an installed consumer
-could tell. If not, skip it.
+**What does not need one:** the playground and anything that leaves shipped
+output untouched — tests, CI, README and doc edits, tooling config. When in
+doubt, ask whether an installed consumer could tell. If not, skip it.
 
 **Writing the summary.** It becomes the changelog entry, read by someone
 deciding whether to upgrade — so it is for consumers, not reviewers. Lead with
@@ -63,6 +62,12 @@ Dependents are bumped automatically — `updateInternalDependencies: "patch"` in
 `.changeset/config.json` gives `react` a patch when `core` releases, so listing
 `react` for a change made in `core` double-counts it. List `react` only when a
 file under `packages/react` changed too.
+
+The one exception is the theme: `theme-css` is generated from
+`theme-tailwind`'s stylesheet, so a change to what `theme-tailwind` ships in
+`src/styles.css` regenerates `theme-css` too, and its changeset lists
+**both** packages with the same bump. Each one's changelog then tells its own
+consumers about it.
 
 A release consumes every pending changeset at once, so several small ones
 across a branch are normal and preferable to one vague entry. They do not

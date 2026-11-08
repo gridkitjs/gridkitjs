@@ -27,6 +27,7 @@ Guides and full API reference live at **[gridkitjs.com](https://gridkitjs.com)**
 - [DOM](https://gridkitjs.com/en/docs/dom/overview) — browser behaviours, for writing a renderer
 - [React](https://gridkitjs.com/en/docs/react/overview) — components, props, events
 - [Theme (Tailwind)](https://gridkitjs.com/en/docs/theme-tailwind/overview) — palette tokens, dark mode
+- [Theme (plain CSS)](https://gridkitjs.com/en/docs/theme-css/overview) — the same theme without Tailwind
 - [Excel export](https://gridkitjs.com/en/docs/export-xlsx/overview) — the optional xlsx writer
 
 The `.mdx` sources live in this repo under each package's `docs/` folder, but
@@ -35,14 +36,14 @@ this repo has no docs build — they're only rendered by the separate
 
 ## Packages
 
-| Package                     | What it is                                                                                    | Docs                                                          |
-| --------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `@gridkitjs/core`           | Framework-agnostic grid logic — column resolution, alignment, sizing.                         | [docs](https://gridkitjs.com/en/docs/core/overview)           |
-| `@gridkitjs/dom`            | Framework-free browser behaviours — gestures, focus, observers, overlays. For renderers.      | [docs](https://gridkitjs.com/en/docs/dom/overview)            |
-| `@gridkitjs/react`          | React components consuming `core` and `dom`, rendering semantic class names.                  | [docs](https://gridkitjs.com/en/docs/react/overview)          |
-| `@gridkitjs/theme-tailwind` | Tailwind theme layer — palette tokens, dark mode, grid styles.                                | [docs](https://gridkitjs.com/en/docs/theme-tailwind/overview) |
-| `@gridkitjs/export-xlsx`    | Excel export writer — typed cells, frozen header, column widths, groups and totals.           | [docs](https://gridkitjs.com/en/docs/export-xlsx/overview)    |
-| `@gridkitjs/theme-default`  | Plain CSS for consumers not using Tailwind. Currently an empty stub, private and unpublished. | —                                                             |
+| Package                     | What it is                                                                               | Docs                                                          |
+| --------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `@gridkitjs/core`           | Framework-agnostic grid logic — column resolution, alignment, sizing.                    | [docs](https://gridkitjs.com/en/docs/core/overview)           |
+| `@gridkitjs/dom`            | Framework-free browser behaviours — gestures, focus, observers, overlays. For renderers. | [docs](https://gridkitjs.com/en/docs/dom/overview)            |
+| `@gridkitjs/react`          | React components consuming `core` and `dom`, rendering semantic class names.             | [docs](https://gridkitjs.com/en/docs/react/overview)          |
+| `@gridkitjs/theme-tailwind` | Tailwind theme layer — palette tokens, dark mode, grid styles.                           | [docs](https://gridkitjs.com/en/docs/theme-tailwind/overview) |
+| `@gridkitjs/export-xlsx`    | Excel export writer — typed cells, frozen header, column widths, groups and totals.      | [docs](https://gridkitjs.com/en/docs/export-xlsx/overview)    |
+| `@gridkitjs/theme-css`      | The same stylesheet as plain CSS, for consumers not using Tailwind.                      | [docs](https://gridkitjs.com/en/docs/theme-css/overview)      |
 
 `apps/playground` is a Vite app used to develop against. Private, never published.
 
@@ -53,6 +54,9 @@ npm install @gridkitjs/core @gridkitjs/react
 
 # Tailwind consumers additionally:
 npm install @gridkitjs/theme-tailwind
+
+# Or, without Tailwind:
+npm install @gridkitjs/theme-css
 
 # Excel export, optionally:
 npm install @gridkitjs/export-xlsx

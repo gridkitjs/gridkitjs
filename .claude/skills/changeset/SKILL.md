@@ -1,6 +1,6 @@
 ---
 name: changeset
-description: Write a changeset for a change to a published GridKit package (core, dom, react, theme-tailwind, export-xlsx). Use when a change touches packages/*/src or a published package's shipped output, before committing it, or when asked to add or fix a changeset.
+description: Write a changeset for a change to a published GridKit package (core, dom, react, theme-tailwind, theme-css, export-xlsx). Use when a change touches packages/*/src or a published package's shipped output, before committing it, or when asked to add or fix a changeset.
 ---
 
 # Write a changeset
@@ -14,7 +14,7 @@ the procedure.
 ## 1. Decide whether one is needed
 
 Ask whether an installed consumer could tell the difference. If not (tests,
-CI, docs, README, tooling config, the playground, `theme-default`), stop:
+CI, docs, README, tooling config, the playground), stop:
 no changeset.
 
 ## 2. Pick the packages
@@ -28,6 +28,9 @@ git diff --name-only main...HEAD -- packages
 
 Don't add a dependent: `react` gets a patch automatically when `core`
 releases. List `react` only when a file under `packages/react` changed too.
+
+A change to `packages/theme-tailwind/src/styles.css` regenerates
+`packages/theme-css/src/styles.css`: list both packages, with the same bump.
 
 ## 3. Pick the bump
 
