@@ -71,6 +71,8 @@ await printDocument({
 
 The frame is zero-size and `aria-hidden`, appended to `document.body`. Its title and stylesheet are set through the DOM rather than written into its markup, so neither needs escaping. It waits for the document to load and its fonts to be ready, opens the dialog, and is removed on the frame's `afterprint` — or, should a browser never fire it, the next time the user presses a key or the pointer, which a modal print dialog allows only once it has closed. Focus goes back where it was. One print at a time: a call while a print is open resolves at once without printing.
 
+The promise rejects if the frame is taken out of the page before it loads (by code that clears `document.body`, say) or the browser fails to open the dialog. The frame is removed, its listeners with it, focus goes back, and the next call prints as usual.
+
 `printStyles(page)` is the stylesheet the frame needs, for a `PrintPage` from `buildPrintDocument`. The frame sees none of the page's CSS, so it carries what makes a table read on paper and nothing of a theme. Pass it as `styles` as it is, add your own rules after it to restyle, or pass a stylesheet of your own in its place.
 
 | Rule                                                                   | What it does                                                                                      |

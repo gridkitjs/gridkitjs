@@ -37,20 +37,33 @@ function createFrame(bodyHtml: string): HTMLIFrameElement {
   return frame;
 }
 
-/** Puts the frame in the page and waits for its document to load. */
+/**
+ * Puts the frame in the page and waits for its document to load. Rejects
+ * if the frame is taken out of the page first, as other code that clears
+ * `document.body` can do: it would then never load.
+ */
 function load(frame: HTMLIFrameElement): Promise<Window> {
   return new Promise((resolve, reject) => {
-    frame.addEventListener(
-      "load",
-      () => {
-        if (frame.contentWindow === null) {
-          reject(new Error("The print frame has no window."));
-        } else {
-          resolve(frame.contentWindow);
-        }
-      },
-      { once: true },
-    );
+    const removal = new MutationObserver(() => {
+      if (!frame.isConnected) {
+        settle();
+        reject(new Error("The print frame was removed before it loaded."));
+      }
+    });
+    function loaded(): void {
+      settle();
+      if (frame.contentWindow === null) {
+        reject(new Error("The print frame has no window."));
+      } else {
+        resolve(frame.contentWindow);
+      }
+    }
+    function settle(): void {
+      removal.disconnect();
+      frame.removeEventListener("load", loaded);
+    }
+    frame.addEventListener("load", loaded);
+    removal.observe(document.body, { childList: true });
     document.body.append(frame);
   });
 }
@@ -75,7 +88,7 @@ function fill(view: Window, { title, styles }: PrintDocumentOptions): void {
  * set time: where `print()` returns with the dialog still open, a frame
  * taken away under it would print nothing.
  */
-function print(view: Window): Promise<void> {
+async function print(view: Window): Promise<void> {
   // A key comes to the frame, which has focus; the pointer to the page, as
   // the frame takes no room.
   const listeners: [Window, string][] = [
@@ -85,20 +98,23 @@ function print(view: Window): Promise<void> {
       [window, type],
     ]),
   ];
-  return new Promise((resolve) => {
-    function done(): void {
-      for (const [target, type] of listeners) {
-        target.removeEventListener(type, done, { capture: true });
-      }
-      resolve();
-    }
-    for (const [target, type] of listeners) {
-      target.addEventListener(type, done, { capture: true });
-    }
+  let done = (): void => undefined;
+  const closed = new Promise<void>((resolve) => {
+    done = resolve;
+  });
+  for (const [target, type] of listeners) {
+    target.addEventListener(type, done, { capture: true });
+  }
+  try {
     // Safari prints the page around a frame that does not have focus.
     view.focus();
     view.print();
-  });
+    await closed;
+  } finally {
+    for (const [target, type] of listeners) {
+      target.removeEventListener(type, done, { capture: true });
+    }
+  }
 }
 
 /**
@@ -111,7 +127,8 @@ function print(view: Window): Promise<void> {
  * which a popup blocker would stop.
  *
  * One print at a time: a call while a print is open resolves at once
- * without printing.
+ * without printing. Rejects, with the frame removed, if the frame is taken
+ * out of the page before it loads or the dialog fails to open.
  */
 export async function printDocument(
   options: PrintDocumentOptions,

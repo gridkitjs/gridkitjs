@@ -56,7 +56,7 @@ await gridRef.current?.print({
 | `print(options?)`     | `Promise<void>` | Prints the grid's view under `print` with `options` over it; resolves once the dialog closes. |
 | `runCommand("print")` | `boolean`       | Prints under the `print` option, as the toolbar does. Says whether it ran.                    |
 
-One print at a time: a print asked for while the dialog is open does nothing, and its promise resolves at once.
+One print at a time: a print asked for while the dialog is open does nothing, and its promise resolves at once. The promise rejects if the browser fails to open the dialog, and the next print runs as usual.
 
 ## Options
 
