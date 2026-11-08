@@ -10,6 +10,7 @@ import {
   describeColumnFilter,
   draftToFilter,
   filterChecklist,
+  filterDraftChanged,
   filterEditorReducer,
   initialFilterEditorDraft,
   selectAllState,
@@ -61,9 +62,9 @@ function toggleOf<Row>(item: FilterChecklistItem): FilterEditorAction<Row> {
  * conditions, which replace the column's values, as Excel's do.
  *
  * Conditions or a custom filter open with every value checked, under a note
- * saying the column is filtered otherwise. OK leaves that filter be until a
- * value is checked or unchecked, as it leaves any filter whose values are as
- * they opened.
+ * saying the column is filtered otherwise. OK leaves that filter be while
+ * the checked values are those it opened with — `filterDraftChanged` —
+ * as it leaves any filter whose values are as they opened.
  */
 export default function ExcelFilterEditor<Row>({
   column,
@@ -141,10 +142,7 @@ export default function ExcelFilterEditor<Row>({
       if (operator !== null) {
         return conditions.current?.apply() ?? true;
       }
-      const picked =
-        draft.checked !== opened.draft.checked ||
-        draft.includeBlanks !== opened.draft.includeBlanks;
-      if (picked) {
+      if (filterDraftChanged(opened.draft, draft)) {
         applyFilter(
           draftToFilter(draft, column.id, controller.getState().filter),
         );

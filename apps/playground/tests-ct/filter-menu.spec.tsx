@@ -887,6 +887,67 @@ test.describe("the simple editor", () => {
     await expect(operatorOf(filterMenu, 1)).toHaveValue("contains");
   });
 
+  test("conditions set in code stay as they are through OK left alone", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid
+        defaultFilter={[
+          { columnId: "score", operator: "gt", value: 10 },
+          { columnId: "score", operator: "lt", value: 25 },
+        ]}
+      />,
+    );
+    expect(await names(root)).toEqual(["Bravo"]);
+
+    const filterMenu = await openFromHeaderMenu(root, page, "Score");
+    await expect(valueOf(filterMenu, 2)).toHaveValue("25");
+    await button(filterMenu, "OK").click();
+
+    await expect(filterMenu).toHaveCount(0);
+    expect(await names(root)).toEqual(["Bravo"]);
+    await expect(reported(root)).toHaveText("");
+  });
+
+  test("a day set in code as a string stays as it is through OK left alone", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid
+        defaultFilter={[
+          { columnId: "joined", operator: "gt", value: "2024-01-01" },
+        ]}
+      />,
+    );
+    expect(await names(root)).toEqual(["Charlie"]);
+
+    const filterMenu = await openFromHeaderMenu(root, page, "Joined");
+    await button(filterMenu, "OK").click();
+
+    await expect(filterMenu).toHaveCount(0);
+    await expect(reported(root)).toHaveText("");
+  });
+
+  test("a value typed and taken out again closes through OK, as Cancel would", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+
+    await valueOf(filterMenu, 1).fill("li");
+    await valueOf(filterMenu, 1).fill("");
+    await button(filterMenu, "OK").click();
+
+    await expect(filterMenu).toHaveCount(0);
+    expect(await names(root)).toEqual(["Charlie", "Alice", "Bravo"]);
+    await expect(reported(root)).toHaveText("");
+  });
+
   test("Cancel drops what was typed", async ({ mount, page }) => {
     const root = await mountGrid(mount, <FilterMenuGrid />);
     let filterMenu = await openFromHeaderMenu(root, page, "Name");
@@ -1306,6 +1367,31 @@ test.describe("the excel editor", () => {
     await expect(reported(root)).toHaveText(
       '[{"columnId":"score","operator":"in","value":[9,21]}]',
     );
+  });
+
+  test("a value unchecked and checked again, or every value, leaves a filter set in code be", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid
+        filterMenu={{ ui: "excel" }}
+        defaultFilter={[{ columnId: "score", operator: "gt", value: 10 }]}
+      />,
+    );
+
+    const filterMenu = await openFromHeaderMenu(root, page, "Score");
+    await option(filterMenu, "9").click();
+    await option(filterMenu, "9").click();
+    await selectAllOf(filterMenu).click();
+    await selectAllOf(filterMenu).click();
+    await expect(selectAllOf(filterMenu)).toBeChecked();
+    await button(filterMenu, "OK").click();
+
+    await expect(filterMenu).toHaveCount(0);
+    expect(await names(root)).toEqual(["Charlie", "Bravo"]);
+    await expect(reported(root)).toHaveText("");
   });
 
   test("a custom filter says so above the checklist, and stays through OK", async ({

@@ -11,10 +11,14 @@ import {
   conditionsFromRows,
   describeColumnFilter,
   draftToFilter,
+  filterDraftChanged,
   filterEditorReducer,
   initialFilterEditorDraft,
+  type ColumnFilterShape,
+  type ColumnType,
   type ColumnValueOptions,
   type ConditionRowDraft,
+  type FilterEditorDraft,
   type FilterOperator,
   type GridMessages,
   type OperatorFilterEntry,
@@ -45,6 +49,52 @@ const NO_VALUES: ColumnValueOptions = {
   truncated: false,
   blanks: 0,
 };
+
+/** Whether two drafts hold the same text in every box, joined alike. */
+function sameDraft(a: Draft, b: Draft): boolean {
+  return (
+    a.combinator === b.combinator &&
+    a.rows.length === b.rows.length &&
+    a.rows.every((row, index) => {
+      const other = b.rows[index];
+      return (
+        other !== undefined &&
+        row.operator === other.operator &&
+        row.text === other.text &&
+        row.textTo === other.textTo
+      );
+    })
+  );
+}
+
+/**
+ * The draft standing for the column's filter `shape`, for
+ * `filterDraftChanged` to tell an apply that changes nothing. Its conditions
+ * are read back from the boxes showing them, `rows`, as the conditions
+ * applied will be: a date set in code as a string, or a time to the second,
+ * then compares equal to the day or minute its box shows.
+ */
+function filterDraftShown<Row>(
+  shape: ColumnFilterShape<Row>,
+  rows: readonly ConditionRowDraft[],
+  columnId: string,
+  type: ColumnType | undefined,
+): FilterEditorDraft<Row> {
+  const draft = initialFilterEditorDraft(shape, {
+    ...NO_VALUES,
+    columnType: type,
+  });
+  if (shape.kind !== "conditions") {
+    return draft;
+  }
+  const shown = conditionsFromRows<Row>(rows, columnId, type);
+  return shown.invalid.length > 0
+    ? draft
+    : filterEditorReducer(draft, {
+        type: "setConditions",
+        conditions: shown.conditions,
+      });
+}
 
 /**
  * Whether a box in `row` holds what the browser can't read as a number or a
@@ -150,6 +200,7 @@ export default function SimpleFilterEditor<Row>({
         shape.kind === "custom" ||
         (shape.kind === "values" && operator === undefined),
       draft,
+      filterDraft: filterDraftShown(shape, rows, column.id, type),
     };
   });
   const [draft, setDraft] = useState(opened.draft);
@@ -163,17 +214,23 @@ export default function SimpleFilterEditor<Row>({
     setInvalid(NO_ROWS);
   }
 
-  /** Puts `conditions` in place of every entry about the column. */
+  /**
+   * Puts `conditions` in place of every entry about the column — unless
+   * they are the column's own, so a filter set in code stays as written.
+   */
   function applyConditions(
     conditions: readonly OperatorFilterEntry<Row>[],
   ): void {
-    const applied = filterEditorReducer(
-      initialFilterEditorDraft<Row>({ kind: "none" }, NO_VALUES),
-      { type: "setConditions", conditions, combinator: draft.combinator },
-    );
-    applyFilter(
-      draftToFilter(applied, column.id, controller.getState().filter),
-    );
+    const applied = filterEditorReducer(opened.filterDraft, {
+      type: "setConditions",
+      conditions,
+      combinator: draft.combinator,
+    });
+    if (filterDraftChanged(opened.filterDraft, applied)) {
+      applyFilter(
+        draftToFilter(applied, column.id, controller.getState().filter),
+      );
+    }
   }
 
   useImperativeHandle(ref, () => ({
@@ -193,7 +250,7 @@ export default function SimpleFilterEditor<Row>({
       }
       // Nothing typed since it opened: OK closes it, as Cancel would, rather
       // than asking for a value.
-      if (draft === opened.draft && !unreadable.includes(true)) {
+      if (sameDraft(draft, opened.draft) && !unreadable.includes(true)) {
         return true;
       }
       setInvalid(marked);
