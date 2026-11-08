@@ -83,12 +83,12 @@ function builtIn(
   id: BuiltInCommandId,
   controller: GridController<Order>,
   target: GridCommandTarget,
+  host: GridCommandHost = inertHost(),
 ) {
   const command = builtInCommands<Order>().find((entry) => entry.id === id);
   if (command === undefined) {
     throw new Error(`no built-in ${id}`);
   }
-  const host = inertHost();
   const context = () =>
     createCommandContext({
       controller,
@@ -918,11 +918,14 @@ describe("export.csv", () => {
   });
 
   test("did not run when the host drops the file", () => {
-    const command = builtIn("export.csv", create(), GRID);
-    vi.mocked(command.host.saveFile).mockReturnValue(false);
+    const saveFile = vi.fn(() => false);
+    const command = builtIn("export.csv", create(), GRID, {
+      ...inertHost(),
+      saveFile,
+    });
 
     expect(command.run()).toBe(false);
-    expect(command.host.saveFile).toHaveBeenCalledOnce();
+    expect(saveFile).toHaveBeenCalledOnce();
   });
 
   test("hands the host the view as a CSV file", () => {
