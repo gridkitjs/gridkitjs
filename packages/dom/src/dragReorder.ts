@@ -11,6 +11,14 @@ import {
  */
 const DRAG_THRESHOLD = 4;
 
+/**
+ * Where a reorder gesture is: `pressed` until the pointer crosses the
+ * threshold, then `dragging` over `target`, `null` for nowhere valid.
+ */
+type DragPhase<Target> =
+  | { readonly kind: "pressed" }
+  | { readonly kind: "dragging"; readonly target: Target | null };
+
 /** What a renderer draws while a reorder drag is open. */
 export interface DragReorderState<Target> {
   /** The item being dragged, once the press has become a drag. */
@@ -82,8 +90,7 @@ export function startDragReorder<Target>(
 
   const { pointerId, clientX: startX } = press;
   const grabX = startX - grabElement.getBoundingClientRect().left;
-  let dragging = false;
-  let target: Target | null = null;
+  let phase: DragPhase<Target> = { kind: "pressed" };
 
   startPointerGesture(
     grabElement,
@@ -91,28 +98,29 @@ export function startDragReorder<Target>(
     {
       onMove(moveEvent) {
         const { clientX, clientY } = moveEvent;
-        if (!dragging) {
-          if (Math.abs(clientX - startX) < DRAG_THRESHOLD) {
-            return;
-          }
-          dragging = true;
+        if (
+          phase.kind === "pressed" &&
+          Math.abs(clientX - startX) < DRAG_THRESHOLD
+        ) {
+          return;
         }
-        target = handlers.resolveTarget(clientX, clientY, id);
+        phase = {
+          kind: "dragging",
+          target: handlers.resolveTarget(clientX, clientY, id),
+        };
         handlers.onState({
           draggedId: id,
-          dropTarget: target,
+          dropTarget: phase.target,
           ghostTransform: `translate(${String(clientX - grabX)}px, ${String(clientY)}px)`,
         });
       },
       onEnd() {
-        const dropped = target;
         handlers.onState(NO_DRAG);
-        if (dragging && dropped !== null) {
-          handlers.onDrop(dropped, id);
+        if (phase.kind === "dragging" && phase.target !== null) {
+          handlers.onDrop(phase.target, id);
         }
       },
       onCancel() {
-        target = null;
         handlers.onState(NO_DRAG);
       },
     },
