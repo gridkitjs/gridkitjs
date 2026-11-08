@@ -24,6 +24,8 @@ export interface ImperativeApiGridProps<Row extends RowWithId> extends Omit<
   /** Row id `scroll-to-row` scrolls to, and column id `scroll-to-column` scrolls to. */
   scrollRowId?: string;
   scrollColumnId?: string;
+  /** Row ids `scroll-to-each-row` scrolls to one after another, in a single task. */
+  scrollRowIds?: readonly string[];
   focusRowIndex?: number;
   focusColumnIndex?: number;
   /** Column ids `hide-columns` hides and `show-columns` shows. */
@@ -75,6 +77,7 @@ export interface ImperativeApiGridProps<Row extends RowWithId> extends Omit<
 export default function ImperativeApiGrid<Row extends RowWithId>({
   scrollRowId,
   scrollColumnId,
+  scrollRowIds,
   focusRowIndex,
   focusColumnIndex,
   visibilityColumnIds,
@@ -216,6 +219,16 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         }}
       >
         scroll-to-row
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          for (const rowId of scrollRowIds ?? []) {
+            gridRef.current?.scrollToRow(rowId);
+          }
+        }}
+      >
+        scroll-to-each-row
       </button>
       <button
         type="button"

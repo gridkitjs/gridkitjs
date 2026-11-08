@@ -2,11 +2,13 @@
 // ./support/coverage rather than directly from the CT package — see that
 // file for why.
 import type { MountResult } from "@playwright/experimental-ct-react";
+import type { Page } from "@playwright/test";
 import type { ColumnDefinition } from "@gridkitjs/core";
 import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
 import InfiniteScrollGrid from "./support/InfiniteScrollGrid";
+import InfiniteScrollHarness from "./support/InfiniteScrollHarness";
 
 interface Row {
   id: string;
@@ -33,6 +35,23 @@ function scrollToBottom(body: ReturnType<typeof gridBody>): Promise<void> {
   return body.evaluate((element: HTMLElement) => {
     element.scrollTop = element.scrollHeight;
   });
+}
+
+/**
+ * Waits out two rendering steps, after which an `IntersectionObserver` has
+ * reported what the last change of layout did to its target.
+ */
+function afterNextFrames(page: Page): Promise<void> {
+  return page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setTimeout(resolve);
+          });
+        });
+      }),
+  );
 }
 
 test.describe("infinite scroll", () => {
@@ -103,6 +122,65 @@ test.describe("infinite scroll", () => {
     // another attempt once loading settles.
     await expect(root.locator(".grid-sentinel-row")).toHaveCount(0);
     await page.waitForTimeout(100);
+    await expect(loadCount).toHaveText("2");
+  });
+
+  test("a load that finishes before isLoadingMore ever renders true still lets the next approach load", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <InfiniteScrollGrid
+        columns={columns}
+        allRows={buildRows(60)}
+        chunkSize={20}
+        instantLoads
+        rootMargin="0px"
+        label="Infinite scroll instant loads"
+        height={150}
+      />,
+    );
+
+    const loadCount = root.getByTestId("load-count");
+    const body = gridBody(root);
+    await scrollToBottom(body);
+    await expect(loadCount).toHaveText("1");
+    await expect(root.locator("tbody tr[data-gridkit-row-index]")).toHaveCount(
+      40,
+    );
+    // The appended rows push the sentinel out of view; the observer sees it
+    // leave before the next scroll brings it back.
+    await afterNextFrames(page);
+
+    await scrollToBottom(body);
+    await expect(loadCount).toHaveText("2");
+  });
+
+  test("hasMore turning true again for a new dataset loads again while the sentinel is near", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <InfiniteScrollGrid
+        columns={columns}
+        allRows={buildRows(40)}
+        chunkSize={20}
+        instantLoads
+        rootMargin="0px"
+        label="Infinite scroll new dataset"
+        height={150}
+      />,
+    );
+
+    const loadCount = root.getByTestId("load-count");
+    await scrollToBottom(gridBody(root));
+    await expect(loadCount).toHaveText("1");
+    await expect(root.locator(".grid-sentinel-row")).toHaveCount(0);
+
+    // Back to 20 rows: the body's scroll clamps to its new bottom, where the
+    // sentinel sits in view.
+    await root.getByRole("button", { name: "Start over" }).click();
     await expect(loadCount).toHaveText("2");
   });
 
@@ -267,5 +345,25 @@ test.describe("infinite scroll", () => {
       const mountedRows = root.locator("tbody tr[data-gridkit-row-index]");
       expect(await mountedRows.count()).toBeLessThan(60);
     });
+  });
+});
+
+test.describe("attachInfiniteScroll", () => {
+  test("an update that turns hasMore on loads while the sentinel is in view", async ({
+    mount,
+  }) => {
+    const root = await mount(<InfiniteScrollHarness />);
+    await root.getByRole("button", { name: "Has more" }).click();
+
+    await expect(root.getByTestId("load-count")).toHaveText("1");
+  });
+
+  test("an update after detach starts nothing", async ({ mount, page }) => {
+    const root = await mount(<InfiniteScrollHarness />);
+    await root.getByRole("button", { name: "Detach" }).click();
+    await root.getByRole("button", { name: "Has more" }).click();
+
+    await afterNextFrames(page);
+    await expect(root.getByTestId("load-count")).toHaveText("0");
   });
 });

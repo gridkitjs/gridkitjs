@@ -21,7 +21,8 @@ export interface AttachedChecklist {
    * How many items the whole list holds, mounted or not. Starts at 0, so a
    * renderer calls this straight after attaching, and again whenever the
    * list changes — a search narrowing it, say. A focused place past the new
-   * end moves back to the last item.
+   * end moves back to the last item, and so does a move still waiting for
+   * an item past it.
    */
   readonly setCount: (count: number) => void;
   /**
@@ -199,12 +200,9 @@ export function attachChecklist(
     }
   }
 
-  // Items mount and unmount as the window moves, and a kept element can take
-  // another place when the list changes under it. The item a move waits for
-  // takes focus only if focus is still in the list, or dropped to nothing
-  // when the item it was on unmounted.
-  const observer = new MutationObserver(() => {
-    setTabStop();
+  // The item a move waits for takes focus only if focus is still in the
+  // list, or dropped to nothing when the item it was on unmounted.
+  function focusPendingIfMounted(): void {
     const item = pending === null ? null : itemAt(pending);
     if (item === null) {
       return;
@@ -218,6 +216,13 @@ export function attachChecklist(
     ) {
       item.focus({ preventScroll: true });
     }
+  }
+
+  // Items mount and unmount as the window moves, and a kept element can take
+  // another place when the list changes under it.
+  const observer = new MutationObserver(() => {
+    setTabStop();
+    focusPendingIfMounted();
   });
   observer.observe(list, {
     childList: true,
@@ -234,7 +239,11 @@ export function attachChecklist(
     setCount(next) {
       count = next;
       active = Math.max(0, Math.min(active, count - 1));
+      if (pending !== null) {
+        pending = count === 0 ? null : Math.min(pending, count - 1);
+      }
       setTabStop();
+      focusPendingIfMounted();
     },
     focusItem: moveTo,
     detach() {

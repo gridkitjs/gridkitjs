@@ -20,6 +20,51 @@ function printFrames(page: Page) {
   return page.locator("body > iframe");
 }
 
+interface TrackedWindow {
+  trackedReturnListeners: Set<unknown>;
+}
+
+/**
+ * Starts tracking the `pointerdown` and `keydown` listeners added to
+ * `window` from now on, and returns a reader for how many are still
+ * attached. An open print listens there for the user coming back to the
+ * page, so a count left above zero once it has settled is a print that
+ * never cleaned up.
+ */
+async function trackReturnListeners(
+  page: Page,
+): Promise<() => Promise<number>> {
+  await page.evaluate(() => {
+    const types = new Set(["pointerdown", "keydown"]);
+    const tracked = new Set<unknown>();
+    const add: EventTarget["addEventListener"] =
+      window.addEventListener.bind(window);
+    const remove: EventTarget["removeEventListener"] =
+      window.removeEventListener.bind(window);
+    Object.assign(window, {
+      trackedReturnListeners: tracked,
+      addEventListener(...args: Parameters<EventTarget["addEventListener"]>) {
+        if (types.has(args[0])) {
+          tracked.add(args[1]);
+        }
+        add(...args);
+      },
+      removeEventListener(
+        ...args: Parameters<EventTarget["removeEventListener"]>
+      ) {
+        if (types.has(args[0])) {
+          tracked.delete(args[1]);
+        }
+        remove(...args);
+      },
+    });
+  });
+  return () =>
+    page.evaluate(
+      () => (window as unknown as TrackedWindow).trackedReturnListeners.size,
+    );
+}
+
 test.describe("printDocument", () => {
   test("prints the document in a hidden frame, then removes it", async ({
     mount,
@@ -75,6 +120,35 @@ test.describe("printDocument", () => {
 
     await expect(root.getByTestId("settled")).toHaveText("first,first");
     expect(await printsOf(root)).toHaveLength(2);
+  });
+
+  test("a print whose dialog fails to open rejects, removes its listeners and lets the next print run", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<PrintHarness />);
+    const returnListeners = await trackReturnListeners(page);
+    await root.getByRole("button", { name: "Print, failing" }).click();
+
+    await expect(root.getByTestId("settled")).toHaveText("first failed");
+    await expect(printFrames(page)).toHaveCount(0);
+    expect(await returnListeners()).toBe(0);
+
+    await root.getByRole("button", { name: "Print", exact: true }).click();
+    await expect(root.getByTestId("settled")).toHaveText("first failed,first");
+    expect(await printsOf(root)).toHaveLength(1);
+  });
+
+  test("a frame taken away before it loads rejects, and the next print runs", async ({
+    mount,
+  }) => {
+    const root = await mount(<PrintHarness />);
+    await root.getByRole("button", { name: "Print, frame taken away" }).click();
+    await expect(root.getByTestId("settled")).toHaveText("first failed");
+
+    await root.getByRole("button", { name: "Print", exact: true }).click();
+    await expect(root.getByTestId("settled")).toHaveText("first failed,first");
+    expect(await printsOf(root)).toHaveLength(1);
   });
 
   test("gives focus back where it was", async ({ mount }) => {

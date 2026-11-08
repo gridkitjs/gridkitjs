@@ -79,6 +79,29 @@ const MOVES: Readonly<Record<string, MenuMove>> = {
   End: "last",
 };
 
+/** Letters typed one after another, until `TYPEAHEAD_TIMEOUT` ends the run. */
+type Typeahead =
+  | { readonly kind: "idle" }
+  | { readonly kind: "typing"; readonly typed: string; readonly timer: number };
+
+/**
+ * The pointer over an item: `resting` until `HOVER_DELAY` has passed and
+ * what the item opens or closes happens, then `rested` until it moves to
+ * another. A key the menu acts on ends it, so the pointer has to move again
+ * before it opens or closes anything.
+ */
+type Hover =
+  | { readonly kind: "away" }
+  | {
+      readonly kind: "resting";
+      readonly item: HTMLElement;
+      readonly timer: number;
+    }
+  | { readonly kind: "rested"; readonly item: HTMLElement };
+
+const IDLE: Typeahead = { kind: "idle" };
+const AWAY: Hover = { kind: "away" };
+
 function idOf(item: HTMLElement): string {
   return item.getAttribute("data-gridkit-menu-item") ?? "";
 }
@@ -129,11 +152,8 @@ export function attachMenu(
   panel: HTMLElement,
   options: MenuOptions,
 ): AttachedMenu {
-  let typed = "";
-  let typeaheadTimer: number | undefined;
-  /** The item the pointer is over, and since when, through `hoverTimer`. */
-  let hovered: HTMLElement | null = null;
-  let hoverTimer: number | undefined;
+  let typeahead: Typeahead = IDLE;
+  let hover: Hover = AWAY;
 
   function items(): HTMLElement[] {
     return Array.from(panel.querySelectorAll<HTMLElement>(ITEM));
@@ -170,25 +190,68 @@ export function attachMenu(
     }
   }
 
-  function typeahead(key: string, all: HTMLElement[], from: number): void {
-    typed += key;
-    window.clearTimeout(typeaheadTimer);
-    typeaheadTimer = window.setTimeout(() => {
-      typed = "";
-    }, TYPEAHEAD_TIMEOUT);
+  function endTyping(): void {
+    if (typeahead.kind === "typing") {
+      window.clearTimeout(typeahead.timer);
+    }
+    typeahead = IDLE;
+  }
+
+  function endHover(): void {
+    if (hover.kind === "resting") {
+      window.clearTimeout(hover.timer);
+    }
+    hover = AWAY;
+  }
+
+  function type(key: string, all: HTMLElement[], from: number): void {
+    const typed = (typeahead.kind === "typing" ? typeahead.typed : "") + key;
+    endTyping();
+    typeahead = {
+      kind: "typing",
+      typed,
+      timer: window.setTimeout(() => {
+        typeahead = IDLE;
+      }, TYPEAHEAD_TIMEOUT),
+    };
     const match = all[typeaheadIndex(all.map(labelOf), from, typed)];
     if (match !== undefined) {
       focus(match);
     }
   }
 
+  function rest(item: HTMLElement): void {
+    hover = {
+      kind: "resting",
+      item,
+      timer: window.setTimeout(() => {
+        hover = { kind: "rested", item };
+        if (opensSubmenu(item) && !isDisabled(item)) {
+          openSubmenu(item, "none");
+        } else {
+          options.onCollapseSubmenu?.();
+        }
+      }, HOVER_DELAY),
+    };
+  }
+
   // Every key it acts on is taken, the arrows included where they do
   // nothing: a menu has no caret for them to move, and the page scrolling
-  // under it would dismiss its overlay.
+  // under it would dismiss its overlay. Any of them ends a rest of the
+  // pointer, and any but a letter ends the typing.
   function onKeyDown(event: KeyboardEvent): void {
-    if (event.isComposing) {
+    if (event.isComposing || !actOnKey(event)) {
       return;
     }
+    event.preventDefault();
+    endHover();
+    if (!isTypeahead(event)) {
+      endTyping();
+    }
+  }
+
+  /** Does what `event`'s key does in the menu; `false` for a key it ignores. */
+  function actOnKey(event: KeyboardEvent): boolean {
     const all = items();
     const item = itemOf(event.target);
     const from = item === null ? -1 : all.indexOf(item);
@@ -218,11 +281,11 @@ export function attachMenu(
     } else if (event.key === "Tab") {
       options.onClose("tab");
     } else if (isTypeahead(event)) {
-      typeahead(event.key, all, from);
+      type(event.key, all, from);
     } else {
-      return;
+      return false;
     }
-    event.preventDefault();
+    return true;
   }
 
   // However focus arrived — the overlay's initial focus, a click, a script —
@@ -253,26 +316,18 @@ export function attachMenu(
     if (item !== null && document.activeElement !== item) {
       focus(item);
     }
-    if (item === hovered) {
+    if (hover.kind !== "away" && hover.item === item) {
       return;
     }
-    hovered = item;
-    window.clearTimeout(hoverTimer);
+    endHover();
     if (item !== null) {
-      hoverTimer = window.setTimeout(() => {
-        if (opensSubmenu(item) && !isDisabled(item)) {
-          openSubmenu(item, "none");
-        } else {
-          options.onCollapseSubmenu?.();
-        }
-      }, HOVER_DELAY);
+      rest(item);
     }
   }
 
   // Leaving the panel — into the submenu, usually — is not resting anywhere.
   function onPointerLeave(): void {
-    hovered = null;
-    window.clearTimeout(hoverTimer);
+    endHover();
   }
 
   const focused = itemOf(document.activeElement);
@@ -296,8 +351,8 @@ export function attachMenu(
       }
     },
     detach() {
-      window.clearTimeout(typeaheadTimer);
-      window.clearTimeout(hoverTimer);
+      endTyping();
+      endHover();
       panel.removeEventListener("keydown", onKeyDown);
       panel.removeEventListener("focusin", onFocusIn);
       panel.removeEventListener("click", onClick);

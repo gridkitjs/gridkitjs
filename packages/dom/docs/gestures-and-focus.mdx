@@ -124,25 +124,28 @@ function destroy() {
 
 A grid is one tab stop: <Kbd>Tab</Kbd> reaches it and passes it by, and the arrow keys, <Kbd>Home</Kbd>, <Kbd>End</Kbd>, <Kbd>PageUp</Kbd> and <Kbd>PageDown</Kbd> move within it. `createGridFocus({ rowCount, columnCount, isSkippableRow, virtualRange })` keeps that tab stop — starting on the header's first cell — and moves the browser's focus with it.
 
-| Member                                 | Description                                                                                                                                   |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `getFocus()`                           | The focused cell, `{ rowIndex, columnIndex }` with `HEADER_ROW` (`-1`) for the header, clamped to the counts. The same object until it moves. |
-| `subscribe(listener)`                  | Calls `listener` when the focused cell moves.                                                                                                 |
-| `setOptions(options)`                  | The current counts, skippable rows and virtualized window, given on every render. Calls no listener.                                          |
-| `attach({ getHeaderRow, getBodyRow })` | Connects it to the rendered rows; returns the function that disconnects them.                                                                 |
-| `focusCell(rowIndex, columnIndex)`     | Moves the tab stop. Moving to the focused cell does nothing.                                                                                  |
-| `handleKey(key, modifiers, pageSize)`  | Moves the tab stop as a navigation key does, and returns `true` — prevent the key's default then — or returns `false` for any other key.      |
-| `focusDrawnCell(drawn)`                | Called after drawing `drawn`, a value `getFocus()` returned: moves the browser's focus to that cell if a move to it is pending.               |
+| Member                                        | Description                                                                                                                                   |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getFocus()`                                  | The focused cell, `{ rowIndex, columnIndex }` with `HEADER_ROW` (`-1`) for the header, clamped to the counts. The same object until it moves. |
+| `subscribe(listener)`                         | Calls `listener` when the focused cell moves.                                                                                                 |
+| `setOptions(options)`                         | The current counts, skippable rows and virtualized window, given on every render. Calls no listener.                                          |
+| `attach({ getHeaderRow, getBodyRow }, root?)` | Connects it to the rendered rows, and to `root`, the grid element holding them, when given; returns the function that disconnects them.       |
+| `focusCell(rowIndex, columnIndex)`            | Moves the tab stop. Moving to the focused cell does nothing.                                                                                  |
+| `handleKey(key, modifiers, pageSize)`         | Moves the tab stop as a navigation key does, and returns `true` — prevent the key's default then — or returns `false` for any other key.      |
+| `focusDrawnCell(drawn)`                       | Called after drawing `drawn`, a value `getFocus()` returned: moves the browser's focus to that cell if a move to it is pending.               |
 
 ```ts
 import { HEADER_ROW } from "@gridkitjs/core";
 import { createGridFocus, findBodyRow, measurePageSize } from "@gridkitjs/dom";
 
 const focus = createGridFocus({ rowCount, columnCount });
-focus.attach({
-  getHeaderRow: () => headerTable.tHead?.rows[0] ?? null,
-  getBodyRow: (rowIndex) => findBodyRow(bodyTable, rowIndex),
-});
+focus.attach(
+  {
+    getHeaderRow: () => headerTable.tHead?.rows[0] ?? null,
+    getBodyRow: (rowIndex) => findBodyRow(bodyTable, rowIndex),
+  },
+  grid,
+);
 focus.subscribe(() => draw()); // draw() renders tabindex 0 on focus.getFocus(), then calls focus.focusDrawnCell(focus.getFocus())
 
 grid.addEventListener("keydown", (event) => {
@@ -152,7 +155,7 @@ grid.addEventListener("keydown", (event) => {
 });
 ```
 
-The browser's focus follows only once the move is drawn, so it lands on the cell in the new markup — after a column moves, the header now at that index. A virtualized row outside the drawn window is scrolled into it with `virtualRange.scrollToIndex` and focused when a later drawing mounts it. `findBodyRow(bodyTable, rowIndex)` finds a body row by its `data-gridkit-row-index`, not its position, which under virtualization is off by the rows not mounted; `measurePageSize(bodyTable)` is how many rows a page key moves — as many as fit the body's scrolling area.
+The browser's focus follows only once the move is drawn, so it lands on the cell in the new markup — after a column moves, the header now at that index. A virtualized row outside the drawn window is scrolled into it with `virtualRange.scrollToIndex` and focused when a later drawing mounts it. Given a `root`, the user can take over from that wait: focus leaving `root`, or a wheel or a press inside it, drops the move, so the row mounting later neither scrolls the grid back to it nor pulls focus back in. `findBodyRow(bodyTable, rowIndex)` finds a body row by its `data-gridkit-row-index`, not its position, which under virtualization is off by the rows not mounted; `measurePageSize(bodyTable)` is how many rows a page key moves — as many as fit the body's scrolling area.
 
 ## Checklist
 
@@ -186,7 +189,7 @@ The list is the element that scrolls — the virtualizer's scroll element — so
 
 A key pressed with <Kbd>Ctrl</Kbd>, <Kbd>Alt</Kbd>, <Kbd>Shift</Kbd> or <Kbd>Meta</Kbd> is left alone. A move to an item outside the window asks `scrollToIndex` for it and focuses it once it mounts, unless focus has gone elsewhere in the meantime. There is no typeahead: a checklist of values comes with a search box.
 
-`setCount(count)` says how many items the whole list holds. It starts at 0, so call it straight after attaching, and again whenever the list changes — a search narrowing it, say; a focused place past the new end moves back to the last item. `focusItem(index)` focuses an item from code, scrolling to it first.
+`setCount(count)` says how many items the whole list holds. It starts at 0, so call it straight after attaching, and again whenever the list changes — a search narrowing it, say; a focused place past the new end moves back to the last item, and so does a move still waiting for an item past it. `focusItem(index)` focuses an item from code, scrolling to it first.
 
 ```ts
 import { attachChecklist, createRowVirtualizer } from "@gridkitjs/dom";

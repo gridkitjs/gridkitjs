@@ -21,13 +21,13 @@ const disconnect = observeElementWidth(viewportElement, (width) => {
 
 `createRowVirtualizer(scrollElement, { estimatedRowHeight, overscan, onRange })` windows a long list of rows inside a scrolling element down to those near its scroll position. It measures each rendered row's real height — rows need not be uniform — and reports the window to render through `onRange({ startIndex, endIndex, offsetBefore, offsetAfter })`, with `offsetBefore`/`offsetAfter` the heights of the spacers that stand in for the rows outside it. It reports only when the window moves.
 
-| Member                          | Description                                                                                                                |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `setRowCount(count)`            | How many rows there are. Heights measured for rows that remain are kept.                                                   |
-| `resetHeights()`                | Forgets every measured height — after a sort or filter, when the rows at each index are different rows.                    |
-| `measureRow(index)`             | A ref callback for row `index`'s element, measuring it while mounted. The same function for the same index every time.     |
-| `scrollToIndex(index, options)` | Scrolls a mounted row into view; jumps to an unmounted one's estimated offset, then scrolls to it properly once it mounts. |
-| `destroy()`                     | Stops listening and measuring.                                                                                             |
+| Member                          | Description                                                                                                                                                                                                               |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setRowCount(count)`            | How many rows there are. Heights measured for rows that remain are kept.                                                                                                                                                  |
+| `resetHeights()`                | Forgets every measured height — after a sort or filter, when the rows at each index are different rows.                                                                                                                   |
+| `measureRow(index)`             | A ref callback for row `index`'s element, measuring it while mounted. The same function for the same index every time.                                                                                                    |
+| `scrollToIndex(index, options)` | Scrolls a mounted row into view; jumps to an unmounted one's estimated offset, then scrolls to it properly once it mounts. A later call replaces one still waiting, and so does a row count that no longer holds its row. |
+| `destroy()`                     | Stops listening, measuring and scrolling, for good: every method does nothing after it.                                                                                                                                   |
 
 ```ts
 import { createRowVirtualizer } from "@gridkitjs/dom";
@@ -47,7 +47,7 @@ The arithmetic is @gridkitjs/core's `visibleRange`; this owns the measured heigh
 
 ## Infinite scroll
 
-`attachInfiniteScroll(root, options)` calls `onLoadMore` as a sentinel element — the last row of the body — comes within `rootMargin` of the scrolling `root`, at most once until `isLoadingMore` has gone from `true` back to `false`. It returns `update(options)`, which a renderer calls after every render with the current options and sentinel (the sentinel comes and goes with `hasMore`), and `detach()`.
+`attachInfiniteScroll(root, options)` calls `onLoadMore` as a sentinel element — the last row of the body — comes within `rootMargin` of the scrolling `root`, once per approach while no load is in flight. It returns `update(options)`, which a renderer calls after every render with the current options and sentinel (the sentinel comes and goes with `hasMore`), and `detach()`.
 
 ```ts
 import { attachInfiniteScroll } from "@gridkitjs/dom";
@@ -69,13 +69,23 @@ scroll.detach();
 | --------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `sentinel`      | `Element \| null` | The element whose approach triggers a load — the body's always-last row — or `null` while none is rendered.                                        |
 | `hasMore`       | `boolean`         | Whether a further load could still return more rows. `false` stops watching altogether.                                                            |
-| `onLoadMore`    | `() => void`      | Called at most once per approach, and not again until `isLoadingMore` has gone from `true` back to `false`.                                        |
+| `onLoadMore`    | `() => void`      | Called at most once per approach, and not again until something re-arms it (see below).                                                            |
 | `isLoadingMore` | `boolean`         | Whether a load `onLoadMore` started is still in flight. Defaults to `false`.                                                                       |
 | `rootMargin`    | `string`          | How far ahead of the sentinel scrolling into view a load starts, as CSS margins — an `IntersectionObserver`'s `rootMargin`. Defaults to `"200px"`. |
 
-`update` is cheap when nothing changed; a new sentinel or `rootMargin` restarts the observer, and `isLoadingMore` going back to `false` checks again at once.
+`update` is cheap when nothing changed; a new sentinel or `rootMargin` restarts the observer. With `hasMore` false, no sentinel, or after `detach()`, nothing is observed, and an `update` after `detach()` does nothing.
 
-When a load finishes but the rows it appended leave the sentinel still in range, the next load starts straight away — nothing would scroll it out and back in to trigger one. With `hasMore` false or no sentinel, nothing is observed.
+### What re-arms a load
+
+Once `onLoadMore` has been called, it is not called again until one of these happens:
+
+- The load finishes: `isLoadingMore` goes from `true` back to `false`.
+- `hasMore` changes, as it does when a new query starts over with a new dataset.
+- The sentinel leaves `rootMargin` and comes back: a fresh approach. This is what re-arms a load that finishes within one render, so `isLoadingMore` never reads `true`, or an `onLoadMore` that starts nothing.
+
+When a load finishes, or `hasMore` changes, with the sentinel still in range, the next load starts at once: nothing would scroll it out and back in to trigger one.
+
+There is no retry or backoff. A load that fails and leaves `isLoadingMore` `false` with the sentinel in range is tried again at once, so stop it through the options: set `hasMore` to `false` until the user asks again, or keep `isLoadingMore` `true` while the failure is shown.
 
 ## Types
 
