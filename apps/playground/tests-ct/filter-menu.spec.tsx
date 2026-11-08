@@ -3,9 +3,10 @@
 // file for why.
 import type { Locator, Page } from "@playwright/test";
 import type { MountResult } from "@playwright/experimental-ct-react";
+import type { FilterState } from "@gridkitjs/core";
 import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
-import FilterMenuGrid from "./support/FilterMenuGrid";
+import FilterMenuGrid, { type FilterMenuRow } from "./support/FilterMenuGrid";
 import HundredThousandRowsGrid from "./support/HundredThousandRowsGrid";
 import ImperativeApiGrid from "./support/ImperativeApiGrid";
 import ManyValuesGrid from "./support/ManyValuesGrid";
@@ -948,6 +949,43 @@ test.describe("the simple editor", () => {
     await expect(reported(root)).toHaveText("");
   });
 
+  test("the column's filter changing while the menu is open shows the new conditions in place of what was typed", async ({
+    mount,
+    page,
+  }) => {
+    const grid = (filter: FilterState<FilterMenuRow>) => (
+      <FilterMenuGrid filter={filter} />
+    );
+    const scoreAbove10 = {
+      columnId: "score",
+      operator: "gt",
+      value: 10,
+    } as const;
+    const root = await mountGrid(mount, grid([]));
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+    await valueOf(filterMenu, 1).fill("zz");
+
+    // Another column's filter leaves what was typed.
+    await updateGrid(root, grid([scoreAbove10]));
+    expect(await names(root)).toEqual(["Charlie", "Bravo"]);
+    await expect(valueOf(filterMenu, 1)).toHaveValue("zz");
+
+    await updateGrid(
+      root,
+      grid([
+        scoreAbove10,
+        { columnId: "name", operator: "startsWith", value: "Br" },
+      ]),
+    );
+    await expect(filterMenu).toBeVisible();
+    await expect(operatorOf(filterMenu, 1)).toHaveValue("startsWith");
+    await expect(valueOf(filterMenu, 1)).toHaveValue("Br");
+    await expect(valueOf(filterMenu, 1)).toBeFocused();
+    await button(filterMenu, "OK").click();
+    await expect(filterMenu).toHaveCount(0);
+    await expect(reported(root)).toHaveText("");
+  });
+
   test("Cancel drops what was typed", async ({ mount, page }) => {
     const root = await mountGrid(mount, <FilterMenuGrid />);
     let filterMenu = await openFromHeaderMenu(root, page, "Name");
@@ -1317,6 +1355,38 @@ test.describe("the excel editor", () => {
     // A column's own filter leaves its list whole.
     filterMenu = await openFromHeaderMenu(root, page, "Active");
     await expect(optionsOf(filterMenu)).toHaveText(["false 1", "true 2"]);
+  });
+
+  test("the column's filter changing while the menu is open shows the new one in place of what was checked", async ({
+    mount,
+    page,
+  }) => {
+    const grid = (filter: FilterState<FilterMenuRow>) => (
+      <FilterMenuGrid filterMenu={{ ui: "excel" }} filter={filter} />
+    );
+    const root = await mountGrid(mount, grid([]));
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+    await option(filterMenu, "Alice").click();
+
+    await updateGrid(
+      root,
+      grid([{ columnId: "name", operator: "in", value: ["Bravo"] }]),
+    );
+
+    await expect(filterMenu).toBeVisible();
+    for (const [name, checked] of [
+      ["Alice", "false"],
+      ["Bravo", "true"],
+      ["Charlie", "false"],
+    ] as const) {
+      await expect(option(filterMenu, name)).toHaveAttribute(
+        "aria-checked",
+        checked,
+      );
+    }
+    await button(filterMenu, "OK").click();
+    await expect(filterMenu).toHaveCount(0);
+    await expect(reported(root)).toHaveText("");
   });
 
   test("Cancel drops what was checked", async ({ mount, page }) => {

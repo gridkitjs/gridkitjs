@@ -23,6 +23,8 @@ export interface ConditionsDraft {
 
 /** What a simple editor opened with, read from the column's filter. */
 export interface OpenedConditions<Row> {
+  /** The grid's filter it was read from. */
+  readonly over: FilterState<Row>;
   /** Whether the editor can't show the column's filter: "Custom filter". */
   readonly custom: boolean;
   /** The boxes as they opened. */
@@ -39,14 +41,16 @@ export interface SimpleEditorState<Row> {
   readonly invalid: readonly number[];
 }
 
-export type SimpleEditorAction =
+export type SimpleEditorAction<Row> =
   | {
       readonly type: "editRow";
       readonly index: number;
       readonly row: ConditionRowDraft;
     }
   | { readonly type: "setCombinator"; readonly combinator: Combinator }
-  | { readonly type: "markInvalid"; readonly rows: readonly number[] };
+  | { readonly type: "markInvalid"; readonly rows: readonly number[] }
+  /** The grid's filter changed while the editor is open: what it now reads. */
+  | { readonly type: "filterChanged"; readonly opened: OpenedConditions<Row> };
 
 /** No condition marked invalid. */
 const NO_ROWS: readonly number[] = [];
@@ -107,6 +111,7 @@ export function openConditions<Row>(
   const shape = describeColumnFilter(filter, columnId);
   const rows = conditionRowsFrom(shape, operators, type);
   return {
+    over: filter,
     custom:
       shape.kind === "custom" ||
       (shape.kind === "values" && operator === undefined),
@@ -151,10 +156,23 @@ export function sameConditionsDraft(
   );
 }
 
-/** The next state after `action`. An edit clears what OK marked. */
+/** Whether the editor opens alike on what `a` and `b` read. */
+function showsAlike<Row>(
+  a: OpenedConditions<Row>,
+  b: OpenedConditions<Row>,
+): boolean {
+  return a.custom === b.custom && sameConditionsDraft(a.draft, b.draft);
+}
+
+/**
+ * The next state after `action`. An edit clears what OK marked. A change to
+ * the grid's filter that the editor would open on differently starts it
+ * again on that, as reopening it would, dropping what was typed; one it
+ * would open on alike, such as another column's, leaves the draft be.
+ */
 export function simpleEditorReducer<Row>(
   state: SimpleEditorState<Row>,
-  action: SimpleEditorAction,
+  action: SimpleEditorAction<Row>,
 ): SimpleEditorState<Row> {
   switch (action.type) {
     case "editRow":
@@ -176,5 +194,9 @@ export function simpleEditorReducer<Row>(
       };
     case "markInvalid":
       return { ...state, invalid: action.rows };
+    case "filterChanged":
+      return showsAlike(state.opened, action.opened)
+        ? { ...state, opened: action.opened }
+        : initialSimpleEditorState(action.opened);
   }
 }

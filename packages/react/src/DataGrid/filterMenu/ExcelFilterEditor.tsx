@@ -7,12 +7,9 @@ import {
   useState,
 } from "react";
 import {
-  describeColumnFilter,
   draftToFilter,
   filterChecklist,
   filterDraftChanged,
-  filterEditorReducer,
-  initialFilterEditorDraft,
   selectAllState,
   type ColumnValueOptions,
   type FilterChecklistItem,
@@ -20,6 +17,11 @@ import {
   type FilterOperator,
 } from "@gridkitjs/core";
 import { ChevronLeftIcon } from "../menu/menuIcons";
+import {
+  excelEditorReducer,
+  initialExcelEditorState,
+  openValues,
+} from "./excelEditorState";
 import type { FilterEditorHandle, FilterEditorProps } from "./filterEditor";
 import OperatorMenuButton from "./OperatorMenuButton";
 import SimpleFilterEditor from "./SimpleFilterEditor";
@@ -80,6 +82,9 @@ function toggleOf<Row>(item: FilterChecklistItem): FilterEditorAction<Row> {
  * saying the column is filtered otherwise. OK leaves that filter be while
  * the checked values are those it opened with — `filterDraftChanged` —
  * as it leaves any filter whose values are as they opened.
+ *
+ * Set in code while it is open, the column's filter shows in place of what
+ * was checked, as it would on reopening the menu.
  */
 export default function ExcelFilterEditor<Row>({
   column,
@@ -91,15 +96,18 @@ export default function ExcelFilterEditor<Row>({
   columnValues,
   ref,
 }: ExcelFilterEditorProps<Row>) {
-  // Read once, as the menu opens: from then on the draft is the user's.
-  const [opened] = useState(() => {
-    const shape = describeColumnFilter(controller.getState().filter, column.id);
-    return {
-      shape,
-      draft: initialFilterEditorDraft(shape, columnValues(column.id)),
-    };
-  });
-  const [draft, dispatch] = useReducer(filterEditorReducer<Row>, opened.draft);
+  const filter = controller.getState().filter;
+  const open = (over: typeof filter) =>
+    openValues(over, column.id, columnValues(column.id));
+  const [{ opened, draft }, dispatch] = useReducer(
+    excelEditorReducer<Row>,
+    filter,
+    (over) => initialExcelEditorState(open(over)),
+  );
+  // Set in code while the menu is open — `setFilter`, a controlled `filter`.
+  if (filter !== opened.over) {
+    dispatch({ type: "filterChanged", opened: open(filter) });
+  }
   const [mode, setMode] = useState(OPENED_ON_VALUES);
   const conditions = useRef<FilterEditorHandle>(null);
   const conditionsFocus = useRef<HTMLElement | null>(null);

@@ -100,6 +100,9 @@ export interface SimpleFilterEditorProps<Row> extends FilterEditorProps<Row> {
  * described by a message, and the first takes focus — unless they are as it
  * opened them, as the empty ones on a column it shows no filter for: OK then
  * closes the menu as Cancel would, rather than asking for a value.
+ *
+ * Set in code while it is open, the column's filter shows in place of what
+ * was typed, as it would on reopening the menu.
  */
 export default function SimpleFilterEditor<Row>({
   column,
@@ -112,21 +115,18 @@ export default function SimpleFilterEditor<Row>({
   ref,
 }: SimpleFilterEditorProps<Row>) {
   const type = column.column.type;
-  // Read once, as the menu opens: from then on the draft is the user's.
+  const filter = controller.getState().filter;
+  const open = (over: typeof filter) =>
+    openConditions(over, column.id, menu.operators, type, operator);
   const [{ opened, draft, invalid }, dispatch] = useReducer(
     simpleEditorReducer<Row>,
-    null,
-    () =>
-      initialSimpleEditorState(
-        openConditions<Row>(
-          controller.getState().filter,
-          column.id,
-          menu.operators,
-          type,
-          operator,
-        ),
-      ),
+    filter,
+    (over) => initialSimpleEditorState(open(over)),
   );
+  // Set in code while the menu is open — `setFilter`, a controlled `filter`.
+  if (filter !== opened.over) {
+    dispatch({ type: "filterChanged", opened: open(filter) });
+  }
   const rowElements = useRef<(HTMLDivElement | null)[]>([]);
   const invalidMessageId = useId();
   const combinatorName = useId();
