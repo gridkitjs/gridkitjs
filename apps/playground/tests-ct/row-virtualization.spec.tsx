@@ -466,6 +466,70 @@ test.describe("row virtualization", () => {
     );
   });
 
+  test("turning virtualized off and on again keeps the rows, the scroll and the focus right", async ({
+    mount,
+    page,
+  }) => {
+    const rows = buildRows(300);
+    function grid(virtualized: boolean) {
+      return (
+        <RowIdentifiedGrid
+          columns={columns}
+          dataSource={rows}
+          label="Toggled"
+          height={150}
+          virtualized={virtualized}
+        />
+      );
+    }
+    const root = await mountGrid(mount, grid(true));
+    const body = root.locator(".gridkit-data-grid-body");
+    const tabStop = root.locator('[tabindex="0"]');
+    const tabStopRow = () =>
+      tabStop.evaluate((cell) =>
+        cell.closest("tr")?.getAttribute("data-gridkit-row-index"),
+      );
+
+    await tabStop.focus();
+    for (let index = 0; index < 11; index++) {
+      await page.keyboard.press("ArrowDown");
+    }
+    await expect.poll(tabStopRow).toBe("10");
+
+    // Toggled from outside the grid, as an app's own control would.
+    await updateGrid(root, grid(false));
+    await expect(mountedDataRows(root)).toHaveCount(300);
+    await expect.poll(tabStopRow).toBe("10");
+
+    await updateGrid(root, grid(true));
+    await expect.poll(() => mountedDataRows(root).count()).toBeLessThan(60);
+    await expect.poll(tabStopRow).toBe("10");
+    await tabStop.focus();
+    await page.keyboard.press("ArrowDown");
+    await expect.poll(tabStopRow).toBe("11");
+    await expect(tabStop).toBeFocused();
+
+    await updateGrid(root, grid(false));
+    await expect(mountedDataRows(root)).toHaveCount(300);
+    await body.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    await expect(root.getByText("Row 299", { exact: true })).toBeInViewport();
+
+    await updateGrid(root, grid(true));
+    await expect.poll(() => mountedDataRows(root).count()).toBeLessThan(60);
+    await expect(root.getByText("Row 299", { exact: true })).toBeInViewport();
+    const mounted = await mountedDataRows(root).evaluateAll((elements) =>
+      elements.map((row) => Number(row.getAttribute("data-gridkit-row-index"))),
+    );
+    expect(mounted).toEqual(consecutive(mounted[0] ?? 0, mounted.length));
+
+    await body.evaluate((element) => {
+      element.scrollTop = 0;
+    });
+    await expect(root.getByText("Row 0", { exact: true })).toBeInViewport();
+  });
+
   test("virtualized without height set does not crash and renders every row (dev warning aside)", async ({
     mount,
   }) => {
