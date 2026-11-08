@@ -1,0 +1,80 @@
+---
+title: "Overview"
+description: "The grid's stylesheet as plain CSS: the same styles, tokens and dark mode as the Tailwind theme, for an app without Tailwind."
+---
+
+`@gridkitjs/theme-css` is the grid's stylesheet as plain CSS. It is generated from [`@gridkitjs/theme-tailwind`](/docs/theme-tailwind) with every Tailwind-only line rewritten or left out, so it draws the same grid with the same theme tokens and class names, and the two never drift apart. Use it when your app does not build its CSS with Tailwind v4, such as one styled with plain CSS, CSS modules or Sass.
+
+## Install
+
+<PackageInstall pkg="@gridkitjs/react @gridkitjs/theme-css" />
+
+Import the stylesheet once, before your own CSS. From your app's entry module:
+
+```ts title="src/main.tsx"
+import "@gridkitjs/theme-css/styles.css";
+import "./index.css";
+```
+
+Or from a CSS file, with `@import` before any other rule:
+
+```css title="src/index.css"
+@import "@gridkitjs/theme-css/styles.css";
+```
+
+Your own overrides go after it, in a stylesheet that loads later, so they win over the defaults.
+
+## Overriding tokens
+
+Every colour, size and line the stylesheet draws comes from a theme token, a `--gridkit-*` custom property declared on `:root`. Set the ones you change on `:root`, in CSS loaded after the theme. A colour is set by its light and dark pair:
+
+```css title="src/index.css"
+@import "@gridkitjs/theme-css/styles.css";
+
+:root {
+  --gridkit-spacing: 0.1875rem;
+  --gridkit-radius: 0;
+  --gridkit-accent-light: oklch(0.6 0.17 145);
+  --gridkit-accent-dark: oklch(0.7 0.15 145);
+}
+```
+
+The tokens are the Tailwind theme's, so [theme tokens](/docs/theme-tailwind/tokens) lists every one with its default, and explains why an override goes on `:root`, outside any cascade layer, and why a colour is set by its pair. The machine-readable list of them, `tokens.json`, ships with `@gridkitjs/theme-tailwind`.
+
+## Dark mode
+
+The grid follows the system's colour scheme: its colours switch to the `-dark` side of each pair under `prefers-color-scheme: dark`.
+
+An app with its own light and dark switch puts `.gridkit-light` or `.gridkit-dark` on `<html>`, which wins over the system's setting:
+
+```ts title="theme.ts"
+export function setTheme(dark: boolean) {
+  const root = document.documentElement;
+  root.classList.toggle("gridkit-dark", dark);
+  root.classList.toggle("gridkit-light", !dark);
+}
+```
+
+Set `.gridkit-light` for light, rather than only removing `.gridkit-dark`, or a system in dark mode keeps the grid dark. Either class also works on any ancestor of one grid, to pin that grid alone; its menus follow, since the grid copies the class onto each overlay it opens. See [forcing a theme on one grid](/docs/theme-tailwind#forcing-a-theme-on-one-grid).
+
+## Cascade layers
+
+The grid's rules sit in a cascade layer named `base`, and the tokens on `:root` outside any layer. A rule of yours outside a layer beats a layered one whatever the order, so a class you put on a cell (through `cellClassName`, say) restyles it without a specificity fight. If your app declares a layer named `base` too, the grid's rules join it.
+
+## Class names
+
+`@gridkitjs/react` renders semantic class names, such as `gridkit-data-grid`, `header-cell` and `grid-row`, and marks state with classes like `is-selected` and with ARIA attributes. They are the same under both themes, and the Tailwind theme's [semantic classes](/docs/theme-tailwind#semantic-classes) tables list every one.
+
+## Compared with the Tailwind theme
+
+- **Dark mode** follows `prefers-color-scheme` and the two classes, where the Tailwind theme follows your app's `dark:` variant.
+- **No colour utilities.** The Tailwind theme registers each colour token as a Tailwind colour (`bg-gridkit-accent`); in plain CSS, read the token with `var(--gridkit-accent)`.
+
+Everything else, the rules, tokens, defaults and class names, is the same.
+
+## See also
+
+- [Theme tokens](/docs/theme-tailwind/tokens) for every token and its default.
+- [Tailwind theme](/docs/theme-tailwind) for the class names and the rest of the theme's behaviour.
+- [Choosing packages](/docs/react/choosing-packages) for what each package does.
+- [React quick start](/docs/react) for rendering a first grid.

@@ -1,8 +1,0 @@
-{
-  "name": "@gridkitjs/theme-default",
-  "version": "0.0.1",
-  "private": true,
-  "exports": {
-    "./styles.css": "./src/styles.css"
-  }
-}

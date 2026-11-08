@@ -193,7 +193,14 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@24.13.3)(jsdom@31.0.0)(vite@8.2.0(@types/node@24.13.3)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0))
 
-  packages/theme-default: {}
+  packages/theme-css:
+    devDependencies:
+      postcss:
+        specifier: ^8.5.25
+        version: 8.5.25
+      prettier:
+        specifier: ^3.9.6
+        version: 3.9.6
 
   packages/theme-tailwind:
     dependencies:

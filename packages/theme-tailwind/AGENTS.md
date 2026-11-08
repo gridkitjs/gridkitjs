@@ -67,6 +67,21 @@ A default declared on `:root` may read only raw colours of its own side or
 tokens that are not colours, for the reason the comment at the top of
 `styles.css` gives.
 
+## The plain-CSS build
+
+[`@gridkitjs/theme-css`](../theme-css/AGENTS.md) is generated from
+`src/styles.css`, and a test fails while it is stale. After changing the
+stylesheet, regenerate it and commit both, with one changeset listing both
+packages:
+
+```bash
+pnpm --filter @gridkitjs/theme-css build
+```
+
+The generator rewrites `@variant dark` and drops `@theme inline`, and fails
+on any other Tailwind-only syntax and on CSS nesting; keep those out of the
+stylesheet, or teach the generator first.
+
 ## What belongs here
 
 Every style the grid has. The stylesheet targets the semantic class names

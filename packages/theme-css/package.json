@@ -1,0 +1,35 @@
+{
+  "name": "@gridkitjs/theme-css",
+  "version": "0.0.0",
+  "description": "Plain-CSS theme for GridKit — palette tokens, dark mode and grid styles, no Tailwind needed.",
+  "license": "MIT",
+  "author": "Blagoja Blazhevski",
+  "homepage": "https://github.com/gridkitjs/gridkitjs#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gridkitjs/gridkitjs.git",
+    "directory": "packages/theme-css"
+  },
+  "keywords": [
+    "gridkit",
+    "datagrid",
+    "theme",
+    "css"
+  ],
+  "exports": {
+    "./styles.css": "./src/styles.css"
+  },
+  "files": [
+    "src",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node scripts/write-stylesheet.mjs",
+    "test": "node --test \"scripts/*.test.mjs\""
+  },
+  "devDependencies": {
+    "postcss": "^8.5.25",
+    "prettier": "^3.9.6"
+  }
+}
