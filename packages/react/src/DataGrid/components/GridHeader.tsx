@@ -82,7 +82,7 @@ export default function GridHeader<Row>({
    * button again is the way back out.
    */
   function toggleFilterMenu(columnId: string): void {
-    const { panel } = panels;
+    const panel = panels.current();
     if (
       panel?.kind === "filter" &&
       panel.target.area === "header" &&

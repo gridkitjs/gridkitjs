@@ -29,7 +29,13 @@ export interface OpenPanel {
 }
 
 export interface GridPanelsApi {
+  /** The panel as the last render drew it. */
   panel: OpenPanel | null;
+  /**
+   * The panel open as of the last change, ahead of the render that draws it:
+   * what a call acting on the open panel reads.
+   */
+  current: () => OpenPanel | null;
   /** Opens the panel `kind` beside where `target` names, in place of any panel open. */
   open: (kind: GridPanelKind, target: GridCommandTarget) => void;
   close: () => void;
@@ -87,7 +93,14 @@ export default function useGridPanels({
   nav,
 }: UseGridPanelsOptions): GridPanelsApi {
   const [panel, setPanel] = useState<OpenPanel | null>(null);
+  /** The panel open as of the last change, ahead of the render that draws it. */
+  const current = useRef<OpenPanel | null>(null);
   const openings = useRef(0);
+
+  function show(next: OpenPanel | null): void {
+    current.current = next;
+    setPanel(next);
+  }
 
   function placeFor(
     root: HTMLElement,
@@ -117,13 +130,14 @@ export default function useGridPanels({
 
   return {
     panel,
+    current: () => current.current,
     open: (kind, target) => {
       const root = rootRef.current;
       if (root === null) {
         return;
       }
       openings.current += 1;
-      setPanel({
+      show({
         key: openings.current,
         kind,
         target,
@@ -132,7 +146,7 @@ export default function useGridPanels({
       });
     },
     close: () => {
-      setPanel(null);
+      show(null);
     },
     returnFocusFallback: nav.tabStopCell,
   };

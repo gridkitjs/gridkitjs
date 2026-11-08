@@ -1004,6 +1004,30 @@ test.describe("filter menu", () => {
     await expect(page.getByRole("dialog")).toHaveCount(0);
   });
 
+  test("closeFilterMenu right after openFilterMenu, in one go, closes it", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={columns}
+        dataSource={buildRows(3)}
+        label="Open and close"
+        filterableColumns
+        filterMenuColumnId="name"
+      />,
+    );
+
+    await root.getByRole("button", { name: "filter-menu-in-and-out" }).click();
+    // A later event, dispatched so no pointer down outside closes the menu
+    // itself: by the time its status is drawn, the menu would be too.
+    await root.getByRole("button", { name: "report" }).dispatchEvent("click");
+    await expect(root.getByTestId("imperative-status")).not.toBeEmpty();
+
+    expect(await page.getByRole("dialog").count()).toBe(0);
+  });
+
   test("closeFilterMenu leaves the column chooser open", async ({
     mount,
     page,

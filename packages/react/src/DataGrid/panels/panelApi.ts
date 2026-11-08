@@ -43,7 +43,7 @@ export function panelApi<Row>(
       return true;
     },
     closeFilterMenu: () => {
-      if (panels.panel?.kind === "filter") {
+      if (panels.current()?.kind === "filter") {
         panels.close();
       }
     },
