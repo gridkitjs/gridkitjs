@@ -1,5 +1,42 @@
 # @gridkitjs/core
 
+## 0.15.0
+
+### Minor Changes
+
+- 8ac72f8: A new `paginationUnit` grid option sets what `pageSize` counts once the rows
+  are grouped. `"group"`, the default, keeps today's pages of whole top-level
+  groups. `"row"` counts data rows and collapsed group headers instead, so a
+  page of 25 holds 25 rows however large the groups are, and a page that
+  continues a group starts with that group's headers again. `paginateRows`
+  takes it as a third argument, `{ unit: "row" }`, and `resolveGridView` as
+  `options.paginationUnit`. Changing it sends an uncontrolled pagination back to
+  the first page, as a sort, filter or grouping change does.
+- 2de78a3: `GridToolbarOptions` takes `itemAttributes`, a map from an entry's key (a
+  command's, inline item's, dropdown's or custom entry's id, `"search"` or
+  `"export"`) to a `ToolbarItemAttributes`: an `id` and `data-*` attributes for
+  that entry's element. `resolveToolbar` takes the map as
+  `options.itemAttributes` and hands the matching attributes on as `attributes`
+  on each `ResolvedToolbarButton`, `ResolvedToolbarMenu`, `ResolvedToolbarSearch`
+  and `ResolvedToolbarCustom`. `ToolbarItemAttributes` is exported.
+
+### Patch Changes
+
+- 9d549d2: An uncontrolled pagination now stores the page it shows. When rows shrink
+  under a later page, say by collapsing a group on page 5 or a `dataSource`
+  getting shorter, the grid showed the last page that exists (page 3) but kept
+  `pageIndex: 5`, so expanding the group again jumped back to page 5. It now
+  stores page 3 and stays there. Like the page reset a sort or filter makes,
+  this fires no `onPaginationChange`. `setPagination` and `restoreState` with a
+  page past the last store and report the last page. A controlled `pagination`
+  is unchanged: the grid shows the last page that exists and leaves the value
+  to you.
+- 479e045: A column with no `type` sorts numbers numerically and `Date`s chronologically,
+  so descending gives 1000, 999 … 2, 1 rather than 997, 993 … 97. Grouping, a
+  filter checklist and `min`/`max` aggregates order such a column the same way.
+  Any other pair, numeric strings included, still compares as text: set
+  `type: "number"` on a column of numeric strings.
+
 ## 0.14.1
 
 ### Patch Changes
