@@ -81,8 +81,16 @@ export interface GridFocusController {
   /**
    * Connects the tab stop to the rendered rows, which the browser's focus
    * then follows it among. Returns the function that disconnects them.
+   *
+   * `root`, the element holding every row, lets the user take over from a
+   * move still waiting for its row to be drawn: focus leaving `root`, or a
+   * wheel or a press inside it, drops the move, so a row mounting later
+   * neither scrolls back to itself nor pulls focus back into the grid.
    */
-  readonly attach: (rows: GridFocusRows) => () => void;
+  readonly attach: (
+    rows: GridFocusRows,
+    root?: HTMLElement | null,
+  ) => () => void;
   /**
    * Called by the renderer once it has drawn `drawn` — a value `getFocus`
    * returned — so the browser's focus follows a move to the cell now in the
@@ -184,8 +192,8 @@ export function createGridFocus(
   };
 
   /**
-   * The move the browser's focus still has to follow, or `null` once it has.
-   * Without it every drawing would pull focus into the grid, the first
+   * The move the browser's focus still has to follow, or `null` once it has,
+   * or once the user took over from it (see `attach`). Without it every drawing would pull focus into the grid, the first
    * included.
    *
    * Holds the very `stored` object `focusCell` wrote rather than a flag, so
@@ -212,6 +220,29 @@ export function createGridFocus(
       };
     }
     return snapshot.focus;
+  }
+
+  function dropPendingMove(): void {
+    pendingMove = null;
+  }
+
+  function listenForTakeover(root: HTMLElement): () => void {
+    // Focus moving between cells stays in `root`, and focus lost to a cell
+    // unmounting goes nowhere: only focus going somewhere else leaves it.
+    function onFocusOut(event: FocusEvent): void {
+      const to = event.relatedTarget;
+      if (to instanceof Node && !root.contains(to)) {
+        dropPendingMove();
+      }
+    }
+    root.addEventListener("focusout", onFocusOut);
+    root.addEventListener("wheel", dropPendingMove, { passive: true });
+    root.addEventListener("pointerdown", dropPendingMove);
+    return () => {
+      root.removeEventListener("focusout", onFocusOut);
+      root.removeEventListener("wheel", dropPendingMove);
+      root.removeEventListener("pointerdown", dropPendingMove);
+    };
   }
 
   function focusCell(rowIndex: number, columnIndex: number): void {
@@ -262,9 +293,11 @@ export function createGridFocus(
       focusCell(next.rowIndex, next.columnIndex);
       return true;
     },
-    attach(next) {
+    attach(next, root) {
       rows = next;
+      const stopListening = root == null ? undefined : listenForTakeover(root);
       return () => {
+        stopListening?.();
         if (rows === next) {
           rows = null;
         }
