@@ -4,7 +4,7 @@
  * condition), and arethetypeswrong for types that fail to resolve under
  * Node or a bundler. attw uses its `esm-only` profile, since the packages
  * ship no CommonJS on purpose, and skips a package that ships no types
- * (`theme-tailwind`, a stylesheet).
+ * (`theme-tailwind` and `theme-css`, stylesheets).
  *
  * Usage: node scripts/lint-packages.mjs [--pack-dir <dir>]
  * The directory defaults to `.pack/` at the repo root.

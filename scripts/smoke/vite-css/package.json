@@ -1,0 +1,24 @@
+{
+  "name": "gridkit-smoke-vite-css",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "smoke": "tsc --noEmit && vite build && node verify.mjs"
+  },
+  "dependencies": {
+    "@gridkitjs/core": "*",
+    "@gridkitjs/dom": "*",
+    "@gridkitjs/react": "*",
+    "@gridkitjs/theme-css": "*",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@vitejs/plugin-react": "6.1.0",
+    "typescript": "6.0.3",
+    "vite": "8.2.2"
+  }
+}

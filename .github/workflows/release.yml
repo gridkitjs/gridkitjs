@@ -146,7 +146,7 @@ jobs:
       contents: read
       id-token: write
     outputs:
-      # JSON: package name to the version its tarball holds, all five; a
+      # JSON: package name to the version its tarball holds, every package; a
       # package with no pending changeset keeps its released version.
       versions: ${{ steps.publish.outputs.versions }}
     steps:
@@ -202,7 +202,7 @@ jobs:
       contents: read
       id-token: write
     outputs:
-      # JSON: package name to its version, all five.
+      # JSON: package name to its version, every package.
       versions: ${{ steps.publish.outputs.versions }}
     steps:
       - uses: actions/checkout@v7

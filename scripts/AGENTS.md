@@ -128,7 +128,7 @@ node scripts/pack-packages.mjs && node scripts/lint-packages.mjs && node scripts
   the same map with absolute paths.
 - `lint-packages.mjs` runs `publint --strict` on every tarball and
   `attw --profile esm-only` on each that ships types (all but
-  `theme-tailwind`).
+  the two themes, `theme-tailwind` and `theme-css`).
 - `smoke-packages.mjs` copies each fixture under `smoke/` to a temp folder,
   points its `@gridkitjs/*` dependencies at the tarballs, then runs
   `npm install` and `npm run smoke` there, printing a failing step's output.
@@ -141,11 +141,12 @@ The fixtures sit outside the pnpm workspace and ESLint, so nothing resolves
 to source; their own builds type-check them. Each is a private package with
 third-party versions pinned and no lockfile:
 
-| Fixture       | Checks                                                                                                  |
-| ------------- | ------------------------------------------------------------------------------------------------------- |
-| `vite-react/` | React, Vite and Tailwind: `tsc --noEmit` (with `skipLibCheck` off), `vite build`, the theme in the CSS. |
-| `next-app/`   | A server component renders `DataGrid` directly; `next build` must prerender `/` with the grid's HTML.   |
-| `node-xlsx/`  | Plain Node, no DOM: `@gridkitjs/export-xlsx` writes a workbook.                                         |
+| Fixture       | Checks                                                                                                                          |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `vite-react/` | React, Vite and Tailwind: `tsc --noEmit` (with `skipLibCheck` off), `vite build`, the theme in the CSS.                         |
+| `vite-css/`   | React and Vite without Tailwind: `tsc --noEmit`, `vite build`, the plain-CSS theme's rules, tokens and dark palette in the CSS. |
+| `next-app/`   | A server component renders `DataGrid` directly; `next build` must prerender `/` with the grid's HTML.                           |
+| `node-xlsx/`  | Plain Node, no DOM: `@gridkitjs/export-xlsx` writes a workbook.                                                                 |
 
 A fixture lists its `@gridkitjs/*` dependencies at version `*`, and the run
 replaces each with its tarball. List the transitive ones too (`react` needs
@@ -176,7 +177,7 @@ in `lib/release.mjs`.
   with the versions to install: after a snapshot, `{ sha, versions, manifestRef: "docs-meta-next" }`;
   after a stable or docs-only release, `{ sha, versions, manifestSha }`,
   `manifestSha` being the new `docs-meta` commit. `versions` always names
-  all five packages at exact versions; without `--versions` it is each
+  every published package at an exact version; without `--versions` it is each
   `package.json` version, which must be on npm. These payloads are the
   contract with the website's receiving workflows, which validate them
   strictly. `--dry-run` prints the event and payload.

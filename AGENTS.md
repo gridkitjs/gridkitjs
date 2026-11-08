@@ -7,17 +7,17 @@ Headless data-grid toolkit. pnpm monorepo, ESM-only, TypeScript 6.
 Each folder links to its own `AGENTS.md`: what belongs in it, its commands and
 its tests.
 
-| Folder                                                                                       | What belongs in it                                                                                      |
-| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| [`packages/core`](packages/core/AGENTS.md) (`@gridkitjs/core`)                               | Framework-agnostic grid logic — sorting, filtering, pagination. Plain TypeScript. **No React, no CSS.** |
-| [`packages/dom`](packages/dom/AGENTS.md) (`@gridkitjs/dom`)                                  | Browser behaviours — gestures, focus, observers, overlays. Plain TypeScript with the DOM. No React.     |
-| [`packages/react`](packages/react/AGENTS.md) (`@gridkitjs/react`)                            | React components. Renders semantic class names; carries no styles of its own. Consumes `core`, `dom`.   |
-| [`packages/theme-tailwind`](packages/theme-tailwind/AGENTS.md) (`@gridkitjs/theme-tailwind`) | The grid's stylesheet — palette tokens, dark mode, grid styles. Published.                              |
-| [`packages/export-xlsx`](packages/export-xlsx/AGENTS.md) (`@gridkitjs/export-xlsx`)          | Excel export writer, registered through `exportWriters`. Plain TypeScript, no DOM. Published.           |
-| [`packages/theme-default`](packages/theme-default/AGENTS.md)                                 | Plain CSS for consumers not using Tailwind. Currently an empty stub. Private, unpublished.              |
-| [`apps/playground`](apps/playground/AGENTS.md)                                               | Vite app used to develop against, and the Playwright component tests. Private, never published.         |
-| [`examples`](examples/AGENTS.md)                                                             | Standalone StackBlitz apps on the published packages. Not in the workspace.                             |
-| [`scripts`](scripts/AGENTS.md)                                                               | Node scripts for the docs pipeline and for verifying the packed packages, with their smoke apps.        |
+| Folder                                                                                       | What belongs in it                                                                                              |
+| -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| [`packages/core`](packages/core/AGENTS.md) (`@gridkitjs/core`)                               | Framework-agnostic grid logic — sorting, filtering, pagination. Plain TypeScript. **No React, no CSS.**         |
+| [`packages/dom`](packages/dom/AGENTS.md) (`@gridkitjs/dom`)                                  | Browser behaviours — gestures, focus, observers, overlays. Plain TypeScript with the DOM. No React.             |
+| [`packages/react`](packages/react/AGENTS.md) (`@gridkitjs/react`)                            | React components. Renders semantic class names; carries no styles of its own. Consumes `core`, `dom`.           |
+| [`packages/theme-tailwind`](packages/theme-tailwind/AGENTS.md) (`@gridkitjs/theme-tailwind`) | The grid's stylesheet — palette tokens, dark mode, grid styles. Published.                                      |
+| [`packages/export-xlsx`](packages/export-xlsx/AGENTS.md) (`@gridkitjs/export-xlsx`)          | Excel export writer, registered through `exportWriters`. Plain TypeScript, no DOM. Published.                   |
+| [`packages/theme-css`](packages/theme-css/AGENTS.md) (`@gridkitjs/theme-css`)                | The same stylesheet as plain CSS, for consumers not using Tailwind. Generated from `theme-tailwind`. Published. |
+| [`apps/playground`](apps/playground/AGENTS.md)                                               | Vite app used to develop against, and the Playwright component tests. Private, never published.                 |
+| [`examples`](examples/AGENTS.md)                                                             | Standalone StackBlitz apps on the published packages. Not in the workspace.                                     |
+| [`scripts`](scripts/AGENTS.md)                                                               | Node scripts for the docs pipeline and for verifying the packed packages, with their smoke apps.                |
 
 The split is the point: logic lives in `core` so it is testable without a DOM
 and reusable from a future Vue/Svelte adapter, and the browser behaviours a
@@ -134,7 +134,7 @@ Types: `feat`, `fix`, `docs`, `refactor`, `test`, `perf`, `build`, `ci`,
 `chore`, `revert`.
 
 Scope is the package without its namespace — `core`, `dom`, `react`,
-`theme-tailwind`, `export-xlsx`, `theme-default`, `playground` — or
+`theme-tailwind`, `theme-css`, `export-xlsx`, `playground` — or
 `examples`, and is omitted for repo-wide changes.
 
 Breaking changes take a `!` before the colon (`feat(core)!: ...`) plus a

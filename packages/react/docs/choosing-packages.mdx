@@ -3,17 +3,18 @@ title: "Choosing packages"
 description: "What each GridKit package does, which ones a React app installs, and when to add core, dom or export-xlsx yourself."
 ---
 
-GridKit is split into five published packages, so an app installs only what it uses. A React app needs two of them: `@gridkitjs/react` and `@gridkitjs/theme-tailwind`.
+GridKit is split into six published packages, so an app installs only what it uses. A React app needs two of them: `@gridkitjs/react` and a theme, `@gridkitjs/theme-tailwind` or `@gridkitjs/theme-css`.
 
 ## The packages
 
-| Package                     | What it holds                                                                                                                     | Install it                                                                |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `@gridkitjs/react`          | The `DataGrid` component, its hooks and its types.                                                                                | In every React app.                                                       |
-| `@gridkitjs/theme-tailwind` | The stylesheet: palette tokens, dark mode and the grid's styles, for Tailwind CSS v4.                                             | In every app that uses Tailwind. See [theming](/docs/theme-tailwind).     |
-| `@gridkitjs/core`           | The grid's logic in plain TypeScript: column definitions, sorting, filtering, row grouping, aggregates, pagination and the state. | Comes with `react`. Add it yourself to import from it, as below.          |
-| `@gridkitjs/dom`            | Browser behaviours with no framework: pointer gestures, keyboard focus, observers, the virtualizer, overlays and menus.           | Comes with `react`. Needed directly only to build a renderer of your own. |
-| `@gridkitjs/export-xlsx`    | The Excel export writer.                                                                                                          | Only to offer "Export to Excel". See [Excel export](/docs/export-xlsx).   |
+| Package                     | What it holds                                                                                                                     | Install it                                                                                  |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `@gridkitjs/react`          | The `DataGrid` component, its hooks and its types.                                                                                | In every React app.                                                                         |
+| `@gridkitjs/theme-tailwind` | The stylesheet: palette tokens, dark mode and the grid's styles, for Tailwind CSS v4.                                             | In every app that uses Tailwind. See [theming](/docs/theme-tailwind).                       |
+| `@gridkitjs/theme-css`      | The same stylesheet as plain CSS, generated from `theme-tailwind`.                                                                | In place of `theme-tailwind`, in an app without Tailwind. See [plain CSS](/docs/theme-css). |
+| `@gridkitjs/core`           | The grid's logic in plain TypeScript: column definitions, sorting, filtering, row grouping, aggregates, pagination and the state. | Comes with `react`. Add it yourself to import from it, as below.                            |
+| `@gridkitjs/dom`            | Browser behaviours with no framework: pointer gestures, keyboard focus, observers, the virtualizer, overlays and menus.           | Comes with `react`. Needed directly only to build a renderer of your own.                   |
+| `@gridkitjs/export-xlsx`    | The Excel export writer.                                                                                                          | Only to offer "Export to Excel". See [Excel export](/docs/export-xlsx).                     |
 
 The split follows what each layer needs to run. `core` needs no DOM, so it runs in Node, in tests and on a server. `dom` needs a browser but no framework. `react` only draws: every decision the grid makes comes from `core`, and every browser behaviour from `dom`, so a renderer for another framework reuses both.
 
@@ -39,7 +40,9 @@ Register its writer on the grid with `exportWriters`, and "Export to Excel" join
 
 ## Without Tailwind
 
-The theme is compiled by Tailwind CSS v4; there is no plain-CSS build yet. Without Tailwind, keep `@gridkitjs/react` and write a stylesheet of your own against the grid's class names. See [without Tailwind](/docs/theme-tailwind#without-tailwind).
+`@gridkitjs/theme-tailwind` is compiled by your app's Tailwind CSS v4 build. Without Tailwind, install `@gridkitjs/theme-css` in its place: the same stylesheet as plain CSS, with the same tokens and class names. See [plain CSS](/docs/theme-css).
+
+<PackageInstall pkg="@gridkitjs/react @gridkitjs/theme-css" />
 
 ## Versions
 
