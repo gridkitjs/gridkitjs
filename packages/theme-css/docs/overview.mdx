@@ -61,6 +61,8 @@ Set `.gridkit-light` for light, rather than only removing `.gridkit-dark`, or a 
 
 The grid's rules sit in a cascade layer named `base`, and the tokens on `:root` outside any layer. A rule of yours outside a layer beats a layered one whatever the order, so a class you put on a cell (through `cellClassName`, say) restyles it without a specificity fight. If your app declares a layer named `base` too, the grid's rules join it.
 
+The stylesheet needs no CSS reset of yours. Inside the grid and its menus it sets `box-sizing: border-box`, and makes buttons and inputs take the surrounding font, as most resets do; content you render in a cell gets the same.
+
 ## Class names
 
 `@gridkitjs/react` renders semantic class names, such as `gridkit-data-grid`, `header-cell` and `grid-row`, and marks state with classes like `is-selected` and with ARIA attributes. They are the same under both themes, and the Tailwind theme's [semantic classes](/docs/theme-tailwind#semantic-classes) tables list every one.

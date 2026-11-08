@@ -306,6 +306,29 @@
 
 @layer base {
   /*
+   * What the rules below take for granted from Tailwind's Preflight, set on
+   * the grid's root and on what it renders into `document.body`, so they
+   * draw the same in an app without Preflight, and in theme-css's plain
+   * CSS. `:where()` keeps each at no specificity, as Preflight's are.
+   */
+  :where(.gridkit-data-grid-viewport, .drag-ghost, .gridkit-overlay),
+  :where(.gridkit-data-grid-viewport, .drag-ghost, .gridkit-overlay) *,
+  :where(.gridkit-data-grid-viewport, .drag-ghost, .gridkit-overlay) ::before,
+  :where(.gridkit-data-grid-viewport, .drag-ghost, .gridkit-overlay) ::after {
+    box-sizing: border-box;
+  }
+
+  :where(.gridkit-data-grid-viewport, .gridkit-overlay) :where(button, input) {
+    font: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+  }
+
+  :where(.gridkit-data-grid-viewport, .gridkit-overlay) :where(svg) {
+    vertical-align: middle;
+  }
+
+  /*
    * The table is exactly as wide as its columns, so anything wider than the
    * space available scrolls here rather than squashing the columns. Scrolls
    * the header, body, and footer tables together, since all three are
