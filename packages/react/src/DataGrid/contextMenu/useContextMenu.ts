@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -123,6 +124,9 @@ export default function useContextMenu<Row>({
   const current = useRef<OpenContextMenu | null>(null);
   const openings = useRef(0);
   const enabled = contextMenu !== undefined && contextMenu !== false;
+  // Read through a ref, so a menu closing as the grid unmounts tells the
+  // latest callback.
+  const reportOpenChange = useRef(onContextMenuOpenChange);
 
   function parts(): GridParts<Row> {
     const { columns, pageRows } = controller.getView();
@@ -199,7 +203,7 @@ export default function useContextMenu<Row>({
    * Shows `next` in place of the menu open, or closes it with `null`, and
    * tells `onContextMenuOpenChange` — the one closing first.
    */
-  function show(next: OpenContextMenu | null): void {
+  const show = useCallback((next: OpenContextMenu | null): void => {
     const previous = current.current;
     if (previous === next) {
       return;
@@ -207,12 +211,12 @@ export default function useContextMenu<Row>({
     current.current = next;
     setMenu(next);
     if (previous !== null) {
-      onContextMenuOpenChange?.({ open: false, target: previous.target });
+      reportOpenChange.current?.({ open: false, target: previous.target });
     }
     if (next !== null) {
-      onContextMenuOpenChange?.({ open: true, target: next.target });
+      reportOpenChange.current?.({ open: true, target: next.target });
     }
-  }
+  }, []);
 
   function openAt(
     { target, cell, anchor }: ContextMenuPlace,
@@ -255,6 +259,7 @@ export default function useContextMenu<Row>({
   const latestRequest = useRef(handleRequest);
   useLayoutEffect(() => {
     latestRequest.current = handleRequest;
+    reportOpenChange.current = onContextMenuOpenChange;
   });
 
   useEffect(() => {
@@ -267,9 +272,13 @@ export default function useContextMenu<Row>({
     });
   }, [rootRef, enabled]);
 
-  function close(): void {
+  const close = useCallback(() => {
     show(null);
-  }
+  }, [show]);
+
+  // A menu open as `contextMenu` turns off, or as the grid unmounts, closes
+  // with it.
+  useEffect(() => (enabled ? close : undefined), [enabled, close]);
 
   return {
     menu,

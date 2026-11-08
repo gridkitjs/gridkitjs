@@ -1282,3 +1282,46 @@ test("turning contextMenu off detaches the trigger, leaving the browser's menu",
   await expect(body).toHaveAttribute("data-prevented", "false");
   await expect(page.getByRole("menu")).toHaveCount(0);
 });
+
+test.describe("closing with the grid", () => {
+  test("turning contextMenu off closes an open menu, reporting it", async ({
+    mount,
+    page,
+  }) => {
+    const events: boolean[] = [];
+    const onContextMenuOpenChange = ({ open }: { open: boolean }) => {
+      events.push(open);
+    };
+    const root = await mountGrid(mount, grid({ onContextMenuOpenChange }));
+    const menu = await openOn(root, page, "Name");
+
+    await updateGrid(
+      root,
+      grid({ contextMenu: false, onContextMenuOpenChange }),
+    );
+
+    await expect(menu).toHaveCount(0);
+    await expect.poll(() => events).toEqual([true, false]);
+  });
+
+  test("unmounting the grid with a menu open reports it closed", async ({
+    mount,
+    page,
+  }) => {
+    const events: boolean[] = [];
+    const root = await mountGrid(
+      mount,
+      grid({
+        onContextMenuOpenChange: ({ open }) => {
+          events.push(open);
+        },
+      }),
+    );
+    await openOn(root, page, "Name");
+
+    await root.unmount();
+
+    await expect(page.getByRole("menu")).toHaveCount(0);
+    await expect.poll(() => events).toEqual([true, false]);
+  });
+});
