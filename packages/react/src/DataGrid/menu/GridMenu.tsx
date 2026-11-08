@@ -203,6 +203,11 @@ export default function GridMenu({
           (entry): entry is ResolvedMenuSubmenu =>
             entry.type === "submenu" && entry.id === submenu.id,
         );
+  // Its entry has gone from `entries`: the submenu closes for good, rather
+  // than coming back open with the entry.
+  if (submenu !== null && openEntry === undefined) {
+    setSubmenu(null);
+  }
 
   return (
     <>

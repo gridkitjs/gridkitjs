@@ -583,6 +583,53 @@ test.describe("DataGrid toolbar", () => {
     ).toBe(true);
   });
 
+  test("a submenu whose item goes while it is open stays closed when the item comes back", async ({
+    mount,
+    page,
+  }) => {
+    const grouped = [{ columnId: "name" }];
+    const grid = (groupBy: typeof grouped) => (
+      <ToolbarGrid
+        onlyExtra
+        groupBy={groupBy}
+        extraItems={[
+          {
+            type: "submenu",
+            id: "tools",
+            label: "Tools",
+            items: [
+              {
+                type: "submenu",
+                id: "groups",
+                label: "Groups",
+                items: ["group.clearAll"],
+              },
+              "sort.clearAll",
+            ],
+          },
+        ]}
+      />
+    );
+    const root = await mountGrid(mount, grid(grouped), WIDE);
+    const tools = page.getByRole("menu", { name: "Tools" });
+    const groups = page.getByRole("menu", { name: "Groups" });
+
+    await toolbarButton(root, "Tools").click();
+    await page.keyboard.press("ArrowRight");
+    await expect(
+      groups.getByRole("menuitem", { name: "Ungroup all" }),
+    ).toBeFocused();
+
+    await updateGrid(root, grid([]), WIDE);
+    await expect(groups).toHaveCount(0);
+    await updateGrid(root, grid(grouped), WIDE);
+
+    await expect(
+      tools.getByRole("menuitem", { name: "Groups" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    await expect(groups).toHaveCount(0);
+  });
+
   test("is one tab stop the arrow keys move within", async ({
     mount,
     page,
