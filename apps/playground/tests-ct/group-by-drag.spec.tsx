@@ -90,6 +90,29 @@ test("the bar appears once an eligible header drag crosses the threshold, even w
   await expect(bar(root)).toHaveCount(0);
 });
 
+test("a header dragged straight up, toward the bar, opens the drag once it has travelled 4px", async ({
+  mount,
+  page,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <RowIdentifiedGrid
+      columns={columns}
+      dataSource={buildRows()}
+      label="Vertical drag"
+    />,
+  );
+  const statusHeader = headers(root).filter({ hasText: "status" });
+  const start = await dragStart(page, statusHeader);
+  await page.mouse.move(start.x + 1, start.y - 6, { steps: 2 });
+
+  await expect(statusHeader).toHaveClass(/is-dragging/);
+  await expect(bar(root)).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+});
+
 test("a groupByDraggable: false column dragged toward the bar shows no drag-target state", async ({
   mount,
   page,

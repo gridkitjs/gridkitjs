@@ -60,7 +60,7 @@ handle.addEventListener("pointerdown", (event) => {
 
 ### Drag to reorder
 
-`startDragReorder(id, grabElement, press, { resolveTarget, onState, onDrop })` is the gesture behind every reorder in the grid — a header dragged among the others or into the group-by bar, a group-by chip dragged within it. Nothing is reported until the pointer has travelled 4 pixels, so a press that stays put remains a click; from then on every move asks `resolveTarget(clientX, clientY, id)` where a drop would land and reports `onState({ draggedId, dropTarget, ghostTransform })` — what to draw, with `ghostTransform` a CSS `transform` keeping the ghost under the pointer where it was picked up. Release over a target calls `onDrop(target, id)`; every ending reports `onState(NO_DRAG)`.
+`startDragReorder(id, grabElement, press, { resolveTarget, onState, onDrop })` is the gesture behind every reorder in the grid — a header dragged among the others or into the group-by bar, a group-by chip dragged within it. Nothing is reported until the pointer has travelled 4 pixels in any direction, so a press that stays put remains a click; from then on every move asks `resolveTarget(clientX, clientY, id)` where a drop would land and reports `onState({ draggedId, dropTarget, ghostTransform })` — what to draw, with `ghostTransform` a CSS `transform` keeping the ghost under the pointer where it was picked up. Release over a target calls `onDrop(target, id)`; every ending reports `onState(NO_DRAG)`.
 
 ```ts
 import {

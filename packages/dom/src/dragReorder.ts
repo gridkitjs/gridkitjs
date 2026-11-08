@@ -5,9 +5,9 @@ import {
 } from "./pointerGesture";
 
 /**
- * How far the pointer travels before a press becomes a drag. Below it the
- * gesture is still a click, which is what leaves the pressed element free to
- * take one.
+ * How far the pointer travels, in any direction, before a press becomes a
+ * drag. Below it the gesture is still a click, which is what leaves the
+ * pressed element free to take one.
  */
 const DRAG_THRESHOLD = 4;
 
@@ -88,7 +88,7 @@ export function startDragReorder<Target>(
     return false;
   }
 
-  const { pointerId, clientX: startX } = press;
+  const { pointerId, clientX: startX, clientY: startY } = press;
   const grabX = startX - grabElement.getBoundingClientRect().left;
   let phase: DragPhase<Target> = { kind: "pressed" };
 
@@ -100,7 +100,7 @@ export function startDragReorder<Target>(
         const { clientX, clientY } = moveEvent;
         if (
           phase.kind === "pressed" &&
-          Math.abs(clientX - startX) < DRAG_THRESHOLD
+          Math.hypot(clientX - startX, clientY - startY) < DRAG_THRESHOLD
         ) {
           return;
         }
