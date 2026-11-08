@@ -20,6 +20,12 @@ export interface InfiniteScrollGridProps<Row extends RowWithId> extends Omit<
    * state without racing the simulated request.
    */
   holdLoads?: boolean;
+  /**
+   * Appends each chunk inside `onLoadMore` itself and never sets
+   * `isLoadingMore`, which is how a load that finishes within one React
+   * batch looks to the grid.
+   */
+  instantLoads?: boolean;
   rootMargin?: string;
 }
 
@@ -31,13 +37,15 @@ export interface InfiniteScrollGridProps<Row extends RowWithId> extends Omit<
  * cross-process bridge limitation `ImperativeApiGrid` and `RowIdentifiedGrid`
  * already document for other function props. `data-testid="load-count"`
  * reports how many loads have completed, since a spec can't spy on the
- * callback directly either.
+ * callback directly either. "Start over" drops back to the first chunk, as
+ * a new query's first page would.
  */
 export default function InfiniteScrollGrid<Row extends RowWithId>({
   allRows,
   chunkSize,
   delay = 20,
   holdLoads = false,
+  instantLoads = false,
   rootMargin,
   ...props
 }: InfiniteScrollGridProps<Row>) {
@@ -45,15 +53,23 @@ export default function InfiniteScrollGrid<Row extends RowWithId>({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [loadCount, setLoadCount] = useState(0);
 
+  function appendChunk(): void {
+    setLoaded((current) => Math.min(current + chunkSize, allRows.length));
+    setLoadCount((count) => count + 1);
+  }
+
   function onLoadMore(): void {
+    if (instantLoads) {
+      appendChunk();
+      return;
+    }
     setIsLoadingMore(true);
     if (holdLoads) {
       return;
     }
     setTimeout(() => {
-      setLoaded((current) => Math.min(current + chunkSize, allRows.length));
+      appendChunk();
       setIsLoadingMore(false);
-      setLoadCount((count) => count + 1);
     }, delay);
   }
 
@@ -71,6 +87,14 @@ export default function InfiniteScrollGrid<Row extends RowWithId>({
         }}
       />
       <output data-testid="load-count">{loadCount}</output>
+      <button
+        type="button"
+        onClick={() => {
+          setLoaded(chunkSize);
+        }}
+      >
+        Start over
+      </button>
     </div>
   );
 }

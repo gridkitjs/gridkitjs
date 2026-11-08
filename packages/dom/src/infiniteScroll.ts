@@ -8,8 +8,9 @@ export interface InfiniteScrollOptions {
   readonly hasMore: boolean;
   /**
    * Called at most once per approach: when the sentinel comes within
-   * `rootMargin` of the root's visible area, and not again until
-   * `isLoadingMore` has gone from `true` back to `false`.
+   * `rootMargin` of the root's visible area. Not again until that load has
+   * finished (`isLoadingMore` back to `false`), `hasMore` has changed, or
+   * the sentinel has left `rootMargin` and come back.
    */
   readonly onLoadMore?: (() => void) | undefined;
   /** Whether a load `onLoadMore` started is still in flight. */
@@ -22,25 +23,57 @@ export interface InfiniteScroll {
   /**
    * Takes the current options. Cheap when nothing changed, so a renderer may
    * call it after every render; a new sentinel or `rootMargin` restarts the
-   * observer, and `isLoadingMore` going back to `false` re-checks at once.
+   * observer, and a load finishing or `hasMore` changing re-checks at once.
    */
   readonly update: (options: InfiniteScrollOptions) => void;
-  /** Stops watching for good. */
+  /** Stops watching for good: a later `update` does nothing. */
   readonly detach: () => void;
 }
 
 /**
+ * Where the next load stands. `requested` is `onLoadMore` called with no
+ * `isLoadingMore: true` seen since, which a load that starts nothing, or
+ * finishes within one render, never leaves on its own.
+ */
+type LoadState =
+  | { readonly kind: "idle" }
+  | { readonly kind: "requested" }
+  | { readonly kind: "loading" }
+  | { readonly kind: "detached" };
+
+const IDLE: LoadState = { kind: "idle" };
+const REQUESTED: LoadState = { kind: "requested" };
+const LOADING: LoadState = { kind: "loading" };
+const DETACHED: LoadState = { kind: "detached" };
+
+/**
+ * The state after an `update`: `loading` while a load is in flight, and
+ * `idle` again once one finishes or `hasMore` changes, either of which
+ * means no load can still be pending.
+ */
+function afterUpdate(
+  state: LoadState,
+  loading: boolean,
+  hasMoreChanged: boolean,
+): LoadState {
+  if (loading) {
+    return LOADING;
+  }
+  return state.kind === "loading" || hasMoreChanged ? IDLE : state;
+}
+
+/**
  * Turns a sentinel's approach to the bottom of the scrolling `root` into
- * `onLoadMore` calls, no more than one per "the sentinel is near and no load
- * is in flight since the last one finished".
+ * `onLoadMore` calls, no more than one per approach while no load is in
+ * flight.
  *
- * Three facts drive it: whether the sentinel is intersecting (as of the
- * observer's last report), whether `onLoadMore` has fired since the last
- * load finished, and whether a load was in flight at the last update. They
- * outlive the sentinel itself, which a renderer mounts and unmounts as
- * `hasMore` changes, so they live here rather than on any one observer.
+ * Two facts drive it: whether the sentinel is intersecting (as of the
+ * observer's last report), and the `LoadState`. Both outlive the sentinel
+ * itself, which a renderer mounts and unmounts as `hasMore` changes, so they
+ * live here rather than on any one observer.
  *
- * Off means off: with `hasMore` false, or no sentinel, no observer exists.
+ * Off means off: with `hasMore` false, no sentinel, or once detached, no
+ * observer exists.
  */
 export function attachInfiniteScroll(
   root: Element,
@@ -48,23 +81,25 @@ export function attachInfiniteScroll(
 ): InfiniteScroll {
   let latest = options;
   let intersecting = false;
-  /** Set once `onLoadMore` fires, cleared only when a load finishes. */
-  let fired = false;
-  let wasLoading = options.isLoadingMore ?? false;
+  let state: LoadState = (options.isLoadingMore ?? false) ? LOADING : IDLE;
   let observer: IntersectionObserver | null = null;
   let observed: { sentinel: Element; rootMargin: string } | null = null;
 
   function maybeLoadMore(): void {
-    if (
-      !intersecting ||
-      !latest.hasMore ||
-      (latest.isLoadingMore ?? false) ||
-      fired
-    ) {
+    if (state.kind !== "idle" || !intersecting || !latest.hasMore) {
       return;
     }
-    fired = true;
+    state = REQUESTED;
     latest.onLoadMore?.();
+  }
+
+  function report(isIntersecting: boolean): void {
+    intersecting = isIntersecting;
+    // The sentinel left the range, so its next entry is a fresh approach.
+    if (!intersecting && state.kind === "requested") {
+      state = IDLE;
+    }
+    maybeLoadMore();
   }
 
   function disconnect(): void {
@@ -91,11 +126,9 @@ export function attachInfiniteScroll(
     observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[entries.length - 1];
-        if (entry === undefined) {
-          return;
+        if (entry !== undefined) {
+          report(entry.isIntersecting);
         }
-        intersecting = entry.isIntersecting;
-        maybeLoadMore();
       },
       { root, rootMargin },
     );
@@ -107,18 +140,21 @@ export function attachInfiniteScroll(
 
   return {
     update(next) {
-      latest = next;
-      const loading = next.isLoadingMore ?? false;
-      if (wasLoading && !loading) {
-        fired = false;
-        // The rows a finished load appended may not have pushed the sentinel
-        // out of `rootMargin` at all, in which case it never leaves and
-        // re-enters — no observer report would come to trigger the next load.
-        maybeLoadMore();
+      if (state.kind === "detached") {
+        return;
       }
-      wasLoading = loading;
+      const hasMoreChanged = next.hasMore !== latest.hasMore;
+      latest = next;
+      state = afterUpdate(state, next.isLoadingMore ?? false, hasMoreChanged);
       observe();
+      // After a load finishes, or `hasMore` changes, the sentinel may still be
+      // in range: then it never leaves and re-enters, and no observer report
+      // would come to trigger the next load.
+      maybeLoadMore();
     },
-    detach: disconnect,
+    detach() {
+      disconnect();
+      state = DETACHED;
+    },
   };
 }
