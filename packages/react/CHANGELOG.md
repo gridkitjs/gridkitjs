@@ -1,5 +1,31 @@
 # @gridkitjs/react
 
+## 0.15.0
+
+### Minor Changes
+
+- 8ac72f8: `DataGrid` takes a `paginationUnit` prop that sets what `pageSize` counts
+  once the rows are grouped. `"group"`, the default, keeps pages of whole
+  top-level groups. `"row"` counts data rows and collapsed group headers, so a
+  page of 25 draws 25 rows however large the groups are, and a page that
+  continues a group starts with that group's header again. The pager's page
+  count follows it. `PaginationUnit` is exported from `@gridkitjs/react`.
+- 2de78a3: The `toolbar` prop takes `itemAttributes`, which puts an `id` and `data-*`
+  attributes of your own on toolbar items' elements, keyed by the item: a
+  command id, `"search"`, `"export"`, or an inline item's, submenu's or custom
+  entry's id. They go on the button, the dropdown's button, the search box's
+  input or the custom entry's wrapper, under the toolbar's own attributes.
+  `ToolbarItemAttributes` is exported from `@gridkitjs/react`.
+
+### Patch Changes
+
+- Updated dependencies [8ac72f8]
+- Updated dependencies [9d549d2]
+- Updated dependencies [2de78a3]
+- Updated dependencies [479e045]
+  - @gridkitjs/core@0.15.0
+  - @gridkitjs/dom@0.3.3
+
 ## 0.14.0
 
 ### Minor Changes
