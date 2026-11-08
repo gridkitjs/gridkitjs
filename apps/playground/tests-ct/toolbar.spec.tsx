@@ -560,6 +560,29 @@ test.describe("DataGrid toolbar", () => {
     await expect(gridSearch(root)).toBeFocused();
   });
 
+  test("a closed menu leaves focus alone when the grid draws again later", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <ToolbarGrid />, WIDE);
+    const actions = toolbarButton(root, "Actions");
+
+    await actions.click();
+    await page.keyboard.press("Escape");
+    await expect(actions).toBeFocused();
+    await actions.evaluate((button) => {
+      button.blur();
+    });
+    await updateGrid(root, <ToolbarGrid label="Renamed grid" />, WIDE);
+
+    await expect(
+      root.getByRole("grid", { name: "Renamed grid" }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(() => document.activeElement === document.body),
+    ).toBe(true);
+  });
+
   test("is one tab stop the arrow keys move within", async ({
     mount,
     page,
@@ -681,6 +704,24 @@ test.describe("DataGrid toolbar overflow", () => {
     await updateGrid(root, <ToolbarGrid />, NARROW);
     await expect(toolbarButton(root, "More")).toBeVisible();
     await expect(toolbarButton(root, "Actions")).toHaveCount(0);
+  });
+
+  test("an open More menu leaving with its button hands focus to the toolbar", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <ToolbarGrid />, NARROW);
+    const menu = page.getByRole("menu", { name: "More" });
+
+    await toolbarButton(root, "More").click();
+    await expect(
+      menu.getByRole("menuitem", { name: "Clear filters" }),
+    ).toBeFocused();
+    await updateGrid(root, <ToolbarGrid />, WIDE);
+
+    await expect(toolbarButton(root, "More")).toHaveCount(0);
+    await expect(menu).toHaveCount(0);
+    await expect(gridSearch(root)).toBeFocused();
   });
 
   test("More stays inside the toolbar when the pinned entries alone are wider", async ({

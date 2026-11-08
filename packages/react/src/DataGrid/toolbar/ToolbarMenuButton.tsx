@@ -18,8 +18,8 @@ interface ToolbarMenuButtonProps {
   entries: readonly ResolvedMenuEntry[];
   /** The "More" button, holding the entries that do not fit, rather than a dropdown. */
   more?: boolean | undefined;
-  /** Its menu closed, however it did. */
-  onMenuClose: () => void;
+  /** Where focus goes when the menu closes with its button gone. */
+  returnFocusFallback: () => HTMLElement | null;
 }
 
 /** The menu open below the button. */
@@ -44,7 +44,7 @@ export default function ToolbarMenuButton({
   icon,
   entries,
   more = false,
-  onMenuClose,
+  returnFocusFallback,
 }: ToolbarMenuButtonProps) {
   const [menu, setMenu] = useState<OpenMenu | null>(null);
   const menuBehaviourRef = useRef<AttachedMenu | null>(null);
@@ -69,7 +69,6 @@ export default function ToolbarMenuButton({
 
   function close(): void {
     setMenu(null);
-    onMenuClose();
   }
 
   return (
@@ -115,6 +114,7 @@ export default function ToolbarMenuButton({
           placement="bottom-start"
           gap={ANCHOR_GAP}
           returnFocusTo={menu.anchor}
+          returnFocusFallback={returnFocusFallback}
           themeClassName={menu.themeClassName}
           onDismiss={close}
         >

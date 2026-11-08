@@ -29,6 +29,11 @@ interface OverlayProps {
   initialFocus?:
     OverlayInitialFocus | RefObject<HTMLElement | null> | undefined;
   returnFocusTo?: HTMLElement | null | undefined;
+  /**
+   * See `attachOverlay`'s option: where focus goes once `returnFocusTo` has
+   * left the page. Read as the overlay detaches, so it need not stay the same.
+   */
+  returnFocusFallback?: (() => HTMLElement | null) | undefined;
   /** See `attachOverlay`'s option: a panel whose controls change the grid under it. */
   ignoreScrollAfterInput?: boolean | undefined;
   /** See `attachOverlay`'s option: Tab stays inside, as in a dialog. */
@@ -91,6 +96,7 @@ export default function Overlay({
   offset,
   initialFocus,
   returnFocusTo,
+  returnFocusFallback,
   ignoreScrollAfterInput,
   trapFocus,
   themeClassName,
@@ -98,10 +104,12 @@ export default function Overlay({
   children,
 }: OverlayProps) {
   const panelRef = useRef<HTMLDivElement>(null);
-  // Read through a ref, so a new handler every render does not re-attach.
+  // Read through refs, so new functions every render do not re-attach.
   const onDismissRef = useRef(onDismiss);
+  const returnFocusFallbackRef = useRef(returnFocusFallback);
   useLayoutEffect(() => {
     onDismissRef.current = onDismiss;
+    returnFocusFallbackRef.current = returnFocusFallback;
   });
 
   useLayoutEffect(() => {
@@ -115,6 +123,7 @@ export default function Overlay({
       offset,
       initialFocus: attachedFocus(initialFocus),
       returnFocusTo,
+      returnFocusFallback: () => returnFocusFallbackRef.current?.() ?? null,
       ignoreScrollAfterInput,
       trapFocus,
       onDismiss: (reason) => {

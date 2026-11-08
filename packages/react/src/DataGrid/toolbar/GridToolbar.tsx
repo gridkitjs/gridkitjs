@@ -138,8 +138,6 @@ function Toolbar<Row>({
   itemAttributes: GridToolbarOptions<Row>["itemAttributes"];
 }) {
   const toolbarRef = useRef<HTMLDivElement>(null);
-  /** Set when a menu closes, for the layout effect below. */
-  const menuClosed = useRef(false);
 
   const items = resolveToolbar(entries, {
     commands: commands.commands,
@@ -159,26 +157,16 @@ function Toolbar<Row>({
   }, []);
 
   /**
-   * A menu returns focus to its button as it closes — but what it ran can
-   * take that button away, a dropdown whose items all hid, and focus then
-   * falls to the page. It comes back to the toolbar instead.
+   * Where a menu's focus comes back to when its button has gone: a dropdown
+   * whose items all hid, or "More" as the toolbar widens with its menu open.
    */
-  useLayoutEffect(() => {
-    if (!menuClosed.current) {
-      return;
-    }
-    menuClosed.current = false;
+  function toolbarTabStop(): HTMLElement | null {
     const toolbar = toolbarRef.current;
-    if (toolbar !== null && document.activeElement === document.body) {
-      (
-        toolbar.querySelector<HTMLElement>('[tabindex="0"]') ??
-        toolbar.querySelector<HTMLElement>("button, input")
-      )?.focus();
-    }
-  });
-
-  function onMenuClose(): void {
-    menuClosed.current = true;
+    return (
+      toolbar?.querySelector<HTMLElement>('[tabindex="0"]') ??
+      toolbar?.querySelector<HTMLElement>("button, input") ??
+      null
+    );
   }
 
   function draw(item: ResolvedToolbarItem): ReactNode {
@@ -223,7 +211,7 @@ function Toolbar<Row>({
             label={item.label}
             icon={item.icon}
             entries={item.items}
-            onMenuClose={onMenuClose}
+            returnFocusFallback={toolbarTabStop}
           />
         );
       case "search":
@@ -284,7 +272,7 @@ function Toolbar<Row>({
           label={messages.moreToolbarItems}
           entries={overflow}
           more
-          onMenuClose={onMenuClose}
+          returnFocusFallback={toolbarTabStop}
         />
       )}
     </div>
