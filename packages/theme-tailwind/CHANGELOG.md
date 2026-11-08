@@ -1,5 +1,156 @@
 # @gridkitjs/theme-tailwind
 
+## 0.12.0
+
+### Minor Changes
+
+- 353ba81: New theme tokens for the grid's colours and type. Each defaults to the look
+  the grid already has, so nothing changes until you override one on `:root`,
+  in a stylesheet loaded after the theme.
+
+  - Colours, each a `-light`/`-dark` pair like the palette's
+    (`--gridkit-header-bg-light`, `--gridkit-header-bg-dark`):
+    `--gridkit-header-bg`, `--gridkit-header-fg`, `--gridkit-group-row-bg`,
+    `--gridkit-row-hover-bg`, `--gridkit-row-stripe-bg` (transparent, so rows
+    are striped only once you set it), `--gridkit-focus-ring`,
+    `--gridkit-accent-fg`, `--gridkit-error`, `--gridkit-scrollbar-thumb` and
+    `--gridkit-overlay-shadow-color`. Each is a Tailwind colour too, such as
+    `bg-gridkit-header-bg`.
+  - Type: `--gridkit-font-family` and `--gridkit-font-size` for the grid's
+    text; `--gridkit-menu-font-size`, `--gridkit-bar-font-size` (the toolbar,
+    group-by bar and pager) and `--gridkit-hint-font-size` for its smaller
+    text; `--gridkit-header-font-weight`, `--gridkit-header-text-transform` and
+    `--gridkit-header-letter-spacing` for header labels;
+    `--gridkit-group-font-weight` for group labels and totals; and
+    `--gridkit-font-variant-numeric`, which `tabular-nums` sets to line numbers
+    up in their columns.
+
+  ```css
+  :root {
+    --gridkit-font-family: "Inter", sans-serif;
+    --gridkit-header-text-transform: uppercase;
+    --gridkit-row-stripe-bg-light: oklch(0.985 0.002 250);
+    --gridkit-row-stripe-bg-dark: oklch(0.24 0.011 250);
+  }
+  ```
+
+  Breaking if your theme overrides a palette colour by its live name on
+  `:root`, such as `--gridkit-accent`: the parts these tokens now set default
+  to the palette colour's light and dark pair, so they no longer follow the
+  live name. That covers focus rings and the error colour (`--gridkit-accent`),
+  the header background and the tick on an accent fill (`--gridkit-surface`),
+  group rows and row hover (`--gridkit-surface-muted`) and the scrollbar thumb
+  (`--gridkit-fg-muted`). Override the pair instead, which reaches them all
+  and grids pinned with `.gridkit-light` or `.gridkit-dark` too:
+
+  ```css
+  /* Before */
+  :root {
+    --gridkit-accent: oklch(0.6 0.17 145);
+  }
+
+  /* After */
+  :root {
+    --gridkit-accent-light: oklch(0.6 0.17 145);
+    --gridkit-accent-dark: oklch(0.7 0.15 145);
+  }
+  ```
+
+- 353ba81: New theme tokens for the grid's spacing, lines, corners and details. Each
+  defaults to the look the grid already has, so nothing changes until you
+  override one on `:root`, in a stylesheet loaded after the theme.
+
+  - Density: `--gridkit-spacing` (`0.25rem`) is the unit every padding, gap and
+    control height is a multiple of, so changing it alone makes the whole grid
+    denser or roomier. `--gridkit-cell-padding-x` and `-y`,
+    `--gridkit-header-padding-x` and `-y` (the cells' by default),
+    `--gridkit-toolbar-padding`, `--gridkit-group-by-bar-padding`,
+    `--gridkit-pager-padding` and `--gridkit-menu-item-padding-x` and `-y` set
+    one part's padding on its own.
+  - Borders: `--gridkit-border-width` for every line the grid draws;
+    `--gridkit-border-style` (`solid`, `dashed` or `dotted`) for the lines in
+    and around the grid; `--gridkit-row-line-width` and
+    `--gridkit-column-line-width`, which `0` turns off where the `borders`
+    setting draws them; and `--gridkit-outer-border-width`, a border around the
+    whole grid, `0` by default.
+  - Shape: `--gridkit-menu-radius` for menus, the column chooser and the filter
+    menu, and `--gridkit-control-radius` for buttons, fields and options, beside
+    the existing `--gridkit-radius`.
+  - Details: `--gridkit-icon-size`, `--gridkit-header-icon-size`,
+    `--gridkit-focus-ring-width`, `--gridkit-indicator-width` (the resize and
+    drop lines), `--gridkit-overlay-shadow` (the shadow's offsets and blur;
+    its colour is `--gridkit-overlay-shadow-color`), `--gridkit-menu-min-width`,
+    `--gridkit-column-chooser-width`, `--gridkit-column-chooser-max-height`,
+    `--gridkit-filter-menu-width`, `--gridkit-filter-checklist-height` and
+    `--gridkit-transition-duration`.
+
+  ```css
+  :root {
+    --gridkit-spacing: 0.1875rem;
+    --gridkit-column-line-width: 0;
+    --gridkit-outer-border-width: 1px;
+    --gridkit-control-radius: 0;
+  }
+  ```
+
+- d2ada2a: Breaking: the palette's Tailwind colours carry a `gridkit-` prefix, so they
+  no longer claim names like `accent` or `surface` in your app's own theme.
+  Rename each use in your classes: `bg-accent` becomes `bg-gridkit-accent`,
+  `text-fg-muted` becomes `text-gridkit-fg-muted`. The unprefixed names are no
+  longer registered.
+
+  The nine colours are `gridkit-surface`, `gridkit-surface-muted`,
+  `gridkit-line`, `gridkit-hover-line`, `gridkit-fg`, `gridkit-fg-muted`,
+  `gridkit-accent`, `gridkit-selected` and `gridkit-selected-strong`.
+  `gridkit-hover-line` is new. The `--gridkit-*` custom properties are
+  unchanged.
+
+- 432b82f: Theme presets: ready-made themes you import after the stylesheet to restyle
+  the grid, its menus included, in one line.
+
+  ```css
+  @import "tailwindcss";
+  @import "@gridkitjs/theme-tailwind/styles.css";
+  @import "@gridkitjs/theme-tailwind/presets/spreadsheet.css";
+  ```
+
+  Each preset sets theme tokens on `:root` and nothing else, in light and dark
+  mode: `spreadsheet.css`, `comfortable.css`, `high-contrast.css` and
+  `midnight.css`. `default.css` sets every token to its default, as a template
+  to copy for a theme of your own: change what you want, and delete the lines
+  you keep. `@gridkitjs/theme-tailwind/presets/index.json` lists the presets
+  with an `id`, `label`, `description` and `file` each, for tools that offer a
+  choice of them.
+
+- 353ba81: `@gridkitjs/theme-tailwind/tokens.json` lists every theme token the
+  stylesheet declares, for building theme tools or docs on top of it. Each
+  entry gives the token's `name`, its `group` (`colors`, `typography`,
+  `density`, `borders`, `shape` or `details`), a `tier` (`basic` for the
+  palette and the base knobs, `advanced` for a token that tunes one part of
+  the grid), its `type`, its `default` and a one-sentence `description`. A
+  colour is listed by its live name, such as `--gridkit-accent`, with a
+  `{ "light", "dark" }` default: override its `--gridkit-accent-light` and
+  `--gridkit-accent-dark` pair on `:root`.
+
+  ```js
+  import manifest from "@gridkitjs/theme-tailwind/tokens.json" with { type: "json" };
+
+  const accent = manifest.tokens.find(
+    (token) => token.name === "--gridkit-accent",
+  );
+  ```
+
+### Patch Changes
+
+- 680515a: The grid no longer relies on Tailwind's Preflight. It sets
+  `box-sizing: border-box` on itself, its menus and its drag ghosts, and its
+  buttons and inputs take the surrounding font, so it draws the same in an app
+  with Preflight turned off. With Preflight on, nothing changes.
+- 353ba81: The triangle on a group row turns open or closed at once, without its
+  transition, when the user's system asks for reduced motion
+  (`prefers-reduced-motion: reduce`), whatever a theme sets
+  `--gridkit-transition-duration` to.
+
 ## 0.11.0
 
 ### Minor Changes
