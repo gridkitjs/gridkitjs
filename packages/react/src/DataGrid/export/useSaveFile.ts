@@ -23,10 +23,11 @@ const WRITING: SaveState = { kind: "writing" };
  * writing it.
  *
  * One at a time. An export asked for while a writer is still writing the
- * last is dropped and logged, so pressing a slow export twice saves one file
- * rather than two. A writer that fails, or a download the browser refuses,
- * is logged for the developer and announced for the user, who asked for a
- * file that will not come.
+ * last is dropped and logged, and the export command that asked for it did
+ * not run, so pressing a slow export twice saves one file, and reports one
+ * command, rather than two. A writer that fails, or a download the browser
+ * refuses, is logged for the developer and announced for the user, who
+ * asked for a file that will not come.
  */
 export default function useSaveFile({
   messages,
@@ -52,11 +53,11 @@ export default function useSaveFile({
       console.error(
         "DataGrid: an export is still being written, so this one was dropped.",
       );
-      return;
+      return false;
     }
     if (!(file instanceof Promise)) {
       download(file);
-      return;
+      return true;
     }
     state.current = WRITING;
     file
@@ -66,5 +67,6 @@ export default function useSaveFile({
       .finally(() => {
         state.current = IDLE;
       });
+    return true;
   };
 }

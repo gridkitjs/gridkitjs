@@ -381,6 +381,38 @@ test.describe("export writers on the grid", () => {
       .toContainEqual(expect.stringContaining("could not be saved"));
     expect(pageErrors).toEqual([]);
   });
+
+  test("an export dropped while another is written is not reported to onCommand", async ({
+    mount,
+    page,
+  }) => {
+    const commands: string[] = [];
+    const root = await mountGrid(
+      mount,
+      <ExportGrid
+        withWriters
+        toolbar={{ items: ["export"] }}
+        onCommand={(event) => {
+          commands.push(event.commandId);
+        }}
+      />,
+    );
+
+    await exportButton(root).click();
+    await exportMenu(page)
+      .getByRole("menuitem", { name: "Export to Excel" })
+      .click();
+    // The fixture finishes only its latest xlsx write, so the second is a CSV.
+    await exportButton(root).click();
+    await exportMenu(page)
+      .getByRole("menuitem", { name: "Export to CSV" })
+      .click();
+    await download(page, () =>
+      root.getByRole("button", { name: "Finish writing" }).click(),
+    );
+
+    expect(commands).toEqual(["export.xlsx"]);
+  });
 });
 
 test.describe("the context menu", () => {
