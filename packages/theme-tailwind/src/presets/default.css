@@ -1,0 +1,111 @@
+/*
+ * GridKit preset: Default. The grid's own look, with every theme token set
+ * to its default.
+ *
+ * Copy it to start a theme of your own: change the tokens you want to, and
+ * delete the ones you keep. Load it after the theme's stylesheet, from the
+ * same package:
+ *
+ *   @import "@gridkitjs/theme-tailwind/styles.css";
+ *   @import "@gridkitjs/theme-tailwind/presets/default.css";
+ *
+ * or the same two files from @gridkitjs/theme-css.
+ */
+:root {
+  /* Colours, each a light and dark pair */
+  --gridkit-surface-light: oklch(1 0 0);
+  --gridkit-surface-dark: oklch(0.21 0.01 250);
+  --gridkit-surface-muted-light: oklch(0.97 0.003 250);
+  --gridkit-surface-muted-dark: oklch(0.26 0.012 250);
+  --gridkit-line-light: oklch(0.92 0.005 250);
+  --gridkit-line-dark: oklch(0.33 0.014 250);
+  --gridkit-hover-line-light: oklch(0.65 0.09 255);
+  --gridkit-hover-line-dark: oklch(0.75 0.09 255);
+  --gridkit-fg-light: oklch(0.21 0.01 250);
+  --gridkit-fg-dark: oklch(0.97 0.003 250);
+  --gridkit-fg-muted-light: oklch(0.5 0.015 250);
+  --gridkit-fg-muted-dark: oklch(0.7 0.015 250);
+  --gridkit-accent-light: oklch(0.6 0.17 255);
+  --gridkit-accent-dark: oklch(0.7 0.15 255);
+  --gridkit-selected-light: oklch(0.94 0.03 255);
+  --gridkit-selected-dark: oklch(0.32 0.05 255);
+  --gridkit-selected-strong-light: oklch(0.9 0.05 255);
+  --gridkit-selected-strong-dark: oklch(0.38 0.07 255);
+  --gridkit-header-bg-light: var(--gridkit-surface-light);
+  --gridkit-header-bg-dark: var(--gridkit-surface-dark);
+  --gridkit-header-fg-light: currentColor;
+  --gridkit-header-fg-dark: currentColor;
+  --gridkit-group-row-bg-light: var(--gridkit-surface-muted-light);
+  --gridkit-group-row-bg-dark: var(--gridkit-surface-muted-dark);
+  --gridkit-row-hover-bg-light: var(--gridkit-surface-muted-light);
+  --gridkit-row-hover-bg-dark: var(--gridkit-surface-muted-dark);
+  --gridkit-row-stripe-bg-light: transparent;
+  --gridkit-row-stripe-bg-dark: transparent;
+  --gridkit-focus-ring-light: var(--gridkit-accent-light);
+  --gridkit-focus-ring-dark: var(--gridkit-accent-dark);
+  --gridkit-accent-fg-light: var(--gridkit-surface-light);
+  --gridkit-accent-fg-dark: var(--gridkit-surface-dark);
+  --gridkit-error-light: oklch(from var(--gridkit-accent-light) l c 25);
+  --gridkit-error-dark: oklch(from var(--gridkit-accent-dark) l c 25);
+  --gridkit-scrollbar-thumb-light: color-mix(
+    in oklch,
+    var(--gridkit-fg-muted-light) 45%,
+    transparent
+  );
+  --gridkit-scrollbar-thumb-dark: color-mix(
+    in oklch,
+    var(--gridkit-fg-muted-dark) 45%,
+    transparent
+  );
+  --gridkit-overlay-shadow-color-light: oklch(0 0 0 / 0.15);
+  --gridkit-overlay-shadow-color-dark: oklch(0 0 0 / 0.15);
+
+  /* Typography */
+  --gridkit-font-family: inherit;
+  --gridkit-font-size: 1em;
+  --gridkit-menu-font-size: 0.875rem;
+  --gridkit-bar-font-size: 0.8125rem;
+  --gridkit-hint-font-size: 0.75rem;
+  --gridkit-header-font-weight: 700;
+  --gridkit-header-text-transform: inherit;
+  --gridkit-header-letter-spacing: inherit;
+  --gridkit-group-font-weight: 600;
+  --gridkit-font-variant-numeric: inherit;
+
+  /* Density */
+  --gridkit-spacing: 0.25rem;
+  --gridkit-cell-padding-x: calc(var(--gridkit-spacing) * 2);
+  --gridkit-cell-padding-y: calc(var(--gridkit-spacing) * 2);
+  --gridkit-header-padding-x: var(--gridkit-cell-padding-x);
+  --gridkit-header-padding-y: var(--gridkit-cell-padding-y);
+  --gridkit-toolbar-padding: calc(var(--gridkit-spacing) * 2);
+  --gridkit-group-by-bar-padding: calc(var(--gridkit-spacing) * 2);
+  --gridkit-pager-padding: calc(var(--gridkit-spacing) * 2);
+  --gridkit-menu-item-padding-x: calc(var(--gridkit-spacing) * 3);
+  --gridkit-menu-item-padding-y: calc(var(--gridkit-spacing) * 1.5);
+
+  /* Borders */
+  --gridkit-border-width: 1px;
+  --gridkit-border-style: solid;
+  --gridkit-row-line-width: var(--gridkit-border-width);
+  --gridkit-column-line-width: var(--gridkit-border-width);
+  --gridkit-outer-border-width: 0;
+
+  /* Shape */
+  --gridkit-radius: 0.25rem;
+  --gridkit-menu-radius: 0.375rem;
+  --gridkit-control-radius: 0.25rem;
+
+  /* Details */
+  --gridkit-icon-size: 1rem;
+  --gridkit-header-icon-size: 14px;
+  --gridkit-focus-ring-width: 2px;
+  --gridkit-indicator-width: 2px;
+  --gridkit-overlay-shadow: 0 4px 12px;
+  --gridkit-menu-min-width: 12rem;
+  --gridkit-column-chooser-width: 16rem;
+  --gridkit-filter-menu-width: 18rem;
+  --gridkit-column-chooser-max-height: 17.5rem;
+  --gridkit-filter-checklist-height: 12rem;
+  --gridkit-transition-duration: 0.1s;
+}

@@ -7,11 +7,12 @@ styles. Published. `tailwindcss` is a peer dependency.
 
 The package ships `src/` as source, with no build step.
 
-| Path              | What it holds                                                                                                                                                                                                                    |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/styles.css`  | The stylesheet, exported as `@gridkitjs/theme-tailwind/styles.css`.                                                                                                                                                              |
-| `src/tokens.json` | The token manifest, exported as `@gridkitjs/theme-tailwind/tokens.json`: every theme token's group, tier, type and default.                                                                                                      |
-| `scripts/`        | Not shipped. The token test, and the helpers it reads the two files with: `css.mjs` parses a stylesheet, `manifest.mjs` the manifest. `token-docs.mjs` generates the docs' token tables, and `write-token-docs.mjs` writes them. |
+| Path              | What it holds                                                                                                                                                                                                                                                             |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/styles.css`  | The stylesheet, exported as `@gridkitjs/theme-tailwind/styles.css`.                                                                                                                                                                                                       |
+| `src/tokens.json` | The token manifest, exported as `@gridkitjs/theme-tailwind/tokens.json`: every theme token's group, tier, type and default.                                                                                                                                               |
+| `src/presets/`    | The presets, exported as `@gridkitjs/theme-tailwind/presets/*`: one token-only `<id>.css` each, and `index.json` listing them in display order.                                                                                                                           |
+| `scripts/`        | Not shipped. The token and preset tests, and the helpers they read the files with: `css.mjs` parses a stylesheet, `manifest.mjs` the manifest, `presets.mjs` the preset index. `token-docs.mjs` generates the docs' token tables, and `write-token-docs.mjs` writes them. |
 
 There is no `typecheck` or `lint` script: `scripts/` is plain ESM `.mjs`
 with JSDoc types, like the repo's own [scripts](../../scripts/AGENTS.md).
@@ -58,6 +59,9 @@ To add a token:
    pnpm --filter @gridkitjs/theme-tailwind docs:tokens
    ```
 
+5. Add it to `src/presets/default.css` at its default, among its group's,
+   then copy the presets into theme-css (see [the plain-CSS build](#the-plain-css-build)).
+
 Each group's table on that page sits between two MDX comments,
 `{/* tokens:<group> */}` and `{/* /tokens:<group> */}`. The script rewrites
 only what is between them, so never edit a table by hand: change
@@ -66,6 +70,25 @@ only what is between them, so never edit a table by hand: change
 A default declared on `:root` may read only raw colours of its own side or
 tokens that are not colours, for the reason the comment at the top of
 `styles.css` gives.
+
+## Presets
+
+A preset is a stylesheet in `src/presets/` that restyles the grid when
+loaded after `styles.css`. It is one `:root` block that sets only theme
+tokens, a colour through its raw `-light`/`-dark` pair, under a comment
+that opens `GridKit preset: <label>.` and says how to import it. Never a
+selector or a rule: a preset is token values only, so the website's theme
+builder can load it as a starting point.
+
+`default.css` sets every token to its default, as the template a consumer
+copies; the others each change several groups, not only the colours.
+`index.json` lists every preset as `{ id, label, description, file }`, in
+display order with `default` first; its typedefs, the contract with the
+theme builder, are in `scripts/presets.mjs`. To add a preset, add its file
+and its entry, and a line for it on `docs/presets.mdx`.
+
+theme-css ships the same files, copied by its build, so after changing a
+preset run `pnpm --filter @gridkitjs/theme-css build` and commit both.
 
 ## The plain-CSS build
 
@@ -105,6 +128,14 @@ manifest and `:root` disagree on which tokens exist or on a default, when a
 default reads a value the palette swaps, when a colour is missing from a palette block or
 `@theme inline`, when no rule reads a token, or when the token tables on
 `docs/tokens.mdx` differ from what `tokens.json` generates.
+
+`scripts/presets.test.mjs` fails when `index.json` is malformed or
+disagrees with the files in `src/presets/`, when `default.css` differs from
+the manifest's defaults, when a preset is anything but one commented `:root`
+block of tokens or sets a colour by its live name, or when a preset's
+`fg` on `surface`, or `fg-muted` on `surface`, `surface-muted` or
+`selected`, falls under WCAG AA's 4.5:1 in either mode (7:1 for High
+contrast).
 
 The Playwright suite mounts `DataGrid` against this stylesheet, so measured
 widths and paddings come from it; see
