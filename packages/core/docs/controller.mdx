@@ -49,6 +49,8 @@ Each slice of `GridState` is controlled or not on its own, the way a form input 
 
 Giving both the controlled option and its default reports a `console.error` once; the controlled value wins.
 
+While a slice is controlled the controller doesn't store what its actions ask for. Dropping the option later hands the slice back to the controller at the value it last kept itself: the default, or the last change made before the slice was controlled. The values given while controlled are not carried over.
+
 A change to the filter, the sort, the grouping or the `paginationUnit` option sends an uncontrolled pagination back to the first page, so a user is never left on a page the change emptied. That reset reports nothing of its own — the change that caused it already did. Rows that shrink under a later page without such a change (a collapsed group, a shorter `dataSource`) leave the view on the last page that exists, and an uncontrolled pagination stores that page, again without reporting it, so rows growing back keep the page shown. A controlled pagination is the caller's to reset; until it is, the view shows the last page that exists and the stored page is left as given.
 
 ## Reading

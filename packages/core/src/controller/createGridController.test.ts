@@ -261,6 +261,25 @@ describe("createGridController: sort", () => {
 
     expect(controller.getState().columnSort).toEqual([]);
   });
+
+  test("a slice released from control returns to its last uncontrolled value", () => {
+    const options: GridControllerOptions<SampleRow> = {
+      dataSource: data,
+      columns,
+    };
+    const controller = createGridController(options);
+    controller.toggleColumnSort("Amount");
+    const own = controller.getState().columnSort;
+
+    controller.setOptions({
+      ...options,
+      columnSort: [{ columnId: "Id", direction: "desc" }],
+    });
+    controller.toggleColumnSort("Region");
+    controller.setOptions(options);
+
+    expect(controller.getState().columnSort).toBe(own);
+  });
 });
 
 describe("createGridController: grouping", () => {
