@@ -280,6 +280,7 @@ export {
   columnValueOptions,
   describeColumnFilter,
   draftToFilter,
+  filterDraftChanged,
   filterEditorReducer,
   initialFilterEditorDraft,
   isColumnFiltered,
