@@ -1385,6 +1385,13 @@ test.describe("the excel editor", () => {
     const filterMenu = await openFromHeaderMenu(root, page, "Name");
     await option(filterMenu, "Alice").click();
 
+    // An equal filter, though a new array, leaves what was checked.
+    await updateGrid(root, grid([]));
+    await expect(option(filterMenu, "Alice")).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+
     await updateGrid(
       root,
       grid([{ columnId: "name", operator: "in", value: ["Bravo"] }]),
