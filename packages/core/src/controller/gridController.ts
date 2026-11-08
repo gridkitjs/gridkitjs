@@ -112,6 +112,8 @@ export interface GridController<Row, Node = string> {
    * Subscribers are called once, after every slice is in place, and a
    * restored pagination is kept even when the same call changed the sort,
    * filter or grouping that would otherwise send it back to the first page.
+   * A slice that throws stops the restore there, after the slices before it
+   * are shown, reported and announced as above.
    */
   readonly restoreState: (
     saved: Partial<GridState<Row>> | Partial<SerializedGridState<Row>>,
