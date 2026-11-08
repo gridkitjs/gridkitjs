@@ -19,8 +19,6 @@ export interface GroupByDragApi {
   /** Where the element trailing the pointer sits, as a CSS `transform`. */
   ghostTransform: string | null;
   startDrag: (columnId: string, event: ReactPointerEvent<HTMLElement>) => void;
-  /** Whether the gesture that just ended was a drag rather than a click. */
-  justDragged: () => boolean;
 }
 
 /**
@@ -48,6 +46,5 @@ export default function useGroupByDrag({
     startDrag: (columnId, event) => {
       drag.startDrag(columnId, event.currentTarget, event);
     },
-    justDragged: drag.justDragged,
   };
 }

@@ -1,6 +1,6 @@
 import { applyColumnResize, type ColumnResizeSession } from "@gridkitjs/core";
 import {
-  isPrimaryPress,
+  mayStartGesture,
   startPointerGesture,
   type PointerPress,
 } from "./pointerGesture";
@@ -15,15 +15,25 @@ export interface ColumnResizeGestureHandlers {
    * spurious resize on every click.
    */
   readonly onEnd: (width: number | null) => void;
-  /** Escape, or a cancelled pointer: the column goes back to `session.startWidth`. */
+  /**
+   * Escape, a cancelled pointer or an aborted `signal`: the column goes back
+   * to `session.startWidth`.
+   */
   readonly onCancel: () => void;
+  /**
+   * Cancels the resize when aborted, as Escape does. For a renderer whose
+   * handle goes away mid-drag, so what it draws for the resize ends with it.
+   * Already aborted, no resize starts.
+   */
+  readonly signal?: AbortSignal;
 }
 
 /**
  * Drags a column's edge from `press` on its resize `handle`, turning pointer
  * positions into widths through `@gridkitjs/core`'s `session` — begun with
  * `beginColumnResize` — and reporting them. Returns whether a resize began:
- * only the primary button of the primary pointer starts one.
+ * only the primary button of the primary pointer starts one, and not once
+ * `handlers.signal` has aborted.
  *
  * Captures the pointer on `handle`, so the drag keeps reporting wherever the
  * pointer goes, and prevents the press's default, so it does not select the
@@ -36,24 +46,29 @@ export function startColumnResizeGesture(
   session: ColumnResizeSession,
   handlers: ColumnResizeGestureHandlers,
 ): boolean {
-  if (!isPrimaryPress(press)) {
+  if (!mayStartGesture(press, handlers.signal)) {
     return false;
   }
   press.preventDefault();
 
   let width = session.startWidth;
-  startPointerGesture(handle, press.pointerId, {
-    onMove(event) {
-      width = applyColumnResize(session, event.clientX);
-      handlers.onMove(width);
+  startPointerGesture(
+    handle,
+    press.pointerId,
+    {
+      onMove(event) {
+        width = applyColumnResize(session, event.clientX);
+        handlers.onMove(width);
+      },
+      onEnd() {
+        handlers.onEnd(width === session.startWidth ? null : width);
+      },
+      onCancel() {
+        handlers.onCancel();
+      },
     },
-    onEnd() {
-      handlers.onEnd(width === session.startWidth ? null : width);
-    },
-    onCancel() {
-      handlers.onCancel();
-    },
-  });
+    handlers.signal,
+  );
   return true;
 }
 

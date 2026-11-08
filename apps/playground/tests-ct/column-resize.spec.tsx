@@ -7,7 +7,9 @@ import type { ColumnDefinition, ColumnResizeEvent } from "@gridkitjs/core";
 import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import ControlledStateGrid from "./support/ControlledStateGrid";
+import PointerGestureHarness from "./support/PointerGestureHarness";
 import { mountGrid, updateGrid } from "./support/mountGrid";
+import { trackWindowKeydownListeners } from "./support/windowKeydownListeners";
 
 interface Row {
   id: string;
@@ -39,6 +41,9 @@ async function colWidth(root: MountResult, index: number): Promise<number> {
     .nth(index)
     .evaluate((element) => parseFloat((element as HTMLElement).style.width));
 }
+
+/** The `pointerId` Chromium gives the mouse that `page.mouse` drives. */
+const MOUSE_POINTER_ID = 1;
 
 /** Presses the pointer down on `handle`'s center, without releasing it. */
 async function pointerDragStart(
@@ -184,6 +189,50 @@ test("Escape mid-resize restores the width captured at drag-start", async ({
   const last = events.at(-1);
   expect(last?.phase).toBe("end");
   expect(last?.width).toBeCloseTo(originalWidth, 0);
+});
+
+test("a second pointer neither moves nor ends a resize", async ({
+  mount,
+  page,
+}) => {
+  const events: ColumnResizeEvent[] = [];
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Resize second pointer"
+      resizableColumns
+      resizeMode="fixed"
+      onColumnResize={(event) => {
+        events.push(event);
+      }}
+    />,
+  );
+  const handle = headerHandle(root, 0);
+  const start = await pointerDragStart(page, handle);
+  await page.mouse.move(start.x + 20, start.y);
+  await expect(root.locator("thead th").nth(0)).toHaveClass(/is-resizing/);
+  const dragged = await colWidth(root, 0);
+
+  const secondFinger = {
+    pointerType: "touch",
+    pointerId: 2,
+    isPrimary: false,
+    clientX: start.x + 80,
+    clientY: start.y,
+    bubbles: true,
+  };
+  await handle.dispatchEvent("pointermove", secondFinger);
+  await handle.dispatchEvent("pointerup", secondFinger);
+  expect(await colWidth(root, 0)).toBeCloseTo(dragged, 0);
+  await expect(root.locator("thead th").nth(0)).toHaveClass(/is-resizing/);
+
+  await page.mouse.move(start.x + 30, start.y);
+  await page.mouse.up();
+  await expect.poll(() => events.at(-1)?.phase).toBe("end");
+  expect(events.filter((event) => event.phase === "end")).toHaveLength(1);
+  expect(await colWidth(root, 0)).toBeCloseTo(dragged + 10, 0);
 });
 
 test("cancelling one column's drag with Escape does not clobber another column resized by keyboard mid-gesture", async ({
@@ -485,4 +534,118 @@ test("a controlled columnSizing ignores a keyboard nudge until the parent applie
 
   await root.getByRole("button", { name: "apply-requests" }).click();
   await expect.poll(async () => colWidth(root, 0)).toBeCloseTo(before + 10, 0);
+});
+
+test("aborting a resize's signal cancels it and leaves nothing listening", async ({
+  mount,
+  page,
+}) => {
+  const root = await mount(<PointerGestureHarness />);
+  const handle = root.locator("#handle");
+  const log = root.getByTestId("log");
+  const moves = root.getByTestId("moves");
+  const start = await pointerDragStart(page, handle);
+  await page.mouse.move(start.x + 20, start.y, { steps: 2 });
+  await expect(moves).toHaveText("2");
+
+  // Clicked without the mouse, which is still holding the resize.
+  await root.getByRole("button", { name: "Abort" }).dispatchEvent("click");
+  await expect(log).toHaveText("resize started true; resize cancelled");
+  expect(
+    await handle.evaluate(
+      (element, pointerId) => element.hasPointerCapture(pointerId),
+      MOUSE_POINTER_ID,
+    ),
+  ).toBe(false);
+
+  await page.keyboard.press("Escape");
+  await page.mouse.move(start.x + 40, start.y, { steps: 2 });
+  await page.mouse.up();
+  await expect(log).toHaveText("resize started true; resize cancelled");
+  await expect(moves).toHaveText("2");
+});
+
+test("a resize given an already-aborted signal does not start", async ({
+  mount,
+  page,
+}) => {
+  const root = await mount(<PointerGestureHarness abortedBeforePress />);
+  const start = await pointerDragStart(page, root.locator("#handle"));
+  await page.mouse.move(start.x + 20, start.y, { steps: 2 });
+  await page.mouse.up();
+
+  await expect(root.getByTestId("log")).toHaveText("resize started false");
+  await expect(root.getByTestId("moves")).toHaveText("0");
+});
+
+test("hiding the column mid-resize ends the resize, and Escape clears the selection", async ({
+  mount,
+  page,
+}) => {
+  const grid = (visibility: Record<string, boolean>) => (
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Hidden mid-resize"
+      resizableColumns
+      resizeMode="fixed"
+      selectable={{ columns: "single" }}
+      columnVisibility={visibility}
+    />
+  );
+  const root = await mountGrid(mount, grid({}));
+  const header = (index: number) => root.locator("thead th").nth(index);
+  await header(2).click();
+  await expect(header(2)).toHaveAttribute("aria-selected", "true");
+
+  const start = await pointerDragStart(page, headerHandle(root, 1));
+  await page.mouse.move(start.x + 20, start.y);
+  await expect(header(1)).toHaveClass(/is-resizing/);
+
+  await updateGrid(root, grid({ name: false }));
+  await expect(root.locator("thead th")).toHaveCount(2);
+  await updateGrid(root, grid({}));
+  await expect(root.locator("thead th")).toHaveCount(3);
+  await expect(header(1)).not.toHaveClass(/is-resizing/);
+
+  await header(2).focus();
+  await page.keyboard.press("Escape");
+  await expect(header(2)).toHaveAttribute("aria-selected", "false");
+  await page.mouse.up();
+});
+
+test("unmounting the grid mid-resize cancels it, leaving nothing listening", async ({
+  mount,
+  page,
+}) => {
+  const listening = await trackWindowKeydownListeners(page);
+  const events: ColumnResizeEvent[] = [];
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Unmounted mid-resize"
+      resizableColumns
+      resizeMode="fixed"
+      onColumnResize={(event) => {
+        events.push(event);
+      }}
+    />,
+  );
+  const originalWidth = await colWidth(root, 0);
+  const start = await pointerDragStart(page, headerHandle(root, 0));
+  await page.mouse.move(start.x + 20, start.y);
+  await expect.poll(() => events.length).toBeGreaterThan(0);
+
+  await root.unmount();
+  expect(await listening()).toBe(0);
+  await expect.poll(() => events.at(-1)?.phase).toBe("end");
+  expect(events.at(-1)?.width).toBeCloseTo(originalWidth, 0);
+  const reported = events.length;
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+  // Anything the press reported would cross the CT bridge after it resolves.
+  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 100)));
+  expect(events).toHaveLength(reported);
 });

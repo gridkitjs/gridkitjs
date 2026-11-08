@@ -7,7 +7,9 @@ import type { ColumnDefinition, ColumnOrderEvent } from "@gridkitjs/core";
 import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import ControlledStateGrid from "./support/ControlledStateGrid";
-import { mountGrid } from "./support/mountGrid";
+import PointerGestureHarness from "./support/PointerGestureHarness";
+import { mountGrid, updateGrid } from "./support/mountGrid";
+import { trackWindowKeydownListeners } from "./support/windowKeydownListeners";
 
 interface Row {
   id: string;
@@ -55,6 +57,28 @@ async function dragStart(
   return { x, y };
 }
 
+/** The `pointerId` Chromium gives the mouse that `page.mouse` drives. */
+const MOUSE_POINTER_ID = 1;
+
+/**
+ * Fires `type` on `target` from a second finger at `point`: a pointer the
+ * gesture under way did not start from.
+ */
+async function secondPointer(
+  target: ReturnType<typeof headers>,
+  type: "pointermove" | "pointerup",
+  point: { x: number; y: number },
+): Promise<void> {
+  await target.dispatchEvent(type, {
+    pointerType: "touch",
+    pointerId: 2,
+    isPrimary: false,
+    clientX: point.x,
+    clientY: point.y,
+    bubbles: true,
+  });
+}
+
 test("a pointer move under the 4px threshold stays a click, not a drag", async ({
   mount,
   page,
@@ -75,6 +99,32 @@ test("a pointer move under the 4px threshold stays a click, not a drag", async (
   await page.mouse.move(start.x + 2, start.y); // under the 4px threshold
   await page.mouse.up();
   await expect(header).toHaveAttribute("aria-selected", "true");
+});
+
+test("a drag released back over its own header does not also select it", async ({
+  mount,
+  page,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Drag is not a click"
+      reorderableColumns
+      selectable={{ columns: "single" }}
+    />,
+    { width: 900 },
+  );
+  const header = headers(root).first();
+  const start = await dragStart(page, header);
+  await page.mouse.move(start.x + 20, start.y, { steps: 3 });
+  await expect(header).toHaveClass(/is-dragging/);
+  await page.mouse.move(start.x, start.y, { steps: 3 });
+  await page.mouse.up();
+
+  await expect(header).not.toHaveClass(/is-dragging/);
+  await expect(header).toHaveAttribute("aria-selected", "false");
 });
 
 test("a right-button drag across another header does not reorder the columns", async ({
@@ -219,6 +269,152 @@ test("Escape mid-drag cancels: order unchanged, onColumnOrderChange never called
   expect(await columnIds(root)).toEqual(idsBefore);
   expect(events).toHaveLength(0);
   await expect(root.locator(".drag-ghost")).toHaveCount(0);
+});
+
+/**
+ * Drags the first header onto the second, cancels with Escape, and releases
+ * over a body cell, so no click lands on a header to end the gesture.
+ */
+async function cancelDragOffHeader(
+  page: Page,
+  root: MountResult,
+): Promise<void> {
+  await dragStart(page, headers(root).first());
+  const over = await headers(root).nth(1).boundingBox();
+  const cell = await root.locator("tbody td").first().boundingBox();
+  if (over === null || cell === null) {
+    throw new Error("grid is not visible");
+  }
+  await page.mouse.move(over.x + over.width / 2, over.y + 5, { steps: 5 });
+  await page.keyboard.press("Escape");
+  await page.mouse.move(cell.x + cell.width / 2, cell.y + cell.height / 2, {
+    steps: 3,
+  });
+  await page.mouse.up();
+}
+
+test("after a drag cancelled with Escape and released off the header, the next click on that header selects it", async ({
+  mount,
+  page,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Click after cancel"
+      reorderableColumns
+      selectable={{ columns: "single" }}
+    />,
+    { width: 900 },
+  );
+  await cancelDragOffHeader(page, root);
+
+  await headers(root).first().click();
+  await expect(headers(root).first()).toHaveAttribute("aria-selected", "true");
+});
+
+test("after a drag cancelled with Escape and released off the header, a click on a header that cannot be dragged selects it", async ({
+  mount,
+  page,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={[
+        { field: "id", width: 80 },
+        { field: "name", width: 120 },
+        { field: "status", width: 100, reorderable: false },
+      ]}
+      dataSource={buildRows(2)}
+      label="Click after cancel, fixed column"
+      reorderableColumns
+      selectable={{ columns: "single" }}
+    />,
+    { width: 900 },
+  );
+  await cancelDragOffHeader(page, root);
+
+  await headers(root).nth(2).click();
+  await expect(headers(root).nth(2)).toHaveAttribute("aria-selected", "true");
+});
+
+test("a second pointer neither steers nor ends a header drag", async ({
+  mount,
+  page,
+}) => {
+  const events: ColumnOrderEvent[] = [];
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Second pointer"
+      reorderableColumns
+      onColumnOrderChange={(event) => {
+        events.push(event);
+      }}
+    />,
+    { width: 900 },
+  );
+  const dragged = headers(root).first();
+  const start = await dragStart(page, dragged);
+  await page.mouse.move(start.x + 20, start.y, { steps: 3 });
+  await expect(dragged).toHaveClass(/is-dragging/);
+
+  const last = await headers(root).nth(2).boundingBox();
+  if (last === null) throw new Error("header 2 not visible");
+  const overLast = { x: last.x + last.width * 0.75, y: last.y + 5 };
+  await secondPointer(dragged, "pointermove", overLast);
+  await expect(headers(root).nth(2)).not.toHaveClass(/is-drop-after/);
+
+  await secondPointer(dragged, "pointerup", overLast);
+  await expect(dragged).toHaveClass(/is-dragging/);
+  await expect(page.locator(".drag-ghost")).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+  expect(await columnIds(root)).toEqual(["id", "name", "status"]);
+  expect(events).toEqual([]);
+});
+
+test("a cancelled pointer mid-drag ends the drag and leaves the order as it was", async ({
+  mount,
+  page,
+}) => {
+  const events: ColumnOrderEvent[] = [];
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Pointer cancel"
+      reorderableColumns
+      onColumnOrderChange={(event) => {
+        events.push(event);
+      }}
+    />,
+    { width: 900 },
+  );
+  const dragged = headers(root).first();
+  await dragStart(page, dragged);
+  const last = await headers(root).nth(2).boundingBox();
+  if (last === null) throw new Error("header 2 not visible");
+  await page.mouse.move(last.x + last.width * 0.75, last.y + 5, { steps: 5 });
+  await expect(headers(root).nth(2)).toHaveClass(/is-drop-after/);
+
+  await dragged.dispatchEvent("pointercancel", {
+    pointerId: MOUSE_POINTER_ID,
+    isPrimary: true,
+    bubbles: true,
+  });
+  await expect(page.locator(".drag-ghost")).toHaveCount(0);
+  await expect(dragged).not.toHaveClass(/is-dragging/);
+  await expect(headers(root).nth(2)).not.toHaveClass(/is-drop-after/);
+
+  await page.mouse.up();
+  expect(await columnIds(root)).toEqual(["id", "name", "status"]);
+  expect(events).toEqual([]);
 });
 
 test("dropping a column back into the gap it already occupies is a no-op", async ({
@@ -428,4 +624,114 @@ test("a controlled columnOrder is shown as given", async ({ mount }) => {
   );
 
   expect(await columnIds(root)).toEqual(["status", "id", "name"]);
+});
+
+test("aborting a drag's signal ends it and leaves nothing listening", async ({
+  mount,
+  page,
+}) => {
+  const root = await mount(<PointerGestureHarness />);
+  const grab = root.locator("#grab");
+  const log = root.getByTestId("log");
+  const moves = root.getByTestId("moves");
+  const start = await dragStart(page, grab);
+  await page.mouse.move(start.x + 20, start.y, { steps: 2 });
+  await expect(moves).toHaveText("2");
+
+  // Clicked without the mouse, which is still holding the drag.
+  await root.getByRole("button", { name: "Abort" }).dispatchEvent("click");
+  await expect(log).toHaveText("drag started true; drag ended");
+  expect(
+    await grab.evaluate(
+      (element, pointerId) => element.hasPointerCapture(pointerId),
+      MOUSE_POINTER_ID,
+    ),
+  ).toBe(false);
+
+  await page.keyboard.press("Escape");
+  await page.mouse.move(start.x + 40, start.y, { steps: 2 });
+  await page.mouse.up();
+  await expect(log).toHaveText("drag started true; drag ended");
+  await expect(moves).toHaveText("2");
+});
+
+test("a drag given an already-aborted signal does not start", async ({
+  mount,
+  page,
+}) => {
+  const root = await mount(<PointerGestureHarness abortedBeforePress />);
+  const grab = root.locator("#grab");
+  const start = await dragStart(page, grab);
+  await page.mouse.move(start.x + 20, start.y, { steps: 2 });
+  await page.mouse.up();
+
+  await expect(root.getByTestId("log")).toHaveText("drag started false");
+  await expect(root.getByTestId("moves")).toHaveText("0");
+});
+
+test("hiding the dragged column mid-drag ends the drag: no ghost, the group-by bar back to hidden, and Escape clears the selection", async ({
+  mount,
+  page,
+}) => {
+  const groupable: readonly ColumnDefinition<Row>[] = [
+    { field: "id", width: 80 },
+    { field: "name", width: 120, groupByDraggable: true },
+    { field: "status", width: 100 },
+  ];
+  const grid = (visibility: Record<string, boolean>) => (
+    <DataGrid
+      columns={groupable}
+      dataSource={buildRows(2)}
+      label="Hidden mid-drag"
+      reorderableColumns
+      selectable={{ columns: "single" }}
+      columnVisibility={visibility}
+    />
+  );
+  const root = await mountGrid(mount, grid({}), { width: 900 });
+  const bar = root.locator(".gridkit-group-by-bar");
+  await headers(root).nth(2).click();
+  await expect(headers(root).nth(2)).toHaveAttribute("aria-selected", "true");
+
+  const start = await dragStart(page, headers(root).nth(1));
+  await page.mouse.move(start.x + 20, start.y, { steps: 3 });
+  await expect(bar).toBeVisible();
+
+  await updateGrid(root, grid({ name: false }), { width: 900 });
+  await expect(headers(root)).toHaveCount(2);
+  await updateGrid(root, grid({}), { width: 900 });
+  await expect(headers(root)).toHaveCount(3);
+
+  await expect(page.locator(".drag-ghost")).toHaveCount(0);
+  await expect(headers(root).nth(1)).not.toHaveClass(/is-dragging/);
+  await expect(bar).toHaveCount(0);
+
+  await headers(root).nth(2).focus();
+  await page.keyboard.press("Escape");
+  await expect(headers(root).nth(2)).toHaveAttribute("aria-selected", "false");
+  await page.mouse.up();
+});
+
+test("unmounting the grid mid-drag leaves nothing listening on window", async ({
+  mount,
+  page,
+}) => {
+  const listening = await trackWindowKeydownListeners(page);
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Unmounted mid-drag"
+      reorderableColumns
+    />,
+    { width: 900 },
+  );
+  const start = await dragStart(page, headers(root).first());
+  await page.mouse.move(start.x + 20, start.y, { steps: 3 });
+  await expect(page.locator(".drag-ghost")).toBeVisible();
+
+  await root.unmount();
+  expect(await listening()).toBe(0);
+  await page.mouse.up();
 });

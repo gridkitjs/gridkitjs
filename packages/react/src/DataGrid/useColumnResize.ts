@@ -13,6 +13,7 @@ import {
 import { measureColumnContent, startColumnResizeGesture } from "@gridkitjs/dom";
 import type { ResolvedColumn } from "./DataGrid";
 import type { DataGridController } from "./useGridController";
+import useGestureSignal from "./useGestureSignal";
 
 interface UseColumnResizeOptions<Row> {
   tableRef: RefObject<HTMLTableElement | null>;
@@ -36,7 +37,9 @@ export interface ColumnResizeApi<Row> {
  * Turns pointer and keyboard input into column widths. The drag itself is
  * `@gridkitjs/dom`'s `startColumnResizeGesture`, every width comes from
  * `@gridkitjs/core`, and the grid's controller applies them; this hook holds
- * only which column is being dragged.
+ * only which column is being dragged. The drag is cancelled with the
+ * component, and with its handle should a render remove it
+ * (`useGestureSignal`).
  */
 export default function useColumnResize<Row>({
   tableRef,
@@ -44,6 +47,7 @@ export default function useColumnResize<Row>({
   columnSizeDefaults,
 }: UseColumnResizeOptions<Row>): ColumnResizeApi<Row> {
   const [activeColumnId, setActiveColumnId] = useState<string | null>(null);
+  const startGesture = useGestureSignal();
 
   function startResize(
     entry: ResolvedColumn<Row>,
@@ -62,11 +66,9 @@ export default function useColumnResize<Row>({
     /** The sizing as the drag found it, which Escape puts the column back to. */
     const base = controller.getState().columnSizing;
 
-    const started = startColumnResizeGesture(
-      event.currentTarget,
-      event,
-      session,
-      {
+    const handle = event.currentTarget;
+    const started = startGesture(handle, (signal) =>
+      startColumnResizeGesture(handle, event, session, {
         onMove(width) {
           controller.resizeColumn(session.columnId, width, "move");
         },
@@ -91,7 +93,8 @@ export default function useColumnResize<Row>({
             session.startWidth,
           );
         },
-      },
+        signal,
+      }),
     );
     if (started) {
       setActiveColumnId(session.columnId);

@@ -166,7 +166,7 @@ export default function GridHeader<Row>({
                  * the drag by the distance it travelled, the resize by where
                  * it began.
                  */
-                if (drag.justDragged()) {
+                if (drag.justDragged(entry.id)) {
                   return;
                 }
                 if (
