@@ -68,8 +68,14 @@ export interface GridCommandHost {
    * Saves an export as a file — in a browser, a download. A promise is the
    * file of a writer still writing; the host waits for it, and reports a
    * rejected one rather than saving.
+   *
+   * Returns `false` for a file it drops without saving, as a host that saves
+   * one file at a time does with one asked for while it waits on the last.
+   * The export command that asked then did not run.
    */
-  readonly saveFile: (file: ExportFile | Promise<ExportFile>) => void;
+  readonly saveFile:
+    | ((file: ExportFile | Promise<ExportFile>) => void)
+    | ((file: ExportFile | Promise<ExportFile>) => boolean);
   /**
    * Puts a copy on the clipboard, as text and as HTML, and announces it —
    * `count` and `unit` say what to announce — or that the browser refused.
@@ -146,5 +152,12 @@ export interface GridCommand<Row> {
   /** Present for a checkable command — drawn as a checkbox item or a toggle button — and says whether it is checked. */
   readonly isChecked?:
     ((context: GridCommandContext<Row>) => boolean) | undefined;
-  readonly execute: (context: GridCommandContext<Row>) => void;
+  /**
+   * Does what the command does. Returns `false` when it turns out to do
+   * nothing after all, such as an export the host dropped, so `runCommand`
+   * says it did not run and a renderer does not report it.
+   */
+  readonly execute:
+    | ((context: GridCommandContext<Row>) => void)
+    | ((context: GridCommandContext<Row>) => boolean);
 }

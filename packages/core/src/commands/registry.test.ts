@@ -89,6 +89,13 @@ describe("runCommand", () => {
     expect(execute).toHaveBeenCalledWith(grid);
   });
 
+  test("says a command whose execute returns false did not run", () => {
+    expect(runCommand(command({ execute: () => false }), context())).toBe(
+      false,
+    );
+    expect(runCommand(command({ execute: () => true }), context())).toBe(true);
+  });
+
   test("refuses a disabled command", () => {
     const execute = vi.fn();
 

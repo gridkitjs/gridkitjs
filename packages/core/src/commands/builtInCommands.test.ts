@@ -917,6 +917,14 @@ describe("export.csv", () => {
     expect(command.enabled()).toBe(false);
   });
 
+  test("did not run when the host drops the file", () => {
+    const command = builtIn("export.csv", create(), GRID);
+    vi.mocked(command.host.saveFile).mockReturnValue(false);
+
+    expect(command.run()).toBe(false);
+    expect(command.host.saveFile).toHaveBeenCalledOnce();
+  });
+
   test("hands the host the view as a CSV file", () => {
     const command = builtIn("export.csv", create(), GRID);
 
