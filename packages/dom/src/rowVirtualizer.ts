@@ -28,15 +28,36 @@ export interface RowVirtualizer {
   /**
    * Scrolls so row `index` is in view. A mounted row is scrolled to directly;
    * one outside the window is jumped to at its estimated offset, then
-   * scrolled to properly once it mounts and can be measured.
+   * scrolled to properly once it mounts and can be measured. A later call
+   * replaces one still waiting for its row, and so does a row count that no
+   * longer holds that row.
    */
   readonly scrollToIndex: (
     index: number,
     options?: ScrollIntoViewOptions,
   ) => void;
-  /** Stops listening and measuring, for good. */
+  /**
+   * Stops listening, measuring and scrolling, for good: every method does
+   * nothing after it.
+   */
   readonly destroy: () => void;
 }
+
+/**
+ * Where the virtualizer is in its life: `ready`, `awaiting-row` while a
+ * `scrollToIndex` waits for its row to mount to scroll to it properly, and
+ * `destroyed` for good.
+ */
+type VirtualizerPhase =
+  | { readonly kind: "ready" }
+  | {
+      readonly kind: "awaiting-row";
+      readonly index: number;
+      readonly options: ScrollIntoViewOptions | undefined;
+    }
+  | { readonly kind: "destroyed" };
+
+const READY: VirtualizerPhase = { kind: "ready" };
 
 function sameRange(a: VisibleRange, b: VisibleRange): boolean {
   return (
@@ -73,17 +94,14 @@ export function createRowVirtualizer(
   let scrollTop = scrollElement.scrollTop;
   let viewportHeight = scrollElement.clientHeight;
   let range: VisibleRange | null = null;
-  let destroyed = false;
-  /** The row `scrollToIndex` is still waiting to mount, to scroll to it properly. */
-  let pendingScroll:
-    { index: number; options: ScrollIntoViewOptions | undefined } | undefined;
+  let phase: VirtualizerPhase = READY;
 
   const elements = new Map<number, HTMLElement>();
   const indexByElement = new Map<Element, number>();
   const refCallbacks = new Map<number, (element: HTMLElement | null) => void>();
 
   function recompute(): void {
-    if (destroyed) {
+    if (phase.kind === "destroyed") {
       return;
     }
     const next = visibleRange(
@@ -142,6 +160,9 @@ export function createRowVirtualizer(
 
   return {
     setRowCount(count) {
+      if (phase.kind === "awaiting-row" && phase.index >= count) {
+        phase = READY;
+      }
       heights = Array.from({ length: count }, (_, index) => heights[index]);
       recompute();
     },
@@ -159,15 +180,15 @@ export function createRowVirtualizer(
             indexByElement.delete(previous);
             elements.delete(index);
           }
-          if (element === null || destroyed) {
+          if (element === null || phase.kind === "destroyed") {
             return;
           }
           elements.set(index, element);
           indexByElement.set(element, index);
           rowObserver.observe(element);
-          if (pendingScroll?.index === index) {
-            element.scrollIntoView(pendingScroll.options);
-            pendingScroll = undefined;
+          if (phase.kind === "awaiting-row" && phase.index === index) {
+            element.scrollIntoView(phase.options);
+            phase = READY;
           }
         };
         refCallbacks.set(index, callback);
@@ -175,21 +196,21 @@ export function createRowVirtualizer(
       return callback;
     },
     scrollToIndex(index, scrollOptions) {
-      if (heights.length === 0) {
+      if (phase.kind === "destroyed" || heights.length === 0) {
         return;
       }
       const clamped = Math.max(0, Math.min(index, heights.length - 1));
       const mounted = elements.get(clamped);
       if (mounted !== undefined) {
+        phase = READY;
         mounted.scrollIntoView(scrollOptions);
         return;
       }
-      pendingScroll = { index: clamped, options: scrollOptions };
+      phase = { kind: "awaiting-row", index: clamped, options: scrollOptions };
       scrollElement.scrollTop = estimateOffsetBefore(clamped);
     },
     destroy() {
-      destroyed = true;
-      pendingScroll = undefined;
+      phase = { kind: "destroyed" };
       scrollElement.removeEventListener("scroll", handleScroll);
       viewportObserver.disconnect();
       rowObserver.disconnect();

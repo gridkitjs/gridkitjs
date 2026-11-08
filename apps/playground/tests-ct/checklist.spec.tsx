@@ -161,6 +161,25 @@ test.describe("keys", () => {
     await expect(root.getByTestId("toggled")).toHaveText("none");
   });
 
+  test("a move past the end of a list narrowed under it lands on the new last item", async ({
+    mount,
+  }) => {
+    const root = await mount(<ChecklistHarness size={CHECKLIST_SIZE} />);
+    await tabIntoList(root);
+
+    await root.getByRole("button", { name: "End, then narrow" }).click();
+    await expect(option(root, 100)).toBeFocused();
+
+    // The value the move first asked for mounting later takes no focus.
+    await root.getByRole("button", { name: "Show all" }).click();
+    const list = root.getByRole("listbox");
+    await list.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    await expect(option(root, CHECKLIST_SIZE)).toBeVisible();
+    await expect(option(root, CHECKLIST_SIZE)).not.toBeFocused();
+  });
+
   test("a key with a modifier is left alone", async ({ mount, page }) => {
     const root = await mount(<ChecklistHarness size={CHECKLIST_SIZE} />);
     await tabIntoList(root);

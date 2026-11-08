@@ -112,6 +112,61 @@ test.describe("row virtualization", () => {
     await expect(root.getByText("Row 800", { exact: true })).toBeVisible();
   });
 
+  test("a scrollToRow a later one replaced leaves the body alone once its row mounts", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={columns}
+        dataSource={buildRows(1000)}
+        label="Virtualized api"
+        height={200}
+        virtualized
+        scrollRowIds={["row-800", "row-0"]}
+      />,
+    );
+
+    // Both calls in one task, so row 800 cannot mount between them.
+    await root.getByRole("button", { name: "scroll-to-each-row" }).click();
+    await expect(root.getByText("Row 0", { exact: true })).toBeVisible();
+
+    // Scrolled by hand towards row 800 until it mounts in the overscan below
+    // the viewport. Scrolled to as the first call asked, it would sit at the
+    // top instead.
+    const body = root.locator(".gridkit-data-grid-body");
+    const row800 = root.locator('tbody tr[data-gridkit-row-index="800"]');
+    let top = await body.evaluate(
+      (element) => element.scrollHeight * 0.8 - 1000,
+    );
+    for (let step = 0; step < 100 && (await row800.count()) === 0; step++) {
+      top += 40;
+      await body.evaluate((element, scrollTop) => {
+        element.scrollTop = scrollTop;
+        return new Promise((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(resolve));
+        });
+      }, top);
+    }
+    await expect(row800).toHaveCount(1);
+    await page.evaluate(
+      () =>
+        new Promise((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(resolve));
+        }),
+    );
+
+    const offset = await row800.evaluate((row) => {
+      const scroller = row.closest(".gridkit-data-grid-body");
+      if (scroller === null) throw new Error("row outside the body");
+      return (
+        row.getBoundingClientRect().top - scroller.getBoundingClientRect().top
+      );
+    });
+    expect(offset).toBeGreaterThan(100);
+  });
+
   test("keyboard navigation moves focus correctly across the mounted window's boundary", async ({
     mount,
   }) => {
