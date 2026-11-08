@@ -12,9 +12,11 @@ interface UseSaveFileOptions {
   announce: (text: string) => void;
 }
 
-function download(file: ExportFile): void {
-  downloadBlob(exportBlob(file), file.fileName);
-}
+/** Whether a writer is still writing the last export asked for. */
+type SaveState = { readonly kind: "idle" } | { readonly kind: "writing" };
+
+const IDLE: SaveState = { kind: "idle" };
+const WRITING: SaveState = { kind: "writing" };
 
 /**
  * The host's `saveFile`: downloads an export, once its writer has finished
@@ -22,17 +24,31 @@ function download(file: ExportFile): void {
  *
  * One at a time. An export asked for while a writer is still writing the
  * last is dropped and logged, so pressing a slow export twice saves one file
- * rather than two. A writer that fails is logged for the developer and
- * announced for the user, who asked for a file that will not come.
+ * rather than two. A writer that fails, or a download the browser refuses,
+ * is logged for the developer and announced for the user, who asked for a
+ * file that will not come.
  */
 export default function useSaveFile({
   messages,
   announce,
 }: UseSaveFileOptions): GridCommandHost["saveFile"] {
-  const writingRef = useRef(false);
+  const state = useRef<SaveState>(IDLE);
+
+  function fail(reason: string, error: unknown): void {
+    console.error(`DataGrid: ${reason}`, error);
+    announce(messages.exportFailed);
+  }
+
+  function download(file: ExportFile): void {
+    try {
+      downloadBlob(exportBlob(file), file.fileName);
+    } catch (error) {
+      fail("the export could not be saved.", error);
+    }
+  }
 
   return (file) => {
-    if (writingRef.current) {
+    if (state.current.kind === "writing") {
       console.error(
         "DataGrid: an export is still being written, so this one was dropped.",
       );
@@ -42,14 +58,13 @@ export default function useSaveFile({
       download(file);
       return;
     }
-    writingRef.current = true;
+    state.current = WRITING;
     file
       .then(download, (error: unknown) => {
-        console.error("DataGrid: the export's writer failed.", error);
-        announce(messages.exportFailed);
+        fail("the export's writer failed.", error);
       })
       .finally(() => {
-        writingRef.current = false;
+        state.current = IDLE;
       });
   };
 }

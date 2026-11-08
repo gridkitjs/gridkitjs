@@ -346,6 +346,41 @@ test.describe("export writers on the grid", () => {
     );
     expect(downloads).toBe(1);
   });
+
+  test("a written export the browser refuses to save is logged and announced", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ExportGrid withWriters toolbar={{ items: ["export"] }} />,
+    );
+    const errors: string[] = [];
+    const pageErrors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") errors.push(message.text());
+    });
+    page.on("pageerror", (error) => {
+      pageErrors.push(error.message);
+    });
+
+    await exportButton(root).click();
+    await exportMenu(page)
+      .getByRole("menuitem", { name: "Export to Excel" })
+      .click();
+    await page.evaluate(() => {
+      URL.createObjectURL = () => {
+        throw new Error("Downloads are blocked.");
+      };
+    });
+    await root.getByRole("button", { name: "Finish writing" }).click();
+
+    await expect(root.locator('[role="status"]')).toHaveText("Export failed");
+    await expect
+      .poll(() => errors)
+      .toContainEqual(expect.stringContaining("could not be saved"));
+    expect(pageErrors).toEqual([]);
+  });
 });
 
 test.describe("the context menu", () => {

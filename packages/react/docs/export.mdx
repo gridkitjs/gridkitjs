@@ -61,7 +61,7 @@ An export from a row's menu still exports the whole grid, not the row; `exportSe
 
 Each shows in the toolbar, a row's menu and the body's menu, never a header's or a group's, and is disabled while there is nothing to export. They report to `onCommand` like any command. See [built-in commands](/docs/core/commands#built-in-commands).
 
-One export downloads at a time: an export chosen while a slow writer is still writing the last one is dropped, and logged with a `console.error`. A writer that fails is logged, and a screen reader hears "Export failed" — `messages.exportFailed`.
+One export downloads at a time: an export chosen while a slow writer is still writing the last one is dropped, and logged with a `console.error`. A writer that fails, or a download the browser refuses, is logged, and a screen reader hears "Export failed" — `messages.exportFailed`.
 
 ## From the ref
 
