@@ -582,6 +582,74 @@ test.describe("context menu", () => {
       ]);
   });
 
+  test("opening a panel through the ref closes the context menu, reporting it", async ({
+    mount,
+    page,
+  }) => {
+    const events: ContextMenuOpenChangeEvent[] = [];
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={columns}
+        dataSource={buildRows(3)}
+        label="One overlay"
+        contextMenu
+        contextMenuTarget={{ area: "header", columnId: "name" }}
+        onContextMenuOpenChange={(event) => {
+          events.push(event);
+        }}
+      />,
+    );
+    const target = { area: "header", columnId: "name" };
+    await root.getByRole("button", { name: "open-context-menu" }).click();
+    const menu = page.getByRole("menu", { name: "name column menu" });
+    await expect(menu).toBeVisible();
+
+    await root
+      .getByRole("button", { name: "open-column-chooser" })
+      .dispatchEvent("click");
+
+    const chooser = page.getByRole("dialog", { name: "Columns" });
+    await expect(
+      chooser.getByRole("searchbox", { name: "Search columns" }),
+    ).toBeFocused();
+    await expect(menu).toHaveCount(0);
+    await expect
+      .poll(() => events)
+      .toEqual([
+        { open: true, target },
+        { open: false, target },
+      ]);
+  });
+
+  test("openContextMenu closes an open panel", async ({ mount, page }) => {
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={columns}
+        dataSource={buildRows(3)}
+        label="One overlay"
+        filterableColumns
+        filterMenuColumnId="name"
+        contextMenu
+        contextMenuTarget={{ area: "header", columnId: "id" }}
+      />,
+    );
+    await root.getByRole("button", { name: "open-filter-menu" }).click();
+    const filterMenu = page.getByRole("dialog", { name: "name filter" });
+    await expect(filterMenu).toBeVisible();
+
+    await root
+      .getByRole("button", { name: "open-context-menu" })
+      .dispatchEvent("click");
+
+    const menu = page.getByRole("menu", { name: "id column menu" });
+    await expect(
+      menu.locator("[data-gridkit-menu-item]").first(),
+    ).toBeFocused();
+    await expect(filterMenu).toHaveCount(0);
+  });
+
   test("openContextMenu on a row opens beside the point given, selecting the row", async ({
     mount,
     page,

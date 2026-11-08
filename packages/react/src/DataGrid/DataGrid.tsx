@@ -67,6 +67,7 @@ import GridContextMenu from "./contextMenu/GridContextMenu";
 import useContextMenu from "./contextMenu/useContextMenu";
 import { exportApi, type GridExportApi } from "./export/exportApi";
 import { isOwnEvent } from "./isOwnEvent";
+import useGridOverlay from "./overlay/useGridOverlay";
 import GridPanels from "./panels/GridPanels";
 import { panelApi, type GridPanelApi } from "./panels/panelApi";
 import { printApi, type GridPrintApi } from "./print/printApi";
@@ -288,9 +289,9 @@ export interface DataGridApi<Row>
   /**
    * Opens the context menu `target` has, as a right-click there would —
    * selecting it and focusing its cell first — beside `anchor`, a point in
-   * viewport coordinates or an element, or else below its cell. Says whether
-   * it opened: not for a target not on screen, nor where `contextMenu`
-   * gives no menu.
+   * viewport coordinates or an element, or else below its cell, in place of
+   * any panel open. Says whether it opened: not for a target not on screen,
+   * nor where `contextMenu` gives no menu.
    */
   openContextMenu(
     target: GridContextMenuTarget,
@@ -643,7 +644,15 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     },
   });
 
-  const panels = useGridPanels({ rootRef: viewportRef, headerTableRef, nav });
+  const overlay = useGridOverlay({
+    nav,
+    onContextMenuOpenChange: props.onContextMenuOpenChange,
+  });
+  const panels = useGridPanels({
+    rootRef: viewportRef,
+    headerTableRef,
+    overlay,
+  });
   const commands = useGridCommands({
     controller,
     commands: props.commands,
@@ -790,7 +799,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     bodyTableRef,
     bodyScrollRef,
     contextMenu: props.contextMenu,
-    onContextMenuOpenChange: props.onContextMenuOpenChange,
+    overlay,
     controller,
     commands,
     nav,

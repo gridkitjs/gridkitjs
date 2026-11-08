@@ -1,14 +1,18 @@
-import { useRef, useState, type RefObject } from "react";
+import { useRef, type RefObject } from "react";
 import type { GridCommandTarget, GridPanelKind } from "@gridkitjs/core";
 import type { OverlayAnchor, OverlayPlacement } from "@gridkitjs/dom";
 import { overlayThemeClassName } from "../overlay/Overlay";
-import type { GridNavigationApi } from "../useGridNavigation";
+import type {
+  GridOverlayApi,
+  GridOverlayState,
+} from "../overlay/useGridOverlay";
 
 interface UseGridPanelsOptions {
   /** The grid's root element, holding the toolbar; a panel asked for from nowhere opens at its corner. */
   rootRef: RefObject<HTMLElement | null>;
   headerTableRef: RefObject<HTMLTableElement | null>;
-  nav: GridNavigationApi;
+  /** The grid's one open overlay, the panels among them. */
+  overlay: GridOverlayApi;
 }
 
 /** The panel open now. */
@@ -36,14 +40,14 @@ export interface GridPanelsApi {
    * what a call acting on the open panel reads.
    */
   current: () => OpenPanel | null;
-  /** Opens the panel `kind` beside where `target` names, in place of any panel open. */
-  open: (kind: GridPanelKind, target: GridCommandTarget) => void;
-  close: () => void;
   /**
-   * Where focus goes when the panel closes and the header it returns focus
-   * to has gone with what it did, as the chooser hiding that very column
-   * takes it: the cell now holding the grid's tab stop.
+   * Opens the panel `kind` beside where `target` names, in place of any
+   * panel or context menu open.
    */
+  open: (kind: GridPanelKind, target: GridCommandTarget) => void;
+  /** Closes the panel open, if any, and leaves a context menu open. */
+  close: () => void;
+  /** See `GridOverlayApi`. */
   returnFocusFallback: () => HTMLElement | null;
 }
 
@@ -64,6 +68,10 @@ function toolbarItem(root: HTMLElement, itemId: string): HTMLElement | null {
   );
 }
 
+function panelOf(overlay: GridOverlayState): OpenPanel | null {
+  return overlay.kind === "panel" ? overlay.panel : null;
+}
+
 function headerCell(
   headerTable: HTMLTableElement | null,
   columnId: string,
@@ -78,7 +86,8 @@ function headerCell(
 
 /**
  * The grid's panels — the column chooser and a column's filter menu —
- * opened through the command host's `openPanel`, one at a time. A panel
+ * opened through the command host's `openPanel` as the grid's one overlay
+ * (see `useGridOverlay`), so opening one closes a context menu. A panel
  * opens beside where it was asked for: below the toolbar button, below the
  * column header, or at the grid's top-end corner for a call from nowhere in
  * particular, as the ref's is.
@@ -90,17 +99,9 @@ function headerCell(
 export default function useGridPanels({
   rootRef,
   headerTableRef,
-  nav,
+  overlay,
 }: UseGridPanelsOptions): GridPanelsApi {
-  const [panel, setPanel] = useState<OpenPanel | null>(null);
-  /** The panel open as of the last change, ahead of the render that draws it. */
-  const current = useRef<OpenPanel | null>(null);
   const openings = useRef(0);
-
-  function show(next: OpenPanel | null): void {
-    current.current = next;
-    setPanel(next);
-  }
 
   function placeFor(
     root: HTMLElement,
@@ -129,25 +130,28 @@ export default function useGridPanels({
   }
 
   return {
-    panel,
-    current: () => current.current,
+    panel: panelOf(overlay.drawn),
+    current: () => panelOf(overlay.current()),
     open: (kind, target) => {
       const root = rootRef.current;
       if (root === null) {
         return;
       }
       openings.current += 1;
-      show({
-        key: openings.current,
-        kind,
-        target,
-        ...placeFor(root, target),
-        themeClassName: overlayThemeClassName(root),
+      overlay.open({
+        kind: "panel",
+        panel: {
+          key: openings.current,
+          kind,
+          target,
+          ...placeFor(root, target),
+          themeClassName: overlayThemeClassName(root),
+        },
       });
     },
     close: () => {
-      show(null);
+      overlay.close("panel");
     },
-    returnFocusFallback: nav.tabStopCell,
+    returnFocusFallback: overlay.returnFocusFallback,
   };
 }
