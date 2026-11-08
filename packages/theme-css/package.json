@@ -17,7 +17,8 @@
     "css"
   ],
   "exports": {
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./src/styles.css",
+    "./presets/*": "./src/presets/*"
   },
   "files": [
     "src",
@@ -25,7 +26,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "node scripts/write-stylesheet.mjs",
+    "build": "node scripts/write-stylesheet.mjs && node scripts/copy-presets.mjs",
     "test": "node --test \"scripts/*.test.mjs\""
   },
   "devDependencies": {

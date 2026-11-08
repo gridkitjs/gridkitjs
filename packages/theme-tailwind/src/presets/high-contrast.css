@@ -1,0 +1,56 @@
+/*
+ * GridKit preset: High contrast. Black on white, or white on black, with
+ * strong lines, larger small text, thick focus rings and WCAG AAA contrast
+ * for the menus' text.
+ *
+ * Load it after the theme's stylesheet, from the same package:
+ *
+ *   @import "@gridkitjs/theme-tailwind/styles.css";
+ *   @import "@gridkitjs/theme-tailwind/presets/high-contrast.css";
+ *
+ * or the same two files from @gridkitjs/theme-css.
+ */
+:root {
+  --gridkit-surface-light: oklch(1 0 0);
+  --gridkit-surface-dark: oklch(0 0 0);
+  --gridkit-surface-muted-light: oklch(0.94 0 0);
+  --gridkit-surface-muted-dark: oklch(0.26 0 0);
+  --gridkit-line-light: oklch(0.45 0 0);
+  --gridkit-line-dark: oklch(0.72 0 0);
+  --gridkit-hover-line-light: oklch(0 0 0);
+  --gridkit-hover-line-dark: oklch(1 0 0);
+  --gridkit-fg-light: oklch(0 0 0);
+  --gridkit-fg-dark: oklch(1 0 0);
+  --gridkit-fg-muted-light: oklch(0.33 0 0);
+  --gridkit-fg-muted-dark: oklch(0.88 0 0);
+  --gridkit-accent-light: oklch(0.45 0.2 265);
+  --gridkit-accent-dark: oklch(0.82 0.12 230);
+  --gridkit-selected-light: oklch(0.9 0.06 265);
+  --gridkit-selected-dark: oklch(0.33 0.1 265);
+  --gridkit-selected-strong-light: oklch(0.84 0.09 265);
+  --gridkit-selected-strong-dark: oklch(0.4 0.12 265);
+  --gridkit-header-bg-light: oklch(0.9 0 0);
+  --gridkit-header-bg-dark: oklch(0.2 0 0);
+  --gridkit-header-fg-light: oklch(0 0 0);
+  --gridkit-header-fg-dark: oklch(1 0 0);
+  --gridkit-focus-ring-dark: oklch(0.9 0.17 95);
+  --gridkit-overlay-shadow-color-light: oklch(0 0 0 / 0.35);
+  --gridkit-overlay-shadow-color-dark: oklch(0 0 0 / 0.6);
+
+  --gridkit-menu-font-size: 0.9375rem;
+  --gridkit-bar-font-size: 0.875rem;
+  --gridkit-hint-font-size: 0.8125rem;
+  --gridkit-group-font-weight: 700;
+
+  --gridkit-outer-border-width: var(--gridkit-border-width);
+
+  --gridkit-radius: 0.125rem;
+  --gridkit-menu-radius: 0.25rem;
+  --gridkit-control-radius: 0.125rem;
+
+  --gridkit-icon-size: 1.125rem;
+  --gridkit-header-icon-size: 16px;
+  --gridkit-focus-ring-width: 3px;
+  --gridkit-indicator-width: 3px;
+  --gridkit-transition-duration: 0s;
+}

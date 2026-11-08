@@ -9,8 +9,12 @@ Published. It has no dependencies, peer or otherwise.
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------ |
 | `src/styles.css`               | The stylesheet, exported as `@gridkitjs/theme-css/styles.css`. **Generated: never edit it by hand.**         |
 | `scripts/stylesheet.mjs`       | Not shipped. Generates the stylesheet from [theme-tailwind's](../theme-tailwind/AGENTS.md) `src/styles.css`. |
-| `scripts/write-stylesheet.mjs` | Not shipped. Writes it to `src/styles.css`; the package's `build` script.                                    |
+| `scripts/write-stylesheet.mjs` | Not shipped. Writes it to `src/styles.css`; run by the `build` script.                                       |
 | `scripts/stylesheet.test.mjs`  | Not shipped. Fails when `src/styles.css` is stale, and covers the generator.                                 |
+| `src/presets/`                 | The presets, exported as `@gridkitjs/theme-css/presets/*`. **Copied: never edit them by hand.**              |
+| `scripts/presets.mjs`          | Not shipped. Where the presets are copied from and to.                                                       |
+| `scripts/copy-presets.mjs`     | Not shipped. Replaces `src/presets/` with theme-tailwind's; run by the `build` script after the stylesheet.  |
+| `scripts/presets.test.mjs`     | Not shipped. Fails when `src/presets/` differs from theme-tailwind's.                                        |
 
 ## The stylesheet is generated
 
@@ -32,13 +36,21 @@ CSS nesting and on Tailwind's functions (`--spacing()`, `--alpha()`,
 build rather than shipping. Teach `scripts/stylesheet.mjs` to rewrite it,
 or keep it out of the source.
 
-The token manifest, `tokens.json`, and the token docs live in theme-tailwind
-only; this package's docs link to them.
+## The presets are copied
+
+`src/presets/` holds theme-tailwind's presets and their `index.json`,
+copied byte for byte: a preset sets only tokens on `:root`, which is plain
+CSS already. To change one, edit it in `packages/theme-tailwind/src/presets/`
+(its rules are in [theme-tailwind's AGENTS.md](../theme-tailwind/AGENTS.md#presets)),
+then run the same `build` and commit the files in both packages.
+
+The token manifest, `tokens.json`, the token docs and the presets page live
+in theme-tailwind only; this package's docs link to them.
 
 ## Tests
 
-`scripts/stylesheet.test.mjs` runs on Node's built-in test runner as part of
-the root `pnpm test`:
+`scripts/stylesheet.test.mjs` and `scripts/presets.test.mjs` run on Node's
+built-in test runner as part of the root `pnpm test`:
 
 ```bash
 pnpm --filter @gridkitjs/theme-css test
@@ -56,7 +68,7 @@ pages for the tokens and class names rather than repeating them.
 
 ## Releasing
 
-Published, so a change to `src/styles.css` needs a changeset. Since every
+Published, so a change to `src/styles.css` or `src/presets/` needs a changeset. Since every
 change to theme-tailwind's shipped CSS regenerates it, that changeset lists
 both packages; see
 [.claude/rules/versioning.md](../../.claude/rules/versioning.md).

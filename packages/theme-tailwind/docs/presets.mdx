@@ -1,0 +1,95 @@
+---
+title: "Presets"
+description: "Ready-made themes for the grid: token-only stylesheets you import after the theme to restyle it in one line, and a template for your own."
+---
+
+A preset is a ready-made theme: a small stylesheet that sets [theme tokens](/docs/theme-tailwind/tokens) on `:root` and nothing else. Import one after the theme's stylesheet and the whole grid, its menus included, takes on its look, in light and dark mode. Both `@gridkitjs/theme-tailwind` and [`@gridkitjs/theme-css`](/docs/theme-css) ship the same presets under `presets/`.
+
+## Using a preset
+
+Import the preset straight after the theme, from the same package:
+
+```css title="src/index.css"
+@import "tailwindcss";
+@import "@gridkitjs/theme-tailwind/styles.css";
+@import "@gridkitjs/theme-tailwind/presets/spreadsheet.css";
+```
+
+Without Tailwind, the paths are the same under `@gridkitjs/theme-css`:
+
+```css title="src/index.css"
+@import "@gridkitjs/theme-css/styles.css";
+@import "@gridkitjs/theme-css/presets/spreadsheet.css";
+```
+
+The order matters. A preset declares its tokens on `:root`, as the theme does, so the one that loads later wins; imported before the theme, a preset changes nothing. Load one preset at a time: a second would win wherever the two overlap and leave the first's other tokens in place.
+
+## The presets
+
+| Preset        | File                        | Look                                                                                                                    |
+| ------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Default       | `presets/default.css`       | The grid's own look, with every token set to its default. Importing it changes nothing: it is the template to copy.     |
+| Spreadsheet   | `presets/spreadsheet.css`   | Dense rows, smaller text with tabular figures, square corners, a grey header, firm lines and an outer border, in green. |
+| Comfortable   | `presets/comfortable.css`   | Roomy rows, larger menus, soft violet tints, rounded corners, a muted header and no lines between columns.              |
+| High contrast | `presets/high-contrast.css` | Black on white or white on black, strong lines, larger small text and thick focus rings, with AAA contrast.             |
+| Midnight      | `presets/midnight.css`      | Deep indigo and a vivid violet accent, an uppercase header and striped rows without lines between them.                 |
+
+Every preset keeps the menus' text and the grid's secondary text at WCAG AA contrast, 4.5:1, against each background it sits on, in both modes; High contrast keeps it at AAA, 7:1. Text in cells stays your page's own colour, as it is without a preset, so it reads as well as your page does.
+
+## Lines and the `borders` prop
+
+A preset restyles the lines the grid draws, and the [`borders`](/docs/react/data-grid#props) prop decides which lines those are. Spreadsheet's lines between columns appear only on a grid with `borders="all"` or `borders="vertical"`, and a grid with no `borders` has no lines for a preset to restyle. A preset can turn lines off, as Comfortable does between columns, by setting their width to `0`.
+
+## Your own overrides
+
+Your own tokens go after the preset, so they win over its values and keep the rest:
+
+```css title="src/index.css"
+@import "tailwindcss";
+@import "@gridkitjs/theme-tailwind/styles.css";
+@import "@gridkitjs/theme-tailwind/presets/comfortable.css";
+
+:root {
+  --gridkit-accent-light: oklch(0.55 0.14 175);
+  --gridkit-accent-dark: oklch(0.75 0.12 175);
+}
+```
+
+[Overriding tokens](/docs/theme-tailwind/tokens#overriding-tokens) explains the rules every override follows: on `:root`, outside any `@layer`, and a colour by its `-light` and `-dark` pair.
+
+## Making your own
+
+`presets/default.css` lists every token at its default, grouped as the [token reference](/docs/theme-tailwind/tokens) groups them, so it is the template for a theme of your own:
+
+1. Copy `node_modules/@gridkitjs/theme-tailwind/src/presets/default.css` into your app, or the same file from `@gridkitjs/theme-css`.
+2. Change the tokens you want to change.
+3. Delete every line you left at its default, so your theme keeps following the grid's defaults where you don't set your own.
+4. Import it after the theme, as you would a preset.
+
+Many defaults derive from another token: the cell padding is twice `--gridkit-spacing`, and the header's background is the surface colour. Deleting a derived token keeps it following its base, so a theme that changes `--gridkit-spacing` alone changes every padding with it. [Derived tokens](/docs/theme-tailwind/tokens#derived-tokens) has the details.
+
+## The preset index
+
+`presets/index.json` lists the presets in the order to show them, Default first, for a tool that offers a choice of them, such as a theme picker:
+
+```json title="presets/index.json"
+{
+  "schemaVersion": 1,
+  "presets": [
+    {
+      "id": "default",
+      "label": "Default",
+      "description": "The grid's own look, with every token at its default: a template to copy.",
+      "file": "default.css"
+    }
+  ]
+}
+```
+
+Each entry's `file` sits beside the index, so `@gridkitjs/theme-tailwind/presets/<file>` imports it. The `schemaVersion` changes only when a field changes meaning or goes away.
+
+## See also
+
+- [Theme tokens](/docs/theme-tailwind/tokens) for every token a preset can set, and its default.
+- [Tailwind theme](/docs/theme-tailwind) for dark mode and forcing a theme on one grid.
+- [Plain-CSS theme](/docs/theme-css) for using the grid, and its presets, without Tailwind.

@@ -20,7 +20,8 @@
   ],
   "exports": {
     "./styles.css": "./src/styles.css",
-    "./tokens.json": "./src/tokens.json"
+    "./tokens.json": "./src/tokens.json",
+    "./presets/*": "./src/presets/*"
   },
   "files": [
     "src",

@@ -12,11 +12,13 @@ import { ReactiveToolbarGrid } from "./demos/ReactiveToolbarGrid";
 import { ResizableSelectableGrid } from "./demos/ResizableSelectableGrid";
 import { ToolbarGrid } from "./demos/ToolbarGrid";
 import { VirtualizedGrid } from "./demos/VirtualizedGrid";
+import { PresetSwitcher } from "./PresetSwitcher";
 
 export default function App() {
   return (
     <main className="p-8">
       <h1 className="text-2xl font-bold">GridKit Playground</h1>
+      <PresetSwitcher />
       <p className="mt-2 text-sm text-gray-600">
         Import from <code>@gridkitjs/react</code> and render it here. Drag a
         column edge to resize, or double-click it to fit the content. Drag a

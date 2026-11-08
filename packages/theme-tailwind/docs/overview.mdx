@@ -228,7 +228,7 @@ It prints only what the grid has drawn: not the rows on another page, nor those 
 
 ## Theme tokens
 
-Every colour, size and line the stylesheet draws comes from a theme token, a `--gridkit-*` custom property declared on `:root`. To change one, override it on `:root`, in CSS after the theme's import; a colour is overridden by its light and dark pair. [Theme tokens](/docs/theme-tailwind/tokens) lists every token with its default, and explains how overrides reach the grid.
+Every colour, size and line the stylesheet draws comes from a theme token, a `--gridkit-*` custom property declared on `:root`. To change one, override it on `:root`, in CSS after the theme's import; a colour is overridden by its light and dark pair. [Theme tokens](/docs/theme-tailwind/tokens) lists every token with its default, and explains how overrides reach the grid. [Presets](/docs/theme-tailwind/presets) are ready-made sets of them, imported after the theme.
 
 ```css
 :root {
@@ -286,6 +286,7 @@ A colour's dark value is the `-dark` side of its pair, which the grid reads wher
 ## See also
 
 - [Theme tokens](/docs/theme-tailwind/tokens) for every token and its default.
+- [Presets](/docs/theme-tailwind/presets) for ready-made themes.
 - [React quick start](/docs/react/overview) for installing and rendering the grid.
 - [Choosing packages](/docs/react/choosing-packages) for what each package does.
 - [Column templates](/docs/react/column-templates) for styling cell content.

@@ -1,2 +1,3 @@
 @import "tailwindcss";
 @import "@gridkitjs/theme-tailwind/styles.css";
+@import "@gridkitjs/theme-tailwind/presets/spreadsheet.css";

@@ -1,8 +1,9 @@
 /**
  * Checks the build kept the theme with no Tailwind in it: Vite resolved
  * `@gridkitjs/theme-css/styles.css` from the installed package and emitted
- * its tokens, its dark palette and its grid rules, with the app's own token
- * override after the theme's default.
+ * its tokens, its dark palette and its grid rules, and a preset through the
+ * package's `presets/*` export, with the app's own token override after the
+ * theme's default.
  */
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
@@ -22,6 +23,7 @@ const checks = [
     /@media\s*\(prefers-color-scheme:\s*dark\)/.test(css),
   ],
   ["the .gridkit-dark class", /\.gridkit-dark\s*\{/.test(css)],
+  ["the high-contrast preset", /--gridkit-focus-ring-width:\s*3px/.test(css)],
   [
     "the app's accent after the theme's",
     css.lastIndexOf("--gridkit-accent-light:") >

@@ -1,7 +1,8 @@
 /**
  * Checks the build kept the theme: Tailwind resolved
  * `@gridkitjs/theme-tailwind/styles.css` from the installed package and
- * emitted its grid rules.
+ * emitted its grid rules, and a preset through the package's `presets/*`
+ * export.
  */
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
@@ -14,5 +15,9 @@ const css = readdirSync(assets)
 
 if (!css.includes(".gridkit-data-grid")) {
   console.error("The built CSS has no .gridkit-data-grid rule.");
+  process.exitCode = 1;
+}
+if (!/--gridkit-font-variant-numeric:\s*tabular-nums/.test(css)) {
+  console.error("The built CSS lacks the spreadsheet preset.");
   process.exitCode = 1;
 }
