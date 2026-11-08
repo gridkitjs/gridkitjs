@@ -19,6 +19,11 @@ import {
 export { HEADER_ROW, type GridFocus };
 
 interface UseGridNavigationOptions {
+  /**
+   * The `role="grid"` element holding every row: focus leaving it, or a
+   * wheel or press inside it, drops a move still waiting for its row.
+   */
+  gridRef: RefObject<HTMLElement | null>;
   headerTableRef: RefObject<HTMLTableElement | null>;
   bodyTableRef: RefObject<HTMLTableElement | null>;
   rowCount: number;
@@ -92,6 +97,7 @@ export function tabIndexFor(
  * `findBodyRow`, by its `data-gridkit-row-index`.
  */
 export default function useGridNavigation({
+  gridRef,
   headerTableRef,
   bodyTableRef,
   rowCount,
@@ -119,7 +125,10 @@ export default function useGridNavigation({
     getHeaderRow: () => headerTableRef.current?.tHead?.rows[0] ?? null,
     getBodyRow: (rowIndex) => findBodyRow(bodyTableRef.current, rowIndex),
   }));
-  useLayoutEffect(() => gridFocus.attach(rows), [gridFocus, rows]);
+  useLayoutEffect(
+    () => gridFocus.attach(rows, gridRef.current),
+    [gridFocus, rows, gridRef],
+  );
 
   // After every commit rather than only when `focus` changes: under
   // virtualization the target row may mount only in a later drawing, once

@@ -516,6 +516,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   const hoverCells = hoverable?.cells ?? true;
 
   const viewportRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   const headerTableRef = useRef<HTMLTableElement>(null);
   const bodyTableRef = useRef<HTMLTableElement>(null);
   const bodyScrollRef = useRef<HTMLDivElement>(null);
@@ -618,6 +619,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     columnSizeDefaults,
   });
   const nav = useGridNavigation({
+    gridRef,
     headerTableRef,
     bodyTableRef,
     // `null` when virtualization is off, in which case behavior is
@@ -986,6 +988,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
         />
       )}
       <div
+        ref={gridRef}
         id={gridId}
         className="gridkit-data-grid-tables"
         /*

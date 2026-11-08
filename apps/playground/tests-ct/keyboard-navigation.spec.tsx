@@ -1,6 +1,7 @@
 // Coverage is only collected when tests import `test`/`expect` from
 // ./support/coverage rather than directly from the CT package — see that
 // file for why.
+import type { Page } from "@playwright/test";
 import type { MountResult } from "@playwright/experimental-ct-react";
 import type { ColumnDefinition } from "@gridkitjs/core";
 import { DataGrid } from "@gridkitjs/react";
@@ -232,4 +233,103 @@ test("exactly one cell across the whole grid holds the tab stop at any moment", 
   await expect(root.locator('[tabindex="0"]')).toHaveCount(1);
   await active.press("ArrowRight");
   await expect(root.locator('[tabindex="0"]')).toHaveCount(1);
+});
+
+test.describe("a move to a row outside a virtualized window", () => {
+  function virtualizedGrid() {
+    return (
+      <>
+        <DataGrid
+          columns={columns}
+          dataSource={buildRows(500)}
+          label="Virtualized nav"
+          height={150}
+          virtualized
+        />
+        <button type="button" data-testid="after-grid">
+          After the grid
+        </button>
+      </>
+    );
+  }
+
+  /**
+   * Presses Ctrl+End on the focused cell, then runs `then`, in a single
+   * task: the last row cannot mount in between, so the move is still
+   * waiting for it when `then` runs.
+   */
+  async function ctrlEndThen(page: Page, then: "leave" | "wheel") {
+    await page.evaluate((action) => {
+      const cell = document.activeElement;
+      if (cell === null) throw new Error("nothing is focused");
+      cell.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "End",
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+      if (action === "leave") {
+        document
+          .querySelector<HTMLButtonElement>("[data-testid=after-grid]")
+          ?.focus();
+      } else {
+        document
+          .querySelector(".gridkit-data-grid-body")
+          ?.dispatchEvent(
+            new WheelEvent("wheel", { deltaY: -100, bubbles: true }),
+          );
+      }
+    }, then);
+    // Long enough for the window to scroll to the last row and draw it.
+    for (let frame = 0; frame < 5; frame++) {
+      await page.evaluate(
+        () =>
+          new Promise((resolve) => {
+            requestAnimationFrame(() => requestAnimationFrame(resolve));
+          }),
+      );
+    }
+  }
+
+  test("is dropped when focus leaves the grid before the row mounts", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, virtualizedGrid());
+    await activeCell(root).press("ArrowDown"); // header -> row 0
+    await expect(
+      root.locator('tbody tr[data-gridkit-row-index="0"] td').first(),
+    ).toBeFocused();
+
+    await ctrlEndThen(page, "leave");
+
+    await expect(
+      root.getByRole("button", { name: "After the grid" }),
+    ).toBeFocused();
+    await expect(
+      root.locator('tbody tr[data-gridkit-row-index="499"]'),
+    ).toHaveCount(0);
+  });
+
+  test("is dropped when the body is scrolled by hand before the row mounts", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, virtualizedGrid());
+    await activeCell(root).press("ArrowDown"); // header -> row 0
+    await expect(
+      root.locator('tbody tr[data-gridkit-row-index="0"] td').first(),
+    ).toBeFocused();
+
+    await ctrlEndThen(page, "wheel");
+
+    await expect(
+      root.locator('tbody tr[data-gridkit-row-index="499"]'),
+    ).toHaveCount(0);
+    await expect(
+      root.locator('tbody tr[data-gridkit-row-index="0"] td').first(),
+    ).toBeFocused();
+  });
 });
