@@ -7,6 +7,7 @@ import type { ColumnDefinition, ColumnOrderEvent } from "@gridkitjs/core";
 import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import ControlledStateGrid from "./support/ControlledStateGrid";
+import PointerGestureHarness from "./support/PointerGestureHarness";
 import { mountGrid } from "./support/mountGrid";
 
 interface Row {
@@ -528,4 +529,47 @@ test("a controlled columnOrder is shown as given", async ({ mount }) => {
   );
 
   expect(await columnIds(root)).toEqual(["status", "id", "name"]);
+});
+
+test("aborting a drag's signal ends it and leaves nothing listening", async ({
+  mount,
+  page,
+}) => {
+  const root = await mount(<PointerGestureHarness />);
+  const grab = root.locator("#grab");
+  const log = root.getByTestId("log");
+  const moves = root.getByTestId("moves");
+  const start = await dragStart(page, grab);
+  await page.mouse.move(start.x + 20, start.y, { steps: 2 });
+  await expect(moves).toHaveText("2");
+
+  // Clicked without the mouse, which is still holding the drag.
+  await root.getByRole("button", { name: "Abort" }).dispatchEvent("click");
+  await expect(log).toHaveText("drag started true; drag ended");
+  expect(
+    await grab.evaluate(
+      (element, pointerId) => element.hasPointerCapture(pointerId),
+      MOUSE_POINTER_ID,
+    ),
+  ).toBe(false);
+
+  await page.keyboard.press("Escape");
+  await page.mouse.move(start.x + 40, start.y, { steps: 2 });
+  await page.mouse.up();
+  await expect(log).toHaveText("drag started true; drag ended");
+  await expect(moves).toHaveText("2");
+});
+
+test("a drag given an already-aborted signal does not start", async ({
+  mount,
+  page,
+}) => {
+  const root = await mount(<PointerGestureHarness abortedBeforePress />);
+  const grab = root.locator("#grab");
+  const start = await dragStart(page, grab);
+  await page.mouse.move(start.x + 20, start.y, { steps: 2 });
+  await page.mouse.up();
+
+  await expect(root.getByTestId("log")).toHaveText("drag started false");
+  await expect(root.getByTestId("moves")).toHaveText("0");
 });

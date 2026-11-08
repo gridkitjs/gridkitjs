@@ -28,7 +28,7 @@ tbody.addEventListener("click", (event) => {
 
 ## Gestures
 
-A gesture starts from a `PointerPress` — the `pointerdown` that began it, native or a framework's wrapper around one — and only from the main button of the primary pointer: a right-click or a second finger starts nothing, and the starter returns `false`. While it runs, the pointer is captured, so the gesture keeps reporting wherever the pointer goes, and <Kbd>Escape</Kbd> cancels it. Only the pointer that started it moves or ends it: a second finger landing mid-gesture is ignored.
+A gesture starts from a `PointerPress` — the `pointerdown` that began it, native or a framework's wrapper around one — and only from the main button of the primary pointer: a right-click or a second finger starts nothing, and the starter returns `false`. While it runs, the pointer is captured, so the gesture keeps reporting wherever the pointer goes, and <Kbd>Escape</Kbd> cancels it. Only the pointer that started it moves or ends it: a second finger landing mid-gesture is ignored. An aborted `signal` cancels it too, as described under [cancelling a gesture](#cancelling-a-gesture).
 
 ### Column resize
 
@@ -94,6 +94,31 @@ The grid's own targets are hit-tested against its markup:
 | `resolveGroupByDropTarget(x, y, movedId, groupBy)` | `{ kind: "group-by", beforeColumnId }` over `[data-gridkit-group-by-bar]`, before or after the `[data-gridkit-group-chip]` under the pointer, or appended; `null` elsewhere.                       |
 
 Either returns `null` for a drop that would change nothing, so a drop indicator only ever promises a move that happens.
+
+### Cancelling a gesture
+
+Both starters take an optional `signal`, an `AbortSignal`, among their handlers. Aborting it cancels the gesture as <Kbd>Escape</Kbd> does: a drag reports `onState(NO_DRAG)` and drops nothing, a resize calls `onCancel()`, and the gesture's listeners and pointer capture are released. That is how a renderer ends a gesture whose element goes away mid-drag (the grid unmounts, or the dragged column is hidden from code), so what it drew for the gesture ends with it. A signal that is already aborted starts nothing, and the starter returns `false`.
+
+```ts
+import { startDragReorder } from "@gridkitjs/dom";
+
+let gesture: AbortController | null = null;
+
+header.addEventListener("pointerdown", (event) => {
+  gesture?.abort();
+  gesture = new AbortController();
+  startDragReorder(columnId, header, event, {
+    resolveTarget,
+    onState: (state) => draw(state),
+    onDrop,
+    signal: gesture.signal,
+  });
+});
+
+function destroy() {
+  gesture?.abort(); // ends a drag still under way
+}
+```
 
 ## Focus movement
 
@@ -215,9 +240,9 @@ A live region speaks only when its text changes, so `announce` makes a repeat of
 | `GroupRowTarget`              | `{ rowIndex, groupId }`, what `groupRowFrom` returns.                                                                                                                                                              |
 | `BodyRowTarget`               | `{ rowIndex, columnId }`, what `bodyRowFrom` returns. `columnId` is `null` when the event was in no cell.                                                                                                          |
 | `PointerPress`                | The part of a `pointerdown` a gesture reads: `pointerId`, `clientX`, `clientY`, `button`, `isPrimary` and `preventDefault()`. A native `PointerEvent` fits, and so does React's synthetic one.                     |
-| `ColumnResizeGestureHandlers` | `{ onMove, onEnd, onCancel }`, the last argument of `startColumnResizeGesture`, described under [column resize](#column-resize).                                                                                   |
+| `ColumnResizeGestureHandlers` | `{ onMove, onEnd, onCancel, signal? }`, the last argument of `startColumnResizeGesture`, described under [column resize](#column-resize).                                                                          |
 | `DragReorderState<Target>`    | `{ draggedId, dropTarget, ghostTransform }`, what `onState` reports while a reorder drag is open. `NO_DRAG` is the state with all three `null`.                                                                    |
-| `DragReorderHandlers<Target>` | `{ resolveTarget, onState, onDrop }`, the last argument of `startDragReorder`.                                                                                                                                     |
+| `DragReorderHandlers<Target>` | `{ resolveTarget, onState, onDrop, signal? }`, the last argument of `startDragReorder`.                                                                                                                            |
 | `ColumnDropTarget`            | Where a dragged header would land: `{ kind: "column-order", beforeId }` among the headers (`beforeId` is `null` for the end), or a `GroupByDropTarget`.                                                            |
 | `GroupByDropTarget`           | `{ kind: "group-by", beforeColumnId }`: a drop into the group-by bar, in front of `beforeColumnId`, or appended when it is `null`.                                                                                 |
 | `ColumnDropContext`           | `{ order, groupBy, groupByDraggableIds }`, the last argument of `resolveColumnDropTarget`: the column order on screen, the current group-by state, and the ids whose header may join the group-by bar.             |
