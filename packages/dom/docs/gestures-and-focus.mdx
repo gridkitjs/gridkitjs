@@ -28,7 +28,7 @@ tbody.addEventListener("click", (event) => {
 
 ## Gestures
 
-A gesture starts from a `PointerPress` — the `pointerdown` that began it, native or a framework's wrapper around one — and only from the main button of the primary pointer: a right-click or a second finger starts nothing, and the starter returns `false`. While it runs, the pointer is captured, so the gesture keeps reporting wherever the pointer goes, and <Kbd>Escape</Kbd> cancels it.
+A gesture starts from a `PointerPress` — the `pointerdown` that began it, native or a framework's wrapper around one — and only from the main button of the primary pointer: a right-click or a second finger starts nothing, and the starter returns `false`. While it runs, the pointer is captured, so the gesture keeps reporting wherever the pointer goes, and <Kbd>Escape</Kbd> cancels it. Only the pointer that started it moves or ends it: a second finger landing mid-gesture is ignored.
 
 ### Column resize
 

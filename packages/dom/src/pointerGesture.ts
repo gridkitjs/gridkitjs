@@ -31,6 +31,10 @@ interface PointerGestureHandlers {
  * Wires up a pointer-driven gesture — capture, move tracking, and an
  * Escape-to-cancel — leaving the caller's `onMove`/`onEnd`/`onCancel` to own
  * the gesture's own domain logic (and any state reset that goes with it).
+ *
+ * Only the pointer that started the gesture moves or ends it: another finger
+ * landing mid-drag fires its own events on the same element, and they are
+ * ignored.
  */
 export function startPointerGesture(
   element: HTMLElement,
@@ -50,22 +54,32 @@ export function startPointerGesture(
   }
 
   function move(event: PointerEvent): void {
-    handlers.onMove(event);
+    if (event.pointerId === pointerId) {
+      handlers.onMove(event);
+    }
   }
 
-  function end(): void {
-    stop();
-    handlers.onEnd();
+  function end(event: PointerEvent): void {
+    if (event.pointerId === pointerId) {
+      stop();
+      handlers.onEnd();
+    }
   }
 
-  function cancel(): void {
+  function cancel(event: PointerEvent): void {
+    if (event.pointerId === pointerId) {
+      abandon();
+    }
+  }
+
+  function abandon(): void {
     stop();
     handlers.onCancel();
   }
 
   function onKeyDown(event: KeyboardEvent): void {
     if (event.key === "Escape") {
-      cancel();
+      abandon();
     }
   }
 

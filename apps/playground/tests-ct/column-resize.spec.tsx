@@ -186,6 +186,50 @@ test("Escape mid-resize restores the width captured at drag-start", async ({
   expect(last?.width).toBeCloseTo(originalWidth, 0);
 });
 
+test("a second pointer neither moves nor ends a resize", async ({
+  mount,
+  page,
+}) => {
+  const events: ColumnResizeEvent[] = [];
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Resize second pointer"
+      resizableColumns
+      resizeMode="fixed"
+      onColumnResize={(event) => {
+        events.push(event);
+      }}
+    />,
+  );
+  const handle = headerHandle(root, 0);
+  const start = await pointerDragStart(page, handle);
+  await page.mouse.move(start.x + 20, start.y);
+  await expect(root.locator("thead th").nth(0)).toHaveClass(/is-resizing/);
+  const dragged = await colWidth(root, 0);
+
+  const secondFinger = {
+    pointerType: "touch",
+    pointerId: 2,
+    isPrimary: false,
+    clientX: start.x + 80,
+    clientY: start.y,
+    bubbles: true,
+  };
+  await handle.dispatchEvent("pointermove", secondFinger);
+  await handle.dispatchEvent("pointerup", secondFinger);
+  expect(await colWidth(root, 0)).toBeCloseTo(dragged, 0);
+  await expect(root.locator("thead th").nth(0)).toHaveClass(/is-resizing/);
+
+  await page.mouse.move(start.x + 30, start.y);
+  await page.mouse.up();
+  await expect.poll(() => events.at(-1)?.phase).toBe("end");
+  expect(events.filter((event) => event.phase === "end")).toHaveLength(1);
+  expect(await colWidth(root, 0)).toBeCloseTo(dragged + 10, 0);
+});
+
 test("cancelling one column's drag with Escape does not clobber another column resized by keyboard mid-gesture", async ({
   mount,
   page,

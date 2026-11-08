@@ -55,6 +55,28 @@ async function dragStart(
   return { x, y };
 }
 
+/** The `pointerId` Chromium gives the mouse that `page.mouse` drives. */
+const MOUSE_POINTER_ID = 1;
+
+/**
+ * Fires `type` on `target` from a second finger at `point`: a pointer the
+ * gesture under way did not start from.
+ */
+async function secondPointer(
+  target: ReturnType<typeof headers>,
+  type: "pointermove" | "pointerup",
+  point: { x: number; y: number },
+): Promise<void> {
+  await target.dispatchEvent(type, {
+    pointerType: "touch",
+    pointerId: 2,
+    isPrimary: false,
+    clientX: point.x,
+    clientY: point.y,
+    bubbles: true,
+  });
+}
+
 test("a pointer move under the 4px threshold stays a click, not a drag", async ({
   mount,
   page,
@@ -219,6 +241,84 @@ test("Escape mid-drag cancels: order unchanged, onColumnOrderChange never called
   expect(await columnIds(root)).toEqual(idsBefore);
   expect(events).toHaveLength(0);
   await expect(root.locator(".drag-ghost")).toHaveCount(0);
+});
+
+test("a second pointer neither steers nor ends a header drag", async ({
+  mount,
+  page,
+}) => {
+  const events: ColumnOrderEvent[] = [];
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Second pointer"
+      reorderableColumns
+      onColumnOrderChange={(event) => {
+        events.push(event);
+      }}
+    />,
+    { width: 900 },
+  );
+  const dragged = headers(root).first();
+  const start = await dragStart(page, dragged);
+  await page.mouse.move(start.x + 20, start.y, { steps: 3 });
+  await expect(dragged).toHaveClass(/is-dragging/);
+
+  const last = await headers(root).nth(2).boundingBox();
+  if (last === null) throw new Error("header 2 not visible");
+  const overLast = { x: last.x + last.width * 0.75, y: last.y + 5 };
+  await secondPointer(dragged, "pointermove", overLast);
+  await expect(headers(root).nth(2)).not.toHaveClass(/is-drop-after/);
+
+  await secondPointer(dragged, "pointerup", overLast);
+  await expect(dragged).toHaveClass(/is-dragging/);
+  await expect(page.locator(".drag-ghost")).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+  expect(await columnIds(root)).toEqual(["id", "name", "status"]);
+  expect(events).toEqual([]);
+});
+
+test("a cancelled pointer mid-drag ends the drag and leaves the order as it was", async ({
+  mount,
+  page,
+}) => {
+  const events: ColumnOrderEvent[] = [];
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Pointer cancel"
+      reorderableColumns
+      onColumnOrderChange={(event) => {
+        events.push(event);
+      }}
+    />,
+    { width: 900 },
+  );
+  const dragged = headers(root).first();
+  await dragStart(page, dragged);
+  const last = await headers(root).nth(2).boundingBox();
+  if (last === null) throw new Error("header 2 not visible");
+  await page.mouse.move(last.x + last.width * 0.75, last.y + 5, { steps: 5 });
+  await expect(headers(root).nth(2)).toHaveClass(/is-drop-after/);
+
+  await dragged.dispatchEvent("pointercancel", {
+    pointerId: MOUSE_POINTER_ID,
+    isPrimary: true,
+    bubbles: true,
+  });
+  await expect(page.locator(".drag-ghost")).toHaveCount(0);
+  await expect(dragged).not.toHaveClass(/is-dragging/);
+  await expect(headers(root).nth(2)).not.toHaveClass(/is-drop-after/);
+
+  await page.mouse.up();
+  expect(await columnIds(root)).toEqual(["id", "name", "status"]);
+  expect(events).toEqual([]);
 });
 
 test("dropping a column back into the gap it already occupies is a no-op", async ({
