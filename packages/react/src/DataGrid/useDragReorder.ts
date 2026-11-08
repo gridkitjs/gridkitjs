@@ -9,6 +9,7 @@ import {
   type DragReorderHandlers,
   type DragReorderState,
 } from "@gridkitjs/dom";
+import useGestureSignal from "./useGestureSignal";
 
 type UseDragReorderOptions<Target> = Pick<
   DragReorderHandlers<Target>,
@@ -40,6 +41,9 @@ export interface DragReorderApi<Target> extends DragReorderState<Target> {
  * for the header and the group-by bar to draw. A column header drag and a
  * group-by chip drag (`useColumnDrag`, `useGroupByDrag`) share it, so they
  * can only ever differ in their own hit-testing (`resolveTarget`).
+ *
+ * The drag ends with the component, and with its grab element should a
+ * render remove it (`useGestureSignal`).
  */
 export default function useDragReorder<Target>({
   resolveTarget,
@@ -52,6 +56,7 @@ export default function useDragReorder<Target>({
    * the same spot.
    */
   const openedDragId = useRef<string | null>(null);
+  const startGesture = useGestureSignal();
 
   function justDragged(id: string): boolean {
     const answer = openedDragId.current === id;
@@ -64,16 +69,19 @@ export default function useDragReorder<Target>({
     grabElement: HTMLElement,
     event: ReactPointerEvent<HTMLElement>,
   ): void {
-    const started = startDragReorder(id, grabElement, event, {
-      resolveTarget,
-      onState(state) {
-        if (state.draggedId !== null) {
-          openedDragId.current = state.draggedId;
-        }
-        setDrag(state);
-      },
-      onDrop,
-    });
+    const started = startGesture(grabElement, (signal) =>
+      startDragReorder(id, grabElement, event, {
+        resolveTarget,
+        onState(state) {
+          if (state.draggedId !== null) {
+            openedDragId.current = state.draggedId;
+          }
+          setDrag(state);
+        },
+        onDrop,
+        signal,
+      }),
+    );
     // Only a press that began a drag clears it, so a second finger landing
     // mid-drag leaves the drag under way its answer. The new drag reports
     // nothing before its first move, so this never clears what it set.

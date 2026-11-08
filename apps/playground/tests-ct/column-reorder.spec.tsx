@@ -8,7 +8,8 @@ import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import ControlledStateGrid from "./support/ControlledStateGrid";
 import PointerGestureHarness from "./support/PointerGestureHarness";
-import { mountGrid } from "./support/mountGrid";
+import { mountGrid, updateGrid } from "./support/mountGrid";
+import { trackWindowKeydownListeners } from "./support/windowKeydownListeners";
 
 interface Row {
   id: string;
@@ -666,4 +667,71 @@ test("a drag given an already-aborted signal does not start", async ({
 
   await expect(root.getByTestId("log")).toHaveText("drag started false");
   await expect(root.getByTestId("moves")).toHaveText("0");
+});
+
+test("hiding the dragged column mid-drag ends the drag: no ghost, the group-by bar back to hidden, and Escape clears the selection", async ({
+  mount,
+  page,
+}) => {
+  const groupable: readonly ColumnDefinition<Row>[] = [
+    { field: "id", width: 80 },
+    { field: "name", width: 120, groupByDraggable: true },
+    { field: "status", width: 100 },
+  ];
+  const grid = (visibility: Record<string, boolean>) => (
+    <DataGrid
+      columns={groupable}
+      dataSource={buildRows(2)}
+      label="Hidden mid-drag"
+      reorderableColumns
+      selectable={{ columns: "single" }}
+      columnVisibility={visibility}
+    />
+  );
+  const root = await mountGrid(mount, grid({}), { width: 900 });
+  const bar = root.locator(".gridkit-group-by-bar");
+  await headers(root).nth(2).click();
+  await expect(headers(root).nth(2)).toHaveAttribute("aria-selected", "true");
+
+  const start = await dragStart(page, headers(root).nth(1));
+  await page.mouse.move(start.x + 20, start.y, { steps: 3 });
+  await expect(bar).toBeVisible();
+
+  await updateGrid(root, grid({ name: false }), { width: 900 });
+  await expect(headers(root)).toHaveCount(2);
+  await updateGrid(root, grid({}), { width: 900 });
+  await expect(headers(root)).toHaveCount(3);
+
+  await expect(page.locator(".drag-ghost")).toHaveCount(0);
+  await expect(headers(root).nth(1)).not.toHaveClass(/is-dragging/);
+  await expect(bar).toHaveCount(0);
+
+  await headers(root).nth(2).focus();
+  await page.keyboard.press("Escape");
+  await expect(headers(root).nth(2)).toHaveAttribute("aria-selected", "false");
+  await page.mouse.up();
+});
+
+test("unmounting the grid mid-drag leaves nothing listening on window", async ({
+  mount,
+  page,
+}) => {
+  const listening = await trackWindowKeydownListeners(page);
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Unmounted mid-drag"
+      reorderableColumns
+    />,
+    { width: 900 },
+  );
+  const start = await dragStart(page, headers(root).first());
+  await page.mouse.move(start.x + 20, start.y, { steps: 3 });
+  await expect(page.locator(".drag-ghost")).toBeVisible();
+
+  await root.unmount();
+  expect(await listening()).toBe(0);
+  await page.mouse.up();
 });

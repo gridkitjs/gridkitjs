@@ -9,6 +9,7 @@ import { expect, test } from "./support/coverage";
 import ControlledStateGrid from "./support/ControlledStateGrid";
 import PointerGestureHarness from "./support/PointerGestureHarness";
 import { mountGrid, updateGrid } from "./support/mountGrid";
+import { trackWindowKeydownListeners } from "./support/windowKeydownListeners";
 
 interface Row {
   id: string;
@@ -575,4 +576,76 @@ test("a resize given an already-aborted signal does not start", async ({
 
   await expect(root.getByTestId("log")).toHaveText("resize started false");
   await expect(root.getByTestId("moves")).toHaveText("0");
+});
+
+test("hiding the column mid-resize ends the resize, and Escape clears the selection", async ({
+  mount,
+  page,
+}) => {
+  const grid = (visibility: Record<string, boolean>) => (
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Hidden mid-resize"
+      resizableColumns
+      resizeMode="fixed"
+      selectable={{ columns: "single" }}
+      columnVisibility={visibility}
+    />
+  );
+  const root = await mountGrid(mount, grid({}));
+  const header = (index: number) => root.locator("thead th").nth(index);
+  await header(2).click();
+  await expect(header(2)).toHaveAttribute("aria-selected", "true");
+
+  const start = await pointerDragStart(page, headerHandle(root, 1));
+  await page.mouse.move(start.x + 20, start.y);
+  await expect(header(1)).toHaveClass(/is-resizing/);
+
+  await updateGrid(root, grid({ name: false }));
+  await expect(root.locator("thead th")).toHaveCount(2);
+  await updateGrid(root, grid({}));
+  await expect(root.locator("thead th")).toHaveCount(3);
+  await expect(header(1)).not.toHaveClass(/is-resizing/);
+
+  await header(2).focus();
+  await page.keyboard.press("Escape");
+  await expect(header(2)).toHaveAttribute("aria-selected", "false");
+  await page.mouse.up();
+});
+
+test("unmounting the grid mid-resize cancels it, leaving nothing listening", async ({
+  mount,
+  page,
+}) => {
+  const listening = await trackWindowKeydownListeners(page);
+  const events: ColumnResizeEvent[] = [];
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Unmounted mid-resize"
+      resizableColumns
+      resizeMode="fixed"
+      onColumnResize={(event) => {
+        events.push(event);
+      }}
+    />,
+  );
+  const originalWidth = await colWidth(root, 0);
+  const start = await pointerDragStart(page, headerHandle(root, 0));
+  await page.mouse.move(start.x + 20, start.y);
+  await expect.poll(() => events.length).toBeGreaterThan(0);
+
+  await root.unmount();
+  expect(await listening()).toBe(0);
+  await expect.poll(() => events.at(-1)?.phase).toBe("end");
+  expect(events.at(-1)?.width).toBeCloseTo(originalWidth, 0);
+  const reported = events.length;
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+  // Anything the press reported would cross the CT bridge after it resolves.
+  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 100)));
+  expect(events).toHaveLength(reported);
 });
