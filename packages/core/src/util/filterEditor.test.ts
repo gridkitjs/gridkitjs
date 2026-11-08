@@ -648,6 +648,36 @@ describe("filterEditorReducer", () => {
     });
     expect(selectAllState(draft)).toBe("checked");
   });
+
+  test("clear leaves the mode as it was", () => {
+    const values = filterEditorReducer(openRegion([regionIn(["West"])]), {
+      type: "clear",
+    });
+    const conditions = filterEditorReducer(
+      openRegion([{ columnId: "Region", operator: "startsWith", value: "w" }]),
+      { type: "clear" },
+    );
+
+    expect(values.mode).toBe("values");
+    expect(conditions.mode).toBe("conditions");
+  });
+
+  test("clear removes the column's filter from either mode", () => {
+    const cleared = (filter: FilterState<SampleRow>) =>
+      draftToFilter(
+        filterEditorReducer(openRegion(filter), { type: "clear" }),
+        "Region",
+        filter,
+      );
+
+    expect(
+      cleared([
+        amountAbove,
+        { columnId: "Region", operator: "startsWith", value: "w" },
+      ]),
+    ).toEqual([amountAbove]);
+    expect(cleared([amountAbove, regionIn(["West"])])).toEqual([amountAbove]);
+  });
 });
 
 describe("draftToFilter", () => {

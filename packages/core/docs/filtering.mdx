@@ -104,7 +104,7 @@ The draft keys its checked values the way the column's `in` entry matches them, 
 | `{ type: "setConditions", conditions, combinator? }` | Replaces the conditions, keeping the combinator unless one is given.                                              |
 | `{ type: "clear" }`                                  | Back to no filter: every value checked, no conditions, no search.                                                 |
 
-A value or blanks action switches the draft to its checklist (`mode: "values"`); `setConditions` switches it to its conditions. `visibleFilterOptions(draft)` returns the values the search shows, and `selectAllState(draft)` the select-all checkbox's `"checked"`, `"unchecked"` or `"mixed"` over them.
+A value or blanks action switches the draft to its checklist (`mode: "values"`); `setConditions` switches it to its conditions. `clear` leaves `mode` as it was: either half, cleared, is no filter. `visibleFilterOptions(draft)` returns the values the search shows, and `selectAllState(draft)` the select-all checkbox's `"checked"`, `"unchecked"` or `"mixed"` over them.
 
 ## A checklist's window
 
