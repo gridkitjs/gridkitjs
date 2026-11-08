@@ -357,6 +357,60 @@ test.describe("row virtualization", () => {
     );
   });
 
+  test("a row stripe stays on every second row, wherever the mounted window starts", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <RowIdentifiedGrid
+        columns={columns}
+        dataSource={buildRows(1000)}
+        label="Striped"
+        height={200}
+        virtualized
+      />,
+    );
+    const stripe = "rgb(255, 0, 0)";
+    await page.addStyleTag({
+      content: `:root { --gridkit-row-stripe-bg-light: ${stripe}; --gridkit-row-stripe-bg-dark: ${stripe}; }`,
+    });
+    const body = root.locator(".gridkit-data-grid-body");
+    const firstIndexes = new Set<number>();
+
+    // Row by row, so the mounted window starts on an even index as well as
+    // an odd one, after the leading spacer row: the case a stripe counted by
+    // `:nth-child` gets wrong.
+    for (let step = 0; step < 8; step++) {
+      await body.evaluate(
+        (element, top) => {
+          element.scrollTop = top;
+          return new Promise((resolve) => {
+            requestAnimationFrame(() => requestAnimationFrame(resolve));
+          });
+        },
+        1000 + step * 30,
+      );
+
+      const rows = await mountedDataRows(root).evaluateAll(
+        (elements, color) =>
+          elements.map((row) => ({
+            index: Number(row.getAttribute("data-gridkit-row-index")),
+            striped: getComputedStyle(row).backgroundColor === color,
+          })),
+        stripe,
+      );
+      expect(
+        rows.filter(({ index, striped }) => striped !== (index % 2 === 1)),
+      ).toEqual([]);
+      firstIndexes.add(rows[0]?.index ?? 0);
+    }
+
+    expect(new Set([...firstIndexes].map((index) => index % 2))).toEqual(
+      new Set([0, 1]),
+    );
+  });
+
   test("virtualized without height set does not crash and renders every row (dev warning aside)", async ({
     mount,
   }) => {
