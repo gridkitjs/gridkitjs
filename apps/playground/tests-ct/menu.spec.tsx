@@ -42,21 +42,34 @@ async function waitInPage(page: Page, ms: number): Promise<void> {
   );
 }
 
-/** A mouse pointer moving over the element `over` selects, or leaving the one `leave` does. */
-type PointerStep = { readonly over: string } | { readonly leave: string };
+/**
+ * A mouse pointer moving over the element `over` selects, leaving the one
+ * `leave` does, or the key `press` pressed on the focused element.
+ */
+type Step =
+  | { readonly over: string }
+  | { readonly leave: string }
+  | { readonly press: string };
 
 /**
  * Plays `steps` in the page in a single task, then waits out the hover delay
  * there. A real pointer crossing an item takes several round trips, and on
  * a busy machine the delay could pass on the way; between steps dispatched
- * in one task, no timer can run.
+ * in one task, no timer can run, the typeahead's and the hover's included.
  */
-async function sweepPointer(
-  page: Page,
-  steps: readonly PointerStep[],
-): Promise<void> {
-  await page.evaluate((pointerSteps) => {
-    for (const step of pointerSteps) {
+async function playSteps(page: Page, steps: readonly Step[]): Promise<void> {
+  await page.evaluate((played) => {
+    for (const step of played) {
+      if ("press" in step) {
+        document.activeElement?.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: step.press,
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+        continue;
+      }
       const over = "over" in step;
       const selector = over ? step.over : step.leave;
       const element = document.querySelector(selector);
@@ -419,6 +432,22 @@ test.describe("typeahead", () => {
     await expect(item(menu, "Show grid")).toBeFocused();
   });
 
+  test("an arrow key starts the typing afresh", async ({ mount, page }) => {
+    const root = await mount(<MenuHarness />);
+    const menu = await openMenu(root, page);
+
+    // "c" moves to "Copy" and ArrowDown to "Paste". Within the typeahead's
+    // timeout, but "d" after the arrow is a query of its own: "cd" would
+    // match nothing and leave focus on "Paste".
+    await playSteps(page, [
+      { press: "c" },
+      { press: "ArrowDown" },
+      { press: "d" },
+    ]);
+
+    await expect(item(menu, "Delete")).toBeFocused();
+  });
+
   test("a submenu's typeahead searches its own items", async ({
     mount,
     page,
@@ -528,7 +557,7 @@ test.describe("pointer", () => {
     const submenu = page.getByRole("menu", { name: "Sort" });
     await expect(submenu).toBeVisible();
 
-    await sweepPointer(page, [
+    await playSteps(page, [
       { over: '[data-gridkit-menu-item="selectAll"]' },
       { leave: '[role="menu"][aria-label="Actions"]' },
       { over: '[data-gridkit-menu-item="clearSort"]' },
@@ -545,7 +574,7 @@ test.describe("pointer", () => {
     const root = await mount(<MenuHarness />);
     const menu = await openMenu(root, page);
 
-    await sweepPointer(page, [
+    await playSteps(page, [
       { over: '[data-gridkit-menu-item="sort"]' },
       { leave: '[role="menu"][aria-label="Actions"]' },
     ]);
@@ -553,5 +582,21 @@ test.describe("pointer", () => {
     await expect(item(menu, "Sort")).toBeFocused();
     await expect(page.getByRole("menu", { name: "Sort" })).toBeHidden();
     await expect(menu).toBeVisible();
+  });
+
+  test("a key moving on from a submenu item the pointer is resting on keeps it closed", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<MenuHarness />);
+    const menu = await openMenu(root, page);
+
+    await playSteps(page, [
+      { over: '[data-gridkit-menu-item="sort"]' },
+      { press: "ArrowDown" },
+    ]);
+
+    await expect(item(menu, "Select all")).toBeFocused();
+    await expect(page.getByRole("menu", { name: "Sort" })).toBeHidden();
   });
 });
