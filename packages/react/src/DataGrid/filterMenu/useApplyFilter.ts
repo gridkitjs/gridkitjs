@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
 import type { FilterState, GridMessages } from "@gridkitjs/core";
+import useAnnounceWhenDrawn from "../useAnnounceWhenDrawn";
 import type { DataGridController } from "../useGridController";
 
 /**
@@ -14,25 +14,17 @@ export default function useApplyFilter<Row>(
   messages: GridMessages,
   announce: (text: string) => void,
 ): (filter: FilterState<Row>) => void {
-  /** The filter a menu applied, until it is announced. */
-  const unannounced = useRef<FilterState<Row> | null>(null);
+  const announceWhenDrawn = useAnnounceWhenDrawn(announce);
 
-  // After the render that drew the rows, so the count is theirs — and only
-  // once the grid holds the filter, which a controlled one may not.
-  useEffect(() => {
-    if (unannounced.current === controller.getState().filter) {
-      unannounced.current = null;
-      announce(
+  return (filter) => {
+    announceWhenDrawn({
+      drawn: () => controller.getState().filter === filter,
+      text: () =>
         messages.filterResults(
           controller.getView().rows.length,
           controller.getOptions().dataSource?.length ?? 0,
         ),
-      );
-    }
-  });
-
-  return (filter) => {
-    unannounced.current = filter;
+    });
     controller.setFilter(filter);
   };
 }

@@ -8,12 +8,13 @@ import type {
   FilterState,
   OperatorFilterEntry,
 } from "../types";
-import type { FilterEditorDraft } from "./filterEditor";
+import type { FilterEditorAction, FilterEditorDraft } from "./filterEditor";
 import { serializeGridState } from "./serialize";
 import {
   columnValueOptions,
   describeColumnFilter,
   draftToFilter,
+  filterDraftChanged,
   filterEditorReducer,
   initialFilterEditorDraft,
   isColumnFiltered,
@@ -647,6 +648,198 @@ describe("filterEditorReducer", () => {
       conditions: [],
     });
     expect(selectAllState(draft)).toBe("checked");
+  });
+
+  test("clear leaves the mode as it was", () => {
+    const values = filterEditorReducer(openRegion([regionIn(["West"])]), {
+      type: "clear",
+    });
+    const conditions = filterEditorReducer(
+      openRegion([{ columnId: "Region", operator: "startsWith", value: "w" }]),
+      { type: "clear" },
+    );
+
+    expect(values.mode).toBe("values");
+    expect(conditions.mode).toBe("conditions");
+  });
+
+  test("clear removes the column's filter from either mode", () => {
+    const cleared = (filter: FilterState<SampleRow>) =>
+      draftToFilter(
+        filterEditorReducer(openRegion(filter), { type: "clear" }),
+        "Region",
+        filter,
+      );
+
+    expect(
+      cleared([
+        amountAbove,
+        { columnId: "Region", operator: "startsWith", value: "w" },
+      ]),
+    ).toEqual([amountAbove]);
+    expect(cleared([amountAbove, regionIn(["West"])])).toEqual([amountAbove]);
+  });
+});
+
+describe("filterDraftChanged", () => {
+  const startsWithW: OperatorFilterEntry<SampleRow> = {
+    columnId: "Region",
+    operator: "startsWith",
+    value: "w",
+  };
+  const edit = (
+    draft: FilterEditorDraft<SampleRow>,
+    ...actions: FilterEditorAction<SampleRow>[]
+  ) => actions.reduce(filterEditorReducer<SampleRow>, draft);
+  const toggle = (value: string): FilterEditorAction<SampleRow> => ({
+    type: "toggleValue",
+    value,
+  });
+
+  test.each<[string, FilterState<SampleRow>]>([
+    ["no filter", []],
+    ["a checklist", [regionIn(["West"])]],
+    ["conditions", [startsWithW]],
+    ["a custom filter", [{ columnId: "Region", query: "West" }]],
+  ])("an untouched draft over %s is unchanged", (_name, filter) => {
+    const opened = openRegion(filter);
+
+    expect(filterDraftChanged(opened, opened)).toBe(false);
+  });
+
+  test("a search alone is unchanged", () => {
+    const opened = openRegion([regionIn(["West"])]);
+
+    expect(
+      filterDraftChanged(opened, edit(opened, { type: "search", search: "e" })),
+    ).toBe(false);
+  });
+
+  test.each<[string, FilterState<SampleRow>]>([
+    ["no filter", []],
+    ["a checklist", [regionIn(["East", "West"])]],
+    ["conditions", [startsWithW]],
+    ["a custom filter", [{ columnId: "Region", query: "West" }]],
+  ])("a value toggled off and on again over %s is unchanged", (_, filter) => {
+    const opened = openRegion(filter);
+
+    expect(
+      filterDraftChanged(opened, edit(opened, toggle("East"), toggle("East"))),
+    ).toBe(false);
+  });
+
+  test("the blanks toggled off and on again are unchanged", () => {
+    const opened = openRegion();
+    const draft = edit(
+      opened,
+      { type: "setIncludeBlanks", includeBlanks: false },
+      { type: "setIncludeBlanks", includeBlanks: true },
+    );
+
+    expect(filterDraftChanged(opened, draft)).toBe(false);
+  });
+
+  test("a value or the blanks picked differently is a change", () => {
+    const opened = openRegion([regionIn(["West"])]);
+
+    expect(filterDraftChanged(opened, edit(opened, toggle("East")))).toBe(true);
+    expect(
+      filterDraftChanged(
+        opened,
+        edit(opened, { type: "setIncludeBlanks", includeBlanks: true }),
+      ),
+    ).toBe(true);
+  });
+
+  test("the same conditions set again are unchanged", () => {
+    const opened = openRegion([
+      { combinator: "or", entries: [startsWithW, regionBlank] },
+    ]);
+    const draft = edit(opened, {
+      type: "setConditions",
+      conditions: [{ ...startsWithW }, { ...regionBlank }],
+    });
+
+    expect(filterDraftChanged(opened, draft)).toBe(false);
+  });
+
+  test.each<[string, FilterEditorAction<SampleRow>]>([
+    [
+      "another operand",
+      { type: "setConditions", conditions: [{ ...startsWithW, value: "we" }] },
+    ],
+    [
+      "another operator",
+      {
+        type: "setConditions",
+        conditions: [{ ...startsWithW, operator: "contains" }],
+      },
+    ],
+    [
+      "a second condition",
+      { type: "setConditions", conditions: [startsWithW, regionBlank] },
+    ],
+  ])("conditions with %s are a change", (_name, action) => {
+    const opened = openRegion([startsWithW]);
+
+    expect(filterDraftChanged(opened, edit(opened, action))).toBe(true);
+  });
+
+  test("the combinator counts only between two conditions", () => {
+    const one = openRegion([startsWithW]);
+    const two = openRegion([
+      { combinator: "and", entries: [startsWithW, regionBlank] },
+    ]);
+    const or = (
+      conditions: OperatorFilterEntry<SampleRow>[],
+    ): FilterEditorAction<SampleRow> => ({
+      type: "setConditions",
+      conditions,
+      combinator: "or",
+    });
+
+    expect(filterDraftChanged(one, edit(one, or([startsWithW])))).toBe(false);
+    expect(
+      filterDraftChanged(two, edit(two, or([startsWithW, regionBlank]))),
+    ).toBe(true);
+  });
+
+  test("a date column's date string and the Date it names are one operand", () => {
+    const opened = initialFilterEditorDraft(
+      describeColumnFilter<SampleRow>(
+        [{ columnId: "Opened", operator: "eq", value: "2024-01-01" }],
+        "Opened",
+      ),
+      columnValueOptions(rows, dataColumns, [], "Opened"),
+    );
+    const draft = edit(opened, {
+      type: "setConditions",
+      conditions: [
+        { columnId: "Opened", operator: "eq", value: new Date("2024-01-01") },
+      ],
+    });
+
+    expect(filterDraftChanged(opened, draft)).toBe(false);
+  });
+
+  test("conditions set over a checklist are a change, none removing it", () => {
+    const current: FilterState<SampleRow> = [amountAbove, regionIn(["West"])];
+    const opened = openRegion(current);
+    const draft = edit(opened, toggle("East"), {
+      type: "setConditions",
+      conditions: [],
+    });
+
+    expect(filterDraftChanged(opened, draft)).toBe(true);
+    expect(draftToFilter(draft, "Region", current)).toEqual([amountAbove]);
+  });
+
+  test("a clear over a custom filter reads as unchanged", () => {
+    const opened = openRegion([{ columnId: "Region", query: "West" }]);
+
+    expect(filterDraftChanged(opened, edit(opened, { type: "clear" }))).toBe(
+      false,
+    );
   });
 });
 

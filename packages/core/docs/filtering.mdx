@@ -104,7 +104,7 @@ The draft keys its checked values the way the column's `in` entry matches them, 
 | `{ type: "setConditions", conditions, combinator? }` | Replaces the conditions, keeping the combinator unless one is given.                                              |
 | `{ type: "clear" }`                                  | Back to no filter: every value checked, no conditions, no search.                                                 |
 
-A value or blanks action switches the draft to its checklist (`mode: "values"`); `setConditions` switches it to its conditions. `visibleFilterOptions(draft)` returns the values the search shows, and `selectAllState(draft)` the select-all checkbox's `"checked"`, `"unchecked"` or `"mixed"` over them.
+A value or blanks action switches the draft to its checklist (`mode: "values"`); `setConditions` switches it to its conditions. `clear` leaves `mode` as it was: either half, cleared, is no filter. `visibleFilterOptions(draft)` returns the values the search shows, and `selectAllState(draft)` the select-all checkbox's `"checked"`, `"unchecked"` or `"mixed"` over them.
 
 ## A checklist's window
 
@@ -142,6 +142,29 @@ The blanks item comes last, as in Excel, and only while nothing is searched — 
 - One condition is stored as itself, two or more as one group with the draft's combinator; no conditions is no filter.
 
 What `draftToFilter` writes, `describeColumnFilter` reads back as the same shape. When nothing changes it returns `current` itself, and `setFilter` reports nothing for a filter equal to the one it has.
+
+## Whether a draft changes anything
+
+A draft over a custom filter opens with every value checked, which `draftToFilter` would write as no filter, so applying an untouched editor would remove a filter the user never touched. `filterDraftChanged(opened, draft)` tells whether the user changed anything since the editor opened, so OK can close the editor without applying:
+
+```ts
+import { draftToFilter, filterDraftChanged } from "@gridkitjs/core";
+
+// `opened` is the draft the editor opened with; keep it beside the working one.
+if (filterDraftChanged(opened, draft)) {
+  controller.setFilter(
+    draftToFilter(draft, "Region", controller.getState().filter),
+  );
+}
+```
+
+It compares by value, not identity, and only the half the draft applies:
+
+- **A checklist** changes when its checked values or its blanks differ from those it opened with. A value unchecked and checked again is no change, so a checklist left as it opened over conditions or a custom filter leaves that filter be.
+- **Conditions** change when an operator, an operand or their number differs from those the draft opened with, or the combinator between two of them. Operands are compared as an `in` entry tells values apart, so on a date column a date string and the `Date` it names are the same. Conditions set over a draft that opened on anything but conditions are always a change: they replace that filter, and no conditions remove it.
+- The search is never a change.
+
+A `clear` over a custom filter leaves a draft equal to the one it opened with, so it reads as no change. An editor whose Clear button should remove such a filter applies `draftToFilter` without asking.
 
 ## Filter menu options
 

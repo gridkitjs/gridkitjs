@@ -568,3 +568,82 @@ export function draftToFilter<Row>(
   const kept = current.filter((entry) => !touchesColumn(entry, columnId));
   return [...kept.slice(0, first), ...replacement, ...kept.slice(first)];
 }
+
+/** Whether two drafts check the same values and treat the blanks alike. */
+function sameValues<Row>(
+  a: FilterEditorDraft<Row>,
+  b: FilterEditorDraft<Row>,
+): boolean {
+  return (
+    a.includeBlanks === b.includeBlanks &&
+    a.checked.size === b.checked.size &&
+    [...a.checked.keys()].every((key) => b.checked.has(key))
+  );
+}
+
+/** Whether two operands are one value, as an `in` filter on the column tells values apart. */
+function sameOperand(
+  a: OperatorFilterEntry<unknown>["value"],
+  b: OperatorFilterEntry<unknown>["value"],
+  type: ColumnType | undefined,
+): boolean {
+  if (isScalarList(a) || isScalarList(b)) {
+    return (
+      isScalarList(a) &&
+      isScalarList(b) &&
+      a.length === b.length &&
+      a.every((scalar, index) => sameOperand(scalar, b[index], type))
+    );
+  }
+  return filterValueKey(a, type) === filterValueKey(b, type);
+}
+
+/**
+ * Whether two drafts hold the same conditions, the combinator counting only
+ * between two or more. The column each condition names doesn't count:
+ * `draftToFilter` writes them onto the column it is given.
+ */
+function sameConditions<Row>(
+  a: FilterEditorDraft<Row>,
+  b: FilterEditorDraft<Row>,
+): boolean {
+  return (
+    a.conditions.length === b.conditions.length &&
+    (a.conditions.length < 2 || a.combinator === b.combinator) &&
+    a.conditions.every((condition, index) => {
+      const other = b.conditions[index];
+      return (
+        other !== undefined &&
+        condition.operator === other.operator &&
+        sameOperand(condition.value, other.value, a.columnType)
+      );
+    })
+  );
+}
+
+/**
+ * Whether `draft` changes anything since the editor opened at `opened` — for
+ * an Apply that changes nothing to leave the column's filter as it is,
+ * rather than writing the draft over it. Compared by value, not identity, so
+ * a value unchecked and checked again, or the same conditions typed again,
+ * is no change; the search never is one.
+ *
+ * Only the half `draftToFilter` applies counts. A checklist changes when its
+ * checked values or blanks differ from those it opened with, so one left as
+ * it opened over conditions or a custom filter leaves that filter be.
+ * Conditions change when they differ from those the draft opened with, and
+ * always when it opened on a checklist, no filter or a custom one: setting
+ * conditions there replaces it, none removing it.
+ *
+ * `clear` over a custom filter leaves a draft equal to the one it opened
+ * with, so this reads it as no change.
+ */
+export function filterDraftChanged<Row>(
+  opened: FilterEditorDraft<Row>,
+  draft: FilterEditorDraft<Row>,
+): boolean {
+  if (draft.mode === "values") {
+    return !sameValues(opened, draft);
+  }
+  return opened.mode !== "conditions" || !sameConditions(opened, draft);
+}

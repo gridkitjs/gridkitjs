@@ -3,9 +3,10 @@
 // file for why.
 import type { Locator, Page } from "@playwright/test";
 import type { MountResult } from "@playwright/experimental-ct-react";
+import type { FilterState } from "@gridkitjs/core";
 import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
-import FilterMenuGrid from "./support/FilterMenuGrid";
+import FilterMenuGrid, { type FilterMenuRow } from "./support/FilterMenuGrid";
 import HundredThousandRowsGrid from "./support/HundredThousandRowsGrid";
 import ImperativeApiGrid from "./support/ImperativeApiGrid";
 import ManyValuesGrid from "./support/ManyValuesGrid";
@@ -556,6 +557,23 @@ test.describe("the simple editor", () => {
     await expect(liveRegion(root)).toHaveText("");
   });
 
+  test("nor once a controlled filter takes it later", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid takeFilterLater />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+
+    await valueOf(filterMenu, 1).fill("li");
+    await page.keyboard.press("Enter");
+    await expect(filterMenu).toHaveCount(0);
+    expect(await names(root)).toEqual(["Charlie", "Alice", "Bravo"]);
+
+    await root.getByRole("button", { name: "Take filter" }).click();
+    expect(await names(root)).toEqual(["Charlie", "Alice"]);
+    await expect(liveRegion(root)).toHaveText("");
+  });
+
   test("Enter on a picker applies too", async ({ mount, page }) => {
     const root = await mountGrid(mount, <FilterMenuGrid />);
     const filterMenu = await openFromHeaderMenu(root, page, "Active");
@@ -885,6 +903,104 @@ test.describe("the simple editor", () => {
 
     await expect(filterMenu.getByText("Custom filter")).toBeVisible();
     await expect(operatorOf(filterMenu, 1)).toHaveValue("contains");
+  });
+
+  test("conditions set in code stay as they are through OK left alone", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid
+        defaultFilter={[
+          { columnId: "score", operator: "gt", value: 10 },
+          { columnId: "score", operator: "lt", value: 25 },
+        ]}
+      />,
+    );
+    expect(await names(root)).toEqual(["Bravo"]);
+
+    const filterMenu = await openFromHeaderMenu(root, page, "Score");
+    await expect(valueOf(filterMenu, 2)).toHaveValue("25");
+    await button(filterMenu, "OK").click();
+
+    await expect(filterMenu).toHaveCount(0);
+    expect(await names(root)).toEqual(["Bravo"]);
+    await expect(reported(root)).toHaveText("");
+  });
+
+  test("a day set in code as a string stays as it is through OK left alone", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid
+        defaultFilter={[
+          { columnId: "joined", operator: "gt", value: "2024-01-01" },
+        ]}
+      />,
+    );
+    expect(await names(root)).toEqual(["Charlie"]);
+
+    const filterMenu = await openFromHeaderMenu(root, page, "Joined");
+    await button(filterMenu, "OK").click();
+
+    await expect(filterMenu).toHaveCount(0);
+    await expect(reported(root)).toHaveText("");
+  });
+
+  test("a value typed and taken out again closes through OK, as Cancel would", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+
+    await valueOf(filterMenu, 1).fill("li");
+    await valueOf(filterMenu, 1).fill("");
+    await button(filterMenu, "OK").click();
+
+    await expect(filterMenu).toHaveCount(0);
+    expect(await names(root)).toEqual(["Charlie", "Alice", "Bravo"]);
+    await expect(reported(root)).toHaveText("");
+  });
+
+  test("the column's filter changing while the menu is open shows the new conditions in place of what was typed", async ({
+    mount,
+    page,
+  }) => {
+    const grid = (filter: FilterState<FilterMenuRow>) => (
+      <FilterMenuGrid filter={filter} />
+    );
+    const scoreAbove10 = {
+      columnId: "score",
+      operator: "gt",
+      value: 10,
+    } as const;
+    const root = await mountGrid(mount, grid([]));
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+    await valueOf(filterMenu, 1).fill("zz");
+
+    // Another column's filter leaves what was typed.
+    await updateGrid(root, grid([scoreAbove10]));
+    expect(await names(root)).toEqual(["Charlie", "Bravo"]);
+    await expect(valueOf(filterMenu, 1)).toHaveValue("zz");
+
+    await updateGrid(
+      root,
+      grid([
+        scoreAbove10,
+        { columnId: "name", operator: "startsWith", value: "Br" },
+      ]),
+    );
+    await expect(filterMenu).toBeVisible();
+    await expect(operatorOf(filterMenu, 1)).toHaveValue("startsWith");
+    await expect(valueOf(filterMenu, 1)).toHaveValue("Br");
+    await expect(valueOf(filterMenu, 1)).toBeFocused();
+    await button(filterMenu, "OK").click();
+    await expect(filterMenu).toHaveCount(0);
+    await expect(reported(root)).toHaveText("");
   });
 
   test("Cancel drops what was typed", async ({ mount, page }) => {
@@ -1258,6 +1374,45 @@ test.describe("the excel editor", () => {
     await expect(optionsOf(filterMenu)).toHaveText(["false 1", "true 2"]);
   });
 
+  test("the column's filter changing while the menu is open shows the new one in place of what was checked", async ({
+    mount,
+    page,
+  }) => {
+    const grid = (filter: FilterState<FilterMenuRow>) => (
+      <FilterMenuGrid filterMenu={{ ui: "excel" }} filter={filter} />
+    );
+    const root = await mountGrid(mount, grid([]));
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+    await option(filterMenu, "Alice").click();
+
+    // An equal filter, though a new array, leaves what was checked.
+    await updateGrid(root, grid([]));
+    await expect(option(filterMenu, "Alice")).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+
+    await updateGrid(
+      root,
+      grid([{ columnId: "name", operator: "in", value: ["Bravo"] }]),
+    );
+
+    await expect(filterMenu).toBeVisible();
+    for (const [name, checked] of [
+      ["Alice", "false"],
+      ["Bravo", "true"],
+      ["Charlie", "false"],
+    ] as const) {
+      await expect(option(filterMenu, name)).toHaveAttribute(
+        "aria-checked",
+        checked,
+      );
+    }
+    await button(filterMenu, "OK").click();
+    await expect(filterMenu).toHaveCount(0);
+    await expect(reported(root)).toHaveText("");
+  });
+
   test("Cancel drops what was checked", async ({ mount, page }) => {
     const root = await mountGrid(
       mount,
@@ -1306,6 +1461,31 @@ test.describe("the excel editor", () => {
     await expect(reported(root)).toHaveText(
       '[{"columnId":"score","operator":"in","value":[9,21]}]',
     );
+  });
+
+  test("a value unchecked and checked again, or every value, leaves a filter set in code be", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <FilterMenuGrid
+        filterMenu={{ ui: "excel" }}
+        defaultFilter={[{ columnId: "score", operator: "gt", value: 10 }]}
+      />,
+    );
+
+    const filterMenu = await openFromHeaderMenu(root, page, "Score");
+    await option(filterMenu, "9").click();
+    await option(filterMenu, "9").click();
+    await selectAllOf(filterMenu).click();
+    await selectAllOf(filterMenu).click();
+    await expect(selectAllOf(filterMenu)).toBeChecked();
+    await button(filterMenu, "OK").click();
+
+    await expect(filterMenu).toHaveCount(0);
+    expect(await names(root)).toEqual(["Charlie", "Bravo"]);
+    await expect(reported(root)).toHaveText("");
   });
 
   test("a custom filter says so above the checklist, and stays through OK", async ({

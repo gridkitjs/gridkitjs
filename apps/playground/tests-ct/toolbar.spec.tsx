@@ -438,6 +438,23 @@ test.describe("DataGrid toolbar", () => {
     expect(await names(root)).toEqual(["Charlie", "Alice", "Bravo"]);
   });
 
+  test("a search a controlled filter doesn't take is announced neither then nor once the filter holds it", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(mount, <ToolbarGrid filter={[]} />, WIDE);
+    const search = gridSearch(root);
+
+    await search.fill("li");
+    await search.press("Enter");
+    await expect(search).toHaveValue("");
+    expect(await names(root)).toEqual(["Charlie", "Alice", "Bravo"]);
+
+    await updateGrid(root, <ToolbarGrid filter={[{ query: "%li%" }]} />, WIDE);
+    await expect(search).toHaveValue("li");
+    expect(await names(root)).toEqual(["Charlie", "Alice"]);
+    await expect(root.locator('[role="status"]')).toHaveText("");
+  });
+
   test("the box reads its text back from the filter, and leaves column entries alone", async ({
     mount,
   }) => {
