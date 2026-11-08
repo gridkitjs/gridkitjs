@@ -3,98 +3,29 @@ import {
   useId,
   useImperativeHandle,
   useLayoutEffect,
+  useReducer,
   useRef,
-  useState,
 } from "react";
 import {
-  conditionRowsFrom,
   conditionsFromRows,
-  describeColumnFilter,
   draftToFilter,
   filterDraftChanged,
   filterEditorReducer,
-  initialFilterEditorDraft,
-  type ColumnFilterShape,
-  type ColumnType,
-  type ColumnValueOptions,
-  type ConditionRowDraft,
-  type FilterEditorDraft,
   type FilterOperator,
   type GridMessages,
   type OperatorFilterEntry,
 } from "@gridkitjs/core";
 import ConditionRow from "./ConditionRow";
 import type { FilterEditorProps } from "./filterEditor";
-
-type Combinator = "and" | "or";
-
-/** The conditions as typed, and how they join. */
-interface Draft {
-  readonly rows: readonly ConditionRowDraft[];
-  readonly combinator: Combinator;
-}
+import {
+  initialSimpleEditorState,
+  openConditions,
+  sameConditionsDraft,
+  simpleEditorReducer,
+  type Combinator,
+} from "./simpleEditorState";
 
 const COMBINATORS: readonly Combinator[] = ["and", "or"];
-
-/** No condition marked invalid. */
-const NO_ROWS: readonly number[] = [];
-
-/**
- * The values half of the draft `draftToFilter` applies: the simple editor
- * has no checklist, so none.
- */
-const NO_VALUES: ColumnValueOptions = {
-  options: [],
-  total: 0,
-  truncated: false,
-  blanks: 0,
-};
-
-/** Whether two drafts hold the same text in every box, joined alike. */
-function sameDraft(a: Draft, b: Draft): boolean {
-  return (
-    a.combinator === b.combinator &&
-    a.rows.length === b.rows.length &&
-    a.rows.every((row, index) => {
-      const other = b.rows[index];
-      return (
-        other !== undefined &&
-        row.operator === other.operator &&
-        row.text === other.text &&
-        row.textTo === other.textTo
-      );
-    })
-  );
-}
-
-/**
- * The draft standing for the column's filter `shape`, for
- * `filterDraftChanged` to tell an apply that changes nothing. Its conditions
- * are read back from the boxes showing them, `rows`, as the conditions
- * applied will be: a date set in code as a string, or a time to the second,
- * then compares equal to the day or minute its box shows.
- */
-function filterDraftShown<Row>(
-  shape: ColumnFilterShape<Row>,
-  rows: readonly ConditionRowDraft[],
-  columnId: string,
-  type: ColumnType | undefined,
-): FilterEditorDraft<Row> {
-  const draft = initialFilterEditorDraft(shape, {
-    ...NO_VALUES,
-    columnType: type,
-  });
-  if (shape.kind !== "conditions") {
-    return draft;
-  }
-  const shown = conditionsFromRows<Row>(rows, columnId, type);
-  return shown.invalid.length > 0
-    ? draft
-    : filterEditorReducer(draft, {
-        type: "setConditions",
-        conditions: shown.conditions,
-      });
-}
 
 /**
  * Whether a box in `row` holds what the browser can't read as a number or a
@@ -182,37 +113,23 @@ export default function SimpleFilterEditor<Row>({
 }: SimpleFilterEditorProps<Row>) {
   const type = column.column.type;
   // Read once, as the menu opens: from then on the draft is the user's.
-  const [opened] = useState(() => {
-    const shape = describeColumnFilter(controller.getState().filter, column.id);
-    const rows = conditionRowsFrom(shape, menu.operators, type);
-    const draft: Draft = {
-      // Its typed values kept, as picking the operator in the row keeps them.
-      rows:
-        operator === undefined
-          ? rows
-          : rows.map((row, index) =>
-              index === 0 ? { ...row, operator } : row,
-            ),
-      combinator: shape.kind === "conditions" ? shape.combinator : "and",
-    };
-    return {
-      custom:
-        shape.kind === "custom" ||
-        (shape.kind === "values" && operator === undefined),
-      draft,
-      filterDraft: filterDraftShown(shape, rows, column.id, type),
-    };
-  });
-  const [draft, setDraft] = useState(opened.draft);
-  const [invalid, setInvalid] = useState(NO_ROWS);
+  const [{ opened, draft, invalid }, dispatch] = useReducer(
+    simpleEditorReducer<Row>,
+    null,
+    () =>
+      initialSimpleEditorState(
+        openConditions<Row>(
+          controller.getState().filter,
+          column.id,
+          menu.operators,
+          type,
+          operator,
+        ),
+      ),
+  );
   const rowElements = useRef<(HTMLDivElement | null)[]>([]);
   const invalidMessageId = useId();
   const combinatorName = useId();
-
-  function update(next: Draft): void {
-    setDraft(next);
-    setInvalid(NO_ROWS);
-  }
 
   /**
    * Puts `conditions` in place of every entry about the column — unless
@@ -250,10 +167,13 @@ export default function SimpleFilterEditor<Row>({
       }
       // Nothing typed since it opened: OK closes it, as Cancel would, rather
       // than asking for a value.
-      if (sameDraft(draft, opened.draft) && !unreadable.includes(true)) {
+      if (
+        sameConditionsDraft(draft, opened.draft) &&
+        !unreadable.includes(true)
+      ) {
         return true;
       }
-      setInvalid(marked);
+      dispatch({ type: "markInvalid", rows: marked });
       return false;
     },
   }));
@@ -282,7 +202,7 @@ export default function SimpleFilterEditor<Row>({
               combinator={draft.combinator}
               messages={messages}
               onChange={(combinator) => {
-                update({ ...draft, combinator });
+                dispatch({ type: "setCombinator", combinator });
               }}
             />
           )}
@@ -300,12 +220,7 @@ export default function SimpleFilterEditor<Row>({
             }
             focusRef={index === 0 ? initialFocusRef : undefined}
             onChange={(next) => {
-              update({
-                ...draft,
-                rows: draft.rows.map((current, at) =>
-                  at === index ? next : current,
-                ),
-              });
+              dispatch({ type: "editRow", index, row: next });
             }}
           />
         </Fragment>

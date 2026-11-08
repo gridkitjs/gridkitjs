@@ -34,6 +34,21 @@ export interface ExcelFilterEditorProps<Row> extends FilterEditorProps<Row> {
   readonly columnValues: (columnId: string) => ColumnValueOptions;
 }
 
+/**
+ * What the editor shows: the checklist, or a condition at the operator
+ * chosen from its menu, in place of the checklist. A condition takes focus
+ * as it shows, being shown only once chosen; the checklist does when it
+ * comes back from one, giving focus to the button whose menu chose it.
+ */
+type ExcelEditorMode =
+  | { readonly kind: "values"; readonly focusOnMount: boolean }
+  | { readonly kind: "condition"; readonly operator: FilterOperator };
+
+const OPENED_ON_VALUES: ExcelEditorMode = {
+  kind: "values",
+  focusOnMount: false,
+};
+
 /** What a checklist item's toggle does to the draft. */
 function toggleOf<Row>(item: FilterChecklistItem): FilterEditorAction<Row> {
   return item.kind === "blanks"
@@ -85,16 +100,10 @@ export default function ExcelFilterEditor<Row>({
     };
   });
   const [draft, dispatch] = useReducer(filterEditorReducer<Row>, opened.draft);
-  /**
-   * The operator chosen from the menu, while a condition at it shows in place
-   * of the checklist.
-   */
-  const [operator, setOperator] = useState<FilterOperator | null>(null);
+  const [mode, setMode] = useState(OPENED_ON_VALUES);
   const conditions = useRef<FilterEditorHandle>(null);
   const conditionsFocus = useRef<HTMLElement | null>(null);
   const operatorButton = useRef<HTMLButtonElement>(null);
-  /** Set as the editor switches to a condition or back, for focus to follow. */
-  const switched = useRef(false);
   const selectAllRef = useRef<HTMLInputElement>(null);
   // Each a pass over every value — tens of thousands of them on a large
   // column — so worked out as the draft changes, not again as the editor
@@ -116,30 +125,18 @@ export default function ExcelFilterEditor<Row>({
     }
   });
 
-  // Once the other side is drawn: to the condition's first box, or back to
-  // the button whose menu chose it.
+  // Once the side switched to is drawn.
   useLayoutEffect(() => {
-    if (switched.current) {
-      switched.current = false;
-      (operator === null
-        ? operatorButton.current
-        : conditionsFocus.current
-      )?.focus();
+    if (mode.kind === "condition") {
+      conditionsFocus.current?.focus();
+    } else if (mode.focusOnMount) {
+      operatorButton.current?.focus();
     }
-  }, [operator]);
-
-  /**
-   * Shows a condition at `chosen` in place of the checklist, or — given
-   * `null` — the checklist again.
-   */
-  function switchTo(chosen: FilterOperator | null): void {
-    switched.current = true;
-    setOperator(chosen);
-  }
+  }, [mode]);
 
   useImperativeHandle(ref, () => ({
     apply: () => {
-      if (operator !== null) {
+      if (mode.kind === "condition") {
         return conditions.current?.apply() ?? true;
       }
       if (filterDraftChanged(opened.draft, draft)) {
@@ -151,14 +148,14 @@ export default function ExcelFilterEditor<Row>({
     },
   }));
 
-  if (operator !== null) {
+  if (mode.kind === "condition") {
     return (
       <>
         <button
           type="button"
           className="filter-menu-back"
           onClick={() => {
-            switchTo(null);
+            setMode({ kind: "values", focusOnMount: true });
           }}
         >
           <span className="filter-menu-back-icon" aria-hidden="true">
@@ -176,7 +173,7 @@ export default function ExcelFilterEditor<Row>({
             conditionsFocus.current = element;
           }}
           applyFilter={applyFilter}
-          operator={operator}
+          operator={mode.operator}
         />
       </>
     );
@@ -195,7 +192,9 @@ export default function ExcelFilterEditor<Row>({
               : undefined
           }
           messages={messages}
-          onChoose={switchTo}
+          onChoose={(operator) => {
+            setMode({ kind: "condition", operator });
+          }}
         />
       )}
       {(shape.kind === "conditions" || shape.kind === "custom") && (
