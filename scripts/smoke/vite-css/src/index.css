@@ -1,4 +1,5 @@
 @import "@gridkitjs/theme-css/styles.css";
+@import "@gridkitjs/theme-css/presets/high-contrast.css";
 
 :root {
   --gridkit-accent-light: oklch(0.6 0.17 145);
