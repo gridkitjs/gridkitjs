@@ -99,6 +99,7 @@ export default function useGridCommands<Row>({
     print: (document, options) => {
       printGrid(document, options).catch((error: unknown) => {
         console.error("DataGrid: the print failed.", error);
+        announce(messages.printFailed);
       });
     },
   };

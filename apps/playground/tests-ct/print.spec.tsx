@@ -361,6 +361,39 @@ test.describe("printing the grid", () => {
     const [print] = await waitForPrints(root, 1);
     expect(bodyRows(print)).toHaveLength(4);
   });
+
+  test("a print that fails is logged and announced", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <PrintGrid toolbar={{ items: ["print"] }} />,
+    );
+    const errors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") errors.push(message.text());
+    });
+    // The print frame is taken away as soon as it is added, before it loads.
+    await page.evaluate(() => {
+      const observer = new MutationObserver((records) => {
+        const frame = records
+          .flatMap((record) => [...record.addedNodes])
+          .find((node) => node instanceof HTMLIFrameElement);
+        if (frame !== undefined) {
+          observer.disconnect();
+          frame.remove();
+        }
+      });
+      observer.observe(document.body, { childList: true });
+    });
+    await printButton(root).click();
+
+    await expect(root.locator('[role="status"]')).toHaveText("Print failed");
+    await expect
+      .poll(() => errors)
+      .toContainEqual(expect.stringContaining("print failed"));
+  });
 });
 
 test.describe("the theme's print media styles", () => {

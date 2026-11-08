@@ -56,7 +56,7 @@ await gridRef.current?.print({
 | `print(options?)`     | `Promise<void>` | Prints the grid's view under `print` with `options` over it; resolves once the dialog closes. |
 | `runCommand("print")` | `boolean`       | Prints under the `print` option, as the toolbar does. Says whether it ran.                    |
 
-One print at a time: a print asked for while the dialog is open does nothing, and its promise resolves at once. The promise rejects if the browser fails to open the dialog, and the next print runs as usual.
+One print at a time: a print asked for while the dialog is open does nothing, and its promise resolves at once. The promise rejects if the browser fails to open the dialog, and the next print runs as usual. A print from the toolbar, a menu or `runCommand` that fails is logged with a `console.error`, and a screen reader hears "Print failed" (`messages.printFailed`).
 
 ## Options
 
@@ -165,7 +165,7 @@ The browser's own print — <Kbd>Ctrl</Kbd>+<Kbd>P</Kbd>, or <Kbd>Cmd</Kbd>+<Kbd
 | ------- | -------------- | ------- | --------------------------------------------------------------------------- |
 | `print` | `PrintOptions` |         | How the grid prints unless a call says otherwise — see [options](#options). |
 
-The button's and the menu item's label is a message, `print` — see [localization](/docs/react/localization).
+The button's and the menu item's label and the "Print failed" announcement are messages, `print` and `printFailed`: see [localization](/docs/react/localization).
 
 ## See also
 
