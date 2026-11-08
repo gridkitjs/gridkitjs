@@ -141,11 +141,12 @@ The fixtures sit outside the pnpm workspace and ESLint, so nothing resolves
 to source; their own builds type-check them. Each is a private package with
 third-party versions pinned and no lockfile:
 
-| Fixture       | Checks                                                                                                  |
-| ------------- | ------------------------------------------------------------------------------------------------------- |
-| `vite-react/` | React, Vite and Tailwind: `tsc --noEmit` (with `skipLibCheck` off), `vite build`, the theme in the CSS. |
-| `next-app/`   | A server component renders `DataGrid` directly; `next build` must prerender `/` with the grid's HTML.   |
-| `node-xlsx/`  | Plain Node, no DOM: `@gridkitjs/export-xlsx` writes a workbook.                                         |
+| Fixture       | Checks                                                                                                                          |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `vite-react/` | React, Vite and Tailwind: `tsc --noEmit` (with `skipLibCheck` off), `vite build`, the theme in the CSS.                         |
+| `vite-css/`   | React and Vite without Tailwind: `tsc --noEmit`, `vite build`, the plain-CSS theme's rules, tokens and dark palette in the CSS. |
+| `next-app/`   | A server component renders `DataGrid` directly; `next build` must prerender `/` with the grid's HTML.                           |
+| `node-xlsx/`  | Plain Node, no DOM: `@gridkitjs/export-xlsx` writes a workbook.                                                                 |
 
 A fixture lists its `@gridkitjs/*` dependencies at version `*`, and the run
 replaces each with its tarball. List the transitive ones too (`react` needs
