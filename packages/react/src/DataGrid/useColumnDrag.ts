@@ -31,13 +31,11 @@ export interface ColumnDragApi<Row> {
   /** Moves a column one place left (`-1`) or right (`1`). */
   moveByKeyboard: (entry: ResolvedColumn<Row>, direction: -1 | 1) => void;
   /**
-   * Whether the gesture that just ended was a drag rather than a click, for a
-   * header that has something of its own to do with a click.
-   *
-   * Reading it clears it, so that a press which never opened a drag at all —
-   * on a column that cannot be reordered — does not see the last one's answer.
+   * Whether the column's last press opened a drag, so the click that follows
+   * its release is not a click, for a header that has something of its own to
+   * do with one. Reading it clears it.
    */
-  justDragged: () => boolean;
+  justDragged: (columnId: string) => boolean;
 }
 
 /**

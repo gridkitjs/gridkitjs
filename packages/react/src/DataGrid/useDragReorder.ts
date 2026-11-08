@@ -22,13 +22,16 @@ export interface DragReorderApi<Target> extends DragReorderState<Target> {
     event: ReactPointerEvent<HTMLElement>,
   ) => void;
   /**
-   * Whether the gesture that just ended was a drag rather than a click, for
-   * a press that has something of its own to do with a click.
+   * Whether `id`'s last press opened a drag, so the `click` that follows its
+   * release is not a click, for a press that has something of its own to do
+   * with one.
    *
-   * Reading it clears it, so that a press which never opened a drag at all
-   * does not see the last one's answer.
+   * Reading it clears it, and so does the next drag's press, so a press that
+   * never opened a drag — on an item that cannot be dragged, or after a drag
+   * cancelled with Escape and released elsewhere — does not see the last
+   * one's answer.
    */
-  justDragged: () => boolean;
+  justDragged: (id: string) => boolean;
 }
 
 /**
@@ -43,11 +46,16 @@ export default function useDragReorder<Target>({
   onDrop,
 }: UseDragReorderOptions<Target>): DragReorderApi<Target> {
   const [drag, setDrag] = useState<DragReorderState<Target>>(NO_DRAG);
-  const dragged = useRef(false);
+  /**
+   * The item whose press opened a drag, held for the `click` that follows
+   * the release: the only thing that can tell a drag apart from a press in
+   * the same spot.
+   */
+  const openedDragId = useRef<string | null>(null);
 
-  function justDragged(): boolean {
-    const answer = dragged.current;
-    dragged.current = false;
+  function justDragged(id: string): boolean {
+    const answer = openedDragId.current === id;
+    openedDragId.current = null;
     return answer;
   }
 
@@ -56,19 +64,22 @@ export default function useDragReorder<Target>({
     grabElement: HTMLElement,
     event: ReactPointerEvent<HTMLElement>,
   ): void {
-    startDragReorder(id, grabElement, event, {
+    const started = startDragReorder(id, grabElement, event, {
       resolveTarget,
       onState(state) {
-        // Latched for the `click` that follows the release, which is the
-        // only thing that can tell a drag apart from a press in the same
-        // spot.
         if (state.draggedId !== null) {
-          dragged.current = true;
+          openedDragId.current = state.draggedId;
         }
         setDrag(state);
       },
       onDrop,
     });
+    // Only a press that began a drag clears it, so a second finger landing
+    // mid-drag leaves the drag under way its answer. The new drag reports
+    // nothing before its first move, so this never clears what it set.
+    if (started) {
+      openedDragId.current = null;
+    }
   }
 
   // A new object each render, as `useColumnDrag`/`useColumnResize` return:

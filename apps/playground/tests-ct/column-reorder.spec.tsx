@@ -100,6 +100,32 @@ test("a pointer move under the 4px threshold stays a click, not a drag", async (
   await expect(header).toHaveAttribute("aria-selected", "true");
 });
 
+test("a drag released back over its own header does not also select it", async ({
+  mount,
+  page,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Drag is not a click"
+      reorderableColumns
+      selectable={{ columns: "single" }}
+    />,
+    { width: 900 },
+  );
+  const header = headers(root).first();
+  const start = await dragStart(page, header);
+  await page.mouse.move(start.x + 20, start.y, { steps: 3 });
+  await expect(header).toHaveClass(/is-dragging/);
+  await page.mouse.move(start.x, start.y, { steps: 3 });
+  await page.mouse.up();
+
+  await expect(header).not.toHaveClass(/is-dragging/);
+  await expect(header).toHaveAttribute("aria-selected", "false");
+});
+
 test("a right-button drag across another header does not reorder the columns", async ({
   mount,
   page,
@@ -242,6 +268,74 @@ test("Escape mid-drag cancels: order unchanged, onColumnOrderChange never called
   expect(await columnIds(root)).toEqual(idsBefore);
   expect(events).toHaveLength(0);
   await expect(root.locator(".drag-ghost")).toHaveCount(0);
+});
+
+/**
+ * Drags the first header onto the second, cancels with Escape, and releases
+ * over a body cell, so no click lands on a header to end the gesture.
+ */
+async function cancelDragOffHeader(
+  page: Page,
+  root: MountResult,
+): Promise<void> {
+  await dragStart(page, headers(root).first());
+  const over = await headers(root).nth(1).boundingBox();
+  const cell = await root.locator("tbody td").first().boundingBox();
+  if (over === null || cell === null) {
+    throw new Error("grid is not visible");
+  }
+  await page.mouse.move(over.x + over.width / 2, over.y + 5, { steps: 5 });
+  await page.keyboard.press("Escape");
+  await page.mouse.move(cell.x + cell.width / 2, cell.y + cell.height / 2, {
+    steps: 3,
+  });
+  await page.mouse.up();
+}
+
+test("after a drag cancelled with Escape and released off the header, the next click on that header selects it", async ({
+  mount,
+  page,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Click after cancel"
+      reorderableColumns
+      selectable={{ columns: "single" }}
+    />,
+    { width: 900 },
+  );
+  await cancelDragOffHeader(page, root);
+
+  await headers(root).first().click();
+  await expect(headers(root).first()).toHaveAttribute("aria-selected", "true");
+});
+
+test("after a drag cancelled with Escape and released off the header, a click on a header that cannot be dragged selects it", async ({
+  mount,
+  page,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={[
+        { field: "id", width: 80 },
+        { field: "name", width: 120 },
+        { field: "status", width: 100, reorderable: false },
+      ]}
+      dataSource={buildRows(2)}
+      label="Click after cancel, fixed column"
+      reorderableColumns
+      selectable={{ columns: "single" }}
+    />,
+    { width: 900 },
+  );
+  await cancelDragOffHeader(page, root);
+
+  await headers(root).nth(2).click();
+  await expect(headers(root).nth(2)).toHaveAttribute("aria-selected", "true");
 });
 
 test("a second pointer neither steers nor ends a header drag", async ({
