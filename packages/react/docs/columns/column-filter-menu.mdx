@@ -117,7 +117,7 @@ OK, or <Kbd>Enter</Kbd>, applies the conditions in place of every entry about th
 ];
 ```
 
-Once the grid has drawn the rows the filter keeps, the live region announces how many of all the rows they are — "2 of 3 rows", the `filterResults` message, its counts in the grid's [`locale`](/docs/react/localization#counts) ("1,204 of 10,000 rows") — so a screen reader hears the result as focus returns to the header. A controlled `filter` that doesn't take the change announces nothing.
+Once the grid has drawn the rows the filter keeps, the live region announces how many of all the rows they are — "2 of 3 rows", the `filterResults` message, its counts in the grid's [`locale`](/docs/react/localization#counts) ("1,204 of 10,000 rows") — so a screen reader hears the result as focus returns to the header. A controlled `filter` that doesn't take the change announces nothing, then or once it takes the filter later.
 
 Opened again, the menu shows the conditions as they are applied, whatever applied them: the menu itself, `defaultFilter`, `setFilter` or a controlled `filter`. A condition set in code with an operator the column doesn't offer still shows, its operator listed for it. The column's filter set in code while the menu is open, through `setFilter` or a controlled `filter`, shows in it at once in place of what was typed, as it would on opening the menu again; another column's leaves what was typed.
 

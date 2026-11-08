@@ -5,6 +5,7 @@ import {
   type GridMessages,
   type ToolbarItemAttributes,
 } from "@gridkitjs/core";
+import useAnnounceWhenDrawn from "../useAnnounceWhenDrawn";
 import type { DataGridController } from "../useGridController";
 
 /** How long typing has to rest before the search applies. */
@@ -51,8 +52,7 @@ export default function ToolbarSearch<Row>({
   const applied = searchTextOf(controller.getState().filter);
   const [draft, setDraft] = useState<Draft | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  /** The search this box applied, until it is announced. */
-  const unannounced = useRef<string | null>(null);
+  const announceWhenDrawn = useAnnounceWhenDrawn(announce);
   const text = draft !== null && draft.over === applied ? draft.text : applied;
 
   /** Applies `next`, typed over the search `over`, unless that has changed since. */
@@ -65,19 +65,13 @@ export default function ToolbarSearch<Row>({
     }
     const searched = setSearchText(filter, next);
     if (searched !== filter) {
-      unannounced.current = next;
+      announceWhenDrawn({
+        drawn: () => searchTextOf(controller.getState().filter) === next,
+        text: () => messages.searchResults(controller.getView().rows.length),
+      });
       controller.setFilter(searched);
     }
   }
-
-  // After the render that drew the rows, so the count is theirs — and only
-  // once the filter holds the search, which a controlled one may not.
-  useEffect(() => {
-    if (unannounced.current === applied) {
-      unannounced.current = null;
-      announce(messages.searchResults(controller.getView().rows.length));
-    }
-  });
 
   useEffect(
     () => () => {

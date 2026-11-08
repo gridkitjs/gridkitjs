@@ -49,7 +49,13 @@ const columns: readonly ColumnDefinition<FilterMenuRow>[] = [
 export type FilterMenuGridProps = Omit<
   DataGridProps<FilterMenuRow>,
   "columns" | "dataSource" | "getRowId" | "onCommand" | "onFilterChange" | "ref"
->;
+> & {
+  /**
+   * Controls the filter, starting at none, and takes the one `onFilterChange`
+   * last reported only once "Take filter" is pressed.
+   */
+  readonly takeFilterLater?: boolean;
+};
 
 /**
  * A grid whose headers sort, open the context menu and have filter menus,
@@ -58,9 +64,13 @@ export type FilterMenuGridProps = Omit<
  * pass, since a function from a spec never reaches the browser. `props`
  * override the defaults.
  */
-export default function FilterMenuGrid(props: FilterMenuGridProps) {
+export default function FilterMenuGrid({
+  takeFilterLater = false,
+  ...props
+}: FilterMenuGridProps) {
   const [heard, setHeard] = useState<readonly string[]>([]);
   const [filter, setFilter] = useState<FilterState<FilterMenuRow> | null>(null);
+  const [taken, setTaken] = useState<FilterState<FilterMenuRow>>([]);
 
   return (
     <div>
@@ -69,6 +79,7 @@ export default function FilterMenuGrid(props: FilterMenuGridProps) {
         sortableColumns
         filterableColumns
         contextMenu
+        {...(takeFilterLater ? { filter: taken } : {})}
         {...props}
         columns={columns}
         dataSource={rows}
@@ -83,6 +94,16 @@ export default function FilterMenuGrid(props: FilterMenuGridProps) {
           setFilter(event.filter);
         }}
       />
+      {takeFilterLater && (
+        <button
+          type="button"
+          onClick={() => {
+            setTaken(filter ?? []);
+          }}
+        >
+          Take filter
+        </button>
+      )}
       <output data-testid="commands">{heard.join("; ")}</output>
       <output data-testid="filter">
         {filter === null ? "" : JSON.stringify(filter)}

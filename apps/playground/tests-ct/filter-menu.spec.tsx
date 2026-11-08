@@ -557,6 +557,23 @@ test.describe("the simple editor", () => {
     await expect(liveRegion(root)).toHaveText("");
   });
 
+  test("nor once a controlled filter takes it later", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(mount, <FilterMenuGrid takeFilterLater />);
+    const filterMenu = await openFromHeaderMenu(root, page, "Name");
+
+    await valueOf(filterMenu, 1).fill("li");
+    await page.keyboard.press("Enter");
+    await expect(filterMenu).toHaveCount(0);
+    expect(await names(root)).toEqual(["Charlie", "Alice", "Bravo"]);
+
+    await root.getByRole("button", { name: "Take filter" }).click();
+    expect(await names(root)).toEqual(["Charlie", "Alice"]);
+    await expect(liveRegion(root)).toHaveText("");
+  });
+
   test("Enter on a picker applies too", async ({ mount, page }) => {
     const root = await mountGrid(mount, <FilterMenuGrid />);
     const filterMenu = await openFromHeaderMenu(root, page, "Active");
