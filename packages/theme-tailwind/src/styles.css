@@ -101,22 +101,27 @@
 }
 
 /*
+ * The palette as Tailwind colours, prefixed so they never claim a name like
+ * `accent` or `surface` in the app's own theme: `bg-gridkit-accent`,
+ * `text-gridkit-fg-muted`.
+ *
  * `inline` is what makes the swap work. Without it Tailwind emits
- * `--color-surface: var(--gridkit-surface)` on `:root`, which resolves once
- * against the light values and is then inherited already-resolved — a
- * dark-mode switch further down the tree would have nothing left to
- * override. `inline` substitutes the var into each utility instead, so it
- * resolves at the element the class sits on.
+ * `--color-gridkit-surface: var(--gridkit-surface)` on `:root`, which
+ * resolves once against the light values and is then inherited
+ * already-resolved — a dark-mode switch further down the tree would have
+ * nothing left to override. `inline` substitutes the var into each utility
+ * instead, so it resolves at the element the class sits on.
  */
 @theme inline {
-  --color-surface: var(--gridkit-surface);
-  --color-surface-muted: var(--gridkit-surface-muted);
-  --color-line: var(--gridkit-line);
-  --color-fg: var(--gridkit-fg);
-  --color-fg-muted: var(--gridkit-fg-muted);
-  --color-accent: var(--gridkit-accent);
-  --color-selected: var(--gridkit-selected);
-  --color-selected-strong: var(--gridkit-selected-strong);
+  --color-gridkit-surface: var(--gridkit-surface);
+  --color-gridkit-surface-muted: var(--gridkit-surface-muted);
+  --color-gridkit-line: var(--gridkit-line);
+  --color-gridkit-hover-line: var(--gridkit-hover-line);
+  --color-gridkit-fg: var(--gridkit-fg);
+  --color-gridkit-fg-muted: var(--gridkit-fg-muted);
+  --color-gridkit-accent: var(--gridkit-accent);
+  --color-gridkit-selected: var(--gridkit-selected);
+  --color-gridkit-selected-strong: var(--gridkit-selected-strong);
 }
 
 /*
