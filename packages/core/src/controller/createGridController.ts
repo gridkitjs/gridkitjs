@@ -134,6 +134,38 @@ function definedColumns<Row, Node>(
   return NO_COLUMNS;
 }
 
+/**
+ * Several actions applied as one change — see `transaction` in
+ * `createGridController`. Its commits only store their value: `held` keeps
+ * their reports until it ends, and `pageAsked` records that it set the page
+ * itself.
+ */
+interface Transaction {
+  readonly kind: "transaction";
+  readonly held: (() => void)[];
+  pageAsked: boolean;
+}
+
+/**
+ * What the controller is doing: `idle`, each commit is refreshed, reported
+ * and announced on its own; or in a `Transaction`.
+ */
+type ControllerMode = { readonly kind: "idle" } | Transaction;
+
+const IDLE: ControllerMode = { kind: "idle" };
+
+function samePagingInputs<Row>(
+  a: PagingInputs<Row>,
+  b: PagingInputs<Row>,
+): boolean {
+  return (
+    a.filter === b.filter &&
+    a.columnSort === b.columnSort &&
+    a.groupBy === b.groupBy &&
+    a.paginationUnit === b.paginationUnit
+  );
+}
+
 function pagingInputsOf<Row>(
   state: GridState<Row>,
   options: GridOptions<Row>,
@@ -161,11 +193,7 @@ export function createGridController<Row, Node = string>(
   const listeners = new Set<() => void>();
   /** Slices already reported as given both ways, so each is reported once. */
   const reportedConflicts = new Set<SliceKey>();
-  /**
-   * While `restoreState` applies its slices, the callbacks they would fire,
-   * held back until every slice is in place.
-   */
-  let heldReports: (() => void)[] | undefined;
+  let mode: ControllerMode = IDLE;
 
   let state = resolveSlices();
   let pagingInputs = pagingInputsOf(state, options);
@@ -227,33 +255,43 @@ export function createGridController<Row, Node = string>(
 
   /**
    * Re-resolves every slice after a change, keeping the previous state object
-   * when none differs, so a snapshot read twice is the same object.
-   *
-   * Applies the one rule linking slices: a user on page 7 of a result that
+   * when none differs, so a snapshot read twice is the same object. For
+   * `keepPage`, see `followPagingInputs`.
+   */
+  function refresh(keepPage = false): void {
+    const next = followPagingInputs(resolveSlices(), keepPage);
+    state = SLICE_KEYS.every((key) => next[key] === state[key]) ? state : next;
+    storeShownPage();
+  }
+
+  /**
+   * The one rule linking slices: a user on page 7 of a result that
    * filtering, sorting or regrouping just shrank to 2 pages must not be left
    * on an empty page, so a change to any of the three, or to the unit a page
    * counts, sends an uncontrolled pagination back to the first page. It is a
    * consequence of that change, not a page change of its own, so it reports
    * nothing — the change that caused it already did. A controlled pagination
-   * is the caller's to reset.
+   * is the caller's to reset, and `keepPage` — a transaction that set the
+   * page itself — keeps the page asked for alongside the change.
    */
-  function refresh(): void {
-    let next = resolveSlices();
+  function followPagingInputs(
+    next: GridState<Row>,
+    keepPage: boolean,
+  ): GridState<Row> {
     const inputs = pagingInputsOf(next, options);
-    if (
-      inputs.filter !== pagingInputs.filter ||
-      inputs.columnSort !== pagingInputs.columnSort ||
-      inputs.groupBy !== pagingInputs.groupBy ||
-      inputs.paginationUnit !== pagingInputs.paginationUnit
-    ) {
-      pagingInputs = inputs;
-      if (!isControlled("pagination") && own.pagination.pageIndex !== 0) {
-        own.pagination = { ...own.pagination, pageIndex: 0 };
-        next = { ...next, pagination: own.pagination };
-      }
+    if (samePagingInputs(inputs, pagingInputs)) {
+      return next;
     }
-    state = SLICE_KEYS.every((key) => next[key] === state[key]) ? state : next;
-    storeShownPage();
+    pagingInputs = inputs;
+    if (
+      keepPage ||
+      isControlled("pagination") ||
+      own.pagination.pageIndex === 0
+    ) {
+      return next;
+    }
+    own.pagination = { ...own.pagination, pageIndex: 0 };
+    return { ...next, pagination: own.pagination };
   }
 
   /**
@@ -310,13 +348,46 @@ export function createGridController<Row, Node = string>(
     if (!isControlled(key)) {
       own[key] = next;
     }
-    if (heldReports !== undefined) {
-      heldReports.push(report);
+    if (mode.kind === "transaction") {
+      mode.held.push(report);
       return;
     }
     refresh();
     report();
     notify();
+  }
+
+  /**
+   * Runs `run` as one change: its commits are stored as they go, and only
+   * when it ends — returning or throwing — is the state refreshed, every
+   * held report fired in order and subscribers called once, so no one sees a
+   * state halfway through it, and one that throws part-way still shows and
+   * reports what it stored before rethrowing. A transaction started inside
+   * another joins it.
+   */
+  function transaction(run: () => void): void {
+    if (mode.kind === "transaction") {
+      run();
+      return;
+    }
+    const current: Transaction = {
+      kind: "transaction",
+      held: [],
+      pageAsked: false,
+    };
+    mode = current;
+    try {
+      run();
+    } finally {
+      mode = IDLE;
+      refresh(current.pageAsked);
+      for (const report of current.held) {
+        report();
+      }
+      if (current.held.length > 0) {
+        notify();
+      }
+    }
   }
 
   function getView(): GridView<Row, Node> {
@@ -427,12 +498,19 @@ export function createGridController<Row, Node = string>(
    * `goToPage` to the page shown — reports nothing.
    *
    * An uncontrolled grid reports the pagination it stored, which clamps a
-   * page past the last one. While `restoreState` holds its reports the view
-   * does not yet reflect the slices it restored, so the clamp waits for the
-   * `refresh` that ends the restore, and the report reads what it stored.
+   * page past the last one. Inside a transaction the view does not yet
+   * reflect the slices set before it, so the clamp waits for the `refresh`
+   * that ends the transaction, and the report reads what it stored. The page
+   * asked for there is kept over the transaction's other changes, even when
+   * it is the page already shown.
    */
   function commitPagination(asked: PaginationState): void {
-    const next = heldReports === undefined ? storedPagination(asked) : asked;
+    let next = asked;
+    if (mode.kind === "transaction") {
+      mode.pageAsked = true;
+    } else {
+      next = storedPagination(asked);
+    }
     if (samePagination(state.pagination, next)) {
       return;
     }
@@ -473,6 +551,7 @@ export function createGridController<Row, Node = string>(
     getOptions: () => options,
     getView,
     commit,
+    transaction,
   });
 
   const controller: GridController<Row, Node> = {
@@ -486,25 +565,9 @@ export function createGridController<Row, Node = string>(
     getState: () => state,
     getView,
     restoreState(saved) {
-      const reports: (() => void)[] = [];
-      heldReports = reports;
-      try {
+      transaction(() => {
         restoreSlices(saved);
-      } finally {
-        heldReports = undefined;
-      }
-      if (saved.pagination !== undefined) {
-        // Taken as already seen, so the sort, filter or grouping this same
-        // call restored does not send the restored page back to the first.
-        pagingInputs = pagingInputsOf(resolveSlices(), options);
-      }
-      refresh();
-      for (const report of reports) {
-        report();
-      }
-      if (reports.length > 0) {
-        notify();
-      }
+      });
     },
     subscribe(listener) {
       listeners.add(listener);

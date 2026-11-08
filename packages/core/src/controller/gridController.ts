@@ -112,6 +112,8 @@ export interface GridController<Row, Node = string> {
    * Subscribers are called once, after every slice is in place, and a
    * restored pagination is kept even when the same call changed the sort,
    * filter or grouping that would otherwise send it back to the first page.
+   * A slice that throws stops the restore there, after the slices before it
+   * are shown, reported and announced as above.
    */
   readonly restoreState: (
     saved: Partial<GridState<Row>> | Partial<SerializedGridState<Row>>,
@@ -197,12 +199,18 @@ export interface GridController<Row, Node = string> {
   /**
    * Applies one click or key press to a row: `"replace"`, `"toggle"` or
    * `"range"` from the last row selected by anything but a range, across
-   * the data rows on the current page.
+   * the data rows on the current page. That anchor goes when the selection is
+   * cleared or replaced, or its row leaves the page; a range without one
+   * selects just this row and anchors there.
    */
   readonly selectRow: (rowId: string, intent: SelectIntent) => void;
   /** Selects every data row on the current page, when `selectable.rows` is `"multiple"`. */
   readonly selectAllRows: () => void;
-  /** Lets go of every row, column and cell selection at once, as Escape does. */
+  /**
+   * Lets go of every row, column and cell selection at once, as Escape does:
+   * one change, so each selection that changes fires its callback and then
+   * subscribers are called once.
+   */
   readonly clearSelection: () => void;
   /** Replaces the selected column ids as given — see `setRowSelection`. */
   readonly setColumnSelection: (selection: SelectionState) => void;

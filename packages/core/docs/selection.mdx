@@ -26,6 +26,12 @@ These transforms are what a click, a <Kbd>Ctrl</Kbd>+click, and a <Kbd>Shift</Kb
 
 A grid's `selectable` option is a `SelectableConfig` — `{ rows?, columns?, cells?, toggleOnClick? }` — giving each `mode` above: `rows` and `columns` take a `SelectionMode`, `false`, `"single"` or `"multiple"`, and `cells` a `CellSelectionMode`, `false` or `"single"`. All are off by default. `toggleOnClick` makes a plain click on a row toggle it, as `intentOf`'s `{ toggleOnClick: true }` does.
 
+## The range anchor
+
+A <Kbd>Shift</Kbd>+click range runs from an anchor: `applySelectionIntent`'s `anchorId`. The [controller](/docs/core/controller) keeps one per axis, rows and columns: the last row or column selected by anything but a range, so repeated <Kbd>Shift</Kbd>+clicks redraw one span from the same place. A click while that axis can't be selected leaves the anchor where it was.
+
+The anchor goes with the selection it belonged to. `clearSelection()` (<Kbd>Escape</Kbd>), `setRowSelection` and `setColumnSelection`, and a `restoreState` that sets the axis's selection all let go of it. So does its row or column leaving what is on screen: paged away, filtered out, hidden in a collapsed group. A range with no anchor selects just the row or column clicked, and anchors there, so the next <Kbd>Shift</Kbd>+click extends from it.
+
 ## The same logic, in the React grid
 
 <CombinedSelectionExample />

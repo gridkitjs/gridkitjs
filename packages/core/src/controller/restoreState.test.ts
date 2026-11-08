@@ -7,6 +7,7 @@ import type {
   FilterState,
   GridState,
   PaginationChangeEvent,
+  SerializedFilterState,
   SerializedGridState,
 } from "../types";
 import { serializeGridState } from "../util/serialize";
@@ -278,6 +279,28 @@ describe("createGridController: restoreState", () => {
     });
 
     expect(seen[0]?.groupBy).toEqual([{ columnId: "Region" }]);
+  });
+
+  test("a restore that throws part-way keeps, reports and shows the slices it stored", () => {
+    const onColumnSortChange = vi.fn();
+    const listener = vi.fn();
+    const controller = create({ onColumnSortChange });
+    controller.subscribe(listener);
+    const corrupt = [null] as unknown as SerializedFilterState<SampleRow>;
+
+    expect(() => {
+      controller.restoreState({
+        columnSort: [{ columnId: "Amount", direction: "desc" }],
+        filter: corrupt,
+      });
+    }).toThrow(TypeError);
+
+    expect(controller.getState().columnSort).toEqual([
+      { columnId: "Amount", direction: "desc" },
+    ]);
+    expect(controller.getView().rows[0]?.rowId).toBe("5");
+    expect(onColumnSortChange).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledTimes(1);
   });
 
   test("a controlled slice is only asked", () => {

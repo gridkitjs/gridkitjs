@@ -261,6 +261,25 @@ describe("createGridController: sort", () => {
 
     expect(controller.getState().columnSort).toEqual([]);
   });
+
+  test("a slice released from control returns to its last uncontrolled value", () => {
+    const options: GridControllerOptions<SampleRow> = {
+      dataSource: data,
+      columns,
+    };
+    const controller = createGridController(options);
+    controller.toggleColumnSort("Amount");
+    const own = controller.getState().columnSort;
+
+    controller.setOptions({
+      ...options,
+      columnSort: [{ columnId: "Id", direction: "desc" }],
+    });
+    controller.toggleColumnSort("Region");
+    controller.setOptions(options);
+
+    expect(controller.getState().columnSort).toBe(own);
+  });
 });
 
 describe("createGridController: grouping", () => {
@@ -871,6 +890,37 @@ describe("createGridController: subscribers", () => {
     controller.toggleColumnSort("Amount");
 
     expect(seen).toEqual([[{ columnId: "Amount", direction: "asc" }]]);
+  });
+
+  test("are called once by clearSelection, after each changed slice's callback", () => {
+    const onRowSelectionChange = vi.fn();
+    const onColumnSelectionChange = vi.fn();
+    const onCellSelectionChange = vi.fn();
+    const controller = create({
+      defaultRowSelection: ["1"],
+      defaultColumnSelection: ["Id"],
+      defaultCellSelection: { rowId: "2", columnId: "Region" },
+      onRowSelectionChange,
+      onColumnSelectionChange,
+      onCellSelectionChange,
+    });
+    const seen: unknown[] = [];
+    controller.subscribe(() => {
+      seen.push(controller.getState());
+    });
+
+    controller.clearSelection();
+
+    expect(seen).toEqual([
+      expect.objectContaining({
+        rowSelection: [],
+        columnSelection: [],
+        cellSelection: null,
+      }),
+    ]);
+    expect(onRowSelectionChange).toHaveBeenCalledTimes(1);
+    expect(onColumnSelectionChange).toHaveBeenCalledTimes(1);
+    expect(onCellSelectionChange).toHaveBeenCalledTimes(1);
   });
 
   test("stop being called once unsubscribed", () => {
