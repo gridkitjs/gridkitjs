@@ -80,6 +80,12 @@ export interface ContextMenuApi {
    * that is not on screen, or whose menu is empty.
    */
   open: (target: GridContextMenuTarget, anchor?: OverlayAnchor) => boolean;
+  /**
+   * Where focus goes when the menu closes and the element it returns focus
+   * to has gone with what the menu did, as a header goes with its hidden
+   * column: the cell now holding the grid's tab stop.
+   */
+  returnFocusFallback: () => HTMLElement | null;
   /** Runs the item the user chose, reporting it if it ran, then closes the menu. */
   run: (item: ResolvedMenuItem) => void;
   close: () => void;
@@ -261,26 +267,6 @@ export default function useContextMenu<Row>({
     });
   }, [rootRef, enabled]);
 
-  /**
-   * The cell a menu returns focus to can go with what the menu did — a
-   * hidden column takes its header — and focus then falls to the page.
-   * It goes to the cell now holding the grid's tab stop instead.
-   */
-  const shown = useRef<OpenContextMenu | null>(null);
-  useLayoutEffect(() => {
-    const closed = shown.current;
-    shown.current = menu;
-    if (
-      menu === null &&
-      closed !== null &&
-      closed.cell !== null &&
-      !closed.cell.isConnected &&
-      document.activeElement === document.body
-    ) {
-      nav.focusTabStop();
-    }
-  });
-
   function close(): void {
     show(null);
   }
@@ -292,6 +278,7 @@ export default function useContextMenu<Row>({
       const place = placeOf(target, parts());
       return place !== null && openAt(place, anchor ?? null);
     },
+    returnFocusFallback: nav.tabStopCell,
     run: (item) => {
       const open = current.current;
       if (item.run() && open !== null) {

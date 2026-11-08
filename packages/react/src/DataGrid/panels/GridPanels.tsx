@@ -90,7 +90,7 @@ export default function GridPanels<Row>({
     commands.host.announce,
   );
   const columnValues = useFilterValueCache(controller, messages);
-  const { panel, close } = panels;
+  const { panel, close, returnFocusFallback } = panels;
   if (panel === null) {
     return null;
   }
@@ -103,6 +103,7 @@ export default function GridPanels<Row>({
       gap={panel.anchor instanceof Element ? ANCHOR_GAP : 0}
       initialFocus={initialFocus}
       returnFocusTo={panel.returnFocusTo}
+      returnFocusFallback={returnFocusFallback}
       // A column the chooser hides can scroll the grid back under it.
       ignoreScrollAfterInput
       trapFocus={trapFocus}

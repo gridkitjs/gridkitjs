@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useRef, useState, type RefObject } from "react";
 import type { GridCommandTarget, GridPanelKind } from "@gridkitjs/core";
 import type { OverlayAnchor, OverlayPlacement } from "@gridkitjs/dom";
 import { overlayThemeClassName } from "../overlay/Overlay";
@@ -33,6 +33,12 @@ export interface GridPanelsApi {
   /** Opens the panel `kind` beside where `target` names, in place of any panel open. */
   open: (kind: GridPanelKind, target: GridCommandTarget) => void;
   close: () => void;
+  /**
+   * Where focus goes when the panel closes and the header it returns focus
+   * to has gone with what it did, as the chooser hiding that very column
+   * takes it: the cell now holding the grid's tab stop.
+   */
+  returnFocusFallback: () => HTMLElement | null;
 }
 
 /** The element of the root's own toolbar whose `data-gridkit-toolbar-item` is `itemId`. */
@@ -109,24 +115,6 @@ export default function useGridPanels({
     };
   }
 
-  /**
-   * A header the panel returns focus to can go with what it did — the
-   * chooser hiding that very column — and focus then falls to the page. It
-   * goes to the cell now holding the grid's tab stop instead.
-   */
-  const shown = useRef<OpenPanel | null>(null);
-  useLayoutEffect(() => {
-    const closed = shown.current;
-    shown.current = panel;
-    if (
-      panel === null &&
-      closed?.returnFocusTo?.isConnected === false &&
-      document.activeElement === document.body
-    ) {
-      nav.focusTabStop();
-    }
-  });
-
   return {
     panel,
     open: (kind, target) => {
@@ -146,5 +134,6 @@ export default function useGridPanels({
     close: () => {
       setPanel(null);
     },
+    returnFocusFallback: nav.tabStopCell,
   };
 }
