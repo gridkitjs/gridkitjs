@@ -204,7 +204,11 @@ export interface GridController<Row, Node = string> {
   readonly selectRow: (rowId: string, intent: SelectIntent) => void;
   /** Selects every data row on the current page, when `selectable.rows` is `"multiple"`. */
   readonly selectAllRows: () => void;
-  /** Lets go of every row, column and cell selection at once, as Escape does. */
+  /**
+   * Lets go of every row, column and cell selection at once, as Escape does:
+   * one change, so each selection that changes fires its callback and then
+   * subscribers are called once.
+   */
   readonly clearSelection: () => void;
   /** Replaces the selected column ids as given — see `setRowSelection`. */
   readonly setColumnSelection: (selection: SelectionState) => void;

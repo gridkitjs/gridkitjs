@@ -551,6 +551,7 @@ export function createGridController<Row, Node = string>(
     getOptions: () => options,
     getView,
     commit,
+    transaction,
   });
 
   const controller: GridController<Row, Node> = {

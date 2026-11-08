@@ -34,6 +34,8 @@ export interface SelectionContext<Row, Node> {
     next: GridState<Row>[K],
     report: () => void,
   ) => void;
+  /** Runs several commits as one change — see `createGridController`. */
+  readonly transaction: (run: () => void) => void;
 }
 
 type SelectionActions<Row, Node> = Pick<
@@ -190,9 +192,11 @@ export function createSelectionActions<Row, Node>(
       );
     },
     clearSelection() {
-      commitRows(clearSelection(grid.getState().rowSelection));
-      commitColumns(clearSelection(grid.getState().columnSelection));
-      commitCell(null);
+      grid.transaction(() => {
+        commitRows(clearSelection(grid.getState().rowSelection));
+        commitColumns(clearSelection(grid.getState().columnSelection));
+        commitCell(null);
+      });
     },
 
     setColumnSelection(selection) {

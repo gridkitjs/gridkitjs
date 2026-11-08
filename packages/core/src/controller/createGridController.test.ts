@@ -873,6 +873,37 @@ describe("createGridController: subscribers", () => {
     expect(seen).toEqual([[{ columnId: "Amount", direction: "asc" }]]);
   });
 
+  test("are called once by clearSelection, after each changed slice's callback", () => {
+    const onRowSelectionChange = vi.fn();
+    const onColumnSelectionChange = vi.fn();
+    const onCellSelectionChange = vi.fn();
+    const controller = create({
+      defaultRowSelection: ["1"],
+      defaultColumnSelection: ["Id"],
+      defaultCellSelection: { rowId: "2", columnId: "Region" },
+      onRowSelectionChange,
+      onColumnSelectionChange,
+      onCellSelectionChange,
+    });
+    const seen: unknown[] = [];
+    controller.subscribe(() => {
+      seen.push(controller.getState());
+    });
+
+    controller.clearSelection();
+
+    expect(seen).toEqual([
+      expect.objectContaining({
+        rowSelection: [],
+        columnSelection: [],
+        cellSelection: null,
+      }),
+    ]);
+    expect(onRowSelectionChange).toHaveBeenCalledTimes(1);
+    expect(onColumnSelectionChange).toHaveBeenCalledTimes(1);
+    expect(onCellSelectionChange).toHaveBeenCalledTimes(1);
+  });
+
   test("stop being called once unsubscribed", () => {
     const controller = create();
     const listener = vi.fn();
