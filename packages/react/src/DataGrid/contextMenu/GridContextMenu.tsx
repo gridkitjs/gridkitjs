@@ -15,7 +15,7 @@ export default function GridContextMenu({
 }: {
   contextMenu: ContextMenuApi;
 }) {
-  const { menu, run, close } = contextMenu;
+  const { menu, returnFocusFallback, run, close } = contextMenu;
   if (menu === null) {
     return null;
   }
@@ -25,6 +25,7 @@ export default function GridContextMenu({
       anchor={menu.anchor}
       gap={menu.anchor instanceof Element ? ANCHOR_GAP : 0}
       returnFocusTo={menu.cell ?? undefined}
+      returnFocusFallback={returnFocusFallback}
       themeClassName={menu.themeClassName}
       onDismiss={close}
     >

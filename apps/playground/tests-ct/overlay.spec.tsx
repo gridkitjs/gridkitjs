@@ -145,6 +145,48 @@ test.describe("focus", () => {
     await expect(root.getByRole("button", { name: "Anchor" })).toBeFocused();
   });
 
+  test("returnFocusFallback takes focus when the anchor has left the page", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<OverlayHarness withFallback />);
+    const panel = await openPanel(root, page);
+
+    await panel.getByRole("button", { name: "Drop anchor" }).click();
+    await expect(root.getByRole("button", { name: "Anchor" })).toHaveCount(0);
+    await page.keyboard.press("Escape");
+
+    await expect(panel).toBeHidden();
+    await expect(root.getByRole("button", { name: "Fallback" })).toBeFocused();
+  });
+
+  test("returnFocusFallback is not used while the anchor is on the page", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<OverlayHarness withFallback />);
+    await openPanel(root, page);
+
+    await page.keyboard.press("Escape");
+
+    await expect(root.getByRole("button", { name: "Anchor" })).toBeFocused();
+  });
+
+  test("returnFocusFallback leaves focus that went elsewhere alone", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<OverlayHarness withFallback />);
+    const panel = await openPanel(root, page);
+
+    await panel.getByRole("button", { name: "Drop anchor" }).click();
+    await root.getByRole("button", { name: "Elsewhere" }).click();
+
+    await expect(panel).toBeHidden();
+    await expect(root.getByTestId("dismissed")).toHaveText("outside");
+    await expect(root.getByRole("button", { name: "Elsewhere" })).toBeFocused();
+  });
+
   test('initialFocus "first" focuses the first focusable element', async ({
     mount,
     page,

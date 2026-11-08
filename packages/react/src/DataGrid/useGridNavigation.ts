@@ -63,11 +63,11 @@ export interface GridNavigationApi {
    */
   focusCellNow: (rowIndex: number, columnIndex: number) => void;
   /**
-   * Moves the browser's focus to the cell holding the tab stop, as drawn now
-   * — for when the element focus was to go back to has gone, as a header
-   * does when a menu opened on it hides its column.
+   * The cell holding the tab stop, as drawn now, or `null` while its row is
+   * not drawn — where focus goes when the element it was to go back to has
+   * gone, as a header does when a menu opened on it hides its column.
    */
-  focusTabStop: () => void;
+  tabStopCell: () => HTMLElement | null;
   /** Handles the navigation keys, leaving every other key to bubble. */
   onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => void;
 }
@@ -153,14 +153,17 @@ export default function useGridNavigation({
       // followed now, and the drawing that redraws the stop has none left.
       gridFocus.focusDrawnCell(gridFocus.getFocus());
     },
-    focusTabStop: () => {
+    tabStopCell: () => {
+      // Read from the store rather than this render's `focus`: an overlay
+      // asks while the drawing that moved the stop is being committed.
+      const { rowIndex, columnIndex } = gridFocus.getFocus();
       const cells = (
-        focus.rowIndex === HEADER_ROW
+        rowIndex === HEADER_ROW
           ? rows.getHeaderRow()
-          : rows.getBodyRow(focus.rowIndex)
+          : rows.getBodyRow(rowIndex)
       )?.cells;
       // A group header's row has one cell, whatever column the stop is in.
-      cells?.[Math.min(focus.columnIndex, cells.length - 1)]?.focus();
+      return cells?.[Math.min(columnIndex, cells.length - 1)] ?? null;
     },
     onKeyDown: (event) => {
       if (

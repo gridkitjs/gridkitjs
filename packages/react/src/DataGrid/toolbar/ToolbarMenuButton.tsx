@@ -1,11 +1,10 @@
-import { useLayoutEffect, useRef, useState } from "react";
 import type { ResolvedMenuEntry, ToolbarItemAttributes } from "@gridkitjs/core";
-import type { AttachedMenu } from "@gridkitjs/dom";
 import { ariaAttr } from "../ariaAttr";
 import { classNames } from "../classNames";
 import GridMenu from "../menu/GridMenu";
 import { ChevronDownIcon, MenuIcon } from "../menu/menuIcons";
-import Overlay, { ANCHOR_GAP, overlayThemeClassName } from "../overlay/Overlay";
+import useMenuButton from "../menu/useMenuButton";
+import Overlay from "../overlay/Overlay";
 
 interface ToolbarMenuButtonProps {
   /** Its `data-gridkit-toolbar-item`. */
@@ -18,23 +17,13 @@ interface ToolbarMenuButtonProps {
   entries: readonly ResolvedMenuEntry[];
   /** The "More" button, holding the entries that do not fit, rather than a dropdown. */
   more?: boolean | undefined;
-  /** Its menu closed, however it did. */
-  onMenuClose: () => void;
-}
-
-/** The menu open below the button. */
-interface OpenMenu {
-  readonly anchor: HTMLElement;
-  readonly themeClassName: string;
-  /** The item it opens on: the first, or the last when ArrowUp opened it. */
-  readonly focusItem: number;
+  /** Where focus goes when the menu closes with its button gone. */
+  returnFocusFallback: () => HTMLElement | null;
 }
 
 /**
- * A toolbar button opening a menu below it, following the WAI-ARIA menu
- * button pattern: a click, Enter, Space or ArrowDown opens the menu with
- * focus on its first item, ArrowUp on its last, and a second click closes
- * it. Closing the menu returns focus to the button. What the items do, and
+ * A toolbar button opening a menu below it, as `useMenuButton` describes.
+ * Closing the menu returns focus to the button. What the items do, and
  * whether each runs, is in their `run`.
  */
 export default function ToolbarMenuButton({
@@ -44,33 +33,11 @@ export default function ToolbarMenuButton({
   icon,
   entries,
   more = false,
-  onMenuClose,
+  returnFocusFallback,
 }: ToolbarMenuButtonProps) {
-  const [menu, setMenu] = useState<OpenMenu | null>(null);
-  const menuBehaviourRef = useRef<AttachedMenu | null>(null);
-
-  // As the menu opens, after the overlay — a child, whose layout effect runs
-  // first — has focused the first item.
-  useLayoutEffect(() => {
-    if (menu !== null && menu.focusItem > 0) {
-      menuBehaviourRef.current?.focusItem(menu.focusItem);
-    }
-  }, [menu]);
-
-  function open(button: HTMLElement, onLast = false): void {
-    setMenu({
-      anchor: button,
-      themeClassName: overlayThemeClassName(button),
-      focusItem: onLast
-        ? entries.filter((entry) => entry.type !== "separator").length - 1
-        : 0,
-    });
-  }
-
-  function close(): void {
-    setMenu(null);
-    onMenuClose();
-  }
+  const { state, close, buttonProps, behaviourRef } = useMenuButton({
+    itemCount: entries.filter((entry) => entry.type !== "separator").length,
+  });
 
   return (
     <>
@@ -80,24 +47,7 @@ export default function ToolbarMenuButton({
         className={classNames("toolbar-button", more && "toolbar-more")}
         data-gridkit-toolbar-item={itemKey}
         {...ariaAttr(more, "data-gridkit-toolbar-more", "")}
-        aria-haspopup="menu"
-        aria-expanded={menu !== null}
-        onClick={(event) => {
-          if (menu === null) {
-            open(event.currentTarget);
-          } else {
-            close();
-          }
-        }}
-        onKeyDown={(event) => {
-          if (
-            (event.key === "ArrowDown" || event.key === "ArrowUp") &&
-            menu === null
-          ) {
-            event.preventDefault();
-            open(event.currentTarget, event.key === "ArrowUp");
-          }
-        }}
+        {...buttonProps}
       >
         {icon !== undefined && (
           <span className="toolbar-button-icon" aria-hidden="true">
@@ -109,20 +59,21 @@ export default function ToolbarMenuButton({
           <ChevronDownIcon />
         </span>
       </button>
-      {menu !== null && (
+      {state.kind === "open" && (
         <Overlay
-          anchor={menu.anchor}
+          anchor={state.anchor}
           placement="bottom-start"
-          gap={ANCHOR_GAP}
-          returnFocusTo={menu.anchor}
-          themeClassName={menu.themeClassName}
+          gap={state.gap}
+          returnFocusTo={state.anchor}
+          returnFocusFallback={returnFocusFallback}
+          themeClassName={state.themeClassName}
           onDismiss={close}
         >
           <GridMenu
             entries={entries}
             label={label}
-            themeClassName={menu.themeClassName}
-            behaviourRef={menuBehaviourRef}
+            themeClassName={state.themeClassName}
+            behaviourRef={behaviourRef}
             onRun={(item) => {
               item.run();
               close();

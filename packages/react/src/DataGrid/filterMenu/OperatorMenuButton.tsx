@@ -1,14 +1,14 @@
-import { useLayoutEffect, useRef, useState, type Ref } from "react";
+import type { Ref } from "react";
 import type {
   FilterOperator,
   GridMessages,
   ResolvedColumnFilterMenu,
   ResolvedMenuItem,
 } from "@gridkitjs/core";
-import type { AttachedMenu } from "@gridkitjs/dom";
 import GridMenu from "../menu/GridMenu";
 import { CheckIcon, ChevronRightIcon } from "../menu/menuIcons";
-import Overlay, { ANCHOR_GAP, overlayThemeClassName } from "../overlay/Overlay";
+import useMenuButton from "../menu/useMenuButton";
+import Overlay, { ANCHOR_GAP } from "../overlay/Overlay";
 
 interface OperatorMenuButtonProps {
   /** The column's filter menu: the operators listed, in its family's words. */
@@ -23,16 +23,6 @@ interface OperatorMenuButtonProps {
   /** An operator was chosen, and the menu has closed. */
   readonly onChoose: (operator: FilterOperator) => void;
   readonly ref: Ref<HTMLButtonElement>;
-}
-
-/** The menu open beside the button. */
-interface OpenMenu {
-  readonly anchor: HTMLElement;
-  readonly themeClassName: string;
-  /** How far from the button it opens — see `gapBeside`. */
-  readonly gap: number;
-  /** The item it opens on: the first, or the last when ArrowUp opened it. */
-  readonly focusItem: number;
 }
 
 /**
@@ -55,9 +45,8 @@ function gapBeside(button: HTMLElement): number {
  * The excel editor's "Number filters" button, opening a menu of the
  * conditions the column offers — a `GridMenu` in an overlay of its own,
  * stacked above the filter menu, so Escape closes it alone and a click in
- * it leaves the filter menu open. It follows the WAI-ARIA menu button
- * pattern: a click, Enter, Space or ArrowDown opens the menu on its first
- * item, ArrowUp on its last, and closing it returns focus to the button.
+ * it leaves the filter menu open. It is a menu button as `useMenuButton`
+ * describes, and closing its menu returns focus to it.
  *
  * While the column is filtered by conditions, its operators are checked in
  * the menu, and the button carries a tick, as Excel's does.
@@ -69,30 +58,11 @@ export default function OperatorMenuButton({
   onChoose,
   ref,
 }: OperatorMenuButtonProps) {
-  const [open, setOpen] = useState<OpenMenu | null>(null);
-  const menuBehaviourRef = useRef<AttachedMenu | null>(null);
+  const { state, close, buttonProps, behaviourRef } = useMenuButton({
+    itemCount: menu.operators.length,
+    gap: gapBeside,
+  });
   const label = messages.filterOperatorMenu(menu.family);
-
-  // As the menu opens, after the overlay — a child, whose layout effect runs
-  // first — has focused the first item.
-  useLayoutEffect(() => {
-    if (open !== null && open.focusItem > 0) {
-      menuBehaviourRef.current?.focusItem(open.focusItem);
-    }
-  }, [open]);
-
-  function show(button: HTMLElement, onLast = false): void {
-    setOpen({
-      anchor: button,
-      themeClassName: overlayThemeClassName(button),
-      gap: gapBeside(button),
-      focusItem: onLast ? menu.operators.length - 1 : 0,
-    });
-  }
-
-  function close(): void {
-    setOpen(null);
-  }
 
   const entries = menu.operators.map((operator): ResolvedMenuItem => ({
     type: "item",
@@ -113,24 +83,7 @@ export default function OperatorMenuButton({
         ref={ref}
         type="button"
         className="filter-menu-submenu"
-        aria-haspopup="menu"
-        aria-expanded={open !== null}
-        onClick={(event) => {
-          if (open === null) {
-            show(event.currentTarget);
-          } else {
-            close();
-          }
-        }}
-        onKeyDown={(event) => {
-          if (
-            (event.key === "ArrowDown" || event.key === "ArrowUp") &&
-            open === null
-          ) {
-            event.preventDefault();
-            show(event.currentTarget, event.key === "ArrowUp");
-          }
-        }}
+        {...buttonProps}
       >
         <span className="filter-menu-submenu-icon" aria-hidden="true">
           {active !== undefined && <CheckIcon />}
@@ -140,20 +93,20 @@ export default function OperatorMenuButton({
           <ChevronRightIcon />
         </span>
       </button>
-      {open !== null && (
+      {state.kind === "open" && (
         <Overlay
-          anchor={open.anchor}
+          anchor={state.anchor}
           placement="right-start"
-          gap={open.gap}
-          returnFocusTo={open.anchor}
-          themeClassName={open.themeClassName}
+          gap={state.gap}
+          returnFocusTo={state.anchor}
+          themeClassName={state.themeClassName}
           onDismiss={close}
         >
           <GridMenu
             entries={entries}
             label={label}
-            themeClassName={open.themeClassName}
-            behaviourRef={menuBehaviourRef}
+            themeClassName={state.themeClassName}
+            behaviourRef={behaviourRef}
             onRun={(item) => {
               item.run();
             }}

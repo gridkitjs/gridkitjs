@@ -1,8 +1,8 @@
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
-  useState,
   type RefObject,
 } from "react";
 import {
@@ -24,6 +24,7 @@ import {
 } from "@gridkitjs/dom";
 import type { GridCommandsApi } from "../commands/useGridCommands";
 import { overlayThemeClassName } from "../overlay/Overlay";
+import type { GridOverlayApi } from "../overlay/useGridOverlay";
 import type { DataGridController } from "../useGridController";
 import type { GridNavigationApi } from "../useGridNavigation";
 import type { GridSelectionApi } from "../useGridSelection";
@@ -42,7 +43,8 @@ interface UseContextMenuOptions<Row> {
   /** The body's scrolling region, whose empty space is the `body` area. */
   bodyScrollRef: RefObject<HTMLElement | null>;
   contextMenu: GridOptions<Row>["contextMenu"];
-  onContextMenuOpenChange: GridOptions<Row>["onContextMenuOpenChange"];
+  /** The grid's one open overlay, the menu among them. */
+  overlay: GridOverlayApi;
   controller: DataGridController<Row>;
   commands: GridCommandsApi<Row>;
   nav: GridNavigationApi;
@@ -80,6 +82,8 @@ export interface ContextMenuApi {
    * that is not on screen, or whose menu is empty.
    */
   open: (target: GridContextMenuTarget, anchor?: OverlayAnchor) => boolean;
+  /** See `GridOverlayApi`. */
+  returnFocusFallback: () => HTMLElement | null;
   /** Runs the item the user chose, reporting it if it ran, then closes the menu. */
   run: (item: ResolvedMenuItem) => void;
   close: () => void;
@@ -89,8 +93,9 @@ export interface ContextMenuApi {
  * The grid's context menu. `@gridkitjs/dom`'s trigger reports a right-click,
  * Shift+F10 or the ContextMenu key inside the grid, and the ref can ask for
  * one too; the `contextMenu` option and `@gridkitjs/core`'s `resolveMenu`
- * say what menu that place has; this holds which one is open, tells
- * `onContextMenuOpenChange`, and does what opening it means in the grid.
+ * say what menu that place has; this opens it as the grid's one overlay
+ * (see `useGridOverlay`, which tells `onContextMenuOpenChange`) and does
+ * what opening it means in the grid.
  *
  * Opening one on a column, row or cell that is not selected selects it
  * first, where that kind is selectable, as a click on it would — opening one
@@ -104,7 +109,7 @@ export default function useContextMenu<Row>({
   bodyTableRef,
   bodyScrollRef,
   contextMenu,
-  onContextMenuOpenChange,
+  overlay,
   controller,
   commands,
   nav,
@@ -112,9 +117,7 @@ export default function useContextMenu<Row>({
   messages,
   columnName,
 }: UseContextMenuOptions<Row>): ContextMenuApi {
-  const [menu, setMenu] = useState<OpenContextMenu | null>(null);
-  /** The menu open as of the last change, ahead of the render that draws it. */
-  const current = useRef<OpenContextMenu | null>(null);
+  const { drawn, close: closeOverlay } = overlay;
   const openings = useRef(0);
   const enabled = contextMenu !== undefined && contextMenu !== false;
 
@@ -189,25 +192,6 @@ export default function useContextMenu<Row>({
     });
   }
 
-  /**
-   * Shows `next` in place of the menu open, or closes it with `null`, and
-   * tells `onContextMenuOpenChange` — the one closing first.
-   */
-  function show(next: OpenContextMenu | null): void {
-    const previous = current.current;
-    if (previous === next) {
-      return;
-    }
-    current.current = next;
-    setMenu(next);
-    if (previous !== null) {
-      onContextMenuOpenChange?.({ open: false, target: previous.target });
-    }
-    if (next !== null) {
-      onContextMenuOpenChange?.({ open: true, target: next.target });
-    }
-  }
-
   function openAt(
     { target, cell, anchor }: ContextMenuPlace,
     point: OverlayAnchor | null,
@@ -228,14 +212,17 @@ export default function useContextMenu<Row>({
       nav.focusCellNow(cell.rowIndex, cell.columnIndex);
     }
     openings.current += 1;
-    show({
-      key: openings.current,
-      target,
-      entries: resolved,
-      label: labelOf(target),
-      anchor: point ?? anchor,
-      cell: cell?.element ?? null,
-      themeClassName: overlayThemeClassName(rootRef.current),
+    overlay.open({
+      kind: "contextMenu",
+      menu: {
+        key: openings.current,
+        target,
+        entries: resolved,
+        label: labelOf(target),
+        anchor: point ?? anchor,
+        cell: cell?.element ?? null,
+        themeClassName: overlayThemeClassName(rootRef.current),
+      },
     });
     return true;
   }
@@ -261,42 +248,28 @@ export default function useContextMenu<Row>({
     });
   }, [rootRef, enabled]);
 
-  /**
-   * The cell a menu returns focus to can go with what the menu did — a
-   * hidden column takes its header — and focus then falls to the page.
-   * It goes to the cell now holding the grid's tab stop instead.
-   */
-  const shown = useRef<OpenContextMenu | null>(null);
-  useLayoutEffect(() => {
-    const closed = shown.current;
-    shown.current = menu;
-    if (
-      menu === null &&
-      closed !== null &&
-      closed.cell !== null &&
-      !closed.cell.isConnected &&
-      document.activeElement === document.body
-    ) {
-      nav.focusTabStop();
-    }
-  });
+  const close = useCallback(() => {
+    closeOverlay("contextMenu");
+  }, [closeOverlay]);
 
-  function close(): void {
-    show(null);
-  }
+  // A menu open as `contextMenu` turns off, or as the grid unmounts, closes
+  // with it.
+  useEffect(() => (enabled ? close : undefined), [enabled, close]);
 
   return {
-    menu,
+    menu: drawn.kind === "contextMenu" ? drawn.menu : null,
     opens: (area) => hasContextMenu(contextMenu, area),
     open: (target, anchor) => {
       const place = placeOf(target, parts());
       return place !== null && openAt(place, anchor ?? null);
     },
+    returnFocusFallback: overlay.returnFocusFallback,
     run: (item) => {
-      const open = current.current;
-      if (item.run() && open !== null) {
-        commands.report(item.id, open.target, "contextMenu");
+      const open = overlay.current();
+      if (item.run() && open.kind === "contextMenu") {
+        commands.report(item.id, open.menu.target, "contextMenu");
       }
+      // A panel the item opened has replaced the menu already, and stays.
       close();
     },
     close,

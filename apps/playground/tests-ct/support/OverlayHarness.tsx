@@ -26,6 +26,8 @@ export interface OverlayHarnessProps {
   initialFocus?: "first" | "panel" | "none" | "open-child" | undefined;
   /** Passed as `trapFocus` to both the panel and the child above it. */
   trapFocus?: boolean | undefined;
+  /** Gives the panel a `returnFocusFallback` naming the "Fallback" button. */
+  withFallback?: boolean | undefined;
 }
 
 /**
@@ -43,7 +45,8 @@ export interface OverlayHarnessProps {
  * panel, so closing the panel leaves the child to the overlay stack to close.
  * A page-level Escape listener counts the Escapes that reach the page.
  * "Shrink" halves the panel's height, for its re-placement, and "Drop anchor"
- * takes the anchor out of the page while the panel stays open.
+ * takes the anchor out of the page while the panel stays open. "Fallback"
+ * is where focus goes back to, with `withFallback`, once the anchor is gone.
  */
 export default function OverlayHarness({
   anchorStyle,
@@ -52,8 +55,10 @@ export default function OverlayHarness({
   point,
   initialFocus,
   trapFocus,
+  withFallback,
 }: OverlayHarnessProps) {
   const anchorRef = useRef<HTMLButtonElement>(null);
+  const fallbackRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const childAnchorRef = useRef<HTMLButtonElement>(null);
   const childRef = useRef<HTMLDivElement>(null);
@@ -90,12 +95,14 @@ export default function OverlayHarness({
       gap,
       initialFocus: initialFocus === "open-child" ? childAnchor : initialFocus,
       trapFocus,
+      returnFocusFallback:
+        withFallback === true ? () => fallbackRef.current : undefined,
       onDismiss: (reason) => {
         setDismissed(reason);
         setOpen(false);
       },
     });
-  }, [open, point, placement, gap, initialFocus, trapFocus]);
+  }, [open, point, placement, gap, initialFocus, trapFocus, withFallback]);
 
   useLayoutEffect(() => {
     const anchor = childAnchorRef.current;
@@ -129,6 +136,9 @@ export default function OverlayHarness({
         </button>
       )}
       <button type="button">Elsewhere</button>
+      <button ref={fallbackRef} type="button">
+        Fallback
+      </button>
       <div data-testid="scroller" style={{ height: 40, overflow: "auto" }}>
         <div style={{ height: 400 }} />
       </div>

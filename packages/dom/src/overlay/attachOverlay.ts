@@ -45,9 +45,19 @@ export interface OverlayOptions extends OverlayPlacementOptions {
   readonly initialFocus?: OverlayInitialFocus | undefined;
   /**
    * Where focus goes when the overlay detaches. Defaults to the element that
-   * had focus when it attached; `null` leaves focus alone.
+   * had focus when it attached; `null` leaves focus alone, unless
+   * `returnFocusFallback` names somewhere.
    */
   readonly returnFocusTo?: HTMLElement | null | undefined;
+  /**
+   * Where focus goes when there is nothing to return it to as the overlay
+   * detaches: `returnFocusTo` is `null`, or has left the page — the button a
+   * menu opened from, taken away by what the menu ran. Called then, so it
+   * can name what is on the page by that time; returning `null` leaves focus
+   * alone. Like the return itself, it applies only while focus is still in
+   * the panel, in an overlay above it, or nowhere.
+   */
+  readonly returnFocusFallback?: (() => HTMLElement | null) | undefined;
   /**
    * Whether a scroll outside the panel just after input inside it — an
    * `input` or `change` event, in the two animation frames that follow it —
@@ -151,6 +161,8 @@ function initialFocusTarget(
  * Detaching removes every listener and returns focus, but only when focus is
  * still in the panel, in an overlay above it, or nowhere — a click that
  * dismissed it by landing on another control leaves focus on that control.
+ * Focus goes to `returnFocusFallback` instead when the element it would
+ * return to has left the page.
  * Any overlay still above it is dismissed with `"parent"` and detached first.
  */
 export function attachOverlay(
@@ -365,9 +377,14 @@ export function attachOverlay(
       cancelAnimationFrame(settlingFrame);
     }
 
-    if (returnFocusTo !== null && focusInside) {
-      returnFocusTo.focus({ preventScroll: true });
+    if (!focusInside) {
+      return;
     }
+    const target =
+      returnFocusTo?.isConnected === true
+        ? returnFocusTo
+        : options.returnFocusFallback?.();
+    target?.focus({ preventScroll: true });
   }
   return detach;
 }

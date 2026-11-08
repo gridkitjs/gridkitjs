@@ -6,14 +6,15 @@ import type { GridPanelsApi } from "./useGridPanels";
 export interface GridPanelApi {
   /**
    * Opens the column chooser at the grid's top-end corner, in place of any
-   * panel open; it gives focus back to what had it when it closes.
+   * panel or context menu open; it gives focus back to what had it when it
+   * closes.
    */
   openColumnChooser(): void;
   /**
    * Opens the filter menu of the column `columnId` below its header, in
-   * place of any panel open, and says whether it opened: not for a column
-   * with no filter menu, nor one not shown. It gives focus back to the
-   * header when it closes.
+   * place of any panel or context menu open, and says whether it opened:
+   * not for a column with no filter menu, nor one not shown. It gives focus
+   * back to the header when it closes.
    */
   openFilterMenu(columnId: string): boolean;
   /** Closes the filter menu, if one is open, leaving any other panel open. */
@@ -43,7 +44,7 @@ export function panelApi<Row>(
       return true;
     },
     closeFilterMenu: () => {
-      if (panels.panel?.kind === "filter") {
+      if (panels.current()?.kind === "filter") {
         panels.close();
       }
     },

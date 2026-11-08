@@ -27,6 +27,7 @@ const detach = attachOverlay(headerCell, menuElement, {
 | `onDismiss`              | `(reason) => void`                                          | Called with the reason the overlay asks to close (below); the caller closes the panel, or not.                 |
 | `initialFocus`           | `"first"`, `"panel"`, `"none"` or an `HTMLElement`          | Where focus goes on attaching (below). Defaults to `"first"`.                                                  |
 | `returnFocusTo`          | `HTMLElement \| null`                                       | Where focus goes on detach. Defaults to the element focused when the overlay attached; `null` leaves it alone. |
+| `returnFocusFallback`    | `() => HTMLElement \| null`                                 | Where focus goes on detach when `returnFocusTo` is `null` or has left the page ([below](#returning-focus)).    |
 | `ignoreScrollAfterInput` | `boolean`                                                   | Whether a scroll just after input in the panel leaves it open (below). Defaults to `false`.                    |
 | `trapFocus`              | `boolean`                                                   | Whether <Kbd>Tab</Kbd> cycles inside the panel ([below](#focus-trap)). Defaults to `false`.                    |
 
@@ -49,7 +50,21 @@ It asks to close with one of these reasons. Nothing on the anchor counts, so a b
 
 A panel whose controls change the page under it passes `ignoreScrollAfterInput`, so that what its own controls cause does not close it: a column chooser hiding a column narrows a grid scrolled to its end, and the browser scrolls that grid back within its narrower content. A scroll the user makes outside the panel still closes it.
 
+### Returning focus
+
 Detaching returns focus only while focus is still in the panel, in an overlay above it, or nowhere — after a click on another control, focus stays there.
+
+What focus would return to can leave the page while the panel is open, as a menu button does when an item in its menu hides it, and focus would then fall to the page. `returnFocusFallback` names somewhere else for it to go. It is called as the overlay detaches, so it can look for what is on the page by then (a toolbar's tab stop, the cell a grid would focus), and it is used only when `returnFocusTo` is `null` or out of the page. Returning `null` leaves focus alone.
+
+```ts
+import { attachOverlay } from "@gridkitjs/dom";
+
+const detach = attachOverlay(menuButton, menuElement, {
+  onDismiss: () => closeMenu(),
+  returnFocusFallback: () =>
+    toolbar.querySelector<HTMLElement>('[tabindex="0"]'),
+});
+```
 
 ### Focus trap
 
@@ -104,22 +119,22 @@ An event something already prevented is left alone, so a cell template with a me
 
 ## Types
 
-| Type                        | Description                                                                                                                                                                                           |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `OverlayOptions`            | The last argument of `attachOverlay`: the `OverlayPlacementOptions` plus `onDismiss`, `initialFocus`, `returnFocusTo`, `ignoreScrollAfterInput` and `trapFocus`, as tabled under [overlay](#overlay). |
-| `OverlayAnchor`             | What an overlay opens beside: an `Element`, or a `{ x, y }` point in viewport coordinates.                                                                                                            |
-| `OverlayInitialFocus`       | `"first"`, `"panel"`, `"none"` or an `HTMLElement`: where focus goes on attaching.                                                                                                                    |
-| `OverlayDismissReason`      | `"escape"`, `"outside"`, `"scroll"`, `"resize"`, `"blur"` or `"parent"`, each tabled under [overlay](#overlay).                                                                                       |
-| `OverlayPlacementOptions`   | `{ placement?, gap?, offset? }`, shared by `attachOverlay` and `placeOverlay`.                                                                                                                        |
-| `OverlayPlacement`          | A side and an alignment joined by a dash: `"bottom-start"`, `"top-end"`, `"right-start"` and the other five.                                                                                          |
-| `OverlaySide`               | `"top"`, `"bottom"`, `"left"` or `"right"`.                                                                                                                                                           |
-| `OverlayAlign`              | `"start"` or `"end"`: which edge of the anchor the panel lines up with.                                                                                                                               |
-| `OverlayRect`               | `{ top, left, width, height }`: the anchor's box for `placeOverlay`, in viewport coordinates. A point is a box with no width or height.                                                               |
-| `OverlaySize`               | `{ width, height }`: the panel's size, and the viewport's.                                                                                                                                            |
-| `OverlayPosition`           | `{ top, left, placement }`, what `placeOverlay` returns, with the placement the panel ended up with.                                                                                                  |
-| `ContextMenuTriggerOptions` | `{ onRequest }`, the last argument of `attachContextMenuTrigger`.                                                                                                                                     |
-| `ContextMenuRequest`        | `{ target, point, source }`, tabled under [context menu trigger](#context-menu-trigger).                                                                                                              |
-| `ContextMenuSource`         | `"pointer"` for a right-click or a long-press, `"keyboard"` for a key.                                                                                                                                |
+| Type                        | Description                                                                                                                                                                                                                  |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OverlayOptions`            | The last argument of `attachOverlay`: the `OverlayPlacementOptions` plus `onDismiss`, `initialFocus`, `returnFocusTo`, `returnFocusFallback`, `ignoreScrollAfterInput` and `trapFocus`, as tabled under [overlay](#overlay). |
+| `OverlayAnchor`             | What an overlay opens beside: an `Element`, or a `{ x, y }` point in viewport coordinates.                                                                                                                                   |
+| `OverlayInitialFocus`       | `"first"`, `"panel"`, `"none"` or an `HTMLElement`: where focus goes on attaching.                                                                                                                                           |
+| `OverlayDismissReason`      | `"escape"`, `"outside"`, `"scroll"`, `"resize"`, `"blur"` or `"parent"`, each tabled under [overlay](#overlay).                                                                                                              |
+| `OverlayPlacementOptions`   | `{ placement?, gap?, offset? }`, shared by `attachOverlay` and `placeOverlay`.                                                                                                                                               |
+| `OverlayPlacement`          | A side and an alignment joined by a dash: `"bottom-start"`, `"top-end"`, `"right-start"` and the other five.                                                                                                                 |
+| `OverlaySide`               | `"top"`, `"bottom"`, `"left"` or `"right"`.                                                                                                                                                                                  |
+| `OverlayAlign`              | `"start"` or `"end"`: which edge of the anchor the panel lines up with.                                                                                                                                                      |
+| `OverlayRect`               | `{ top, left, width, height }`: the anchor's box for `placeOverlay`, in viewport coordinates. A point is a box with no width or height.                                                                                      |
+| `OverlaySize`               | `{ width, height }`: the panel's size, and the viewport's.                                                                                                                                                                   |
+| `OverlayPosition`           | `{ top, left, placement }`, what `placeOverlay` returns, with the placement the panel ended up with.                                                                                                                         |
+| `ContextMenuTriggerOptions` | `{ onRequest }`, the last argument of `attachContextMenuTrigger`.                                                                                                                                                            |
+| `ContextMenuRequest`        | `{ target, point, source }`, tabled under [context menu trigger](#context-menu-trigger).                                                                                                                                     |
+| `ContextMenuSource`         | `"pointer"` for a right-click or a long-press, `"keyboard"` for a key.                                                                                                                                                       |
 
 ## See also
 

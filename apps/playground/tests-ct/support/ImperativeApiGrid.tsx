@@ -46,7 +46,7 @@ export interface ImperativeApiGridProps<Row extends RowWithId> extends Omit<
   /** The command `run-command` runs, and where; `{ area: "grid" }` when left out. */
   commandId?: string;
   commandTarget?: GridCommandTarget;
-  /** The column `open-filter-menu` opens the filter menu of. */
+  /** The column `open-filter-menu` and `filter-menu-in-and-out` open the filter menu of. */
   filterMenuColumnId?: string;
 }
 
@@ -353,6 +353,18 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         }}
       >
         close-filter-menu
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          const api = gridRef.current;
+          if (api !== null && filterMenuColumnId !== undefined) {
+            api.openFilterMenu(filterMenuColumnId);
+            api.closeFilterMenu();
+          }
+        }}
+      >
+        filter-menu-in-and-out
       </button>
       <button
         type="button"
