@@ -1,5 +1,19 @@
 # @gridkitjs/core
 
+## 0.16.0
+
+### Minor Changes
+
+- 04748e4: A command can say it did not run after all. `GridCommand.execute` may return `false`, and `runCommand` then returns `false`, so a renderer does not report it to `onCommand`. `GridCommandHost.saveFile` may return `false` for a file it drops unsaved, and the built-in export commands pass that on. Both still accept members that return nothing, so existing commands and hosts work unchanged.
+- 0e66a82: New `filterDraftChanged(opened, draft)` tells whether a `FilterEditorDraft` changes anything since its editor opened, compared by value: a value unchecked and checked again, or the same conditions set again, is no change. An editor can close on Apply without calling `draftToFilter` when it returns `false`, so an untouched editor over a filter set in code leaves that filter as it is.
+- 04748e4: New message `printFailed`, "Print failed", for a renderer to announce when the browser fails to print. A complete `GridMessages` object of your own needs the new key; a partial `messages` option does not.
+
+### Patch Changes
+
+- 071c1b7: `clearSelection` clears rows, columns and the cell as one change: subscribers are called once, after every selection callback, rather than once per selection with the half-cleared states in between.
+- 071c1b7: `restoreState` given a saved state it can't read, such as a corrupted filter, still throws, but no longer leaves the grid half-restored: the slices set before the error now show in `getState()` and the view, fire their callbacks and call subscribers once before the error reaches the caller.
+- 071c1b7: A Shift-click range no longer starts from a row or column that is no longer selected or no longer on screen. After `clearSelection` (Escape), `setRowSelection`, `setColumnSelection` or a `restoreState` that sets the selection, a Shift-click selected the range from the last row clicked before; it now selects just the row clicked. After paging, filtering or collapsing the last row clicked out of sight, a Shift-click did nothing; it now selects the row clicked. Either way the next Shift-click extends from there. A click while `selectable` turns the axis off no longer moves the anchor either.
+
 ## 0.15.0
 
 ### Minor Changes
