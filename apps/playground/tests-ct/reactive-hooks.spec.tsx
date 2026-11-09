@@ -132,13 +132,13 @@ test("useGroupByState's expandAllGroups/collapseAllGroups and useSelectionState'
     .getByRole("button", { name: "reactive-collapse-all-groups" })
     .click();
   let status = await readReactiveStatus(root);
-  expect(status.groupExpansion.length).toBeGreaterThan(0);
+  expect(status.groupExpansion).toEqual({ mode: "allCollapsed", except: [] });
 
   await root
     .getByRole("button", { name: "reactive-expand-all-groups" })
     .click();
   status = await readReactiveStatus(root);
-  expect(status.groupExpansion).toEqual([]);
+  expect(status.groupExpansion).toEqual({ mode: "allExpanded", except: [] });
 
   await root.getByRole("button", { name: "reactive-select-all-rows" }).click();
   status = await readReactiveStatus(root);

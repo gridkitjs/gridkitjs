@@ -197,7 +197,7 @@ test.describe("printing the grid", () => {
         rowCount={6}
         toolbar={{ items: ["print"] }}
         defaultGroupBy={[{ columnId: "region" }]}
-        defaultGroupExpansion={['["East"]']}
+        defaultGroupExpansion={{ mode: "allExpanded", except: ['["East"]'] }}
       />,
     );
     await expect(

@@ -111,7 +111,7 @@ test("a collapsed group still shows its correct subtotal", async ({
       dataSource={buildRows()}
       label="Collapsed group subtotal"
       defaultGroupBy={[{ columnId: "region" }]}
-      defaultGroupExpansion={['["East"]']}
+      defaultGroupExpansion={{ mode: "allExpanded", except: ['["East"]'] }}
       aggregates={aggregates}
     />,
   );
@@ -232,7 +232,7 @@ test.describe('groupAggregateDisplay: "row"', () => {
         dataSource={buildRows()}
         label="Collapsed row display"
         defaultGroupBy={[{ columnId: "region" }]}
-        defaultGroupExpansion={['["East"]']}
+        defaultGroupExpansion={{ mode: "allExpanded", except: ['["East"]'] }}
         aggregates={aggregates}
         groupAggregateDisplay="row"
       />,

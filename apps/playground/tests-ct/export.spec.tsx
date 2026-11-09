@@ -193,7 +193,7 @@ test.describe("the toolbar's Export dropdown", () => {
       <ExportGrid
         toolbar={{ items: ["export"] }}
         defaultGroupBy={[{ columnId: "region" }]}
-        defaultGroupExpansion={['["East"]']}
+        defaultGroupExpansion={{ mode: "allExpanded", except: ['["East"]'] }}
       />,
     );
     await expect(root.getByRole("gridcell", { name: "Bravo" })).toHaveCount(0);
