@@ -113,6 +113,45 @@ test('releasing the pointer fires one final onColumnResize with phase "end"', as
   await expect.poll(() => events.at(-1)?.phase).toBe("end");
 });
 
+test("a drag back to the start width still ends, while a click on the handle reports nothing", async ({
+  mount,
+  page,
+}) => {
+  const events: ColumnResizeEvent[] = [];
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Resize out and back"
+      resizableColumns
+      resizeMode="fixed"
+      onColumnResize={(event) => {
+        events.push(event);
+      }}
+    />,
+  );
+  const handle = headerHandle(root, 0);
+  const box = await handle.boundingBox();
+  if (box === null) {
+    throw new Error("resize handle is not visible");
+  }
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+
+  const start = await pointerDragStart(page, handle);
+  await page.mouse.move(start.x + 30, start.y);
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.up();
+
+  // Events cross the CT bridge in order, so a click that reported anything
+  // would show ahead of the drag's first move.
+  await expect.poll(() => events.at(-1)?.phase).toBe("end");
+  expect(events[0]?.phase).toBe("move");
+  expect(events.filter((event) => event.phase === "end")).toEqual([
+    expect.objectContaining({ columnId: "id", width: 80 }),
+  ]);
+});
+
 test("a right-button drag on a resize handle does not resize the column", async ({
   mount,
   page,

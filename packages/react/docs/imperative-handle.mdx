@@ -110,7 +110,9 @@ Every getter reads the grid's state at the moment it is called, so a read straig
 
 `options` on `scrollToRow`/`scrollToColumn` is a standard
 [`ScrollIntoViewOptions`](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView),
-passed straight through.
+passed straight through. Under [`virtualized`](/docs/react/row-virtualization#turning-virtualized-on-and-off),
+`scrollToRow` reaches a row that is not mounted, and works from the commit
+that turns `virtualized` on.
 
 ## Setting and restoring state
 

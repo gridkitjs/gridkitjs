@@ -9,13 +9,13 @@ Building a filter editor of your own? `@gridkitjs/core` has the headless model b
 
 ## The five ways to match
 
-A `FilterState<Row>` is an array of `FilterEntry<Row>`, ANDed together — a row has to satisfy every entry to stay. Each entry is one of five kinds:
+A `FilterState<Row>` is an array of `FilterEntry<Row>`, ANDed together — a row has to satisfy every entry to stay. Each entry is one of five kinds, named by its `kind`:
 
-- **`TextFilterEntry`** — `{ columnId?, query }`. SQL LIKE-style with `%`: a bare query is an exact match, `%text%` is contains, `text%` is starts-with, `%text` is ends-with. Always case-insensitive. Every value is stringified before matching.
-- **`ValueFilterEntry`** — `{ columnId?, value }`. Strict equality against a column's actual `number`, `boolean`, or `Date` value — only when the column's own `type` agrees. A `number` value never matches a `string` column, even one that happens to display the same digits.
-- **`OperatorFilterEntry`** — `{ columnId, operator, value? }`. A named comparison — `eq`, `between`, `in`, `isEmpty` and ten more — against one column, compared as the column's own `type` says. Plain data, so unlike a predicate it can be saved and restored. See [the fifth kind](#the-fifth-kind-operators).
-- **`PredicateFilterEntry`** — `{ columnId?, predicate }`. Custom matching logic for anything the others can't express, such as a check across two fields. Called once per row with the resolved column value (or `undefined`, for a global entry) and the whole row. A predicate is a function, so a filter holding one can't be saved.
-- **`GroupFilterEntry`** — `{ combinator: "and" | "or", entries }`. Composes other entries — including further groups, to any depth — with an explicit combinator instead of the implicit AND every top-level `FilterState` uses. This is how OR enters the picture: the top level stays AND-only, and a group is where you opt into OR, exactly where you need it.
+- **`TextFilterEntry`** — `{ kind: "text", columnId?, query }`. SQL LIKE-style with `%`: a bare query is an exact match, `%text%` is contains, `text%` is starts-with, `%text` is ends-with. Always case-insensitive. Every value is stringified before matching.
+- **`ValueFilterEntry`** — `{ kind: "value", columnId?, value }`. Strict equality against a column's actual `number`, `boolean`, or `Date` value — only when the column's own `type` agrees. A `number` value never matches a `string` column, even one that happens to display the same digits.
+- **`OperatorFilterEntry`** — `{ kind: "operator", columnId, operator, value? }`. A named comparison — `eq`, `between`, `in`, `isEmpty` and ten more — against one column, compared as the column's own `type` says. Plain data, so unlike a predicate it can be saved and restored. See [the fifth kind](#the-fifth-kind-operators).
+- **`PredicateFilterEntry`** — `{ kind: "predicate", columnId?, predicate }`. Custom matching logic for anything the others can't express, such as a check across two fields. Called once per row with the resolved column value (or `undefined`, for a global entry) and the whole row. A predicate is a function, so a filter holding one can't be saved.
+- **`GroupFilterEntry`** — `{ kind: "group", combinator: "and" | "or", entries }`. Composes other entries — including further groups, to any depth — with an explicit combinator instead of the implicit AND every top-level `FilterState` uses. This is how OR enters the picture: the top level stays AND-only, and a group is where you opt into OR, exactly where you need it.
 
 A text, value or predicate entry may omit `columnId` to match against **every** column instead of one — a free-text search, for example. An operator entry always names its column.
 
@@ -27,7 +27,7 @@ A text, value or predicate entry may omit `columnId` to match against **every** 
 <DataGrid
   columns={columns}
   dataSource={rows}
-  defaultFilter={[{ columnId: "status", query: "active" }]}
+  defaultFilter={[{ kind: "text", columnId: "status", query: "active" }]}
 />;
 ```
 
@@ -35,15 +35,21 @@ Stacking entries ANDs them; nesting a group is how to OR:
 
 ```ts
 const pendingOrOverdue: FilterEntry<Row> = {
+  kind: "group",
   combinator: "or",
   entries: [
-    { columnId: "status", query: "pending" },
-    { columnId: "dueDate", operator: "lt", value: new Date() },
+    { kind: "text", columnId: "status", query: "pending" },
+    {
+      kind: "operator",
+      columnId: "dueDate",
+      operator: "lt",
+      value: new Date(),
+    },
   ],
 };
 ```
 
-"One of several values for the same field" needs no group — that's an `in` operator: `{ columnId: "status", operator: "in", value: ["active", "pending"] }`.
+"One of several values for the same field" needs no group — that's an `in` operator: `{ kind: "operator", columnId: "status", operator: "in", value: ["active", "pending"] }`.
 
 All five kinds combine freely in one `FilterState` — plain entries ANDed at
 the top level, a group opting into OR (or a nested AND) for just the part
@@ -51,16 +57,17 @@ that needs it, and a `predicate` wherever nothing else can express the check:
 
 ```ts
 const filter: FilterState<Row> = [
-  { columnId: "name", query: "%smith%" },
+  { kind: "text", columnId: "name", query: "%smith%" },
   {
+    kind: "group",
     combinator: "or",
     entries: [
-      { columnId: "status", operator: "in", value: ["active", "pending"] },
-      { columnId: "vip", value: true },
+      { kind: "operator", columnId: "status", operator: "in", value: ["active", "pending"] },
+      { kind: "value", columnId: "vip", value: true },
     ],
   },
-  { columnId: "age", operator: "between", value: [18, 65] },
-  { predicate: (_value, row) => row.shippedAt > row.promisedAt },
+  { kind: "operator", columnId: "age", operator: "between", value: [18, 65] },
+  { kind: "predicate", predicate: (_value, row) => row.shippedAt > row.promisedAt },
 ];
 
 <DataGrid columns={columns} dataSource={rows} defaultFilter={filter} />;
@@ -114,10 +121,25 @@ const gridRef = useRef<DataGridApi<Order>>(null);
   columns={columns}
   dataSource={orders}
   defaultFilter={[
-    { columnId: "amount", operator: "between", value: [10, 100] },
-    { columnId: "placedAt", operator: "gte", value: new Date("2024-01-01") },
-    { columnId: "region", operator: "in", value: ["West", "North"] },
-    { columnId: "notes", operator: "isNotEmpty" },
+    {
+      kind: "operator",
+      columnId: "amount",
+      operator: "between",
+      value: [10, 100],
+    },
+    {
+      kind: "operator",
+      columnId: "placedAt",
+      operator: "gte",
+      value: new Date("2024-01-01"),
+    },
+    {
+      kind: "operator",
+      columnId: "region",
+      operator: "in",
+      value: ["West", "North"],
+    },
+    { kind: "operator", columnId: "notes", operator: "isNotEmpty" },
   ]}
 />;
 
@@ -148,7 +170,9 @@ const gridRef = useRef<DataGridApi<Row>>(null);
   type="search"
   onChange={(event) => {
     gridRef.current?.setFilter(
-      event.target.value === "" ? [] : [{ query: `%${event.target.value}%` }],
+      event.target.value === ""
+        ? []
+        : [{ kind: "text", query: `%${event.target.value}%` }],
     );
   }}
 />;
@@ -164,7 +188,7 @@ The grid can also be handed rows already filtered, with the same functions it us
 ```ts
 import { filterRows } from "@gridkitjs/core";
 
-const filtered = filterRows(rows, [{ query: searchText }], resolvedColumns);
+const filtered = filterRows(rows, [{ kind: "text", query: searchText }], resolvedColumns);
 
 <DataGrid columns={columns} dataSource={filtered.map((r) => r.row)} />;
 ```

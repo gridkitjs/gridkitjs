@@ -65,12 +65,13 @@ const saved: GridState<SampleRow> = {
   columnVisibility: { Region: false },
   columnSort: [{ columnId: "Amount", direction: "desc" }],
   filter: [
-    { columnId: "Region", query: "%st" },
+    { kind: "text", columnId: "Region", query: "%st" },
     {
+      kind: "group",
       combinator: "or",
       entries: [
-        { columnId: "Opened", value: new Date("2024-01-01") },
-        { columnId: "Opened", value: new Date("2024-03-01") },
+        { kind: "value", columnId: "Opened", value: new Date("2024-01-01") },
+        { kind: "value", columnId: "Opened", value: new Date("2024-03-01") },
       ],
     },
   ],
@@ -97,10 +98,19 @@ describe("serializeGridState", () => {
     const [, group] = serializeGridState(saved).filter;
 
     expect(group).toEqual({
+      kind: "group",
       combinator: "or",
       entries: [
-        { columnId: "Opened", value: "2024-01-01T00:00:00.000Z" },
-        { columnId: "Opened", value: "2024-03-01T00:00:00.000Z" },
+        {
+          kind: "value",
+          columnId: "Opened",
+          value: "2024-01-01T00:00:00.000Z",
+        },
+        {
+          kind: "value",
+          columnId: "Opened",
+          value: "2024-03-01T00:00:00.000Z",
+        },
       ],
     });
   });
@@ -110,14 +120,24 @@ describe("serializeGridState", () => {
       // Silenced: the calls themselves are what this test checks.
     });
     const filter: FilterState<SampleRow> = [
-      { columnId: "Amount", predicate: (value) => Number(value) > 15 },
-      { combinator: "or", entries: [{ predicate: () => true }] },
-      { columnId: "Region", query: "West" },
+      {
+        kind: "predicate",
+        columnId: "Amount",
+        predicate: (value) => Number(value) > 15,
+      },
+      {
+        kind: "group",
+        combinator: "or",
+        entries: [{ kind: "predicate", predicate: () => true }],
+      },
+      { kind: "text", columnId: "Region", query: "West" },
     ];
 
     const serialized = serializeGridState({ ...saved, filter });
 
-    expect(serialized.filter).toEqual([{ columnId: "Region", query: "West" }]);
+    expect(serialized.filter).toEqual([
+      { kind: "text", columnId: "Region", query: "West" },
+    ]);
     expect(error).toHaveBeenCalledTimes(2);
     expect(error.mock.calls[0]?.[0]).toContain("`Amount`");
   });
@@ -125,42 +145,72 @@ describe("serializeGridState", () => {
 
 describe("operator entries", () => {
   const filter: FilterState<SampleRow> = [
-    { columnId: "Amount", operator: "between", value: [15, 45] },
-    { columnId: "Opened", operator: "gte", value: new Date("2024-02-01") },
     {
+      kind: "operator",
+      columnId: "Amount",
+      operator: "between",
+      value: [15, 45],
+    },
+    {
+      kind: "operator",
+      columnId: "Opened",
+      operator: "gte",
+      value: new Date("2024-02-01"),
+    },
+    {
+      kind: "group",
       combinator: "or",
       entries: [
         {
+          kind: "operator",
           columnId: "Opened",
           operator: "in",
           value: [new Date("2024-01-01"), new Date("2024-02-01")],
         },
-        { columnId: "Opened", operator: "isEmpty" },
+        { kind: "operator", columnId: "Opened", operator: "isEmpty" },
       ],
     },
-    { columnId: "Region", operator: "in", value: ["2024-02-01", "East"] },
+    {
+      kind: "operator",
+      columnId: "Region",
+      operator: "in",
+      value: ["2024-02-01", "East"],
+    },
   ];
 
   test("serialise their Dates as ISO strings and keep everything else", () => {
     expect(serializeGridState({ ...saved, filter }).filter).toEqual([
-      { columnId: "Amount", operator: "between", value: [15, 45] },
       {
+        kind: "operator",
+        columnId: "Amount",
+        operator: "between",
+        value: [15, 45],
+      },
+      {
+        kind: "operator",
         columnId: "Opened",
         operator: "gte",
         value: "2024-02-01T00:00:00.000Z",
       },
       {
+        kind: "group",
         combinator: "or",
         entries: [
           {
+            kind: "operator",
             columnId: "Opened",
             operator: "in",
             value: ["2024-01-01T00:00:00.000Z", "2024-02-01T00:00:00.000Z"],
           },
-          { columnId: "Opened", operator: "isEmpty" },
+          { kind: "operator", columnId: "Opened", operator: "isEmpty" },
         ],
       },
-      { columnId: "Region", operator: "in", value: ["2024-02-01", "East"] },
+      {
+        kind: "operator",
+        columnId: "Region",
+        operator: "in",
+        value: ["2024-02-01", "East"],
+      },
     ]);
   });
 
@@ -175,6 +225,89 @@ describe("operator entries", () => {
     expect(target.getState().filter).toEqual(filter);
     expect(onFilterChange).not.toHaveBeenCalled();
     expect(target.getView().rows.map((entry) => entry.rowId)).toEqual(["2"]);
+  });
+});
+
+describe("filter entries saved without a kind", () => {
+  /** Saved JSON, typed as `restoreState` takes it, whatever shape it holds. */
+  function parseSaved(json: string): Partial<SerializedGridState<SampleRow>> {
+    return JSON.parse(json) as Partial<SerializedGridState<SampleRow>>;
+  }
+
+  /** As `serializeGridState` wrote a layout before entries carried a `kind`. */
+  const untagged = `{
+    "columnSort": [{ "columnId": "Amount", "direction": "desc" }],
+    "filter": [
+      { "columnId": "Region", "query": "%st" },
+      {
+        "combinator": "or",
+        "entries": [
+          { "columnId": "Opened", "value": "2024-01-01T00:00:00.000Z" },
+          { "columnId": "Opened", "operator": "isEmpty" }
+        ]
+      },
+      { "columnId": "Amount", "operator": "between", "value": [5, 55] },
+      {
+        "columnId": "Opened",
+        "operator": "in",
+        "value": ["2024-01-01T00:00:00.000Z", "2024-03-01T00:00:00.000Z"]
+      }
+    ]
+  }`;
+
+  test("restore with the kind their keys name", () => {
+    const controller = create();
+
+    controller.restoreState(parseSaved(untagged));
+
+    expect(controller.getState().filter).toEqual([
+      { kind: "text", columnId: "Region", query: "%st" },
+      {
+        kind: "group",
+        combinator: "or",
+        entries: [
+          { kind: "value", columnId: "Opened", value: new Date("2024-01-01") },
+          { kind: "operator", columnId: "Opened", operator: "isEmpty" },
+        ],
+      },
+      {
+        kind: "operator",
+        columnId: "Amount",
+        operator: "between",
+        value: [5, 55],
+      },
+      {
+        kind: "operator",
+        columnId: "Opened",
+        operator: "in",
+        value: [new Date("2024-01-01"), new Date("2024-03-01")],
+      },
+    ] satisfies FilterState<SampleRow>);
+    expect(controller.getView().rows.map((entry) => entry.rowId)).toEqual([
+      "5",
+      "1",
+    ]);
+  });
+
+  test("throw when an entry has none of the keys a kind is read from", () => {
+    const controller = create();
+
+    expect(() => {
+      controller.restoreState(
+        parseSaved(`{ "filter": [{ "columnId": "Region" }] }`),
+      );
+    }).toThrow(TypeError);
+    expect(controller.getState().filter).toEqual([]);
+  });
+
+  test("throw when an entry's kind is none GridKit knows", () => {
+    const controller = create();
+
+    expect(() => {
+      controller.restoreState(
+        parseSaved(`{ "filter": [{ "kind": "regex", "columnId": "Region" }] }`),
+      );
+    }).toThrow("`regex` is not a filter entry kind");
   });
 });
 

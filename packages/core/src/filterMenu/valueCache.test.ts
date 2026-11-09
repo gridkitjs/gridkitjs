@@ -63,6 +63,7 @@ const dataColumns: readonly DataColumn<SampleRow, unknown>[] = [
 ];
 
 const amountAbove = (value: number): OperatorFilterEntry<SampleRow> => ({
+  kind: "operator",
   columnId: "Amount",
   operator: "gt",
   value,
@@ -109,7 +110,12 @@ describe("createColumnValueOptionsCache", () => {
     const cache = createColumnValueOptionsCache<SampleRow>();
     const first = cache.get(rows, dataColumns, [], "Region");
     expect(
-      cache.get(rows, dataColumns, [{ query: "%west%" }], "Region"),
+      cache.get(
+        rows,
+        dataColumns,
+        [{ kind: "text", query: "%west%" }],
+        "Region",
+      ),
     ).not.toBe(first);
   });
 
@@ -118,7 +124,7 @@ describe("createColumnValueOptionsCache", () => {
     const other = amountAbove(15);
     const first = cache.get(rows, dataColumns, [other], "Region");
     const own: FilterState<SampleRow> = [
-      { columnId: "Region", operator: "in", value: ["West"] },
+      { kind: "operator", columnId: "Region", operator: "in", value: ["West"] },
       other,
     ];
     expect(cache.get(rows, dataColumns, own, "Region")).toBe(first);
@@ -197,7 +203,7 @@ describe("createColumnValueOptionsCache", () => {
       Opened: new Date(2024, 0, 1 + (index % 365)),
     }));
     const filter: FilterState<SampleRow> = [
-      { columnId: "Amount", operator: "gte", value: 0 },
+      { kind: "operator", columnId: "Amount", operator: "gte", value: 0 },
     ];
     const cache = createColumnValueOptionsCache<SampleRow>();
 

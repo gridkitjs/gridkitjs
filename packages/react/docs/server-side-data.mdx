@@ -96,7 +96,7 @@ export async function fetchOrders(
 }
 ```
 
-Importing from `@gridkitjs/core` needs it in your own dependencies; see [choosing packages](/docs/react/choosing-packages#importing-from-core). Over HTTP, send `sort` and `filter` as JSON. Both are plain data: a sort is a list of `{ columnId, direction }`, and the filter the toolbar's search box and the filter menus build is a list of entries such as `{ query: "%north%" }` or `{ columnId: "total", operator: "gt", value: 500 }`. The one exception is a predicate entry, a function, which only your own code adds. See [column filtering](/docs/react/column-filtering) for every entry kind.
+Importing from `@gridkitjs/core` needs it in your own dependencies; see [choosing packages](/docs/react/choosing-packages#importing-from-core). Over HTTP, send `sort` and `filter` as JSON. Both are plain data: a sort is a list of `{ columnId, direction }`, and the filter the toolbar's search box and the filter menus build is a list of entries such as `{ kind: "text", query: "%north%" }` or `{ kind: "operator", columnId: "total", operator: "gt", value: 500 }`. The one exception is a predicate entry, a function, which only your own code adds. See [column filtering](/docs/react/column-filtering) for every entry kind.
 
 ## Sorting, filtering and pages on the server
 

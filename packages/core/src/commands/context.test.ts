@@ -128,7 +128,9 @@ describe("createCommandContext", () => {
 
   test("a cell target on a row the filter hides has no row", () => {
     const context = contextFor(
-      create({ defaultFilter: [{ columnId: "Region", query: "West" }] }),
+      create({
+        defaultFilter: [{ kind: "text", columnId: "Region", query: "West" }],
+      }),
       { area: "cell", rowId: "2", columnId: "Region" },
     );
 
@@ -202,7 +204,7 @@ describe("createCommandContext", () => {
       const context = contextFor(
         create({
           defaultRowSelection: ["1", "2"],
-          defaultFilter: [{ columnId: "Region", query: "West" }],
+          defaultFilter: [{ kind: "text", columnId: "Region", query: "West" }],
         }),
         { area: "grid" },
       );

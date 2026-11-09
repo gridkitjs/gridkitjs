@@ -7,6 +7,7 @@ import type {
   SortDirection,
 } from "../types";
 import { isScalarList } from "../util/filterOperators";
+import { unknownFilterEntry } from "../util/filtering";
 
 /** A sort or group-by level: a column, and which way it orders. */
 interface ColumnEntry {
@@ -124,41 +125,41 @@ function sameEntry<Row>(
   previous: FilterEntry<Row>,
   next: FilterEntry<Row>,
 ): boolean {
-  if ("combinator" in previous || "combinator" in next) {
-    return (
-      "combinator" in previous &&
-      "combinator" in next &&
-      previous.combinator === next.combinator &&
-      sameFilter(previous.entries, next.entries)
-    );
+  switch (previous.kind) {
+    case "group":
+      return (
+        next.kind === "group" &&
+        previous.combinator === next.combinator &&
+        sameFilter(previous.entries, next.entries)
+      );
+    case "predicate":
+      return (
+        next.kind === "predicate" &&
+        previous.columnId === next.columnId &&
+        previous.predicate === next.predicate
+      );
+    case "operator":
+      return (
+        next.kind === "operator" &&
+        previous.columnId === next.columnId &&
+        previous.operator === next.operator &&
+        sameOperand(previous.value, next.value)
+      );
+    case "value":
+      return (
+        next.kind === "value" &&
+        previous.columnId === next.columnId &&
+        sameValue(previous.value, next.value)
+      );
+    case "text":
+      return (
+        next.kind === "text" &&
+        previous.columnId === next.columnId &&
+        previous.query === next.query
+      );
+    default:
+      return unknownFilterEntry(previous);
   }
-  if (previous.columnId !== next.columnId) {
-    return false;
-  }
-  if ("predicate" in previous || "predicate" in next) {
-    return (
-      "predicate" in previous &&
-      "predicate" in next &&
-      previous.predicate === next.predicate
-    );
-  }
-  // Before the `value` check: an operator entry usually has a `value` too.
-  if ("operator" in previous || "operator" in next) {
-    return (
-      "operator" in previous &&
-      "operator" in next &&
-      previous.operator === next.operator &&
-      sameOperand(previous.value, next.value)
-    );
-  }
-  if ("value" in previous || "value" in next) {
-    return (
-      "value" in previous &&
-      "value" in next &&
-      sameValue(previous.value, next.value)
-    );
-  }
-  return previous.query === next.query;
 }
 
 /**

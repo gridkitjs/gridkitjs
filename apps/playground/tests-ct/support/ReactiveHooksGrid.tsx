@@ -118,7 +118,7 @@ export default function ReactiveHooksGrid<Row extends RowWithId>(
       <button
         type="button"
         onClick={() => {
-          setFilter([{ columnId: "region", query: "East" }]);
+          setFilter([{ kind: "text", columnId: "region", query: "East" }]);
         }}
       >
         reactive-filter-east

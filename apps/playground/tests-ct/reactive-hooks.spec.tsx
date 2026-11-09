@@ -432,6 +432,6 @@ test("useFilterState reads the filter and its setFilter filters the grid", async
   await root.getByRole("button", { name: "reactive-filter-east" }).click();
   await expect
     .poll(async () => (await readReactiveStatus(root)).filter)
-    .toEqual([{ columnId: "region", query: "East" }]);
+    .toEqual([{ kind: "text", columnId: "region", query: "East" }]);
   await expect(root.locator("tbody tr")).toHaveCount(2);
 });

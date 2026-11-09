@@ -267,8 +267,13 @@ test.describe("filter menu", () => {
       mount,
       <FilterMenuGrid
         defaultFilter={[
-          { columnId: "name", operator: "eq", value: "Charlie" },
-          { columnId: "score", operator: "gt", value: 10 },
+          {
+            kind: "operator",
+            columnId: "name",
+            operator: "eq",
+            value: "Charlie",
+          },
+          { kind: "operator", columnId: "score", operator: "gt", value: 10 },
         ]}
       />,
     );
@@ -281,7 +286,7 @@ test.describe("filter menu", () => {
     await expect(header(root, "Name")).toBeFocused();
     expect(await names(root)).toEqual(["Charlie", "Bravo"]);
     await expect(root.getByTestId("filter")).toHaveText(
-      '[{"columnId":"score","operator":"gt","value":10}]',
+      '[{"kind":"operator","columnId":"score","operator":"gt","value":10}]',
     );
     await expect(root.getByTestId("commands")).toContainText(
       'filterMenu filter.clear {"area":"header","columnId":"name"}',
@@ -295,7 +300,14 @@ test.describe("filter menu", () => {
     const root = await mountGrid(
       mount,
       <FilterMenuGrid
-        defaultFilter={[{ columnId: "name", operator: "eq", value: "Alice" }]}
+        defaultFilter={[
+          {
+            kind: "operator",
+            columnId: "name",
+            operator: "eq",
+            value: "Alice",
+          },
+        ]}
       />,
     );
 
@@ -430,7 +442,14 @@ test.describe("filter menu from the header", () => {
         ]}
         label="Filtered headers"
         filterableColumns
-        filterToSet={[{ columnId: "name", operator: "contains", value: "a" }]}
+        filterToSet={[
+          {
+            kind: "operator",
+            columnId: "name",
+            operator: "contains",
+            value: "a",
+          },
+        ]}
       />,
     );
     const name = header(root, "name");
@@ -452,7 +471,9 @@ test.describe("filter menu from the header", () => {
     const root = await mountGrid(
       mount,
       <FilterMenuGrid
-        filter={[{ columnId: "score", operator: "gt", value: 10 }]}
+        filter={[
+          { kind: "operator", columnId: "score", operator: "gt", value: 10 },
+        ]}
       />,
     );
 
@@ -474,7 +495,9 @@ test.describe("filter menu from the header", () => {
     const root = await mountGrid(
       mount,
       <FilterMenuGrid
-        defaultFilter={[{ columnId: "id", operator: "eq", value: "row-a" }]}
+        defaultFilter={[
+          { kind: "operator", columnId: "id", operator: "eq", value: "row-a" },
+        ]}
       />,
     );
 
@@ -522,7 +545,7 @@ test.describe("the simple editor", () => {
     await expect(header(root, "Name")).toBeFocused();
     expect(await names(root)).toEqual(["Charlie", "Alice"]);
     await expect(reported(root)).toHaveText(
-      '[{"columnId":"name","operator":"contains","value":"li"}]',
+      '[{"kind":"operator","columnId":"name","operator":"contains","value":"li"}]',
     );
   });
 
@@ -551,7 +574,7 @@ test.describe("the simple editor", () => {
     await page.keyboard.press("Enter");
 
     await expect(reported(root)).toHaveText(
-      '[{"columnId":"name","operator":"contains","value":"li"}]',
+      '[{"kind":"operator","columnId":"name","operator":"contains","value":"li"}]',
     );
     expect(await names(root)).toEqual(["Charlie", "Alice", "Bravo"]);
     await expect(liveRegion(root)).toHaveText("");
@@ -598,7 +621,7 @@ test.describe("the simple editor", () => {
 
     expect(await names(root)).toEqual(["Bravo"]);
     await expect(reported(root)).toHaveText(
-      '[{"columnId":"score","operator":"between","value":[10,25]}]',
+      '[{"kind":"operator","columnId":"score","operator":"between","value":[10,25]}]',
     );
   });
 
@@ -631,7 +654,7 @@ test.describe("the simple editor", () => {
 
     expect(await names(root)).toEqual(["Alice"]);
     await expect(reported(root)).toHaveText(
-      '[{"columnId":"active","operator":"eq","value":false}]',
+      '[{"kind":"operator","columnId":"active","operator":"eq","value":false}]',
     );
   });
 
@@ -645,7 +668,7 @@ test.describe("the simple editor", () => {
 
     expect(await names(root)).toEqual(["Bravo"]);
     await expect(reported(root)).toHaveText(
-      '[{"columnId":"joined","operator":"isEmpty"}]',
+      '[{"kind":"operator","columnId":"joined","operator":"isEmpty"}]',
     );
   });
 
@@ -701,10 +724,21 @@ test.describe("the simple editor", () => {
     await expect(reported(root)).toHaveText(
       JSON.stringify([
         {
+          kind: "group",
           combinator: "or",
           entries: [
-            { columnId: "name", operator: "contains", value: "Ch" },
-            { columnId: "name", operator: "startsWith", value: "Al" },
+            {
+              kind: "operator",
+              columnId: "name",
+              operator: "contains",
+              value: "Ch",
+            },
+            {
+              kind: "operator",
+              columnId: "name",
+              operator: "startsWith",
+              value: "Al",
+            },
           ],
         },
       ]),
@@ -725,7 +759,9 @@ test.describe("the simple editor", () => {
     const root = await mountGrid(
       mount,
       <FilterMenuGrid
-        defaultFilter={[{ columnId: "score", operator: "gt", value: 10 }]}
+        defaultFilter={[
+          { kind: "operator", columnId: "score", operator: "gt", value: 10 },
+        ]}
       />,
     );
     const filterMenu = await openFromHeaderMenu(root, page, "Score");
@@ -743,7 +779,9 @@ test.describe("the simple editor", () => {
     const root = await mountGrid(
       mount,
       <FilterMenuGrid
-        defaultFilter={[{ columnId: "name", operator: "gt", value: "B" }]}
+        defaultFilter={[
+          { kind: "operator", columnId: "name", operator: "gt", value: "B" },
+        ]}
       />,
     );
     const filterMenu = await openFromHeaderMenu(root, page, "Name");
@@ -764,7 +802,9 @@ test.describe("the simple editor", () => {
     const root = await mountGrid(
       mount,
       <FilterMenuGrid
-        defaultFilter={[{ columnId: "joined", operator: "isNotEmpty" }]}
+        defaultFilter={[
+          { kind: "operator", columnId: "joined", operator: "isNotEmpty" },
+        ]}
       />,
     );
     const filterMenu = await openFromHeaderMenu(root, page, "Joined");
@@ -865,7 +905,9 @@ test.describe("the simple editor", () => {
   }) => {
     const root = await mountGrid(
       mount,
-      <FilterMenuGrid defaultFilter={[{ columnId: "name", query: "%li%" }]} />,
+      <FilterMenuGrid
+        defaultFilter={[{ kind: "text", columnId: "name", query: "%li%" }]}
+      />,
     );
     expect(await names(root)).toEqual(["Charlie", "Alice"]);
 
@@ -883,7 +925,7 @@ test.describe("the simple editor", () => {
 
     expect(await names(root)).toEqual(["Bravo"]);
     await expect(reported(root)).toHaveText(
-      '[{"columnId":"name","operator":"contains","value":"Bra"}]',
+      '[{"kind":"operator","columnId":"name","operator":"contains","value":"Bra"}]',
     );
   });
 
@@ -895,7 +937,12 @@ test.describe("the simple editor", () => {
       mount,
       <FilterMenuGrid
         defaultFilter={[
-          { columnId: "name", operator: "in", value: ["Alice", "Bravo"] },
+          {
+            kind: "operator",
+            columnId: "name",
+            operator: "in",
+            value: ["Alice", "Bravo"],
+          },
         ]}
       />,
     );
@@ -913,8 +960,8 @@ test.describe("the simple editor", () => {
       mount,
       <FilterMenuGrid
         defaultFilter={[
-          { columnId: "score", operator: "gt", value: 10 },
-          { columnId: "score", operator: "lt", value: 25 },
+          { kind: "operator", columnId: "score", operator: "gt", value: 10 },
+          { kind: "operator", columnId: "score", operator: "lt", value: 25 },
         ]}
       />,
     );
@@ -937,7 +984,12 @@ test.describe("the simple editor", () => {
       mount,
       <FilterMenuGrid
         defaultFilter={[
-          { columnId: "joined", operator: "gt", value: "2024-01-01" },
+          {
+            kind: "operator",
+            columnId: "joined",
+            operator: "gt",
+            value: "2024-01-01",
+          },
         ]}
       />,
     );
@@ -974,6 +1026,7 @@ test.describe("the simple editor", () => {
       <FilterMenuGrid filter={filter} />
     );
     const scoreAbove10 = {
+      kind: "operator",
       columnId: "score",
       operator: "gt",
       value: 10,
@@ -991,7 +1044,12 @@ test.describe("the simple editor", () => {
       root,
       grid([
         scoreAbove10,
-        { columnId: "name", operator: "startsWith", value: "Br" },
+        {
+          kind: "operator",
+          columnId: "name",
+          operator: "startsWith",
+          value: "Br",
+        },
       ]),
     );
     await expect(filterMenu).toBeVisible();
@@ -1155,7 +1213,7 @@ test.describe("the excel editor", () => {
     await expect(filterMenu).toHaveCount(0);
     expect(await names(root)).toEqual(["Bravo"]);
     await expect(reported(root)).toHaveText(
-      '[{"columnId":"name","operator":"in","value":["Bravo"]}]',
+      '[{"kind":"operator","columnId":"name","operator":"in","value":["Bravo"]}]',
     );
     await expect(liveRegion(root)).toHaveText("1 of 3 rows");
 
@@ -1305,7 +1363,7 @@ test.describe("the excel editor", () => {
     expect(await names(root)).toEqual(["Charlie", "Bravo"]);
     await expect(reported(root)).toContainText('"combinator":"or"');
     await expect(reported(root)).toContainText(
-      '{"columnId":"joined","operator":"isEmpty"}',
+      '{"kind":"operator","columnId":"joined","operator":"isEmpty"}',
     );
   });
 
@@ -1394,7 +1452,14 @@ test.describe("the excel editor", () => {
 
     await updateGrid(
       root,
-      grid([{ columnId: "name", operator: "in", value: ["Bravo"] }]),
+      grid([
+        {
+          kind: "operator",
+          columnId: "name",
+          operator: "in",
+          value: ["Bravo"],
+        },
+      ]),
     );
 
     await expect(filterMenu).toBeVisible();
@@ -1439,7 +1504,9 @@ test.describe("the excel editor", () => {
       mount,
       <FilterMenuGrid
         filterMenu={{ ui: "excel" }}
-        defaultFilter={[{ columnId: "score", operator: "gt", value: 10 }]}
+        defaultFilter={[
+          { kind: "operator", columnId: "score", operator: "gt", value: 10 },
+        ]}
       />,
     );
     expect(await names(root)).toEqual(["Charlie", "Bravo"]);
@@ -1459,7 +1526,7 @@ test.describe("the excel editor", () => {
 
     expect(await names(root)).toEqual(["Alice", "Bravo"]);
     await expect(reported(root)).toHaveText(
-      '[{"columnId":"score","operator":"in","value":[9,21]}]',
+      '[{"kind":"operator","columnId":"score","operator":"in","value":[9,21]}]',
     );
   });
 
@@ -1471,7 +1538,9 @@ test.describe("the excel editor", () => {
       mount,
       <FilterMenuGrid
         filterMenu={{ ui: "excel" }}
-        defaultFilter={[{ columnId: "score", operator: "gt", value: 10 }]}
+        defaultFilter={[
+          { kind: "operator", columnId: "score", operator: "gt", value: 10 },
+        ]}
       />,
     );
 
@@ -1496,7 +1565,7 @@ test.describe("the excel editor", () => {
       mount,
       <FilterMenuGrid
         filterMenu={{ ui: "excel" }}
-        defaultFilter={[{ columnId: "name", query: "%li%" }]}
+        defaultFilter={[{ kind: "text", columnId: "name", query: "%li%" }]}
       />,
     );
 
@@ -1661,7 +1730,7 @@ test.describe("the excel editor", () => {
     await expect(filterMenu).toHaveCount(0);
     expect(await names(root)).toEqual(["Charlie", "Bravo"]);
     await expect(reported(root)).toHaveText(
-      '[{"columnId":"score","operator":"gt","value":10}]',
+      '[{"kind":"operator","columnId":"score","operator":"gt","value":10}]',
     );
     await expect(liveRegion(root)).toHaveText("2 of 3 rows");
   });
@@ -1714,7 +1783,9 @@ test.describe("the excel editor", () => {
       mount,
       <FilterMenuGrid
         filterMenu={{ ui: "excel" }}
-        defaultFilter={[{ columnId: "score", operator: "gt", value: 10 }]}
+        defaultFilter={[
+          { kind: "operator", columnId: "score", operator: "gt", value: 10 },
+        ]}
       />,
     );
     const operators = operatorMenuOf(page, "Number filters");
@@ -1751,7 +1822,7 @@ test.describe("the excel editor", () => {
 
     expect(await names(root)).toEqual(["Alice"]);
     await expect(reported(root)).toHaveText(
-      '[{"columnId":"score","operator":"lt","value":10}]',
+      '[{"kind":"operator","columnId":"score","operator":"lt","value":10}]',
     );
     filterMenu = await openFromHeaderMenu(root, page, "Name");
     await expect(
@@ -1770,7 +1841,12 @@ test.describe("the excel editor", () => {
       <FilterMenuGrid
         filterMenu={{ ui: "excel" }}
         defaultFilter={[
-          { columnId: "name", operator: "in", value: ["Alice", "Bravo"] },
+          {
+            kind: "operator",
+            columnId: "name",
+            operator: "in",
+            value: ["Alice", "Bravo"],
+          },
         ]}
       />,
     );
@@ -1807,7 +1883,7 @@ test.describe("the excel editor", () => {
     await expect(filterMenu).toHaveCount(0);
     expect(await names(root)).toEqual(["Charlie"]);
     await expect(reported(root)).toHaveText(
-      '[{"columnId":"name","operator":"contains","value":"ar"}]',
+      '[{"kind":"operator","columnId":"name","operator":"contains","value":"ar"}]',
     );
   });
 
@@ -1885,7 +1961,7 @@ test.describe("the excel editor", () => {
       "true",
     );
     await expect(reported(root)).toHaveText(
-      '[{"columnId":"score","operator":"gt","value":10},{"columnId":"name","operator":"in","value":["Charlie"]}]',
+      '[{"kind":"operator","columnId":"score","operator":"gt","value":10},{"kind":"operator","columnId":"name","operator":"in","value":["Charlie"]}]',
     );
   });
 

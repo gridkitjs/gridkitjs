@@ -14,6 +14,7 @@ import type {
   SerializedOperatorFilterEntry,
 } from "../types";
 import { isDateType, isScalarList, toDate } from "./filterOperators";
+import { unknownFilterEntry } from "./filtering";
 import { reportError } from "./report";
 
 type Operand = Exclude<OperatorFilterEntry<unknown>["value"], undefined>;
@@ -39,36 +40,40 @@ function serializeOperand(operand: Operand): SerializedOperand {
 function serializeEntry<Row>(
   entry: FilterEntry<Row>,
 ): SerializedFilterEntry<Row> | undefined {
-  if ("combinator" in entry) {
-    const entries = serializeFilter(entry.entries);
-    // A group emptied by dropping its predicates would match everything (an
-    // "and") or nothing (an "or") — neither what was saved — so it goes too.
-    return entries.length === 0 && entry.entries.length > 0
-      ? undefined
-      : { combinator: entry.combinator, entries };
+  switch (entry.kind) {
+    case "group": {
+      const entries = serializeFilter(entry.entries);
+      // A group emptied by dropping its predicates would match everything (an
+      // "and") or nothing (an "or") — neither what was saved — so it goes too.
+      return entries.length === 0 && entry.entries.length > 0
+        ? undefined
+        : { kind: "group", combinator: entry.combinator, entries };
+    }
+    case "predicate":
+      reportError(
+        entry.columnId === undefined
+          ? "a predicate filter entry across every column cannot be serialised, so it is left out of the saved state."
+          : `a predicate filter entry on \`${entry.columnId}\` cannot be serialised, so it is left out of the saved state.`,
+      );
+      return undefined;
+    case "operator": {
+      const { value, ...rest } = entry;
+      return value === undefined
+        ? rest
+        : { ...rest, value: serializeOperand(value) };
+    }
+    case "value": {
+      const { value, ...rest } = entry;
+      return {
+        ...rest,
+        value: value instanceof Date ? value.toISOString() : value,
+      };
+    }
+    case "text":
+      return entry;
+    default:
+      return unknownFilterEntry(entry);
   }
-  if ("predicate" in entry) {
-    reportError(
-      entry.columnId === undefined
-        ? "a predicate filter entry across every column cannot be serialised, so it is left out of the saved state."
-        : `a predicate filter entry on \`${entry.columnId}\` cannot be serialised, so it is left out of the saved state.`,
-    );
-    return undefined;
-  }
-  if ("operator" in entry) {
-    const { value, ...rest } = entry;
-    return value === undefined
-      ? rest
-      : { ...rest, value: serializeOperand(value) };
-  }
-  if ("value" in entry) {
-    const { value, ...rest } = entry;
-    return {
-      ...rest,
-      value: value instanceof Date ? value.toISOString() : value,
-    };
-  }
-  return entry;
 }
 
 function serializeFilter<Row>(
@@ -112,34 +117,82 @@ function reviveOperand(
     : reviveScalar(operand, type);
 }
 
-function reviveEntry<Row>(
-  entry: FilterEntry<Row> | SerializedFilterEntry<Row>,
-  typeOf: (columnId: string) => ColumnType | undefined,
-): FilterEntry<Row> {
+/**
+ * A filter entry as saved before entries carried a `kind`: the same fields
+ * without it, told apart by the keys each kind alone holds.
+ */
+type UntaggedEntry<Entry> = Entry extends unknown ? Omit<Entry, "kind"> : never;
+
+type SavedEntry<Row> =
+  | FilterEntry<Row>
+  | SerializedFilterEntry<Row>
+  | UntaggedEntry<FilterEntry<Row> | SerializedFilterEntry<Row>>;
+
+/**
+ * `entry` with its `kind`, inferred from its keys when it has none. An
+ * operator entry usually holds a `value` too, so `operator` is read first.
+ */
+function tagged<Row>(
+  entry: SavedEntry<Row>,
+): FilterEntry<Row> | SerializedFilterEntry<Row> {
+  if ("kind" in entry) {
+    return entry;
+  }
   if ("combinator" in entry) {
-    return {
-      combinator: entry.combinator,
-      entries: reviveEntries(entry.entries, typeOf),
-    };
+    return { ...entry, kind: "group" };
   }
   if ("operator" in entry) {
-    const { value, ...rest } = entry;
-    return value === undefined
-      ? rest
-      : { ...rest, value: reviveOperand(value, typeOf(entry.columnId)) };
+    return { ...entry, kind: "operator" };
+  }
+  if ("predicate" in entry) {
+    return { ...entry, kind: "predicate" };
   }
   if ("value" in entry) {
-    const { value, ...rest } = entry;
-    return {
-      ...rest,
-      value: typeof value === "string" ? new Date(value) : value,
-    };
+    return { ...entry, kind: "value" };
   }
-  return entry;
+  if ("query" in entry) {
+    return { ...entry, kind: "text" };
+  }
+  throw new TypeError(
+    "GridKit: a saved filter entry has no `kind`, nor any key one could be read from.",
+  );
+}
+
+function reviveEntry<Row>(
+  saved: SavedEntry<Row>,
+  typeOf: (columnId: string) => ColumnType | undefined,
+): FilterEntry<Row> {
+  const entry = tagged(saved);
+  switch (entry.kind) {
+    case "group":
+      return {
+        kind: "group",
+        combinator: entry.combinator,
+        entries: reviveEntries(entry.entries, typeOf),
+      };
+    case "operator": {
+      const { value, ...rest } = entry;
+      return value === undefined
+        ? rest
+        : { ...rest, value: reviveOperand(value, typeOf(entry.columnId)) };
+    }
+    case "value": {
+      const { value, ...rest } = entry;
+      return {
+        ...rest,
+        value: typeof value === "string" ? new Date(value) : value,
+      };
+    }
+    case "text":
+    case "predicate":
+      return entry;
+    default:
+      return unknownFilterEntry(entry);
+  }
 }
 
 function reviveEntries<Row>(
-  filter: FilterState<Row> | SerializedFilterState<Row>,
+  filter: readonly SavedEntry<Row>[],
   typeOf: (columnId: string) => ColumnType | undefined,
 ): FilterState<Row> {
   return filter.map((entry) => reviveEntry(entry, typeOf));
@@ -152,6 +205,10 @@ function reviveEntries<Row>(
  * on a date, date-time or time column in `columns`, since elsewhere a string
  * is just a string. A filter that was never serialised passes through as it
  * is.
+ *
+ * An entry with no `kind`, as GridKit saved filters before entries carried
+ * one, gets the kind its keys name: `combinator`, `operator`, `predicate`,
+ * `value` or `query`, read in that order. One with none of them throws.
  */
 export function reviveFilter<Row>(
   filter: FilterState<Row> | SerializedFilterState<Row>,

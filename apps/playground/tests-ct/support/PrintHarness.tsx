@@ -53,14 +53,34 @@ function printOnce(): Promise<void> {
 }
 
 /** What goes wrong with the next print frame. */
-type Sabotage = "print throws" | "removed before load";
+type Sabotage = "print throws" | "removed before load" | "fonts never ready";
+
+/**
+ * Makes the frame's fonts never report ready once its document has loaded.
+ * Done from a capturing `load` listener on the page's document, which runs
+ * before the frame's own listeners: `printDocument` reads `fonts.ready` as
+ * soon as its listener has run.
+ */
+function stubFontsOnLoad(frame: HTMLIFrameElement): void {
+  function stub(event: Event): void {
+    const fonts = frame.contentDocument?.fonts;
+    if (event.target !== frame || fonts === undefined) {
+      return;
+    }
+    document.removeEventListener("load", stub, { capture: true });
+    Object.defineProperty(fonts, "ready", {
+      value: new Promise<never>(() => undefined),
+    });
+  }
+  document.addEventListener("load", stub, { capture: true });
+}
 
 /**
  * Breaks the next frame `printDocument` adds to `document.body`: takes it
- * away again before it loads, or makes its `print()` throw. The frame is
- * caught as it is added, so its `load` listener runs after
- * `printDocument`'s own, as `recordPrints`' does, and before the dialog
- * opens.
+ * away again before it loads, makes its `print()` throw, or makes its fonts
+ * never report ready. The frame is caught as it is added, so its `load`
+ * listener runs after `printDocument`'s own, as `recordPrints`' does, and
+ * before the dialog opens.
  */
 function sabotageNextFrame(sabotage: Sabotage): void {
   const observer = new MutationObserver((records) => {
@@ -73,6 +93,10 @@ function sabotageNextFrame(sabotage: Sabotage): void {
     observer.disconnect();
     if (sabotage === "removed before load") {
       frame.remove();
+      return;
+    }
+    if (sabotage === "fonts never ready") {
+      stubFontsOnLoad(frame);
       return;
     }
     frame.addEventListener(
@@ -97,8 +121,8 @@ function sabotageNextFrame(sabotage: Sabotage): void {
  * dialog opened (the frame is gone the moment headless Chromium's `print()`
  * returns), and the order the calls settled in, a rejected one as
  * "<name> failed". "Print twice" asks for a second print while the first is
- * open; "Print, failing" and "Print, frame taken away" break the print they
- * start.
+ * open; "Print, failing", "Print, frame taken away" and "Print, fonts never
+ * ready" break the print they start.
  */
 export default function PrintHarness() {
   const [prints, setPrints] = useState<readonly RecordedPrint[]>([]);
@@ -159,6 +183,15 @@ export default function PrintHarness() {
         }}
       >
         Print, frame taken away
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          sabotageNextFrame("fonts never ready");
+          track("first", printOnce());
+        }}
+      >
+        Print, fonts never ready
       </button>
       <output data-testid="prints">{JSON.stringify(prints)}</output>
       <output data-testid="settled">{settled.join(",")}</output>

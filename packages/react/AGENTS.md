@@ -28,11 +28,14 @@ which is what `@source` used to paper over.
 | ---------------------- | ----------------------------------------------- | ----------------------------------------------------- | ------------------------------------------- |
 | `GridOverlayState`     | `src/DataGrid/overlay/useGridOverlay.ts`        | `closed`, `contextMenu`, `panel`                      | `overlay.spec.tsx`, `context-menu.spec.tsx` |
 | `MenuButtonState`      | `src/DataGrid/menu/useMenuButton.ts`            | `closed`, `open`                                      | `toolbar.spec.tsx`, `filter-menu.spec.tsx`  |
+| `SubmenuState`         | `src/DataGrid/menu/GridMenu.tsx`                | `closed`, `open`, `entryGone`                         | `context-menu.spec.tsx`, `toolbar.spec.tsx` |
 | `simpleEditorReducer`  | `src/DataGrid/filterMenu/simpleEditorState.ts`  | `{ opened, draft, invalid }`                          | `filter-menu.spec.tsx`                      |
 | `ExcelEditorMode`      | `src/DataGrid/filterMenu/ExcelFilterEditor.tsx` | `values`, `condition`                                 | `filter-menu.spec.tsx`                      |
 | `useAnnounceWhenDrawn` | `src/DataGrid/useAnnounceWhenDrawn.ts`          | one announcement waiting for the render that draws it | `filter-menu.spec.tsx`, `toolbar.spec.tsx`  |
+| `useCopyToClipboard`   | `src/DataGrid/clipboard/useCopyToClipboard.ts`  | the latest copy, the only one announced               | `clipboard.spec.tsx`                        |
 | `Subscription`         | `src/DataGrid/hooks/useGridSnapshot.ts`         | `waiting`, `subscribed`                               | `reactive-hooks.spec.tsx`                   |
 | `SaveState`            | `src/DataGrid/export/useSaveFile.ts`            | `idle`, `writing`                                     | `export.spec.tsx`                           |
+| `RowWindow`            | `src/DataGrid/useRowVirtualizer.ts`             | `allRows`, `range`                                    | `row-virtualization.spec.tsx`               |
 
 The specs are in `apps/playground/tests-ct/`. The convention is in the root
 [State](../../AGENTS.md#state) section. A gesture started from React goes

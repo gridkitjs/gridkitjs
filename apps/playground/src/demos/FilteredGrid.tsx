@@ -7,15 +7,17 @@ import { columns, rows, type Row } from "./applicationCosts";
  * `defaultFilter`: the filter is just state, so this is what a grid that
  * starts filtered looks like. ANDs a text query against a
  * `GroupFilterEntry` that ORs a second text query with a predicate, to show
- * three of the four entry kinds working together.
+ * three of the five entry kinds working together.
  */
 const costFilter: FilterState<Row> = [
-  { columnId: "Application.Name", query: "%a%" },
+  { kind: "text", columnId: "Application.Name", query: "%a%" },
   {
+    kind: "group",
     combinator: "or",
     entries: [
-      { columnId: "Status", query: "warn" },
+      { kind: "text", columnId: "Status", query: "warn" },
       {
+        kind: "predicate",
         columnId: "Cost",
         predicate: (value) => typeof value === "number" && value > 1000,
       },
@@ -34,12 +36,13 @@ export function FilteredGrid() {
       </p>
       <pre className="mt-2 overflow-x-auto rounded border border-gray-300 bg-gray-50 p-2 text-xs">
         {`[
-  { columnId: "Application.Name", query: "%a%" },
+  { kind: "text", columnId: "Application.Name", query: "%a%" },
   {
+    kind: "group",
     combinator: "or",
     entries: [
-      { columnId: "Status", query: "warn" },
-      { columnId: "Cost", predicate: (value) => value > 1000 },
+      { kind: "text", columnId: "Status", query: "warn" },
+      { kind: "predicate", columnId: "Cost", predicate: (value) => value > 1000 },
     ],
   },
 ]`}

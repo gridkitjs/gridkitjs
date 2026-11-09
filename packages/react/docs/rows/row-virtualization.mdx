@@ -39,7 +39,7 @@ This does mean a row's height isn't known until it has actually rendered once. T
 
 Without virtualization, every row is already in the DOM, so `scrollToRow` and arrow-key navigation only ever need to move focus or scroll to an existing element. With it, a target row — `scrollToRow`'s argument, or wherever <Kbd>ArrowDown</Kbd>, <Kbd>End</Kbd> or <Kbd>Ctrl</Kbd>+<Kbd>End</Kbd> would land — may not be mounted at all.
 
-Both handle this the same way, in two passes: jump to an estimated scroll offset (using measured heights where known, `estimatedRowHeight` for the rest), let the target row mount, then correct the scroll position once its real height is measured. This happens automatically; there is nothing extra to call.
+Both handle this the same way, in two passes: jump to an estimated scroll offset (using measured heights where known, `estimatedRowHeight` for the rest), let the target row mount, then correct the scroll position once its real height is measured. This happens automatically; there is nothing extra to call. If the rows change (a sort, a filter, new data) before the target row mounts, the second pass is dropped rather than applied to whichever row now has its place.
 
 ```tsx
 const gridRef = useRef<DataGridApi<Row>>(null);
@@ -47,6 +47,10 @@ const gridRef = useRef<DataGridApi<Row>>(null);
 // Works the same whether row-2000 is currently mounted or not.
 gridRef.current?.scrollToRow("row-2000");
 ```
+
+## Turning `virtualized` on and off
+
+`virtualized` can change at any time. Turning it on keeps every row mounted until the grid has worked out the window around the scroll position, then unmounts the rest, so a focused cell in that window keeps the browser's focus. A `scrollToRow` in the same commit, such as one from a parent's layout effect, already scrolls the virtualized body.
 
 ## Interaction with pagination and grouping
 

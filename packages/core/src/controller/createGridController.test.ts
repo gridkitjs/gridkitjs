@@ -7,6 +7,7 @@ import type {
   ColumnSortEvent,
   ColumnVisibilityEvent,
   FilterChangeEvent,
+  FilterState,
   GroupByEvent,
   GroupExpansionEvent,
   PaginationChangeEvent,
@@ -692,7 +693,9 @@ describe("createGridController: filter", () => {
     const onFilterChange =
       vi.fn<(event: FilterChangeEvent<SampleRow>) => void>();
     const controller = create({ onFilterChange });
-    const filter = [{ columnId: "Region", query: "West" }];
+    const filter: FilterState<SampleRow> = [
+      { kind: "text", columnId: "Region", query: "West" },
+    ];
 
     controller.setFilter(filter);
     controller.setFilter([...filter]);
@@ -712,7 +715,7 @@ describe("createGridController: filter", () => {
       onPaginationChange,
     });
 
-    controller.setFilter([{ columnId: "Region", query: "East" }]);
+    controller.setFilter([{ kind: "text", columnId: "Region", query: "East" }]);
 
     expect(controller.getState().pagination.pageIndex).toBe(0);
     expect(onPaginationChange).not.toHaveBeenCalled();
@@ -722,7 +725,7 @@ describe("createGridController: filter", () => {
     const onFilterChange = vi.fn();
     const controller = create({ filter: [], onFilterChange });
 
-    controller.setFilter([{ columnId: "Region", query: "West" }]);
+    controller.setFilter([{ kind: "text", columnId: "Region", query: "West" }]);
 
     expect(onFilterChange).toHaveBeenCalledTimes(1);
     expect(controller.getView().rows).toHaveLength(5);
@@ -945,6 +948,57 @@ describe("createGridController: subscribers", () => {
     expect(onRowSelectionChange).toHaveBeenCalledTimes(1);
     expect(onColumnSelectionChange).toHaveBeenCalledTimes(1);
     expect(onCellSelectionChange).toHaveBeenCalledTimes(1);
+  });
+
+  test("are not called when a controlled slice only asks for a change", () => {
+    const onColumnSortChange = vi.fn();
+    const controller = create({ columnSort: [], onColumnSortChange });
+    const listener = vi.fn();
+    controller.subscribe(listener);
+    const state = controller.getState();
+
+    controller.toggleColumnSort("Amount");
+
+    expect(onColumnSortChange).toHaveBeenCalledTimes(1);
+    expect(listener).not.toHaveBeenCalled();
+    expect(controller.getState()).toBe(state);
+  });
+
+  test("are not called by clearSelection when every selection is controlled", () => {
+    const onRowSelectionChange = vi.fn();
+    const onColumnSelectionChange = vi.fn();
+    const onCellSelectionChange = vi.fn();
+    const controller = create({
+      rowSelection: ["1"],
+      columnSelection: ["Id"],
+      cellSelection: { rowId: "2", columnId: "Region" },
+      onRowSelectionChange,
+      onColumnSelectionChange,
+      onCellSelectionChange,
+    });
+    const listener = vi.fn();
+    controller.subscribe(listener);
+
+    controller.clearSelection();
+
+    expect(onRowSelectionChange).toHaveBeenCalledTimes(1);
+    expect(onColumnSelectionChange).toHaveBeenCalledTimes(1);
+    expect(onCellSelectionChange).toHaveBeenCalledTimes(1);
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  test("are called once by clearSelection when only an uncontrolled slice changed", () => {
+    const controller = create({
+      rowSelection: ["1"],
+      defaultColumnSelection: ["Id"],
+    });
+    const listener = vi.fn();
+    controller.subscribe(listener);
+
+    controller.clearSelection();
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(controller.getState().columnSelection).toEqual([]);
   });
 
   test("stop being called once unsubscribed", () => {

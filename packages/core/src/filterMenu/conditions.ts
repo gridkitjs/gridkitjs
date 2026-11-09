@@ -101,17 +101,19 @@ function conditionOf<Row>(
   const { operator } = row;
   switch (filterOperandArity(operator)) {
     case 0:
-      return { columnId, operator };
+      return { kind: "operator", columnId, operator };
     case 1: {
       const value = parseFilterOperand(row.text, type);
-      return value === undefined ? undefined : { columnId, operator, value };
+      return value === undefined
+        ? undefined
+        : { kind: "operator", columnId, operator, value };
     }
     case 2: {
       const low = parseFilterOperand(row.text, type);
       const high = parseFilterOperand(row.textTo, type);
       return low === undefined || high === undefined
         ? undefined
-        : { columnId, operator, value: [low, high] };
+        : { kind: "operator", columnId, operator, value: [low, high] };
     }
   }
 }

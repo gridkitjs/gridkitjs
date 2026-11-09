@@ -82,7 +82,7 @@ describe("resolveGridView", () => {
   test("filters then sorts the rows", () => {
     const view = resolveGridView(
       input({
-        filter: [{ columnId: "Region", query: "%e%" }],
+        filter: [{ kind: "text", columnId: "Region", query: "%e%" }],
         columnSort: [{ columnId: "Amount", direction: "desc" }],
       }),
     );
@@ -174,7 +174,7 @@ describe("resolveGridView", () => {
     test("numbers a filtered, sorted grid's rows in the order shown", () => {
       const view = resolveGridView(
         input({
-          filter: [{ columnId: "Region", query: "%e%" }],
+          filter: [{ kind: "text", columnId: "Region", query: "%e%" }],
           columnSort: [{ columnId: "Amount", direction: "desc" }],
         }),
       );
@@ -313,7 +313,7 @@ describe("resolveGridView", () => {
     const view = resolveGridView(
       input({
         columnVisibility: { Region: false },
-        filter: [{ columnId: "Region", query: "%st" }],
+        filter: [{ kind: "text", columnId: "Region", query: "%st" }],
         columnSort: [{ columnId: "Region", direction: "asc" }],
       }),
     );
@@ -393,7 +393,7 @@ describe("createGridViewResolver", () => {
       ...base,
       state: {
         ...base.state,
-        filter: [{ columnId: "Region", query: "West" }],
+        filter: [{ kind: "text", columnId: "Region", query: "West" }],
       },
     });
 

@@ -107,7 +107,7 @@ function restore() {
 
 `restoreState` takes the whole state or any part of it — `{ columnSizing, columnOrder, columnVisibility }` restores just the column layout. Each slice that changes fires its own callback, as its setter would, and the grid re-renders once. A restored page is kept even when the same restore changes the sort or the filter, which would otherwise send it back to the first page.
 
-Everything in the state is plain data except the filter. `serializeGridState` writes a `Date` as its ISO string, which `restoreState` turns back into a `Date`. A predicate entry is a function and cannot be saved: it is left out, with a `console.error` naming its column. Write a filter you want saved with [operator entries](/docs/react/column-filtering#the-fifth-kind-operators) instead — a range, a list of values or a blank check needs no predicate.
+Everything in the state is plain data except the filter. `serializeGridState` writes a `Date` as its ISO string, which `restoreState` turns back into a `Date`. A predicate entry is a function and cannot be saved: it is left out, with a `console.error` naming its column. Write a filter you want saved with [operator entries](/docs/react/column-filtering#the-fifth-kind-operators) instead — a range, a list of values or a blank check needs no predicate. A filter saved by a release whose entries had no `kind` still restores: `restoreState` tells each entry's kind from its fields.
 
 `restoreState` also reads a `groupExpansion` saved as a bare list of collapsed group ids, the shape earlier releases wrote, as `{ mode: "allExpanded", except: list }`, so a layout saved by an older grid keeps its collapsed groups. `serializeGridState` writes the mode with exceptions.
 

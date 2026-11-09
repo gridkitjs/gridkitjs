@@ -83,7 +83,9 @@ describe("conditionRowsFrom", () => {
       conditionRowsFrom(
         {
           kind: "conditions",
-          conditions: [{ columnId: "Amount", operator: "gt", value: 10 }],
+          conditions: [
+            { kind: "operator", columnId: "Amount", operator: "gt", value: 10 },
+          ],
           combinator: "and",
         },
         numberOperators,
@@ -99,11 +101,12 @@ describe("conditionRowsFrom", () => {
           kind: "conditions",
           conditions: [
             {
+              kind: "operator",
               columnId: "Placed",
               operator: "between",
               value: [new Date(2024, 0, 1), new Date(2024, 0, 31, 18, 0)],
             },
-            { columnId: "Placed", operator: "isEmpty" },
+            { kind: "operator", columnId: "Placed", operator: "isEmpty" },
           ],
           combinator: "or",
         },
@@ -120,7 +123,9 @@ describe("conditionRowsFrom", () => {
     const [first] = conditionRowsFrom(
       {
         kind: "conditions",
-        conditions: [{ columnId: "Amount", operator: "gte", value: 5 }],
+        conditions: [
+          { kind: "operator", columnId: "Amount", operator: "gte", value: 5 },
+        ],
         combinator: "and",
       },
       ["eq"],
@@ -135,7 +140,9 @@ describe("conditionRowsFrom", () => {
       conditionRowsFrom(
         {
           kind: "conditions",
-          conditions: [{ columnId: "Amount", operator: "lt", value: 3 }],
+          conditions: [
+            { kind: "operator", columnId: "Amount", operator: "lt", value: 3 },
+          ],
           combinator: "and",
         },
         [],
@@ -155,8 +162,8 @@ describe("conditionsFromRows", () => {
       ),
     ).toEqual({
       conditions: [
-        { columnId: "Amount", operator: "gte", value: 10 },
-        { columnId: "Amount", operator: "lt", value: 100 },
+        { kind: "operator", columnId: "Amount", operator: "gte", value: 10 },
+        { kind: "operator", columnId: "Amount", operator: "lt", value: 100 },
       ],
       invalid: [],
     });
@@ -171,6 +178,7 @@ describe("conditionsFromRows", () => {
       ).conditions,
     ).toEqual([
       {
+        kind: "operator",
         columnId: "Placed",
         operator: "between",
         value: [new Date(2024, 0, 1), new Date(2024, 0, 31)],
@@ -192,8 +200,8 @@ describe("conditionsFromRows", () => {
         "string",
       ).conditions,
     ).toEqual([
-      { columnId: "Region", operator: "isEmpty" },
-      { columnId: "Region", operator: "isNotEmpty" },
+      { kind: "operator", columnId: "Region", operator: "isEmpty" },
+      { kind: "operator", columnId: "Region", operator: "isNotEmpty" },
     ]);
   });
 
@@ -205,7 +213,9 @@ describe("conditionsFromRows", () => {
         "number",
       ),
     ).toEqual({
-      conditions: [{ columnId: "Amount", operator: "gt", value: 10 }],
+      conditions: [
+        { kind: "operator", columnId: "Amount", operator: "gt", value: 10 },
+      ],
       invalid: [1],
     });
   });
@@ -218,7 +228,14 @@ describe("conditionsFromRows", () => {
         "string",
       ),
     ).toEqual({
-      conditions: [{ columnId: "Region", operator: "contains", value: "we" }],
+      conditions: [
+        {
+          kind: "operator",
+          columnId: "Region",
+          operator: "contains",
+          value: "we",
+        },
+      ],
       invalid: [],
     });
   });
@@ -231,7 +248,9 @@ describe("conditionsFromRows", () => {
         "number",
       ),
     ).toEqual({
-      conditions: [{ columnId: "Amount", operator: "gt", value: 3 }],
+      conditions: [
+        { kind: "operator", columnId: "Amount", operator: "gt", value: 3 },
+      ],
       invalid: [0],
     });
   });
@@ -286,6 +305,7 @@ describe("conditions through the editor and back", () => {
 
   test("one condition is stored as itself, beside the other columns' entries", () => {
     const other: OperatorFilterEntry<Order> = {
+      kind: "operator",
       columnId: "Region",
       operator: "eq",
       value: "West",
@@ -299,7 +319,7 @@ describe("conditions through the editor and back", () => {
     );
     expect(filter).toEqual([
       other,
-      { columnId: "Amount", operator: "gt", value: 10 },
+      { kind: "operator", columnId: "Amount", operator: "gt", value: 10 },
     ]);
     expect(filter[0]).toBe(other);
   });

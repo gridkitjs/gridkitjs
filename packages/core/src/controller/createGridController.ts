@@ -256,13 +256,17 @@ export function createGridController<Row, Node = string>(
 
   /**
    * Re-resolves every slice after a change, keeping the previous state object
-   * when none differs, so a snapshot read twice is the same object. For
-   * `keepPage`, see `followPagingInputs`.
+   * when none differs, so a snapshot read twice is the same object. Returns
+   * whether the state changed: a commit to a controlled slice is only a
+   * request, and leaves subscribers nothing new to read. For `keepPage`, see
+   * `followPagingInputs`.
    */
-  function refresh(keepPage = false): void {
+  function refresh(keepPage = false): boolean {
+    const before = state;
     const next = followPagingInputs(resolveSlices(), keepPage);
     state = SLICE_KEYS.every((key) => next[key] === state[key]) ? state : next;
     storeShownPage();
+    return state !== before;
   }
 
   /**
@@ -353,16 +357,18 @@ export function createGridController<Row, Node = string>(
       mode.held.push(report);
       return;
     }
-    refresh();
+    const changed = refresh();
     report();
-    notify();
+    if (changed) {
+      notify();
+    }
   }
 
   /**
    * Runs `run` as one change: its commits are stored as they go, and only
    * when it ends — returning or throwing — is the state refreshed, every
-   * held report fired in order and subscribers called once, so no one sees a
-   * state halfway through it, and one that throws part-way still shows and
+   * held report fired in order and subscribers called once if the state
+   * changed, so no one sees a state halfway through it, and one that throws part-way still shows and
    * reports what it stored before rethrowing. A transaction started inside
    * another joins it.
    */
@@ -381,11 +387,11 @@ export function createGridController<Row, Node = string>(
       run();
     } finally {
       mode = IDLE;
-      refresh(current.pageAsked);
+      const changed = refresh(current.pageAsked);
       for (const report of current.held) {
         report();
       }
-      if (current.held.length > 0) {
+      if (changed) {
         notify();
       }
     }

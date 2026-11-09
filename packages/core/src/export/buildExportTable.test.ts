@@ -104,7 +104,7 @@ describe("buildExportTable", () => {
     const table = buildExportTable(
       sourceFor({
         defaultColumnSort: [{ columnId: "Amount", direction: "desc" }],
-        defaultFilter: [{ columnId: "Region", query: "%e%" }],
+        defaultFilter: [{ kind: "text", columnId: "Region", query: "%e%" }],
       }),
     );
 
@@ -210,7 +210,7 @@ describe("buildExportTable", () => {
       const table = buildExportTable(
         sourceFor({
           defaultRowSelection: ["3", "1", "2"],
-          defaultFilter: [{ columnId: "Region", query: "West" }],
+          defaultFilter: [{ kind: "text", columnId: "Region", query: "West" }],
         }),
         { scope: "selection" },
       );
@@ -563,7 +563,7 @@ describe("buildExportTable", () => {
       const table = buildExportTable(
         sourceFor({
           aggregates: [{ columnId: "Amount", fn: "avg" }],
-          defaultFilter: [{ columnId: "Region", query: "North" }],
+          defaultFilter: [{ kind: "text", columnId: "Region", query: "North" }],
         }),
       );
 

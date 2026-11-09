@@ -27,7 +27,7 @@ A [command](/docs/core/commands) is the one implementation behind a menu item, a
 
 ## Filters and filter editors
 
-A filter is plain data — operator entries such as `{ columnId: "amount", operator: "between", value: [10, 100] }` save and restore with the rest of the state. The [filter-editor model](/docs/core/filtering) is what a column's filter UI is drawn over: the shape of the column's filter, its values with counts cascaded over the other filters, and a draft reducer for a checklist or condition editor.
+A filter is plain data — operator entries such as `{ kind: "operator", columnId: "amount", operator: "between", value: [10, 100] }` save and restore with the rest of the state. The [filter-editor model](/docs/core/filtering) is what a column's filter UI is drawn over: the shape of the column's filter, its values with counts cascaded over the other filters, and a draft reducer for a checklist or condition editor.
 
 ## Install
 

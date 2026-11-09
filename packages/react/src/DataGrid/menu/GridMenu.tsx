@@ -36,15 +36,27 @@ interface GridMenuProps {
   behaviourRef?: RefObject<AttachedMenu | null> | undefined;
 }
 
-/** The submenu open from a menu. */
-interface OpenSubmenu {
-  readonly id: string;
-  /** The item it opened from, which it opens beside. */
-  readonly anchor: HTMLElement;
-  readonly focus: MenuSubmenuFocus;
-  /** Lines its first item up with `anchor`. */
-  readonly offset: number;
-}
+/** Whether a submenu is open from a menu, and which. */
+type SubmenuState =
+  | { readonly kind: "closed" }
+  | {
+      readonly kind: "open";
+      readonly id: string;
+      /** The item it opened from, which it opens beside. */
+      readonly anchor: HTMLElement;
+      readonly focus: MenuSubmenuFocus;
+      /** Lines its first item up with `anchor`. */
+      readonly offset: number;
+    }
+  /**
+   * Closed because its entry left the menu. The overlay hands focus back to
+   * the entry's item as it detaches, before the same commit removes that
+   * item, so focus that was in the submenu is left on the page's body.
+   */
+  | { readonly kind: "entryGone" };
+
+const CLOSED: SubmenuState = { kind: "closed" };
+const ENTRY_GONE: SubmenuState = { kind: "entryGone" };
 
 /** The item of `menu` whose id is `id`, read off the markup this drew. */
 function itemElement(menu: HTMLElement, id: string): HTMLElement | null {
@@ -128,7 +140,7 @@ export default function GridMenu({
 }: GridMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const submenuBehaviourRef = useRef<AttachedMenu | null>(null);
-  const [submenu, setSubmenu] = useState<OpenSubmenu | null>(null);
+  const [submenu, setSubmenu] = useState<SubmenuState>(CLOSED);
   const isSubmenu = onCloseSubmenu !== undefined;
 
   /**
@@ -158,7 +170,8 @@ export default function GridMenu({
       onOpenSubmenu: (id, { focus }) => {
         // Already open — the pointer opened it — so the keyboard only asks
         // for focus to move into it.
-        if (latest.current.submenu?.id === id) {
+        const open = latest.current.submenu;
+        if (open.kind === "open" && open.id === id) {
           if (focus === "first") {
             submenuBehaviourRef.current?.focusItem(0);
           }
@@ -166,11 +179,17 @@ export default function GridMenu({
         }
         const anchor = itemElement(menu, id);
         if (anchor !== null) {
-          setSubmenu({ id, anchor, focus, offset: -topInset(menu) });
+          setSubmenu({
+            kind: "open",
+            id,
+            anchor,
+            focus,
+            offset: -topInset(menu),
+          });
         }
       },
       onCollapseSubmenu: () => {
-        setSubmenu(null);
+        setSubmenu(CLOSED);
       },
       onCloseSubmenu: isSubmenu
         ? () => {
@@ -192,21 +211,39 @@ export default function GridMenu({
     };
   }, [isSubmenu, behaviourRef]);
 
+  // Focus left on the body by a submenu whose entry went comes back to this
+  // menu: its tab stop, or its first item once the tab stop was that entry.
+  useLayoutEffect(() => {
+    const menu = menuRef.current;
+    if (
+      submenu.kind !== "entryGone" ||
+      menu === null ||
+      document.activeElement !== document.body
+    ) {
+      return;
+    }
+    const item =
+      menu.querySelector<HTMLElement>(
+        '[data-gridkit-menu-item][tabindex="0"]',
+      ) ?? menu.querySelector<HTMLElement>("[data-gridkit-menu-item]");
+    item?.focus();
+  }, [submenu]);
+
   function closeSubmenu(): void {
-    setSubmenu(null);
+    setSubmenu(CLOSED);
   }
 
   const openEntry =
-    submenu === null
-      ? undefined
-      : entries.find(
+    submenu.kind === "open"
+      ? entries.find(
           (entry): entry is ResolvedMenuSubmenu =>
             entry.type === "submenu" && entry.id === submenu.id,
-        );
+        )
+      : undefined;
   // Its entry has gone from `entries`: the submenu closes for good, rather
   // than coming back open with the entry.
-  if (submenu !== null && openEntry === undefined) {
-    setSubmenu(null);
+  if (submenu.kind === "open" && openEntry === undefined) {
+    setSubmenu(ENTRY_GONE);
   }
 
   return (
@@ -224,12 +261,12 @@ export default function GridMenu({
             <MenuItem
               key={entry.id}
               entry={entry}
-              expanded={entry.id === submenu?.id}
+              expanded={submenu.kind === "open" && entry.id === submenu.id}
             />
           ),
         )}
       </div>
-      {submenu !== null && openEntry !== undefined && (
+      {submenu.kind === "open" && openEntry !== undefined && (
         <Overlay
           key={submenu.id}
           anchor={submenu.anchor}
