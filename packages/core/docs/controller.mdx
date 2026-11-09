@@ -18,7 +18,7 @@ const controller = createGridController<Row>({
 
 controller.subscribe(() => draw(controller.getView()));
 
-controller.toggleColumnSort("Amount"); // ascending; draw() runs, then the callback above
+controller.toggleColumnSort("Amount"); // ascending; the callback above fires, then draw() runs
 controller.nextPage();
 controller.getState().pagination; // { pageIndex: 1, pageSize: 25 }
 ```
@@ -31,7 +31,7 @@ createGridController takes a `GridControllerOptions<Row, Node>`: every [`GridOpt
 
 ## Controlled and uncontrolled state
 
-Each slice of `GridState` is controlled or not on its own, the way a form input is. Leave the slice's option out and the controller keeps the slice itself, starting from its default. Give the option and the controller shows exactly that value; an action then only asks for a change, through the slice's callback, and the change takes effect when the next `setOptions` carries it.
+Each slice of `GridState` is controlled or not on its own, the way a form input is. Leave the slice's option out and the controller keeps the slice itself, starting from its default. Give the option and the controller shows exactly that value; an action then only asks for a change, through the slice's callback, and the change takes effect when the next `setOptions` carries it. Until then the state is unchanged, so the action calls no subscribers.
 
 | Slice              | Controlled option  | Default                   | Callback                                                  |
 | ------------------ | ------------------ | ------------------------- | --------------------------------------------------------- |
@@ -60,13 +60,13 @@ A change to the filter, the sort, the grouping or the `paginationUnit` option se
 | `getState()`    | `GridState<Row>`                   | Every slice as the grid applies it — the controlled value where one is given. The same object until a slice changes. |
 | `getView()`     | `GridView<Row, Node>`              | What the user is looking at. The same object until something in it changes.                                          |
 | `getOptions()`  | `GridControllerOptions<Row, Node>` | The options last given.                                                                                              |
-| `subscribe(fn)` | `() => void`                       | Calls `fn` after every action that changed something, synchronously. Returns the unsubscribe function.               |
+| `subscribe(fn)` | `() => void`                       | Calls `fn` after every action that changed the state, synchronously. Returns the unsubscribe function.               |
 
 Because both snapshots keep their identity until something changes, either can serve as the snapshot of a subscription that compares by reference — React's `useSyncExternalStore`, an Angular signal, a Svelte store.
 
 ## Actions
 
-Every action works out the next value, stops if it is the value the slice already holds, keeps it unless the slice is controlled, fires the slice's callback with the same payload a user's interaction fires, then calls the subscribers.
+Every action works out the next value, stops if it is the value the slice already holds, keeps it unless the slice is controlled, fires the slice's callback with the same payload a user's interaction fires, then calls the subscribers if the state changed. A controlled slice's state changes only through `setOptions`, so an action on it fires the callback alone, and a subscriber runs only when `getState()` has a new object to hand back.
 
 | Action                                                             | Callback                   | Description                                                                                                                                    |
 | ------------------------------------------------------------------ | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -103,9 +103,9 @@ Every `set*` action also stops for a value equal to the current one, so setting 
 
 ## Saving and restoring state
 
-`restoreState(saved)` puts back state read earlier with `getState()`. Every slice it is given is set as its own `set*` action would set it — each one that changes fires its callback, and a controlled one only asks — while slices left out keep their value. Subscribers are called once, after every slice is in place, and a restored pagination is kept even when the same call changed the sort, filter or grouping.
+`restoreState(saved)` puts back state read earlier with `getState()`. Every slice it is given is set as its own `set*` action would set it — each one that changes fires its callback, and a controlled one only asks — while slices left out keep their value. Subscribers are called once, after every slice is in place, if any changed, and a restored pagination is kept even when the same call changed the sort, filter or grouping.
 
-A filter saved by a release whose entries had no `kind` still restores: each entry's kind is told from its fields — `combinator`, `operator`, `value` or `query`. A saved state that can't be read, such as a corrupted filter or an entry with none of those fields, makes `restoreState` throw. The slices set before it stay set: `getState()` and the view show them, their callbacks fire and subscribers are called once, before the error reaches the caller.
+A filter saved by a release whose entries had no `kind` still restores: each entry's kind is told from its fields — `combinator`, `operator`, `value` or `query`. A saved state that can't be read, such as a corrupted filter or an entry with none of those fields, makes `restoreState` throw. The slices set before it stay set: `getState()` and the view show them, their callbacks fire and subscribers are called once if the state changed, before the error reaches the caller.
 
 `getState()` holds plain data except in the filter, where a `Date` value does not survive JSON and a predicate entry is a function. `serializeGridState(state)` returns a `SerializedGridState<Row>`, state that does survive it: a `Date` becomes its ISO string, which `restoreState` turns back into a `Date` — in a value entry always, in an operator entry when its column is a date, date-time or time column — and a predicate entry is left out with a `console.error` naming its column — along with any group it leaves empty.
 

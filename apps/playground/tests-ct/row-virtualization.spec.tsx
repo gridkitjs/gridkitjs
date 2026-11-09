@@ -2,12 +2,14 @@
 // ./support/coverage rather than directly from the CT package — see that
 // file for why.
 import type { MountResult } from "@playwright/experimental-ct-react";
+import type { Locator } from "@playwright/test";
 import type { ColumnDefinition } from "@gridkitjs/core";
 import RowIdentifiedGrid from "./support/RowIdentifiedGrid";
 import { ariaRowCount, ariaRowIndexes, consecutive } from "./support/ariaRows";
 import { expect, test } from "./support/coverage";
 import { mountGrid, updateGrid } from "./support/mountGrid";
 import ImperativeApiGrid from "./support/ImperativeApiGrid";
+import VirtualizedToggleGrid from "./support/VirtualizedToggleGrid";
 
 interface Row {
   id: string;
@@ -40,6 +42,45 @@ const columns: readonly ColumnDefinition<Row>[] = [
 
 function mountedDataRows(root: MountResult) {
   return root.locator("tbody tr[data-gridkit-row-index]");
+}
+
+/**
+ * Scrolls `body` by hand, in small steps from 80% of its height less a
+ * little, until `row` (one around 80% of the way down) mounts in the
+ * overscan below the viewport, then waits for the grid to settle.
+ */
+async function scrollByHandUntilMounted(
+  body: Locator,
+  row: Locator,
+): Promise<void> {
+  let top = await body.evaluate((element) => element.scrollHeight * 0.8 - 1000);
+  for (let step = 0; step < 100 && (await row.count()) === 0; step++) {
+    top += 40;
+    await body.evaluate((element, scrollTop) => {
+      element.scrollTop = scrollTop;
+      return new Promise((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+      });
+    }, top);
+  }
+  await expect(row).toHaveCount(1);
+  await body.evaluate(
+    () =>
+      new Promise((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+      }),
+  );
+}
+
+/** How far below the top of the grid body `row` sits. */
+function offsetInBody(row: Locator): Promise<number> {
+  return row.evaluate((element) => {
+    const scroller = element.closest(".gridkit-data-grid-body");
+    if (scroller === null) throw new Error("row outside the body");
+    return (
+      element.getBoundingClientRect().top - scroller.getBoundingClientRect().top
+    );
+  });
 }
 
 test.describe("row virtualization", () => {
@@ -114,7 +155,6 @@ test.describe("row virtualization", () => {
 
   test("a scrollToRow a later one replaced leaves the body alone once its row mounts", async ({
     mount,
-    page,
   }) => {
     const root = await mountGrid(
       mount,
@@ -137,34 +177,47 @@ test.describe("row virtualization", () => {
     // top instead.
     const body = root.locator(".gridkit-data-grid-body");
     const row800 = root.locator('tbody tr[data-gridkit-row-index="800"]');
-    let top = await body.evaluate(
-      (element) => element.scrollHeight * 0.8 - 1000,
-    );
-    for (let step = 0; step < 100 && (await row800.count()) === 0; step++) {
-      top += 40;
-      await body.evaluate((element, scrollTop) => {
-        element.scrollTop = scrollTop;
-        return new Promise((resolve) => {
-          requestAnimationFrame(() => requestAnimationFrame(resolve));
-        });
-      }, top);
-    }
-    await expect(row800).toHaveCount(1);
-    await page.evaluate(
-      () =>
-        new Promise((resolve) => {
-          requestAnimationFrame(() => requestAnimationFrame(resolve));
-        }),
+    await scrollByHandUntilMounted(body, row800);
+    expect(await offsetInBody(row800)).toBeGreaterThan(100);
+  });
+
+  test("a scrollToRow made just before the rows are sorted leaves the body alone once its row's place mounts", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={columns}
+        dataSource={buildRows(1000)}
+        label="Virtualized api"
+        height={200}
+        virtualized
+        scrollRowId="row-800"
+        sortToSet={[{ columnId: "name", direction: "desc" }]}
+      />,
     );
 
-    const offset = await row800.evaluate((row) => {
-      const scroller = row.closest(".gridkit-data-grid-body");
-      if (scroller === null) throw new Error("row outside the body");
-      return (
-        row.getBoundingClientRect().top - scroller.getBoundingClientRect().top
-      );
-    });
-    expect(offset).toBeGreaterThan(100);
+    // Scrolled back to the top in the same task, before row 800's place can
+    // mount, as the user scrolling away before the far rows draw would.
+    const body = root.locator(".gridkit-data-grid-body");
+    await root
+      .getByRole("button", { name: "scroll-then-sort" })
+      .evaluate((button: HTMLElement) => {
+        button.click();
+        const scroller = document.querySelector(".gridkit-data-grid-body");
+        if (scroller === null) throw new Error("no grid body");
+        scroller.scrollTop = 0;
+      });
+    await expect(
+      root.locator('tbody tr[data-gridkit-row-index="0"]'),
+    ).toBeVisible();
+
+    // Scrolled by hand towards row 800's place until it mounts in the
+    // overscan below the viewport. Scrolled to as the call before the sort
+    // asked, its new row would sit at the top instead.
+    const row800 = root.locator('tbody tr[data-gridkit-row-index="800"]');
+    await scrollByHandUntilMounted(body, row800);
+    expect(await offsetInBody(row800)).toBeGreaterThan(100);
   });
 
   test("keyboard navigation moves focus correctly across the mounted window's boundary", async ({
@@ -528,6 +581,84 @@ test.describe("row virtualization", () => {
       element.scrollTop = 0;
     });
     await expect(root.getByText("Row 0", { exact: true })).toBeInViewport();
+  });
+
+  test("turning virtualized on leaves the browser's focus on the focused cell", async ({
+    mount,
+    page,
+  }) => {
+    const rows = buildRows(300);
+    function grid(virtualized: boolean) {
+      return (
+        <VirtualizedToggleGrid
+          columns={columns}
+          dataSource={rows}
+          label="Toggled focus"
+          height={150}
+          virtualized={virtualized}
+        />
+      );
+    }
+    const root = await mountGrid(mount, grid(false));
+    const cell = (rowIndex: number) =>
+      root
+        .locator(`tbody tr[data-gridkit-row-index="${String(rowIndex)}"] td`)
+        .first();
+
+    // `page.keyboard` throughout, and never refocused: each key goes
+    // wherever the grid left the focus.
+    await root.locator('[tabindex="0"]').focus();
+    for (let index = 0; index < 3; index++) {
+      await page.keyboard.press("ArrowDown");
+    }
+    await expect(cell(2)).toBeFocused();
+
+    await updateGrid(root, grid(true));
+    await expect.poll(() => mountedDataRows(root).count()).toBeLessThan(60);
+    await expect(cell(2)).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(cell(3)).toBeFocused();
+
+    // The rows drawn last while virtualized are the bottom ones, far from the
+    // focused cell once virtualization is off and it is back in view.
+    const body = root.locator(".gridkit-data-grid-body");
+    await body.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    await expect(root.getByText("Row 299", { exact: true })).toBeVisible();
+    await updateGrid(root, grid(false));
+    await expect(mountedDataRows(root)).toHaveCount(300);
+    await cell(3).focus();
+    await page.keyboard.press("ArrowDown");
+    await expect(cell(4)).toBeFocused();
+
+    await updateGrid(root, grid(true));
+    await expect.poll(() => mountedDataRows(root).count()).toBeLessThan(60);
+    await expect(cell(4)).toBeFocused();
+  });
+
+  test("a scrollToRow in the commit that turns virtualized on lands on its row", async ({
+    mount,
+  }) => {
+    const rows = buildRows(1000);
+    function grid(virtualized: boolean) {
+      return (
+        <VirtualizedToggleGrid
+          columns={columns}
+          dataSource={rows}
+          label="Toggled scroll"
+          height={200}
+          virtualized={virtualized}
+          scrollRowIdOnEnable="row-800"
+        />
+      );
+    }
+    const root = await mountGrid(mount, grid(false));
+    await expect(root.getByText("Row 0", { exact: true })).toBeInViewport();
+
+    await updateGrid(root, grid(true));
+    await expect(root.getByText("Row 800", { exact: true })).toBeInViewport();
+    await expect.poll(() => mountedDataRows(root).count()).toBeLessThan(60);
   });
 
   test("virtualized without height set does not crash and renders every row (dev warning aside)", async ({

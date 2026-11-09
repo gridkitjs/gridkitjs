@@ -77,6 +77,13 @@ export interface GridCommandHost {
     | ((file: ExportFile | Promise<ExportFile>) => void)
     | ((file: ExportFile | Promise<ExportFile>) => boolean);
   /**
+   * Whether `saveFile` would save a file asked for now. An export command
+   * asks first, and while it is `false` builds no file and does not run, so
+   * a writer is never run for a file the host would drop. Left out, every
+   * file can be saved.
+   */
+  readonly canSave?: (() => boolean) | undefined;
+  /**
    * Puts a copy on the clipboard, as text and as HTML, and announces it —
    * `count` and `unit` say what to announce — or that the browser refused.
    */

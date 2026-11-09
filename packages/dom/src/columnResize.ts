@@ -9,10 +9,11 @@ export interface ColumnResizeGestureHandlers {
   /** Every pointer move, with the width the column takes there. */
   readonly onMove: (width: number) => void;
   /**
-   * The pointer was released. `width` is the width to commit, or `null` when
-   * it ended where it started: a click on the handle — as each half of a
-   * double-click is — is not a resize, and reporting one would fire a
-   * spurious resize on every click.
+   * The pointer was released. `width` is the width to commit, even when a
+   * drag brought it back to where it started, or `null` when the width never
+   * changed: a click on the handle — as each half of a double-click is — is
+   * not a resize, and reporting one would fire a spurious resize on every
+   * click.
    */
   readonly onEnd: (width: number | null) => void;
   /**
@@ -52,16 +53,18 @@ export function startColumnResizeGesture(
   press.preventDefault();
 
   let width = session.startWidth;
+  let resized = false;
   startPointerGesture(
     handle,
     press.pointerId,
     {
       onMove(event) {
         width = applyColumnResize(session, event.clientX);
+        resized ||= width !== session.startWidth;
         handlers.onMove(width);
       },
       onEnd() {
-        handlers.onEnd(width === session.startWidth ? null : width);
+        handlers.onEnd(resized ? width : null);
       },
       onCancel() {
         handlers.onCancel();

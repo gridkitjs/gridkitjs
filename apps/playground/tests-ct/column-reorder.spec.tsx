@@ -491,6 +491,48 @@ test("a real drop calls onColumnOrderChange, announces the new position, and kee
   await expect(headerLocators.last()).toHaveAttribute("tabindex", "0");
 });
 
+test("a drop lands by the column order given mid-drag, not the order the drag began with", async ({
+  mount,
+  page,
+}) => {
+  const events: ColumnOrderEvent[] = [];
+  const grid = (order: readonly string[]) => (
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Order changed mid-drag"
+      reorderableColumns
+      columnOrder={order}
+      onColumnOrderChange={(event) => {
+        events.push(event);
+      }}
+    />
+  );
+  const root = await mountGrid(mount, grid(["id", "name", "status"]), {
+    width: 900,
+  });
+  const headerLocators = headers(root);
+
+  const start = await dragStart(page, headerLocators.nth(1));
+  await page.mouse.move(start.x + 10, start.y, { steps: 3 });
+  // Only "id" moves in the page: moving the dragged header would take its
+  // pointer capture, and the drag with it.
+  await updateGrid(root, grid(["name", "status", "id"]), { width: 900 });
+  expect(await columnIds(root)).toEqual(["name", "status", "id"]);
+
+  // The trailing half of "status": the gap before "id", now last.
+  const box = await headerLocators.nth(1).boundingBox();
+  if (box === null) throw new Error("header 1 not visible");
+  await page.mouse.move(box.x + box.width * 0.75, box.y + box.height / 2, {
+    steps: 5,
+  });
+  await expect(headerLocators.nth(2)).toHaveClass(/is-drop-before/);
+  await page.mouse.up();
+
+  expect(events).toHaveLength(1);
+  expect(events[0]?.order).toEqual(["status", "name", "id"]);
+});
+
 test("Ctrl+Arrow moves a middle column one place; the first column leftward and the last rightward are no-ops", async ({
   mount,
 }) => {

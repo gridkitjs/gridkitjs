@@ -38,7 +38,9 @@ const INITIAL_RANGE: VisibleRange = {
  * "End, then narrow" asks for the last value and narrows the list to
  * `narrowTo` values in the same task, before the last value can mount, as
  * a search changing the list mid-move would; "Show all" brings every value
- * back. Neither button takes focus from the list.
+ * back. "Detach, then End" detaches the checklist and asks the detached one
+ * for the last value; "Show all" afterwards gives the detached one a count.
+ * None of the buttons takes focus from the list.
  */
 export interface ChecklistHarnessProps {
   /** How many values the list holds: far more than its window mounts. */
@@ -176,6 +178,18 @@ export default function ChecklistHarness({
         }}
       >
         Show all
+      </button>
+      <button
+        type="button"
+        onMouseDown={(event) => {
+          event.preventDefault();
+        }}
+        onClick={() => {
+          checklistRef.current?.detach();
+          checklistRef.current?.focusItem(count - 1);
+        }}
+      >
+        Detach, then End
       </button>
       <output data-testid="toggled">{toggled}</output>
       <output data-testid="focused">{focused}</output>

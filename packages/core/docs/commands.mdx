@@ -100,6 +100,7 @@ A `GridCommandHost` holds what a command needs that only a renderer has. A calle
 | `openPanel(kind, target)`   | Opens one of the grid's [panels](#panels) anchored to the target. `kind` is a `GridPanelKind`: `"columnChooser"` or `"filter"`.                                                                                                                                                                                                                      |
 | `announce(text)`            | Reads `text` out through the grid's live region.                                                                                                                                                                                                                                                                                                     |
 | `saveFile(file)`            | Saves an [`ExportFile`](/docs/core/export#exporting-a-file) — in a browser, a download. Given a promise of one, it waits for it, and reports a rejected one rather than saving. Returns `false` for a file it drops unsaved, as a host saving one file at a time does with one asked for while it waits on the last: the export command did not run. |
+| `canSave()`                 | Optional. Whether `saveFile` would save a file asked for now. An export command asks first: while it says `false`, the command builds no file, so its writer never runs, and did not run. Left out, every file can be saved.                                                                                                                         |
 | `writeClipboard(content)`   | Puts a [`CopyContent`](/docs/core/export#copying) on the clipboard as text and HTML, and announces it — `messages.copied(count, unit)` — or `messages.copyFailed`.                                                                                                                                                                                   |
 | `print(document, options)`  | Puts a [`PrintDocument`](/docs/core/export#printing) on paper — in a browser, the print dialog — under the `PrintOptions` it was built with.                                                                                                                                                                                                         |
 
@@ -413,7 +414,7 @@ if (entries.length > 0) {
 }
 ```
 
-`onContextMenuOpenChange` is called as a grid's context menu opens and closes, with a `ContextMenuOpenChangeEvent` — `{ open, target }`, where the menu opened or where the one closing had. A menu opened in place of another reports that one closing first. The open state itself is the renderer's: no option holds it.
+`onContextMenuOpenChange` is called as a grid's context menu opens and closes, with a `ContextMenuOpenChangeEvent` — `{ open, target }`, where the menu opened or where the one closing had. A menu opened in place of another reports that one closing first, and a menu also reports closing when a panel opens in its place, when the grid unmounts and when `contextMenu` is turned off while it is open. The open state itself is the renderer's: no option holds it.
 
 @gridkitjs/react draws them and opens them for you — see its [context menu](/docs/react/context-menu).
 

@@ -74,8 +74,10 @@ export interface GridControllerOptions<Row, Node = string>
  *
  * Every action follows the same steps: work out the next value; stop if it
  * is the very object the slice already holds; keep it, unless the slice is
- * controlled; report it through the slice's callback; then call every
- * subscriber, synchronously. The setters (`setColumnSort` and the like) also
+ * controlled; report it through the slice's callback; then, if the state
+ * changed, call every subscriber, synchronously. A controlled slice's state
+ * changes only when the next `setOptions` carries the value, so an action on
+ * it reports without calling subscribers. The setters (`setColumnSort` and the like) also
  * stop for a value equal to the current one, so restoring what is already
  * there reports nothing.
  *
@@ -100,8 +102,9 @@ export interface GridController<Row, Node = string> {
   /** What the user is looking at — see `resolveGridView`. The same object until something in it changes. */
   readonly getView: () => GridView<Row, Node>;
   /**
-   * Calls `listener` after each action that got as far as reporting a
-   * change. Returns the function that unsubscribes it.
+   * Calls `listener` after each action that changed the state, so
+   * `getState()` returns a new object whenever it runs. Returns the function
+   * that unsubscribes it.
    */
   readonly subscribe: (listener: () => void) => () => void;
   /**
@@ -109,7 +112,8 @@ export interface GridController<Row, Node = string> {
    * `serializeGridState` and back through JSON. Every slice given is set as
    * its own `set*` action would set it, so each that changes fires its
    * callback and a controlled one only asks; slices left out keep their value.
-   * Subscribers are called once, after every slice is in place, and a
+   * Subscribers are called once, after every slice is in place, if any
+   * changed, and a
    * restored pagination is kept even when the same call changed the sort,
    * filter or grouping that would otherwise send it back to the first page.
    * A slice that throws stops the restore there, after the slices before it
@@ -209,7 +213,7 @@ export interface GridController<Row, Node = string> {
   /**
    * Lets go of every row, column and cell selection at once, as Escape does:
    * one change, so each selection that changes fires its callback and then
-   * subscribers are called once.
+   * subscribers are called once, if the state changed.
    */
   readonly clearSelection: () => void;
   /** Replaces the selected column ids as given — see `setRowSelection`. */

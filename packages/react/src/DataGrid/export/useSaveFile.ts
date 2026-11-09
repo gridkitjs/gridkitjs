@@ -19,21 +19,36 @@ const IDLE: SaveState = { kind: "idle" };
 const WRITING: SaveState = { kind: "writing" };
 
 /**
- * The host's `saveFile`: downloads an export, once its writer has finished
- * writing it.
+ * The host's `saveFile`, which downloads an export once its writer has
+ * finished writing it, and its `canSave`.
  *
  * One at a time. An export asked for while a writer is still writing the
  * last is dropped and logged, and the export command that asked for it did
  * not run, so pressing a slow export twice saves one file, and reports one
- * command, rather than two. A writer that fails, or a download the browser
- * refuses, is logged for the developer and announced for the user, who
- * asked for a file that will not come.
+ * command, rather than two. The export command asks `canSave` before it
+ * builds its file, so a dropped export never runs its writer. A writer that
+ * fails, or a download the browser refuses, is logged for the developer and
+ * announced for the user, who asked for a file that will not come.
  */
 export default function useSaveFile({
   messages,
   announce,
-}: UseSaveFileOptions): GridCommandHost["saveFile"] {
+}: UseSaveFileOptions): Pick<GridCommandHost, "saveFile" | "canSave"> {
   const state = useRef<SaveState>(IDLE);
+
+  /**
+   * Whether a file asked for now would be saved. An export asks just before
+   * it would build its file, so a refusal is that export dropped, and logged.
+   */
+  function canSave(): boolean {
+    if (state.current.kind === "writing") {
+      console.error(
+        "DataGrid: an export is still being written, so this one was dropped.",
+      );
+      return false;
+    }
+    return true;
+  }
 
   function fail(reason: string, error: unknown): void {
     console.error(`DataGrid: ${reason}`, error);
@@ -48,11 +63,8 @@ export default function useSaveFile({
     }
   }
 
-  return (file) => {
-    if (state.current.kind === "writing") {
-      console.error(
-        "DataGrid: an export is still being written, so this one was dropped.",
-      );
+  function saveFile(file: ExportFile | Promise<ExportFile>): boolean {
+    if (!canSave()) {
       return false;
     }
     if (!(file instanceof Promise)) {
@@ -68,5 +80,7 @@ export default function useSaveFile({
         state.current = IDLE;
       });
     return true;
-  };
+  }
+
+  return { saveFile, canSave };
 }

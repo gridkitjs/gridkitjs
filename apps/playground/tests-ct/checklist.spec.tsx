@@ -222,3 +222,21 @@ test.describe("pointer", () => {
     await expect(root.locator('[role="option"]:focus')).toBeInViewport();
   });
 });
+
+test.describe("detach", () => {
+  test("a detached checklist neither scrolls nor focuses", async ({
+    mount,
+  }) => {
+    const root = await mount(<ChecklistHarness size={CHECKLIST_SIZE} />);
+    await tabIntoList(root);
+
+    await root.getByRole("button", { name: "Detach, then End" }).click();
+    await root.getByRole("button", { name: "Show all" }).click();
+
+    expect(
+      await root.getByRole("listbox").evaluate((list) => list.scrollTop),
+    ).toBe(0);
+    await expect(option(root, 1)).toBeFocused();
+    await expect(root.getByTestId("focused")).toHaveText("none");
+  });
+});
