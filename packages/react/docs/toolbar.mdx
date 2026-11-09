@@ -214,7 +214,7 @@ See [printing](/docs/react/printing) for what is printed and its options.
 
 `"search"` is a search box over every column. What is typed applies once typing rests for a moment, or at once on <Kbd>Enter</Kbd>; <Kbd>Escape</Kbd> empties the box. Once the rows are filtered, a screen reader hears how many were found: "3 rows found". A controlled `filter` that doesn't take the search announces nothing, then or later.
 
-The box writes the filter's global text entry — `{ query: "%text%" }`, naming no column, a case-insensitive "contains" — through the grid's filter, so it fires `onFilterChange` and sends the grid back to its first page like any filter change, and leaves every column's own entry alone. It reads its text back from the filter, so anything else that changes the search changes the box: "Clear filters" empties it, and a restored layout or a controlled `filter` fills it.
+The box writes the filter's global text entry — `{ kind: "text", query: "%text%" }`, naming no column, a case-insensitive "contains" — through the grid's filter, so it fires `onFilterChange` and sends the grid back to its first page like any filter change, and leaves every column's own entry alone. It reads its text back from the filter, so anything else that changes the search changes the box: "Clear filters" empties it, and a restored layout or a controlled `filter` fills it.
 
 It matches what the global entry matches: every data column, hidden ones included, by its raw value — a date cell is not found by its formatted text. See [column filtering](/docs/react/column-filtering) and @gridkitjs/core's [search helpers](/docs/core/filtering#a-search-box).
 

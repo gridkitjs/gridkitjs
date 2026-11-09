@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import { createGridController } from "../controller/createGridController";
 import type { GridControllerOptions } from "../controller/gridController";
 import { defaultMessages } from "../messages";
-import type { ColumnDefinition } from "../types";
+import type { ColumnDefinition, FilterState } from "../types";
 import { canCopySelection, copyContent, type CopySource } from "./copy";
 
 interface Order {
@@ -46,7 +46,9 @@ function sourceFor(
   };
 }
 
-const WEST = [{ columnId: "Region", query: "West" }];
+const WEST: FilterState<Order> = [
+  { kind: "text", columnId: "Region", query: "West" },
+];
 
 describe("copyContent", () => {
   describe("a cell", () => {
@@ -232,7 +234,10 @@ describe("copyContent", () => {
       for (const options of [
         {},
         { defaultColumnSelection: ["Secret", "Notes"] },
-        { defaultColumnSelection: ["Id"], defaultFilter: [{ query: "%x%" }] },
+        {
+          defaultColumnSelection: ["Id"],
+          defaultFilter: [{ kind: "text", query: "%x%" }],
+        },
         { defaultCellSelection: { rowId: "1", columnId: "Secret" } },
         {
           defaultCellSelection: { rowId: "2", columnId: "Id" },

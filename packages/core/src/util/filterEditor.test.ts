@@ -90,20 +90,24 @@ const dataColumns: readonly DataColumn<SampleRow, unknown>[] = [
 const regionIn = (
   values: readonly string[],
 ): OperatorFilterEntry<SampleRow> => ({
+  kind: "operator",
   columnId: "Region",
   operator: "in",
   value: values,
 });
 const regionBlank: OperatorFilterEntry<SampleRow> = {
+  kind: "operator",
   columnId: "Region",
   operator: "isEmpty",
 };
 const amountAbove: OperatorFilterEntry<SampleRow> = {
+  kind: "operator",
   columnId: "Amount",
   operator: "gt",
   value: 5,
 };
 const amountBelow: OperatorFilterEntry<SampleRow> = {
+  kind: "operator",
   columnId: "Amount",
   operator: "lt",
   value: 25,
@@ -114,7 +118,7 @@ describe("describeColumnFilter", () => {
     expect(describeColumnFilter([], "Region")).toEqual({ kind: "none" });
     expect(
       describeColumnFilter<SampleRow>(
-        [amountAbove, { query: "%west%" }],
+        [amountAbove, { kind: "text", query: "%west%" }],
         "Region",
       ),
     ).toEqual({ kind: "none" });
@@ -135,13 +139,25 @@ describe("describeColumnFilter", () => {
 
     expect(
       describeColumnFilter<SampleRow>(
-        [{ combinator: "or", entries: [regionIn(["West"]), regionBlank] }],
+        [
+          {
+            kind: "group",
+            combinator: "or",
+            entries: [regionIn(["West"]), regionBlank],
+          },
+        ],
         "Region",
       ),
     ).toEqual(expected);
     expect(
       describeColumnFilter<SampleRow>(
-        [{ combinator: "or", entries: [regionBlank, regionIn(["West"])] }],
+        [
+          {
+            kind: "group",
+            combinator: "or",
+            entries: [regionBlank, regionIn(["West"])],
+          },
+        ],
         "Region",
       ),
     ).toEqual(expected);
@@ -165,7 +181,13 @@ describe("describeColumnFilter", () => {
   test("conditions: one group with its combinator", () => {
     expect(
       describeColumnFilter<SampleRow>(
-        [{ combinator: "or", entries: [amountAbove, amountBelow] }],
+        [
+          {
+            kind: "group",
+            combinator: "or",
+            entries: [amountAbove, amountBelow],
+          },
+        ],
         "Amount",
       ),
     ).toEqual({
@@ -184,8 +206,16 @@ describe("describeColumnFilter", () => {
   });
 
   test.each<[string, string, FilterState<SampleRow>]>([
-    ["a text query", "Region", [{ columnId: "Region", query: "West" }]],
-    ["a predicate", "Region", [{ columnId: "Region", predicate: () => true }]],
+    [
+      "a text query",
+      "Region",
+      [{ kind: "text", columnId: "Region", query: "West" }],
+    ],
+    [
+      "a predicate",
+      "Region",
+      [{ kind: "predicate", columnId: "Region", predicate: () => true }],
+    ],
     [
       "an in entry beside another entry",
       "Region",
@@ -194,23 +224,38 @@ describe("describeColumnFilter", () => {
     [
       "an in entry AND-grouped with isEmpty",
       "Region",
-      [{ combinator: "and", entries: [regionIn(["West"]), regionBlank] }],
+      [
+        {
+          kind: "group",
+          combinator: "and",
+          entries: [regionIn(["West"]), regionBlank],
+        },
+      ],
     ],
     [
       "an in entry whose value isn't a list",
       "Region",
-      [{ columnId: "Region", operator: "in", value: "West" }],
+      [{ kind: "operator", columnId: "Region", operator: "in", value: "West" }],
     ],
     ["three conditions", "Amount", [amountAbove, amountBelow, amountAbove]],
     [
       "a group spanning two columns",
       "Region",
-      [{ combinator: "or", entries: [amountAbove, regionBlank] }],
+      [
+        {
+          kind: "group",
+          combinator: "or",
+          entries: [amountAbove, regionBlank],
+        },
+      ],
     ],
     [
       "a group beside a top-level entry",
       "Amount",
-      [amountAbove, { combinator: "or", entries: [amountBelow] }],
+      [
+        amountAbove,
+        { kind: "group", combinator: "or", entries: [amountBelow] },
+      ],
     ],
   ])("custom: %s", (_name, columnId, filter) => {
     expect(describeColumnFilter(filter, columnId)).toEqual({ kind: "custom" });
@@ -269,7 +314,7 @@ describe("columnValueOptions", () => {
     const filter: FilterState<SampleRow> = [
       amountAbove,
       regionIn(["West"]),
-      { predicate: (_value, row) => row.Id !== 3 },
+      { kind: "predicate", predicate: (_value, row) => row.Id !== 3 },
     ];
 
     expect(columnValueOptions(rows, dataColumns, filter, "Region")).toEqual({
@@ -288,7 +333,11 @@ describe("columnValueOptions", () => {
 
   test("ignores a group touching the column, the other column's half included", () => {
     const filter: FilterState<SampleRow> = [
-      { combinator: "and", entries: [amountAbove, regionIn(["West"])] },
+      {
+        kind: "group",
+        combinator: "and",
+        entries: [amountAbove, regionIn(["West"])],
+      },
     ];
 
     expect(
@@ -382,7 +431,7 @@ describe("columnValueOptions", () => {
       Tags: [],
     }));
     const filter: FilterState<SampleRow> = [
-      { columnId: "Amount", operator: "gte", value: 0 },
+      { kind: "operator", columnId: "Amount", operator: "gte", value: 0 },
     ];
 
     const start = Date.now();
@@ -435,7 +484,13 @@ describe("initialFilterEditorDraft", () => {
   test("conditions: as they are", () => {
     const draft = initialFilterEditorDraft(
       describeColumnFilter<SampleRow>(
-        [{ combinator: "or", entries: [amountAbove, amountBelow] }],
+        [
+          {
+            kind: "group",
+            combinator: "or",
+            entries: [amountAbove, amountBelow],
+          },
+        ],
         "Amount",
       ),
       columnValueOptions(rows, dataColumns, [], "Amount"),
@@ -449,7 +504,9 @@ describe("initialFilterEditorDraft", () => {
   });
 
   test("custom: opens as no filter", () => {
-    const draft = openRegion([{ columnId: "Region", query: "West" }]);
+    const draft = openRegion([
+      { kind: "text", columnId: "Region", query: "West" },
+    ]);
 
     expect(checkedValues(draft)).toEqual(["East", "north", "West"]);
   });
@@ -514,6 +571,7 @@ describe("a checklist on a date column holding ISO strings", () => {
 
     expect(restoring.getState().filter).toEqual([
       {
+        kind: "operator",
         columnId: "Due",
         operator: "in",
         value: [
@@ -655,7 +713,14 @@ describe("filterEditorReducer", () => {
       type: "clear",
     });
     const conditions = filterEditorReducer(
-      openRegion([{ columnId: "Region", operator: "startsWith", value: "w" }]),
+      openRegion([
+        {
+          kind: "operator",
+          columnId: "Region",
+          operator: "startsWith",
+          value: "w",
+        },
+      ]),
       { type: "clear" },
     );
 
@@ -674,7 +739,12 @@ describe("filterEditorReducer", () => {
     expect(
       cleared([
         amountAbove,
-        { columnId: "Region", operator: "startsWith", value: "w" },
+        {
+          kind: "operator",
+          columnId: "Region",
+          operator: "startsWith",
+          value: "w",
+        },
       ]),
     ).toEqual([amountAbove]);
     expect(cleared([amountAbove, regionIn(["West"])])).toEqual([amountAbove]);
@@ -683,6 +753,7 @@ describe("filterEditorReducer", () => {
 
 describe("filterDraftChanged", () => {
   const startsWithW: OperatorFilterEntry<SampleRow> = {
+    kind: "operator",
     columnId: "Region",
     operator: "startsWith",
     value: "w",
@@ -700,7 +771,7 @@ describe("filterDraftChanged", () => {
     ["no filter", []],
     ["a checklist", [regionIn(["West"])]],
     ["conditions", [startsWithW]],
-    ["a custom filter", [{ columnId: "Region", query: "West" }]],
+    ["a custom filter", [{ kind: "text", columnId: "Region", query: "West" }]],
   ])("an untouched draft over %s is unchanged", (_name, filter) => {
     const opened = openRegion(filter);
 
@@ -719,7 +790,7 @@ describe("filterDraftChanged", () => {
     ["no filter", []],
     ["a checklist", [regionIn(["East", "West"])]],
     ["conditions", [startsWithW]],
-    ["a custom filter", [{ columnId: "Region", query: "West" }]],
+    ["a custom filter", [{ kind: "text", columnId: "Region", query: "West" }]],
   ])("a value toggled off and on again over %s is unchanged", (_, filter) => {
     const opened = openRegion(filter);
 
@@ -753,7 +824,7 @@ describe("filterDraftChanged", () => {
 
   test("the same conditions set again are unchanged", () => {
     const opened = openRegion([
-      { combinator: "or", entries: [startsWithW, regionBlank] },
+      { kind: "group", combinator: "or", entries: [startsWithW, regionBlank] },
     ]);
     const draft = edit(opened, {
       type: "setConditions",
@@ -788,7 +859,7 @@ describe("filterDraftChanged", () => {
   test("the combinator counts only between two conditions", () => {
     const one = openRegion([startsWithW]);
     const two = openRegion([
-      { combinator: "and", entries: [startsWithW, regionBlank] },
+      { kind: "group", combinator: "and", entries: [startsWithW, regionBlank] },
     ]);
     const or = (
       conditions: OperatorFilterEntry<SampleRow>[],
@@ -807,7 +878,14 @@ describe("filterDraftChanged", () => {
   test("a date column's date string and the Date it names are one operand", () => {
     const opened = initialFilterEditorDraft(
       describeColumnFilter<SampleRow>(
-        [{ columnId: "Opened", operator: "eq", value: "2024-01-01" }],
+        [
+          {
+            kind: "operator",
+            columnId: "Opened",
+            operator: "eq",
+            value: "2024-01-01",
+          },
+        ],
         "Opened",
       ),
       columnValueOptions(rows, dataColumns, [], "Opened"),
@@ -815,7 +893,12 @@ describe("filterDraftChanged", () => {
     const draft = edit(opened, {
       type: "setConditions",
       conditions: [
-        { columnId: "Opened", operator: "eq", value: new Date("2024-01-01") },
+        {
+          kind: "operator",
+          columnId: "Opened",
+          operator: "eq",
+          value: new Date("2024-01-01"),
+        },
       ],
     });
 
@@ -835,7 +918,9 @@ describe("filterDraftChanged", () => {
   });
 
   test("a clear over a custom filter reads as unchanged", () => {
-    const opened = openRegion([{ columnId: "Region", query: "West" }]);
+    const opened = openRegion([
+      { kind: "text", columnId: "Region", query: "West" },
+    ]);
 
     expect(filterDraftChanged(opened, edit(opened, { type: "clear" }))).toBe(
       false,
@@ -844,13 +929,16 @@ describe("filterDraftChanged", () => {
 });
 
 describe("draftToFilter", () => {
-  const others: FilterState<SampleRow> = [amountAbove, { query: "%a%" }];
+  const others: FilterState<SampleRow> = [
+    amountAbove,
+    { kind: "text", query: "%a%" },
+  ];
 
   test("everything checked removes the column's entries and keeps the rest", () => {
     const current: FilterState<SampleRow> = [
       amountAbove,
       regionIn(["West"]),
-      { query: "%a%" },
+      { kind: "text", query: "%a%" },
     ];
     const draft = filterEditorReducer(openRegion(current), {
       type: "toggleAll",
@@ -884,6 +972,7 @@ describe("draftToFilter", () => {
 
     expect(draftToFilter(draft, "Region", [])).toEqual([
       {
+        kind: "group",
         combinator: "or",
         entries: [regionIn(["north", "West"]), regionBlank],
       },
@@ -893,9 +982,9 @@ describe("draftToFilter", () => {
   test("takes the place of the column's first entry, custom ones replaced", () => {
     const current: FilterState<SampleRow> = [
       amountAbove,
-      { columnId: "Region", query: "West" },
-      { query: "%a%" },
-      { columnId: "Region", predicate: () => true },
+      { kind: "text", columnId: "Region", query: "West" },
+      { kind: "text", query: "%a%" },
+      { kind: "predicate", columnId: "Region", predicate: () => true },
     ];
     const draft = filterEditorReducer(openRegion(current), {
       type: "setConditions",
@@ -905,7 +994,7 @@ describe("draftToFilter", () => {
     expect(draftToFilter(draft, "Region", current)).toEqual([
       amountAbove,
       regionBlank,
-      { query: "%a%" },
+      { kind: "text", query: "%a%" },
     ]);
   });
 
@@ -925,7 +1014,7 @@ describe("draftToFilter", () => {
     expect(withConditions([])).toEqual([]);
     expect(withConditions([amountAbove])).toEqual([amountAbove]);
     expect(withConditions([amountAbove, amountBelow])).toEqual([
-      { combinator: "or", entries: [amountAbove, amountBelow] },
+      { kind: "group", combinator: "or", entries: [amountAbove, amountBelow] },
     ]);
   });
 
@@ -946,6 +1035,7 @@ describe("draftToFilter", () => {
       "a checklist with blanks",
       [
         {
+          kind: "group",
           combinator: "or",
           entries: [regionIn(["East", "West"]), regionBlank],
         },
@@ -953,16 +1043,29 @@ describe("draftToFilter", () => {
     ],
     [
       "one condition",
-      [{ columnId: "Region", operator: "startsWith", value: "w" }],
+      [
+        {
+          kind: "operator",
+          columnId: "Region",
+          operator: "startsWith",
+          value: "w",
+        },
+      ],
     ],
     [
       "two conditions",
       [
         {
+          kind: "group",
           combinator: "or",
           entries: [
             regionBlank,
-            { columnId: "Region", operator: "eq", value: "x" },
+            {
+              kind: "operator",
+              columnId: "Region",
+              operator: "eq",
+              value: "x",
+            },
           ],
         },
       ],
@@ -988,9 +1091,17 @@ describe("isColumnFiltered", () => {
 
     expect(filtered([regionIn(["West"])])).toBe(true);
     expect(filtered([regionBlank, amountAbove])).toBe(true);
-    expect(filtered([{ columnId: "Region", query: "%we%" }])).toBe(true);
     expect(
-      filtered([{ combinator: "or", entries: [amountAbove, regionBlank] }]),
+      filtered([{ kind: "text", columnId: "Region", query: "%we%" }]),
+    ).toBe(true);
+    expect(
+      filtered([
+        {
+          kind: "group",
+          combinator: "or",
+          entries: [amountAbove, regionBlank],
+        },
+      ]),
     ).toBe(true);
   });
 
@@ -998,7 +1109,7 @@ describe("isColumnFiltered", () => {
     expect(isColumnFiltered<SampleRow>([], "Region")).toBe(false);
     expect(
       isColumnFiltered<SampleRow>(
-        [amountAbove, amountBelow, { query: "%west%" }],
+        [amountAbove, amountBelow, { kind: "text", query: "%west%" }],
         "Region",
       ),
     ).toBe(false);
@@ -1007,10 +1118,16 @@ describe("isColumnFiltered", () => {
   test("agrees with describeColumnFilter", () => {
     const filters: readonly FilterState<SampleRow>[] = [
       [],
-      [{ query: "%west%" }],
+      [{ kind: "text", query: "%west%" }],
       [amountAbove],
       [regionIn(["West"]), amountAbove],
-      [{ combinator: "and", entries: [regionBlank, amountBelow] }],
+      [
+        {
+          kind: "group",
+          combinator: "and",
+          entries: [regionBlank, amountBelow],
+        },
+      ],
     ];
     for (const filter of filters) {
       expect(isColumnFiltered(filter, "Region")).toBe(

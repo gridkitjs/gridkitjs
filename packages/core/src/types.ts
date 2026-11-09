@@ -623,6 +623,7 @@ interface FilterEntryBase<Row> {
 
 /** Matches a column's stringified value against an SQL LIKE-style query. */
 export interface TextFilterEntry<Row> extends FilterEntryBase<Row> {
+  readonly kind: "text";
   /**
    * A bare query is an exact match; `%text%` is contains; `text%` is
    * starts-with; `%text` is ends-with. Always case-insensitive. Only the
@@ -643,6 +644,7 @@ export interface TextFilterEntry<Row> extends FilterEntryBase<Row> {
  * `TextFilterEntry` is that it doesn't do that.
  */
 export interface ValueFilterEntry<Row> extends FilterEntryBase<Row> {
+  readonly kind: "value";
   readonly value: number | boolean | Date;
 }
 
@@ -656,6 +658,7 @@ export type FilterPredicate<Row> = (value: unknown, row: Row) => boolean;
  * the predicate is expected to read whatever it needs off `row` itself.
  */
 export interface PredicateFilterEntry<Row> extends FilterEntryBase<Row> {
+  readonly kind: "predicate";
   readonly predicate: FilterPredicate<Row>;
 }
 
@@ -667,6 +670,7 @@ export interface PredicateFilterEntry<Row> extends FilterEntryBase<Row> {
  * to the entries it composes.
  */
 export interface GroupFilterEntry<Row> {
+  readonly kind: "group";
   readonly combinator: "and" | "or";
   readonly entries: FilterState<Row>;
 }
@@ -720,11 +724,13 @@ export type FilterScalar = string | number | boolean | Date | null;
  *   `ValueFilterEntry` of the wrong type doesn't.
  */
 export interface OperatorFilterEntry<Row> {
+  readonly kind: "operator";
   readonly columnId: FieldPath<Row> | (string & {});
   readonly operator: FilterOperator;
   readonly value?: FilterScalar | readonly FilterScalar[];
 }
 
+/** One condition of a `FilterState`, its `kind` naming which of the five. */
 export type FilterEntry<Row> =
   | TextFilterEntry<Row>
   | ValueFilterEntry<Row>
@@ -744,6 +750,7 @@ export type FilterState<Row> = readonly FilterEntry<Row>[];
  * string, which restoring turns back into a `Date`.
  */
 export interface SerializedValueFilterEntry<Row> extends FilterEntryBase<Row> {
+  readonly kind: "value";
   readonly value: number | boolean | string;
 }
 
@@ -756,6 +763,7 @@ export type SerializedFilterScalar = string | number | boolean | null;
  * date, date-time or time column.
  */
 export interface SerializedOperatorFilterEntry<Row> {
+  readonly kind: "operator";
   readonly columnId: FieldPath<Row> | (string & {});
   readonly operator: FilterOperator;
   readonly value?: SerializedFilterScalar | readonly SerializedFilterScalar[];
@@ -763,6 +771,7 @@ export interface SerializedOperatorFilterEntry<Row> {
 
 /** A `GroupFilterEntry` whose entries are serialised too. */
 export interface SerializedGroupFilterEntry<Row> {
+  readonly kind: "group";
   readonly combinator: "and" | "or";
   readonly entries: SerializedFilterState<Row>;
 }

@@ -20,8 +20,8 @@ function check(
 ): void {
   const entry: OperatorFilterEntry<unknown> =
     value === undefined
-      ? { columnId: "column", operator }
-      : { columnId: "column", operator, value };
+      ? { kind: "operator", columnId: "column", operator }
+      : { kind: "operator", columnId: "column", operator, value };
   const test = compileOperatorEntry(entry, type);
 
   expect(cases.map(([cell]) => [cell, test(cell)])).toEqual(

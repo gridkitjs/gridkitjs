@@ -9,66 +9,78 @@ interface Order {
 }
 
 const regionFilter: FilterState<Order> = [
-  { columnId: "Region", query: "%west%" },
+  { kind: "text", columnId: "Region", query: "%west%" },
 ];
 
 describe("searchTextOf", () => {
   test("is the global text entry's query without its anchors", () => {
-    expect(searchTextOf<Order>([{ query: "%west%" }])).toBe("west");
+    expect(searchTextOf<Order>([{ kind: "text", query: "%west%" }])).toBe(
+      "west",
+    );
   });
 
   test("is empty without a global text entry", () => {
     expect(searchTextOf<Order>([])).toBe("");
     expect(searchTextOf(regionFilter)).toBe("");
-    expect(searchTextOf<Order>([{ value: 3 }])).toBe("");
+    expect(searchTextOf<Order>([{ kind: "value", value: 3 }])).toBe("");
   });
 
   test("strips whichever anchors the query has", () => {
-    expect(searchTextOf<Order>([{ query: "west%" }])).toBe("west");
-    expect(searchTextOf<Order>([{ query: "%west" }])).toBe("west");
-    expect(searchTextOf<Order>([{ query: "west" }])).toBe("west");
-    expect(searchTextOf<Order>([{ query: "%" }])).toBe("");
+    expect(searchTextOf<Order>([{ kind: "text", query: "west%" }])).toBe(
+      "west",
+    );
+    expect(searchTextOf<Order>([{ kind: "text", query: "%west" }])).toBe(
+      "west",
+    );
+    expect(searchTextOf<Order>([{ kind: "text", query: "west" }])).toBe("west");
+    expect(searchTextOf<Order>([{ kind: "text", query: "%" }])).toBe("");
   });
 
   test("keeps a % inside the text", () => {
-    expect(searchTextOf<Order>([{ query: "%50% off%" }])).toBe("50% off");
+    expect(searchTextOf<Order>([{ kind: "text", query: "%50% off%" }])).toBe(
+      "50% off",
+    );
   });
 });
 
 describe("setSearchText", () => {
   test("writes a contains query as the global text entry", () => {
-    expect(setSearchText<Order>([], "west")).toEqual([{ query: "%west%" }]);
+    expect(setSearchText<Order>([], "west")).toEqual([
+      { kind: "text", query: "%west%" },
+    ]);
   });
 
   test("replaces the search, keeping every column entry", () => {
     const filter: FilterState<Order> = [
       ...regionFilter,
-      { query: "%west%" },
-      { columnId: "Id", value: 3 },
+      { kind: "text", query: "%west%" },
+      { kind: "value", columnId: "Id", value: 3 },
     ];
 
     expect(setSearchText(filter, "east")).toEqual([
       ...regionFilter,
-      { query: "%east%" },
-      { columnId: "Id", value: 3 },
+      { kind: "text", query: "%east%" },
+      { kind: "value", columnId: "Id", value: 3 },
     ]);
   });
 
   test("removes the search for empty text, leaving the column entries", () => {
-    expect(setSearchText([...regionFilter, { query: "%west%" }], "")).toEqual(
-      regionFilter,
-    );
+    expect(
+      setSearchText([...regionFilter, { kind: "text", query: "%west%" }], ""),
+    ).toEqual(regionFilter);
   });
 
   test("returns the filter itself when nothing changes", () => {
-    const searching: FilterState<Order> = [{ query: "%west%" }];
+    const searching: FilterState<Order> = [{ kind: "text", query: "%west%" }];
 
     expect(setSearchText(searching, "west")).toBe(searching);
     expect(setSearchText(regionFilter, "")).toBe(regionFilter);
   });
 
   test("keeps text as typed, spaces included", () => {
-    expect(setSearchText<Order>([], "west ")).toEqual([{ query: "%west %" }]);
+    expect(setSearchText<Order>([], "west ")).toEqual([
+      { kind: "text", query: "%west %" },
+    ]);
   });
 
   test("round-trips through searchTextOf, a typed % included", () => {

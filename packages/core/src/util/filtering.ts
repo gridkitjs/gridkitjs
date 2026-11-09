@@ -125,10 +125,46 @@ function isEntryUsable<Row>(
   entry: FilterEntry<Row>,
   byId: ReadonlyMap<string, ColumnDefinition<Row, unknown>>,
 ): boolean {
-  if ("combinator" in entry) {
+  if (entry.kind === "group") {
     return true;
   }
   return entry.columnId === undefined || byId.has(entry.columnId);
+}
+
+/**
+ * The `default` of a switch over every `FilterEntry` kind: a switch that
+ * leaves a kind out doesn't compile, and an entry whose `kind` is none of
+ * them — from plain JavaScript or JSON — throws rather than matching
+ * nothing in silence.
+ */
+export function unknownFilterEntry(entry: never): never {
+  const { kind } = entry as { readonly kind: unknown };
+  throw new TypeError(
+    `GridKit: \`${String(kind)}\` is not a filter entry kind.`,
+  );
+}
+
+/**
+ * A test of one column's cell when `columnId` is given — failing every row
+ * when no column has that id — or of any column's when it is omitted.
+ */
+function compileCellTest<Row>(
+  columnId: string | undefined,
+  byId: ReadonlyMap<string, ColumnDefinition<Row, unknown>>,
+  columns: readonly DataColumn<Row, unknown>[],
+  test: (value: unknown, type: ColumnType | undefined) => boolean,
+): (row: Row) => boolean {
+  if (columnId === undefined) {
+    return (row) =>
+      columns.some((entry) =>
+        test(accessDotted(row, entry.column.field), entry.column.type),
+      );
+  }
+  const column = byId.get(columnId);
+  if (column === undefined) {
+    return () => false;
+  }
+  return (row) => test(accessDotted(row, column.field), column.type);
 }
 
 /**
@@ -140,66 +176,45 @@ function compileFilterEntry<Row>(
   byId: ReadonlyMap<string, ColumnDefinition<Row, unknown>>,
   columns: readonly DataColumn<Row, unknown>[],
 ): (row: Row) => boolean {
-  if ("combinator" in entry) {
-    const tests = entry.entries
-      .filter((nested) => isEntryUsable(nested, byId))
-      .map((nested) => compileFilterEntry(nested, byId, columns));
-    return entry.combinator === "and"
-      ? (row) => tests.every((test) => test(row))
-      : (row) => tests.some((test) => test(row));
-  }
-
-  if ("predicate" in entry) {
-    const { columnId, predicate } = entry;
-    const column = columnId === undefined ? undefined : byId.get(columnId);
-    return (row) =>
-      predicate(
-        column === undefined ? undefined : accessDotted(row, column.field),
-        row,
-      );
-  }
-
-  // Before the `value` check: an operator entry usually has a `value` too.
-  if ("operator" in entry) {
-    const column = byId.get(entry.columnId);
-    if (column === undefined) {
-      return () => false;
+  switch (entry.kind) {
+    case "group": {
+      const tests = entry.entries
+        .filter((nested) => isEntryUsable(nested, byId))
+        .map((nested) => compileFilterEntry(nested, byId, columns));
+      return entry.combinator === "and"
+        ? (row) => tests.every((test) => test(row))
+        : (row) => tests.some((test) => test(row));
     }
-    const test = compileOperatorEntry(entry, column.type);
-    return (row) => test(accessDotted(row, column.field));
-  }
-
-  if ("value" in entry) {
-    const { columnId, value } = entry;
-    if (columnId !== undefined) {
-      const column = byId.get(columnId);
+    case "predicate": {
+      const { columnId, predicate } = entry;
+      const column = columnId === undefined ? undefined : byId.get(columnId);
+      return (row) =>
+        predicate(
+          column === undefined ? undefined : accessDotted(row, column.field),
+          row,
+        );
+    }
+    case "operator": {
+      const column = byId.get(entry.columnId);
       if (column === undefined) {
         return () => false;
       }
-      return (row) =>
-        matchesTypedValue(accessDotted(row, column.field), value, column.type);
+      const test = compileOperatorEntry(entry, column.type);
+      return (row) => test(accessDotted(row, column.field));
     }
-    return (row) =>
-      columns.some((entry) =>
-        matchesTypedValue(
-          accessDotted(row, entry.column.field),
-          value,
-          entry.column.type,
-        ),
+    case "value": {
+      const { value } = entry;
+      return compileCellTest(entry.columnId, byId, columns, (cell, type) =>
+        matchesTypedValue(cell, value, type),
       );
-  }
-
-  const { columnId, query } = entry;
-  const test = compileFilterQuery(query);
-  if (columnId !== undefined) {
-    const column = byId.get(columnId);
-    if (column === undefined) {
-      return () => false;
     }
-    return (row) => test(accessDotted(row, column.field));
+    case "text": {
+      const test = compileFilterQuery(entry.query);
+      return compileCellTest(entry.columnId, byId, columns, test);
+    }
+    default:
+      return unknownFilterEntry(entry);
   }
-  return (row) =>
-    columns.some((entry) => test(accessDotted(row, entry.column.field)));
 }
 
 /**
@@ -248,7 +263,7 @@ export function filterQueryFor<Row>(
 ): string | null {
   const entry = filter.find(
     (candidate): candidate is TextFilterEntry<Row> =>
-      "query" in candidate && candidate.columnId === columnId,
+      candidate.kind === "text" && candidate.columnId === columnId,
   );
   return entry?.query ?? null;
 }
@@ -270,7 +285,7 @@ export function setColumnFilter<Row>(
   query: string,
 ): FilterState<Row> {
   const index = filter.findIndex(
-    (entry) => !("combinator" in entry) && entry.columnId === columnId,
+    (entry) => entry.kind !== "group" && entry.columnId === columnId,
   );
 
   if (query === "") {
@@ -278,17 +293,15 @@ export function setColumnFilter<Row>(
   }
 
   const next: TextFilterEntry<Row> =
-    columnId === undefined ? { query } : { columnId, query };
+    columnId === undefined
+      ? { kind: "text", query }
+      : { kind: "text", columnId, query };
 
   if (index === -1) {
     return [...filter, next];
   }
   const existing = filter[index];
-  if (
-    existing !== undefined &&
-    "query" in existing &&
-    existing.query === query
-  ) {
+  if (existing?.kind === "text" && existing.query === query) {
     return filter;
   }
   return filter.map((entry, i) => (i === index ? next : entry));
