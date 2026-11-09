@@ -2,7 +2,6 @@ import {
   conditionRowsFrom,
   conditionsFromRows,
   describeColumnFilter,
-  filterEditorReducer,
   initialFilterEditorDraft,
   type ColumnFilterShape,
   type ColumnType,
@@ -16,7 +15,7 @@ import {
 export type Combinator = "and" | "or";
 
 /** The conditions as typed, and how they join. */
-export interface ConditionsDraft {
+export interface ConditionRowsDraft {
   readonly rows: readonly ConditionRowDraft[];
   readonly combinator: Combinator;
 }
@@ -28,7 +27,7 @@ export interface OpenedConditions<Row> {
   /** Whether the editor can't show the column's filter: "Custom filter". */
   readonly custom: boolean;
   /** The boxes as they opened. */
-  readonly draft: ConditionsDraft;
+  readonly draft: ConditionRowsDraft;
   /** The column's filter as a draft, for `filterDraftChanged`. */
   readonly filterDraft: FilterEditorDraft<Row>;
 }
@@ -36,7 +35,7 @@ export interface OpenedConditions<Row> {
 /** A simple editor's state: the draft, and what its last OK marked. */
 export interface SimpleEditorState<Row> {
   readonly opened: OpenedConditions<Row>;
-  readonly draft: ConditionsDraft;
+  readonly draft: ConditionRowsDraft;
   /** The rows the last OK marked invalid, until the draft next changes. */
   readonly invalid: readonly number[];
 }
@@ -56,8 +55,8 @@ export type SimpleEditorAction<Row> =
 const NO_ROWS: readonly number[] = [];
 
 /**
- * The values half of the draft `draftToFilter` applies: the simple editor
- * has no checklist, so none.
+ * The values the column's filter is drafted over: the simple editor has no
+ * checklist, so none.
  */
 const NO_VALUES: ColumnValueOptions = {
   options: [],
@@ -83,16 +82,13 @@ function filterDraftShown<Row>(
     ...NO_VALUES,
     columnType: type,
   });
-  if (shape.kind !== "conditions") {
+  if (draft.kind !== "conditions") {
     return draft;
   }
   const shown = conditionsFromRows<Row>(rows, columnId, type);
   return shown.invalid.length > 0
     ? draft
-    : filterEditorReducer(draft, {
-        type: "setConditions",
-        conditions: shown.conditions,
-      });
+    : { ...draft, conditions: shown.conditions };
 }
 
 /**
@@ -137,9 +133,9 @@ export function initialSimpleEditorState<Row>(
 }
 
 /** Whether two drafts hold the same text in every box, joined alike. */
-export function sameConditionsDraft(
-  a: ConditionsDraft,
-  b: ConditionsDraft,
+export function sameConditionRows(
+  a: ConditionRowsDraft,
+  b: ConditionRowsDraft,
 ): boolean {
   return (
     a.combinator === b.combinator &&
@@ -161,7 +157,7 @@ function showsAlike<Row>(
   a: OpenedConditions<Row>,
   b: OpenedConditions<Row>,
 ): boolean {
-  return a.custom === b.custom && sameConditionsDraft(a.draft, b.draft);
+  return a.custom === b.custom && sameConditionRows(a.draft, b.draft);
 }
 
 /**

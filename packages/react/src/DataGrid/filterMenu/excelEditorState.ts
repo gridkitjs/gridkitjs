@@ -3,11 +3,13 @@ import {
   filterDraftChanged,
   filterEditorReducer,
   initialFilterEditorDraft,
+  toValuesDraft,
   type ColumnFilterShape,
   type ColumnValueOptions,
   type FilterEditorAction,
   type FilterEditorDraft,
   type FilterState,
+  type ValuesDraft,
 } from "@gridkitjs/core";
 
 /** What an excel editor opened with, read from the column's filter. */
@@ -15,17 +17,28 @@ export interface OpenedValues<Row> {
   /** The grid's filter it was read from. */
   readonly over: FilterState<Row>;
   readonly shape: ColumnFilterShape<Row>;
+  /** On its conditions when the column's filter is conditions. */
   readonly draft: FilterEditorDraft<Row>;
 }
 
-/** An excel editor's state: what it opened with, and the user's draft. */
+/**
+ * An excel editor's state: what it opened with, and the user's checklist.
+ * Conditions are the simple editor's, shown in place of the checklist with
+ * a state of its own, so the draft here stays on its checklist.
+ */
 export interface ExcelEditorState<Row> {
   readonly opened: OpenedValues<Row>;
-  readonly draft: FilterEditorDraft<Row>;
+  readonly draft: ValuesDraft<Row>;
 }
 
+/** What the checklist does to its draft: any draft action but conditions. */
+export type ChecklistAction<Row> = Exclude<
+  FilterEditorAction<Row>,
+  { readonly type: "setConditions" }
+>;
+
 export type ExcelEditorAction<Row> =
-  | FilterEditorAction<Row>
+  | ChecklistAction<Row>
   /** The grid's filter changed while the editor is open: what it now reads. */
   | { readonly type: "filterChanged"; readonly opened: OpenedValues<Row> };
 
@@ -47,7 +60,7 @@ export function openValues<Row>(
 export function initialExcelEditorState<Row>(
   opened: OpenedValues<Row>,
 ): ExcelEditorState<Row> {
-  return { opened, draft: opened.draft };
+  return { opened, draft: toValuesDraft(opened.draft) };
 }
 
 /**
@@ -78,5 +91,9 @@ export function excelEditorReducer<Row>(
       ? { ...state, opened: action.opened }
       : initialExcelEditorState(action.opened);
   }
-  return { ...state, draft: filterEditorReducer(state.draft, action) };
+  // Only narrows the type: a checklist action leaves the draft on its checklist.
+  return {
+    ...state,
+    draft: toValuesDraft(filterEditorReducer(state.draft, action)),
+  };
 }
