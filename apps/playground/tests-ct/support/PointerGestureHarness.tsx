@@ -42,7 +42,7 @@ export default function PointerGestureHarness({
     const started = startDragReorder("item", event.currentTarget, event, {
       resolveTarget: () => "target",
       onState: (state) => {
-        if (state.draggedId === null) {
+        if (state.kind === "idle") {
           record("drag ended");
         } else {
           countMove();
