@@ -1,4 +1,5 @@
 import {
+  useLayoutEffect,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
@@ -57,6 +58,15 @@ export default function useDragReorder<Target>({
    */
   const openedDragId = useRef<string | null>(null);
   const startGesture = useGestureSignal();
+  /**
+   * What a drag under way resolves its targets and drops against: the
+   * handlers of the latest render, so an order or grouping that changes
+   * mid-drag counts from the next pointer move.
+   */
+  const handlers = useRef({ resolveTarget, onDrop });
+  useLayoutEffect(() => {
+    handlers.current = { resolveTarget, onDrop };
+  });
 
   function justDragged(id: string): boolean {
     const answer = openedDragId.current === id;
@@ -71,14 +81,17 @@ export default function useDragReorder<Target>({
   ): void {
     const started = startGesture(grabElement, (signal) =>
       startDragReorder(id, grabElement, event, {
-        resolveTarget,
+        resolveTarget: (clientX, clientY, movedId) =>
+          handlers.current.resolveTarget(clientX, clientY, movedId),
         onState(state) {
           if (state.draggedId !== null) {
             openedDragId.current = state.draggedId;
           }
           setDrag(state);
         },
-        onDrop,
+        onDrop: (target, movedId) => {
+          handlers.current.onDrop(target, movedId);
+        },
         signal,
       }),
     );
@@ -90,9 +103,6 @@ export default function useDragReorder<Target>({
     }
   }
 
-  // A new object each render, as `useColumnDrag`/`useColumnResize` return:
-  // the handlers close over `resolveTarget`/`onDrop`, and a stable identity
-  // would buy nothing.
   return {
     draggedId: drag.draggedId,
     dropTarget: drag.dropTarget,
