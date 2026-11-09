@@ -256,7 +256,7 @@ The toolbar follows the [WAI-ARIA toolbar pattern](https://www.w3.org/WAI/ARIA/a
 | In the search box: <Kbd>Home</Kbd> / <Kbd>End</Kbd>                                | Move the caret.                                                                                |
 | In the search box: <Kbd>Enter</Kbd> / <Kbd>Escape</Kbd>                            | Searches at once / empties the box.                                                            |
 
-A dropdown's menu works as the context menu's does — see its [keys](/docs/react/context-menu#keyboard--pointer-interactions) — and closing it puts focus back on the dropdown. When the dropdown has gone by then (an item hid every entry in it, or the toolbar widened and took "More" away with its menu open), focus goes to the toolbar instead. A disabled button still takes focus, so a screen reader finds it.
+A dropdown's menu works as the context menu's does — see its [keys](/docs/react/context-menu#keyboard--pointer-interactions) — and closing it puts focus back on the dropdown. When the dropdown has gone by then (an item hid every entry in it, or the toolbar widened and took "More" away with its menu open), focus goes to the toolbar instead. A submenu whose entry goes while it is open closes, and focus inside it goes back to the menu it opened from. A disabled button still takes focus, so a screen reader finds it.
 
 ## Props
 

@@ -647,6 +647,50 @@ test.describe("DataGrid toolbar", () => {
     await expect(groups).toHaveCount(0);
   });
 
+  test("focus goes back to the menu when the submenu it is in loses its item", async ({
+    mount,
+    page,
+  }) => {
+    const grid = (groupBy: readonly { columnId: string }[]) => (
+      <ToolbarGrid
+        onlyExtra
+        groupBy={groupBy}
+        extraItems={[
+          {
+            type: "submenu",
+            id: "tools",
+            label: "Tools",
+            items: [
+              {
+                type: "submenu",
+                id: "groups",
+                label: "Groups",
+                items: ["group.clearAll"],
+              },
+              "sort.clearAll",
+            ],
+          },
+        ]}
+      />
+    );
+    const root = await mountGrid(mount, grid([{ columnId: "name" }]), WIDE);
+    const tools = page.getByRole("menu", { name: "Tools" });
+    const groups = page.getByRole("menu", { name: "Groups" });
+
+    await toolbarButton(root, "Tools").click();
+    await page.keyboard.press("ArrowRight");
+    await expect(
+      groups.getByRole("menuitem", { name: "Ungroup all" }),
+    ).toBeFocused();
+
+    await updateGrid(root, grid([]), WIDE);
+
+    await expect(groups).toHaveCount(0);
+    await expect(
+      tools.getByRole("menuitem", { name: "Clear all sorting" }),
+    ).toBeFocused();
+  });
+
   test("is one tab stop the arrow keys move within", async ({
     mount,
     page,

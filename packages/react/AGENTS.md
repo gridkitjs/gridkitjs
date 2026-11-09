@@ -28,6 +28,7 @@ which is what `@source` used to paper over.
 | ---------------------- | ----------------------------------------------- | ----------------------------------------------------- | ------------------------------------------- |
 | `GridOverlayState`     | `src/DataGrid/overlay/useGridOverlay.ts`        | `closed`, `contextMenu`, `panel`                      | `overlay.spec.tsx`, `context-menu.spec.tsx` |
 | `MenuButtonState`      | `src/DataGrid/menu/useMenuButton.ts`            | `closed`, `open`                                      | `toolbar.spec.tsx`, `filter-menu.spec.tsx`  |
+| `SubmenuState`         | `src/DataGrid/menu/GridMenu.tsx`                | `closed`, `open`, `entryGone`                         | `context-menu.spec.tsx`, `toolbar.spec.tsx` |
 | `simpleEditorReducer`  | `src/DataGrid/filterMenu/simpleEditorState.ts`  | `{ opened, draft, invalid }`                          | `filter-menu.spec.tsx`                      |
 | `ExcelEditorMode`      | `src/DataGrid/filterMenu/ExcelFilterEditor.tsx` | `values`, `condition`                                 | `filter-menu.spec.tsx`                      |
 | `useAnnounceWhenDrawn` | `src/DataGrid/useAnnounceWhenDrawn.ts`          | one announcement waiting for the render that draws it | `filter-menu.spec.tsx`, `toolbar.spec.tsx`  |
