@@ -11,7 +11,7 @@ import {
   type GridMessages,
   type GridOptions,
 } from "@gridkitjs/core";
-import { copyToClipboard } from "../clipboard/copyToClipboard";
+import useCopyToClipboard from "../clipboard/useCopyToClipboard";
 import useSaveFile from "../export/useSaveFile";
 import { printGrid } from "../print/printApi";
 import type { ColumnResizeApi } from "../useColumnResize";
@@ -72,7 +72,8 @@ export default function useGridCommands<Row>({
   openPanel,
 }: UseGridCommandsOptions<Row>): GridCommandsApi<Row> {
   const commands = useMemo(() => resolveCommands(appCommands), [appCommands]);
-  const saveFile = useSaveFile({ messages, announce });
+  const { saveFile, canSave } = useSaveFile({ messages, announce });
+  const writeClipboard = useCopyToClipboard({ messages, announce });
 
   const host: GridCommandHost = {
     autoFitColumns: (columnIds) => {
@@ -93,9 +94,8 @@ export default function useGridCommands<Row>({
     openPanel,
     announce,
     saveFile,
-    writeClipboard: (content) => {
-      copyToClipboard(content, { messages, announce });
-    },
+    canSave,
+    writeClipboard,
     print: (document, options) => {
       printGrid(document, options).catch((error: unknown) => {
         console.error("DataGrid: the print failed.", error);

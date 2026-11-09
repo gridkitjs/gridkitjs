@@ -9,6 +9,7 @@ import { ariaRowCount, ariaRowIndexes, consecutive } from "./support/ariaRows";
 import { expect, test } from "./support/coverage";
 import { mountGrid, updateGrid } from "./support/mountGrid";
 import ImperativeApiGrid from "./support/ImperativeApiGrid";
+import VirtualizedToggleGrid from "./support/VirtualizedToggleGrid";
 
 interface Row {
   id: string;
@@ -580,6 +581,84 @@ test.describe("row virtualization", () => {
       element.scrollTop = 0;
     });
     await expect(root.getByText("Row 0", { exact: true })).toBeInViewport();
+  });
+
+  test("turning virtualized on leaves the browser's focus on the focused cell", async ({
+    mount,
+    page,
+  }) => {
+    const rows = buildRows(300);
+    function grid(virtualized: boolean) {
+      return (
+        <VirtualizedToggleGrid
+          columns={columns}
+          dataSource={rows}
+          label="Toggled focus"
+          height={150}
+          virtualized={virtualized}
+        />
+      );
+    }
+    const root = await mountGrid(mount, grid(false));
+    const cell = (rowIndex: number) =>
+      root
+        .locator(`tbody tr[data-gridkit-row-index="${String(rowIndex)}"] td`)
+        .first();
+
+    // `page.keyboard` throughout, and never refocused: each key goes
+    // wherever the grid left the focus.
+    await root.locator('[tabindex="0"]').focus();
+    for (let index = 0; index < 3; index++) {
+      await page.keyboard.press("ArrowDown");
+    }
+    await expect(cell(2)).toBeFocused();
+
+    await updateGrid(root, grid(true));
+    await expect.poll(() => mountedDataRows(root).count()).toBeLessThan(60);
+    await expect(cell(2)).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(cell(3)).toBeFocused();
+
+    // The rows drawn last while virtualized are the bottom ones, far from the
+    // focused cell once virtualization is off and it is back in view.
+    const body = root.locator(".gridkit-data-grid-body");
+    await body.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    await expect(root.getByText("Row 299", { exact: true })).toBeVisible();
+    await updateGrid(root, grid(false));
+    await expect(mountedDataRows(root)).toHaveCount(300);
+    await cell(3).focus();
+    await page.keyboard.press("ArrowDown");
+    await expect(cell(4)).toBeFocused();
+
+    await updateGrid(root, grid(true));
+    await expect.poll(() => mountedDataRows(root).count()).toBeLessThan(60);
+    await expect(cell(4)).toBeFocused();
+  });
+
+  test("a scrollToRow in the commit that turns virtualized on lands on its row", async ({
+    mount,
+  }) => {
+    const rows = buildRows(1000);
+    function grid(virtualized: boolean) {
+      return (
+        <VirtualizedToggleGrid
+          columns={columns}
+          dataSource={rows}
+          label="Toggled scroll"
+          height={200}
+          virtualized={virtualized}
+          scrollRowIdOnEnable="row-800"
+        />
+      );
+    }
+    const root = await mountGrid(mount, grid(false));
+    await expect(root.getByText("Row 0", { exact: true })).toBeInViewport();
+
+    await updateGrid(root, grid(true));
+    await expect(root.getByText("Row 800", { exact: true })).toBeInViewport();
+    await expect.poll(() => mountedDataRows(root).count()).toBeLessThan(60);
   });
 
   test("virtualized without height set does not crash and renders every row (dev warning aside)", async ({

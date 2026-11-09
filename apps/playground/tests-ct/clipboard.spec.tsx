@@ -264,6 +264,46 @@ test("the ref copies through runCommand", async ({ mount, page }) => {
   expect((await readClipboard(page)).text).toBe("Bravo\tEast\t9");
 });
 
+test("of two copies close together, only the latest is announced", async ({
+  mount,
+  page,
+}) => {
+  const root = await mountGrid(mount, <ClipboardGrid />);
+  await page.evaluate(() => {
+    const clipboard = navigator.clipboard;
+    const write = clipboard.write.bind(clipboard);
+    let writes = 0;
+    // The first write lands at once but takes 300ms to say so.
+    clipboard.write = async (items) => {
+      writes += 1;
+      await write(items);
+      if (writes === 1) {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        document.body.dataset.slowWriteDone = "true";
+      }
+    };
+    const announced: string[] = [];
+    const region = document.querySelector('[role="status"]');
+    if (region === null) throw new Error("no live region");
+    new MutationObserver(() => {
+      announced.push(region.textContent.trim());
+      document.body.dataset.announced = JSON.stringify(announced);
+    }).observe(region, { childList: true, characterData: true });
+  });
+
+  await root.getByRole("button", { name: "Copy row Bravo" }).click();
+  await bodyCell(root, 2, 0).click();
+  await page.keyboard.press("ControlOrMeta+c");
+
+  const body = page.locator("body");
+  await expect(body).toHaveAttribute("data-slow-write-done", "true");
+  await expect(status(root)).toHaveText("1 cell copied");
+  expect(await body.getAttribute("data-announced")).toBe(
+    JSON.stringify(["1 cell copied"]),
+  );
+  expect((await readClipboard(page)).text).toBe("Charlie");
+});
+
 test.describe("fallbacks", () => {
   test("without ClipboardItem, the plain text alone is written", async ({
     mount,
