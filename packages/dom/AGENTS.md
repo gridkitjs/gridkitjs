@@ -24,6 +24,7 @@ and into the docs as described under [Docs](#docs).
 | Machine            | File                               | States                                     | Tests                                               |
 | ------------------ | ---------------------------------- | ------------------------------------------ | --------------------------------------------------- |
 | `DragPhase`        | `src/dragReorder.ts`               | `pressed`, `dragging`                      | `column-reorder.spec.tsx`, `group-by-drag.spec.tsx` |
+| `DragReorderState` | `src/dragReorder.ts`               | `idle`, `dragging`                         | `column-reorder.spec.tsx`, `group-by-drag.spec.tsx` |
 | `LoadState`        | `src/infiniteScroll.ts`            | `idle`, `requested`, `loading`, `detached` | `infinite-scroll.spec.tsx`                          |
 | `VirtualizerPhase` | `src/rowVirtualizer.ts`            | `ready`, `awaiting-row`, `destroyed`       | `row-virtualization.spec.tsx`                       |
 | `Typeahead`        | `src/menu/attachMenu.ts`           | `idle`, `typing`                           | `menu.spec.tsx`                                     |

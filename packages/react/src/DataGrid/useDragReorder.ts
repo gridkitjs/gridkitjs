@@ -17,7 +17,13 @@ type UseDragReorderOptions<Target> = Pick<
   "resolveTarget" | "onDrop"
 >;
 
-export interface DragReorderApi<Target> extends DragReorderState<Target> {
+export interface DragReorderApi<Target> {
+  /** The item being dragged, for as long as the drag lasts. */
+  draggedId: string | null;
+  /** Where it would land if released now, `null` for nowhere valid. */
+  dropTarget: Target | null;
+  /** Where the element trailing the pointer sits, as a CSS `transform`. */
+  ghostTransform: string | null;
   startDrag: (
     id: string,
     grabElement: HTMLElement,
@@ -84,7 +90,7 @@ export default function useDragReorder<Target>({
         resolveTarget: (clientX, clientY, movedId) =>
           handlers.current.resolveTarget(clientX, clientY, movedId),
         onState(state) {
-          if (state.draggedId !== null) {
+          if (state.kind === "dragging") {
             openedDragId.current = state.draggedId;
           }
           setDrag(state);
@@ -103,10 +109,11 @@ export default function useDragReorder<Target>({
     }
   }
 
+  const dragging = drag.kind === "dragging" ? drag : null;
   return {
-    draggedId: drag.draggedId,
-    dropTarget: drag.dropTarget,
-    ghostTransform: drag.ghostTransform,
+    draggedId: dragging?.draggedId ?? null,
+    dropTarget: dragging?.dropTarget ?? null,
+    ghostTransform: dragging?.ghostTransform ?? null,
     startDrag,
     justDragged,
   };
