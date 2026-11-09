@@ -69,7 +69,7 @@ await printDocument({
 });
 ```
 
-The frame is zero-size and `aria-hidden`, appended to `document.body`. Its title and stylesheet are set through the DOM rather than written into its markup, so neither needs escaping. It waits for the document to load and its fonts to be ready, opens the dialog, and is removed on the frame's `afterprint` — or, should a browser never fire it, the next time the user presses a key or the pointer, which a modal print dialog allows only once it has closed. Focus goes back where it was. One print at a time: a call while a print is open resolves at once without printing.
+The frame is zero-size and `aria-hidden`, appended to `document.body`. Its title and stylesheet are set through the DOM rather than written into its markup, so neither needs escaping. It waits for the document to load and its fonts to be ready (3 seconds at most, after which it prints with whatever fonts have loaded), opens the dialog, and is removed on the frame's `afterprint` — or, should a browser never fire it, the next time the user presses a key or the pointer, which a modal print dialog allows only once it has closed. Focus goes back where it was. One print at a time: a call while a print is open resolves at once without printing.
 
 The promise rejects if the frame is taken out of the page before it loads (by code that clears `document.body`, say) or the browser fails to open the dialog. The frame is removed, its listeners with it, focus goes back, and the next call prints as usual.
 

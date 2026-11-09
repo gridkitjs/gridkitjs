@@ -15,6 +15,9 @@ export interface PrintDocumentOptions {
  */
 const RETURN_EVENTS = ["pointerdown", "keydown"] as const;
 
+/** How long a print waits for the frame's fonts before printing without them. */
+const FONTS_TIMEOUT_MS = 3000;
+
 /** Whether a print is open, so a second request while it is can be refused. */
 let printing = false;
 
@@ -82,6 +85,25 @@ function fill(view: Window, { title, styles }: PrintDocumentOptions): void {
 }
 
 /**
+ * Waits for the frame's fonts to load, for `FONTS_TIMEOUT_MS` at most: a
+ * font whose request never settles would otherwise hold this print open,
+ * and refuse every print after it. A font still missing then prints in the
+ * next face of its stack. The timer is the page's rather than the frame's,
+ * so it still fires if the frame is taken away meanwhile.
+ */
+async function fontsLoaded(view: Window): Promise<void> {
+  let timer = 0;
+  const timeout = new Promise<void>((resolve) => {
+    timer = window.setTimeout(resolve, FONTS_TIMEOUT_MS);
+  });
+  try {
+    await Promise.race([view.document.fonts.ready, timeout]);
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+/**
  * Opens the print dialog for the frame and settles once it has closed: on
  * the frame's `afterprint`, which every current browser fires, or else the
  * next time the user presses a key or the pointer on the page. Not after a
@@ -121,8 +143,8 @@ async function print(view: Window): Promise<void> {
  * Prints a document through a hidden frame: its own page, holding only
  * `bodyHtml` under `styles`, so what is printed is what was built — every
  * row, not the slice of them a virtualised grid has drawn — and nothing of
- * the page around it. The frame loads, waits for its fonts, opens the
- * print dialog, and is removed once the dialog closes, when the promise
+ * the page around it. The frame loads, waits for its fonts (a few seconds
+ * at most), opens the print dialog, and is removed once the dialog closes, when the promise
  * resolves; focus goes back where it was. A frame rather than a new window,
  * which a popup blocker would stop.
  *
@@ -142,7 +164,7 @@ export async function printDocument(
   try {
     const view = await load(frame);
     fill(view, options);
-    await view.document.fonts.ready;
+    await fontsLoaded(view);
     await print(view);
   } finally {
     frame.remove();
