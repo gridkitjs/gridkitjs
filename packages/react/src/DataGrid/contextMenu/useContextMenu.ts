@@ -209,7 +209,7 @@ export default function useContextMenu<Row>({
       // to open beside it. Moving the tab stop after it then finds the cell
       // focused already.
       cell.element.focus({ preventScroll: true });
-      nav.focusCellNow(cell.rowIndex, cell.columnIndex);
+      nav.focusCellNow(cell.focus);
     }
     openings.current += 1;
     overlay.open({

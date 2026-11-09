@@ -3,7 +3,7 @@ import { runCommand, type GridCommandTarget } from "@gridkitjs/core";
 import { isNativeCopy } from "@gridkitjs/dom";
 import type { GridCommandsApi } from "../commands/useGridCommands";
 import type { DataGridController } from "../useGridController";
-import { HEADER_ROW, type GridNavigationApi } from "../useGridNavigation";
+import type { GridNavigationApi } from "../useGridNavigation";
 
 interface UseGridCopyOptions<Row> {
   controller: DataGridController<Row>;
@@ -45,13 +45,13 @@ export default function useGridCopy<Row>({
 
   /** The focused data cell as a command target, or `null` on a header or a group row. */
   function focusedCell(): GridCommandTarget | null {
-    const { rowIndex, columnIndex } = nav.focus;
-    if (rowIndex === HEADER_ROW) {
+    const { focus } = nav;
+    if (focus.area === "header") {
       return null;
     }
     const { pageRows, columns } = controller.getView();
-    const entry = pageRows[rowIndex];
-    const column = columns[columnIndex];
+    const entry = pageRows[focus.rowIndex];
+    const column = columns[focus.columnIndex];
     return entry === undefined || "kind" in entry || column === undefined
       ? null
       : { area: "cell", rowId: entry.rowId, columnId: column.id };

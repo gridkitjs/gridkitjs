@@ -10,6 +10,8 @@ import {
   type Ref,
 } from "react";
 import {
+  bodyFocus,
+  headerFocus,
   moveColumnBefore,
   resolveColumnHeaderText,
   resolveMessages,
@@ -50,6 +52,7 @@ import {
   type ColumnsSelectEvent as CoreColumnsSelectEvent,
   type SelectionCallbacks as CoreSelectionCallbacks,
   type SerializedGridState,
+  type GridFocus,
 } from "@gridkitjs/core";
 import type { ColumnDropTarget } from "@gridkitjs/dom";
 import GridColgroup from "./components/GridColgroup";
@@ -79,7 +82,7 @@ import useElementWidth from "./useElementWidth";
 import useGridController, {
   type DataGridController,
 } from "./useGridController";
-import useGridNavigation, { HEADER_ROW } from "./useGridNavigation";
+import useGridNavigation from "./useGridNavigation";
 import useGridSelection from "./useGridSelection";
 import useInfiniteScroll from "./useInfiniteScroll";
 import useLiveAnnouncer from "./useLiveAnnouncer";
@@ -193,7 +196,10 @@ export interface DataGridApi<Row>
   getSelectedRows(): readonly ResolvedRow<Row>[];
   getColumnSelection(): SelectionState;
   getCellSelection(): CellSelectionState;
-  /** The cell currently holding the grid's single tab stop. */
+  /**
+   * The cell currently holding the grid's single tab stop, numbered as
+   * `focusCell` takes it: `rowIndex` is `-1` on the header.
+   */
   getFocusedCell(): { rowIndex: number; columnIndex: number };
   /**
    * Every slice of state as the grid applies it, in one object — what
@@ -211,6 +217,12 @@ export interface DataGridApi<Row>
     saved: Partial<GridState<Row>> | Partial<SerializedGridState<Row>>,
   ): void;
 
+  /**
+   * Moves the grid's tab stop, and the browser's focus, to body row
+   * `rowIndex`'s cell at `columnIndex`, or to the header's cell at
+   * `columnIndex` when `rowIndex` is negative. Either index is held inside
+   * the grid.
+   */
   focusCell(rowIndex: number, columnIndex: number): void;
   clearSelection(): void;
   selectAllRows(): void;
@@ -485,6 +497,37 @@ function selectedRowsReader<Row>(
   };
 }
 
+/** `DataGridApi.focusCell`'s target: a negative `rowIndex` is the header. */
+function focusAt(rowIndex: number, columnIndex: number): GridFocus {
+  return rowIndex < 0
+    ? headerFocus(columnIndex)
+    : bodyFocus(rowIndex, columnIndex);
+}
+
+/**
+ * `DataGridApi.getFocusedCell`, numbered as `focusCell` takes it, so the
+ * header's row is `-1`. Returns the same object until the focus moves, as
+ * the other getters do.
+ */
+function focusedCellReader(): (focus: GridFocus) => {
+  rowIndex: number;
+  columnIndex: number;
+} {
+  let last:
+    | {
+        readonly focus: GridFocus;
+        readonly cell: { rowIndex: number; columnIndex: number };
+      }
+    | undefined;
+  return (focus) => {
+    if (last?.focus !== focus) {
+      const rowIndex = focus.area === "header" ? -1 : focus.rowIndex;
+      last = { focus, cell: { rowIndex, columnIndex: focus.columnIndex } };
+    }
+    return last.cell;
+  };
+}
+
 export function DataGrid<Row>(props: DataGridProps<Row>) {
   const {
     borders,
@@ -561,6 +604,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
    */
   const [readPagination] = useState(() => paginationReader(controller));
   const [readSelectedRows] = useState(() => selectedRowsReader(controller));
+  const [readFocusedCell] = useState(focusedCellReader);
 
   /**
    * `enabled` is `virtualized` alone, independent of `height`: an `auto`
@@ -743,7 +787,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
      * the stop would be left on whichever column took its index, and the next
      * arrow key would appear to do nothing.
      */
-    nav.focusCell(HEADER_ROW, position);
+    nav.focusCell(headerFocus(position));
   }
 
   const drag = useColumnDrag<Row>({
@@ -866,10 +910,12 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     getSelectedRows: readSelectedRows,
     getColumnSelection: () => controller.getState().columnSelection,
     getCellSelection: () => controller.getState().cellSelection,
-    getFocusedCell: () => nav.focus,
+    getFocusedCell: () => readFocusedCell(nav.focus),
     getState: controller.getState,
     restoreState: controller.restoreState,
-    focusCell: nav.focusCell,
+    focusCell: (rowIndex, columnIndex) => {
+      nav.focusCell(focusAt(rowIndex, columnIndex));
+    },
     clearSelection: controller.clearSelection,
     selectAllRows: controller.selectAllRows,
     selectRows: controller.selectRows,

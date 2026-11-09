@@ -1,15 +1,14 @@
 /**
- * The header's row index. One coordinate space covers the header and the body
- * so that arrowing up out of the first row reaches the header without a case
- * of its own, and every other move is plain arithmetic.
+ * The cell the grid's single tab stop sits on: a header cell, or a cell of
+ * body row `rowIndex`. A body focus's `rowIndex` counts from `0`.
  */
-export const HEADER_ROW = -1;
-
-/** The cell the grid's single tab stop sits on. */
-export interface GridFocus {
-  readonly rowIndex: number;
-  readonly columnIndex: number;
-}
+export type GridFocus =
+  | { readonly area: "header"; readonly columnIndex: number }
+  | {
+      readonly area: "body";
+      readonly rowIndex: number;
+      readonly columnIndex: number;
+    };
 
 /** The modifier keys held with a navigation key press. */
 export interface NavigationModifiers {
@@ -19,23 +18,42 @@ export interface NavigationModifiers {
   readonly shiftKey: boolean;
 }
 
+/** The header's cell at `columnIndex`. */
+export function headerFocus(columnIndex: number): GridFocus {
+  return { area: "header", columnIndex };
+}
+
+/** Body row `rowIndex`'s cell at `columnIndex`. */
+export function bodyFocus(rowIndex: number, columnIndex: number): GridFocus {
+  return { area: "body", rowIndex, columnIndex };
+}
+
 /**
  * Holds a coordinate inside the grid, so that a focus surviving a column
  * removal or a shorter page never leaves the grid with no tab stop at all —
- * which is a grid a keyboard cannot reach.
+ * which is a grid a keyboard cannot reach. A body focus below the last row
+ * moves up to it; one above the first row, or in a grid with no rows, moves
+ * to the header.
  */
 export function clampFocus(
   focus: GridFocus,
   rowCount: number,
   columnCount: number,
 ): GridFocus {
-  return {
-    rowIndex: Math.min(Math.max(focus.rowIndex, HEADER_ROW), rowCount - 1),
-    columnIndex: Math.min(
-      Math.max(focus.columnIndex, 0),
-      Math.max(columnCount - 1, 0),
-    ),
-  };
+  const columnIndex = Math.min(
+    Math.max(focus.columnIndex, 0),
+    Math.max(columnCount - 1, 0),
+  );
+  switch (focus.area) {
+    case "header":
+      return headerFocus(columnIndex);
+    case "body": {
+      const rowIndex = Math.min(focus.rowIndex, rowCount - 1);
+      return rowIndex < 0
+        ? headerFocus(columnIndex)
+        : bodyFocus(rowIndex, columnIndex);
+    }
+  }
 }
 
 /** Never treats any row as unreachable — the default when a caller has no skippable rows at all. */
@@ -44,48 +62,65 @@ function noRowsSkippable(): boolean {
 }
 
 /**
- * `rowIndex` moved forward one row at a time in `direction` (`1` or `-1`)
- * until it lands on a row `isSkippableRow` says is reachable, or would run
- * off the grid's own bounds (`HEADER_ROW` to `rowCount - 1`) trying — in
- * which case it returns `fallback` (the position before this move started)
- * instead of an out-of-range index.
+ * The vertical keys count rows on one line running from the header, just
+ * above body row `0`, down through the body, so that arrowing up out of the
+ * first row reaches the header and a page key starting on the header lands
+ * `pageSize` rows down, both as plain arithmetic.
+ */
+function linePosition(focus: GridFocus): number {
+  return focus.area === "header" ? -1 : focus.rowIndex;
+}
+
+/** The focus at `line` on the line `linePosition` counts: the header for anything above body row `0`. */
+function focusAtLine(line: number, columnIndex: number): GridFocus {
+  return line < 0 ? headerFocus(columnIndex) : bodyFocus(line, columnIndex);
+}
+
+/**
+ * `target` moved on one row at a time in `direction` (`1` or `-1`) until it
+ * lands on a row `isSkippableRow` says is reachable, or would run off the
+ * bottom of the body trying — in which case it returns `fallback` (where the
+ * focus was before this move) instead of an out-of-range row.
  *
  * Deliberately not "step one past the bound" the way an ordinary move here
- * left unclamped would: `clampFocus` downstream holds any out-of-range
- * `rowIndex` at the nearest in-range one, and if that nearest row happens
- * to be the very one that was skippable (the grid's actual last row is a
- * group's own summary row, say), clamping back onto it would silently
- * defeat the skip. Staying at `fallback` is what a "there is nowhere valid
- * to move to" press should do instead — the same way `ArrowLeft` at column
- * 0 already leaves `rowIndex`/`columnIndex` exactly where they were,
+ * left unclamped would: `clampFocus` downstream holds a row past the end at
+ * the last one, and if that last row happens to be the very one that was
+ * skippable (a group's own summary row, say), clamping back onto it would
+ * silently defeat the skip. Staying at `fallback` is what a "there is
+ * nowhere valid to move to" press should do instead — the same way
+ * `ArrowLeft` at column 0 already leaves the focus exactly where it was,
  * `clampFocus` is left with nothing to correct either way, and a caller
  * that still wants to detect "did this move go anywhere" can compare the
- * result to `focus` itself.
+ * result to the focus itself.
+ *
+ * The header is never skippable, and a row already past the body's end (a
+ * `PageDown` overshoot) has nothing to skip past: both are returned as they
+ * are, for `clampFocus` to hold in bounds.
  */
 function skipSkippableRows(
-  rowIndex: number,
+  target: GridFocus,
   direction: 1 | -1,
   rowCount: number,
   isSkippableRow: (rowIndex: number) => boolean,
-  fallback: number,
-): number {
-  let next = rowIndex;
-  // The header (HEADER_ROW) and anything already out of the body's own
-  // [0, rowCount) range are never skippable — an ordinary PageUp/ArrowUp
-  // overshoot past the header, in particular, has nothing to skip past, so
-  // this function has nothing to do; `clampFocus` downstream still handles
-  // holding it in bounds as it always has.
-  while (next >= 0 && next < rowCount && isSkippableRow(next)) {
-    const stepped = next + direction;
-    // Landing on the header itself (moving up from row 0) is always valid —
-    // only a step that would leave the header *and* the body's own range
-    // behind (moving down past the last row) has nowhere left to go.
-    if (stepped < HEADER_ROW || stepped >= rowCount) {
+  fallback: GridFocus,
+): GridFocus {
+  if (target.area === "header") {
+    return target;
+  }
+  let rowIndex = target.rowIndex;
+  while (rowIndex < rowCount && isSkippableRow(rowIndex)) {
+    const stepped = rowIndex + direction;
+    if (stepped >= rowCount) {
       return fallback;
     }
-    next = stepped;
+    // Stepping up out of body row 0 lands on the header, which is always a
+    // valid stop.
+    if (stepped < 0) {
+      return headerFocus(target.columnIndex);
+    }
+    rowIndex = stepped;
   }
-  return next;
+  return bodyFocus(rowIndex, target.columnIndex);
 }
 
 /**
@@ -119,78 +154,49 @@ export function nextFocusForKey(
     return null;
   }
 
-  const { rowIndex, columnIndex } = focus;
+  const { columnIndex } = focus;
+
+  function moveRows(rows: number): GridFocus {
+    return skipSkippableRows(
+      focusAtLine(linePosition(focus) + rows, columnIndex),
+      rows < 0 ? -1 : 1,
+      rowCount,
+      isSkippableRow,
+      focus,
+    );
+  }
 
   switch (key) {
     case "ArrowLeft":
       if (modifiers.ctrlKey) return null;
-      return { rowIndex, columnIndex: columnIndex - 1 };
+      return { ...focus, columnIndex: columnIndex - 1 };
     case "ArrowRight":
       if (modifiers.ctrlKey) return null;
-      return { rowIndex, columnIndex: columnIndex + 1 };
+      return { ...focus, columnIndex: columnIndex + 1 };
     case "ArrowUp":
-      return {
-        rowIndex: skipSkippableRows(
-          rowIndex - 1,
-          -1,
-          rowCount,
-          isSkippableRow,
-          rowIndex,
-        ),
-        columnIndex,
-      };
+      return moveRows(-1);
     case "ArrowDown":
-      return {
-        rowIndex: skipSkippableRows(
-          rowIndex + 1,
-          1,
-          rowCount,
-          isSkippableRow,
-          rowIndex,
-        ),
-        columnIndex,
-      };
+      return moveRows(1);
     // Ctrl takes Home and End to the grid's ends rather than the row's, which
     // is the one place Ctrl is navigation rather than reorder.
     case "Home":
+      return modifiers.ctrlKey ? headerFocus(0) : { ...focus, columnIndex: 0 };
+    case "End": {
+      const rowEnd = { ...focus, columnIndex: columnCount - 1 };
       return modifiers.ctrlKey
-        ? { rowIndex: HEADER_ROW, columnIndex: 0 }
-        : { rowIndex, columnIndex: 0 };
-    case "End":
-      return modifiers.ctrlKey
-        ? {
-            rowIndex: skipSkippableRows(
-              rowCount - 1,
-              -1,
-              rowCount,
-              isSkippableRow,
-              rowIndex,
-            ),
-            columnIndex: columnCount - 1,
-          }
-        : { rowIndex, columnIndex: columnCount - 1 };
+        ? skipSkippableRows(
+            focusAtLine(rowCount - 1, columnCount - 1),
+            -1,
+            rowCount,
+            isSkippableRow,
+            rowEnd,
+          )
+        : rowEnd;
+    }
     case "PageUp":
-      return {
-        rowIndex: skipSkippableRows(
-          rowIndex - pageSize,
-          -1,
-          rowCount,
-          isSkippableRow,
-          rowIndex,
-        ),
-        columnIndex,
-      };
+      return moveRows(-pageSize);
     case "PageDown":
-      return {
-        rowIndex: skipSkippableRows(
-          rowIndex + pageSize,
-          1,
-          rowCount,
-          isSkippableRow,
-          rowIndex,
-        ),
-        columnIndex,
-      };
+      return moveRows(pageSize);
     default:
       return null;
   }
