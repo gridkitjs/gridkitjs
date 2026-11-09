@@ -1,5 +1,54 @@
 # @gridkitjs/react
 
+## 0.17.0
+
+### Minor Changes
+
+- 098d4f3: **Breaking:** `DataGrid`'s props and handle take core's new shapes. Filter
+  entries in `filter`, `defaultFilter` and `onFilterChange` carry `kind`;
+  `defaultGroupExpansion`, `groupExpansion` and the `expansion` in
+  `onGroupExpansionChange`'s event are `{ mode: "allExpanded" | "allCollapsed";
+except: string[] }` instead of a list of collapsed group ids. A grid written
+  against 0.16 changes those literals and readers; see the `@gridkitjs/core`
+  0.17.0 notes for the before/after of each. `focusCell(rowIndex, columnIndex)`
+  and `getFocusedCell()` keep their shape (the header is row `-1`).
+
+### Patch Changes
+
+- 53d54fd: Of two copies close together, only the latest is announced. A slow first copy used to finish after the second and announce what it had copied, as if that were on the clipboard.
+- 53d54fd: A column or group-by chip drag resolves its drop targets, and drops, against the column order and grouping of the latest render. A controlled `columnOrder` that changed mid-drag used to have the drop land by the order the drag began with.
+- d631aba: Reads `@gridkitjs/dom`'s drag reorder state by its `kind`. Column and
+  group-by drags behave as before.
+- 53d54fd: An export chosen while another is still being written no longer runs its writer. It was dropped unsaved before, but only after building its file.
+- 0784333: The filter menu's editors read `@gridkitjs/core`'s `FilterEditorDraft` by its `kind`: the excel editor's checklist holds a `ValuesDraft`, and the simple editor builds a `ConditionsDraft` directly. Nothing a user sees changes; "Back to values" still brings the checklist back as it was left.
+- 77b851d: `DataGridApi.focusCell(rowIndex, columnIndex)` and `getFocusedCell()` keep their signatures on top of the header-or-body `GridFocus` from `@gridkitjs/core`, and their docs now say what was only implied: a negative `rowIndex` passed to `focusCell` moves the tab stop to the header's cell at `columnIndex`, and `getFocusedCell()` reports the header as row `-1`.
+- f0a8a8a: `InfiniteScrollConfig.onLoadMore`'s doc comment lists every event that lets
+  it be called again: `isLoadingMore` going back to `false`, `hasMore`
+  changing, the sentinel leaving range and coming back, or appended rows moving
+  the sentinel before `isLoadingMore` read `true`.
+- 9c1c06b: `DataGrid` reads group expansion as the mode with exceptions `@gridkitjs/core`
+  now stores. A change to every group at once (`expandAllGroups`,
+  `collapseAllGroups`, `setGroupExpansion`) is announced by the mode the groups
+  follow afterwards, and `useGroupByState` reads `groupExpansion` as
+  `ALL_EXPANDED` before the grid mounts.
+- 53d54fd: Focus inside a toolbar dropdown's submenu whose entry leaves the menu goes back to the menu it opened from, rather than to the page's body.
+- 53d54fd: Turning `virtualized` on keeps the browser's focus on a focused cell near the scroll position, and a `scrollToRow` in the same commit scrolls to its row. Before, every body row unmounted for a pass, or every row outside the window last drawn while virtualized, taking the focus to the page, and a `scrollToRow` from a parent's layout effect in that commit did nothing.
+- Updated dependencies [0467527]
+- Updated dependencies [f0a8a8a]
+- Updated dependencies [d631aba]
+- Updated dependencies [53d54fd]
+- Updated dependencies [0784333]
+- Updated dependencies [a2bfcd7]
+- Updated dependencies [77b851d]
+- Updated dependencies [77b851d]
+- Updated dependencies [9c1c06b]
+- Updated dependencies [0467527]
+- Updated dependencies [0467527]
+- Updated dependencies [0467527]
+- Updated dependencies [0467527]
+  - @gridkitjs/dom@0.5.0
+  - @gridkitjs/core@0.17.0
+
 ## 0.16.0
 
 ### Minor Changes

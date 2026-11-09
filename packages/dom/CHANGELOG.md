@@ -1,5 +1,81 @@
 # @gridkitjs/dom
 
+## 0.5.0
+
+### Minor Changes
+
+- d631aba: Breaking: `DragReorderState`, what `startDragReorder` reports through
+  `onState`, is a union tagged `kind`. While nothing is dragged it is
+  `{ kind: "idle" }` (`NO_DRAG`, reported on release and cancel alike); once a
+  press has become a drag it is `{ kind: "dragging", draggedId, dropTarget,
+ghostTransform }`, with `draggedId` and `ghostTransform` no longer nullable.
+  A reader that tested for `null` checks `kind` instead, and reads the fields
+  only while dragging:
+
+  ```ts
+  // Before
+  onState: (state) => {
+    if (state.draggedId === null) clearDrag();
+    else drawDrag(state.draggedId, state.ghostTransform);
+  };
+
+  // After
+  onState: (state) => {
+    if (state.kind === "idle") clearDrag();
+    else drawDrag(state.draggedId, state.ghostTransform);
+  };
+  ```
+
+- 77b851d: Breaking: `createGridFocus`'s `focusCell` takes the cell as one `GridFocus`
+  from `@gridkitjs/core` instead of a row and a column, and `getFocus()`
+  returns that shape, which names the header as an area instead of row `-1`.
+
+  ```ts
+  import { bodyFocus, headerFocus } from "@gridkitjs/core";
+
+  // Before
+  focus.focusCell(rowIndex, columnIndex);
+  focus.focusCell(HEADER_ROW, columnIndex);
+  const onHeader = focus.getFocus().rowIndex === HEADER_ROW;
+
+  // After
+  focus.focusCell(bodyFocus(rowIndex, columnIndex));
+  focus.focusCell(headerFocus(columnIndex));
+  const onHeader = focus.getFocus().area === "header";
+  ```
+
+### Patch Changes
+
+- 0467527: An `attachChecklist` checklist does nothing once `detach()` has run. Its
+  `focusItem` used to still scroll the list and report the move through
+  `onFocusChange`, and a later `setCount` could focus the item that move had
+  asked for.
+- 0467527: `attachInfiniteScroll` loads again when a load that never reported
+  `isLoadingMore: true` adds rows that leave the sentinel in range. Such a load,
+  one that finishes within a single render, used to stop loading until the
+  sentinel was scrolled out of range and back. While a request is outstanding,
+  an `update` now notices rows moving the sentinel and loads again if it is
+  still in range; an update that moves nothing still doesn't repeat the request.
+- 0467527: `printDocument` waits at most 3 seconds for the print frame's fonts before
+  opening the print dialog. A font that never finished loading used to keep
+  the print from ever opening or settling, and every later print was refused
+  as if that one were still open.
+- 0467527: `startColumnResizeGesture` reports the end of a drag that brings the column
+  back to its start width: `onEnd` receives that width, where it used to
+  receive `null`, so a grid's `onColumnResize` saw the drag's `"move"` events
+  and never its `"end"`. A click on the handle, which never changes the width,
+  still reports `null`.
+- 0467527: `createRowVirtualizer`'s `resetHeights` drops a `scrollToIndex` still waiting
+  for its row to mount. A scroll asked for just before a sort or filter used to
+  scroll to whichever row took that index once it mounted.
+- Updated dependencies [f0a8a8a]
+- Updated dependencies [53d54fd]
+- Updated dependencies [0784333]
+- Updated dependencies [a2bfcd7]
+- Updated dependencies [77b851d]
+- Updated dependencies [9c1c06b]
+  - @gridkitjs/core@0.17.0
+
 ## 0.4.0
 
 ### Minor Changes
