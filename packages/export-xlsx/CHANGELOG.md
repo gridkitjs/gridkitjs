@@ -1,5 +1,17 @@
 # @gridkitjs/export-xlsx
 
+## 0.1.5
+
+### Patch Changes
+
+- Updated dependencies [f0a8a8a]
+- Updated dependencies [53d54fd]
+- Updated dependencies [0784333]
+- Updated dependencies [a2bfcd7]
+- Updated dependencies [77b851d]
+- Updated dependencies [9c1c06b]
+  - @gridkitjs/core@0.17.0
+
 ## 0.1.4
 
 ### Patch Changes
