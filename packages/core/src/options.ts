@@ -450,8 +450,11 @@ export interface GridOptions<Row> {
   contextMenu?: boolean | GridContextMenuOptions<Row> | undefined;
   /**
    * Called when the grid's context menu opens or closes, with where. A menu
-   * opened in place of another reports that one closing first. The open
-   * state is the renderer's to keep, so no option holds it.
+   * opened in place of another reports that one closing first. It also
+   * reports closing when a panel opens in its place (before the command of
+   * a menu item that opened it runs), when the grid unmounts and when
+   * `contextMenu` is turned off while it is open. The open state is the renderer's to keep, so no
+   * option holds it.
    */
   onContextMenuOpenChange?:
     ((event: ContextMenuOpenChangeEvent) => void) | undefined;

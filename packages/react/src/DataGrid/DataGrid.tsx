@@ -406,9 +406,11 @@ export interface InfiniteScrollConfig {
   /** Whether a further `onLoadMore` could still return more rows. `false` removes the sentinel entirely, so no further scrolling can trigger a load. */
   readonly hasMore: boolean;
   /**
-   * Called at most once per genuine threshold-crossing: fires when the
-   * sentinel comes within `rootMargin` of the body's viewport, and not again
-   * until `isLoadingMore` has gone back to `false`.
+   * Called when the sentinel comes within `rootMargin` of the body's
+   * viewport, then not again until one of these says the request was
+   * answered: `isLoadingMore` goes back to `false`, `hasMore` changes, the
+   * sentinel leaves range and comes back, or rows appended while
+   * `isLoadingMore` never read `true` move the sentinel down.
    */
   readonly onLoadMore: () => void;
   /** Whether a load triggered by `onLoadMore` is still in flight. Suppresses further calls to it until this goes back to `false`. */
