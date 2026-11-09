@@ -5,6 +5,7 @@ import {
   type RefObject,
 } from "react";
 import {
+  bodyFocus,
   groupRowId,
   intentOf,
   type AggregateState,
@@ -27,7 +28,10 @@ import type {
   InfiniteScrollConfig,
   ResolvedColumn,
 } from "../DataGrid";
-import type { GridNavigationApi } from "../useGridNavigation";
+import {
+  focusedColumnInRow,
+  type GridNavigationApi,
+} from "../useGridNavigation";
 import type { DataGridController } from "../useGridController";
 import type { RowVirtualizerApi } from "../useRowVirtualizer";
 import { isOwnEvent } from "../isOwnEvent";
@@ -232,12 +236,14 @@ export default function GridBody<Row>({
         const group = groupRowFrom(event.target);
         if (group !== null) {
           // One cell for the whole row — see the note on `focused` below.
-          nav.focusCell(group.rowIndex, 0);
+          nav.focusCell(bodyFocus(group.rowIndex, 0));
           return;
         }
         const found = targetOf(event.target);
         if (found === null) return;
-        nav.focusCell(found.position.rowIndex, found.position.columnIndex);
+        nav.focusCell(
+          bodyFocus(found.position.rowIndex, found.position.columnIndex),
+        );
       }}
       onClick={(event) => {
         const group = groupRowFrom(event.target);
@@ -336,11 +342,7 @@ export default function GridBody<Row>({
                   ? selectedCell.columnId
                   : null
               }
-              focusedColumnIndex={
-                nav.focus.rowIndex === entry.rowIndex
-                  ? nav.focus.columnIndex
-                  : null
-              }
+              focusedColumnIndex={focusedColumnInRow(nav.focus, entry.rowIndex)}
               rowsSelectable={rowMode !== false}
               cellsSelectable={cellMode !== false}
               contextMenu={cellMenu}
@@ -399,7 +401,7 @@ export default function GridBody<Row>({
             // Ignores `nav.focus.columnIndex`: with only one cell in this
             // row, whether it holds the tab stop depends on `rowIndex`
             // alone.
-            focused={nav.focus.rowIndex === entry.rowIndex}
+            focused={focusedColumnInRow(nav.focus, entry.rowIndex) !== null}
             contextMenu={groupMenu}
           />
         );

@@ -6,7 +6,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type RefObject,
 } from "react";
-import { HEADER_ROW, type GridFocus } from "@gridkitjs/core";
+import type { GridFocus } from "@gridkitjs/core";
 import {
   createGridFocus,
   findBodyRow,
@@ -15,8 +15,6 @@ import {
   type GridFocusOptions,
   type GridFocusRows,
 } from "@gridkitjs/dom";
-
-export { HEADER_ROW, type GridFocus };
 
 interface UseGridNavigationOptions {
   /**
@@ -52,16 +50,16 @@ export interface GridNavigationApi {
    * `0` for the focused cell and `-1` for every other. A grid is one tab stop:
    * tabbing reaches it, and the arrow keys move within it.
    */
-  tabIndexFor: (rowIndex: number, columnIndex: number) => 0 | -1;
+  tabIndexFor: (cell: GridFocus) => 0 | -1;
   /** Moves the tab stop, and the browser's focus with it. */
-  focusCell: (rowIndex: number, columnIndex: number) => void;
+  focusCell: (focus: GridFocus) => void;
   /**
    * `focusCell` for a cell on screen, whose browser focus moves now rather
    * than once the move is drawn — for something about to take focus from
    * it, such as a menu opened on it, which the drawing would pull focus back
    * out of. It renders nothing synchronously, so it is safe in an effect.
    */
-  focusCellNow: (rowIndex: number, columnIndex: number) => void;
+  focusCellNow: (focus: GridFocus) => void;
   /**
    * The cell holding the tab stop, as drawn now, or `null` while its row is
    * not drawn — where focus goes when the element it was to go back to has
@@ -78,15 +76,38 @@ export interface GridNavigationApi {
  * because `GridRow` is `memo()`-wrapped and cannot take the whole `nav`
  * object as a prop without defeating that boundary. Takes the row's own
  * already-narrowed `focusedColumnIndex` (`null` when focus sits on a
- * different row) rather than a `rowIndex`/`GridFocus` pair, since that
- * narrowing — done once per row in `GridBody` — is what keeps a focus move
- * from re-rendering every row instead of the two it actually touches.
+ * different row) rather than a `GridFocus`, since that narrowing —
+ * `focusedColumnInRow`, done once per row in `GridBody` — is what keeps a
+ * focus move from re-rendering every row instead of the two it actually
+ * touches.
  */
 export function tabIndexFor(
   columnIndex: number,
   focusedColumnIndex: number | null,
 ): 0 | -1 {
   return columnIndex === focusedColumnIndex ? 0 : -1;
+}
+
+/**
+ * The column holding the tab stop when it sits in body row `rowIndex`, or
+ * `null` when it sits in another row or in the header.
+ */
+export function focusedColumnInRow(
+  focus: GridFocus,
+  rowIndex: number,
+): number | null {
+  return focus.area === "body" && focus.rowIndex === rowIndex
+    ? focus.columnIndex
+    : null;
+}
+
+function sameCell(a: GridFocus, b: GridFocus): boolean {
+  if (a.columnIndex !== b.columnIndex) {
+    return false;
+  }
+  return a.area === "header"
+    ? b.area === "header"
+    : focusedColumnInRow(b, a.rowIndex) !== null;
 }
 
 /**
@@ -143,14 +164,10 @@ export default function useGridNavigation({
   // closes over the focus it draws.
   return {
     focus,
-    tabIndexFor: (rowIndex, columnIndex) =>
-      tabIndexFor(
-        columnIndex,
-        rowIndex === focus.rowIndex ? focus.columnIndex : null,
-      ),
+    tabIndexFor: (cell) => (sameCell(cell, focus) ? 0 : -1),
     focusCell: gridFocus.focusCell,
-    focusCellNow: (rowIndex, columnIndex) => {
-      gridFocus.focusCell(rowIndex, columnIndex);
+    focusCellNow: (next) => {
+      gridFocus.focusCell(next);
       // The cell is drawn already, all but its tab stop, so the move is
       // followed now, and the drawing that redraws the stop has none left.
       gridFocus.focusDrawnCell(gridFocus.getFocus());
@@ -158,14 +175,14 @@ export default function useGridNavigation({
     tabStopCell: () => {
       // Read from the store rather than this render's `focus`: an overlay
       // asks while the drawing that moved the stop is being committed.
-      const { rowIndex, columnIndex } = gridFocus.getFocus();
+      const stop = gridFocus.getFocus();
       const cells = (
-        rowIndex === HEADER_ROW
+        stop.area === "header"
           ? rows.getHeaderRow()
-          : rows.getBodyRow(rowIndex)
+          : rows.getBodyRow(stop.rowIndex)
       )?.cells;
       // A group header's row has one cell, whatever column the stop is in.
-      return cells?.[Math.min(columnIndex, cells.length - 1)] ?? null;
+      return cells?.[Math.min(stop.columnIndex, cells.length - 1)] ?? null;
     },
     onKeyDown: (event) => {
       if (
