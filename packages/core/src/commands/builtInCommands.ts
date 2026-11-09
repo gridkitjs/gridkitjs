@@ -253,6 +253,9 @@ function exportCommand<Row>({
     isEnabled: (context) =>
       (selection ? context.selectedRows() : context.view.rows).length > 0,
     execute: (context) => {
+      if (context.host.canSave?.() === false) {
+        return false;
+      }
       const { export: defaults = {}, exportWriters } = context.options;
       const file = exportFile(
         context,

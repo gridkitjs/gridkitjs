@@ -928,6 +928,30 @@ describe("export.csv", () => {
     expect(saveFile).toHaveBeenCalledOnce();
   });
 
+  test("builds nothing, and did not run, while the host cannot save", () => {
+    const writer = idsWriter("csv");
+    const write = vi.spyOn(writer, "write");
+    const host: GridCommandHost = { ...inertHost(), canSave: () => false };
+    const command = builtIn(
+      "export.csv",
+      create({ exportWriters: [writer] }),
+      GRID,
+      host,
+    );
+
+    expect(command.run()).toBe(false);
+    expect(write).not.toHaveBeenCalled();
+    expect(host.saveFile).not.toHaveBeenCalled();
+  });
+
+  test("builds and saves the file while the host can save", () => {
+    const host: GridCommandHost = { ...inertHost(), canSave: () => true };
+    const command = builtIn("export.csv", create(), GRID, host);
+
+    expect(command.run()).toBe(true);
+    expect(savedFile(host)).toMatchObject({ fileName: "export.csv" });
+  });
+
   test("hands the host the view as a CSV file", () => {
     const command = builtIn("export.csv", create(), GRID);
 
