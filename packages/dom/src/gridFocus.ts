@@ -1,6 +1,6 @@
 import {
   clampFocus,
-  HEADER_ROW,
+  headerFocus,
   nextFocusForKey,
   type GridFocus,
   type NavigationModifiers,
@@ -65,7 +65,7 @@ export interface GridFocusController {
    * focused does nothing, which is what lets a cell's own `focus` event
    * report a click through here without a loop.
    */
-  readonly focusCell: (rowIndex: number, columnIndex: number) => void;
+  readonly focusCell: (focus: GridFocus) => void;
   /**
    * Moves the tab stop as `key` does — the arrows, Home, End, the page keys,
    * with Ctrl for the grid's corners. Returns whether the key was one of
@@ -114,6 +114,14 @@ function cellIn(
     return null;
   }
   return row.cells[Math.min(columnIndex, row.cells.length - 1)] ?? null;
+}
+
+/** Whether `a` and `b` are the same cell. */
+function sameCell(a: GridFocus, b: GridFocus): boolean {
+  if (a.area === "body" && b.area === "body") {
+    return a.rowIndex === b.rowIndex && a.columnIndex === b.columnIndex;
+  }
+  return a.area === b.area && a.columnIndex === b.columnIndex;
 }
 
 /**
@@ -183,7 +191,7 @@ export function createGridFocus(
    * out of range by a change to the data is restored when the data comes
    * back.
    */
-  let stored: GridFocus = { rowIndex: HEADER_ROW, columnIndex: 0 };
+  let stored: GridFocus = headerFocus(0);
   let snapshot = {
     stored,
     rowCount: options.rowCount,
@@ -245,17 +253,9 @@ export function createGridFocus(
     };
   }
 
-  function focusCell(rowIndex: number, columnIndex: number): void {
-    const next = clampFocus(
-      { rowIndex, columnIndex },
-      options.rowCount,
-      options.columnCount,
-    );
-    const current = getFocus();
-    if (
-      next.rowIndex === current.rowIndex &&
-      next.columnIndex === current.columnIndex
-    ) {
+  function focusCell(focus: GridFocus): void {
+    const next = clampFocus(focus, options.rowCount, options.columnCount);
+    if (sameCell(next, getFocus())) {
       return;
     }
     pendingMove = next;
@@ -290,7 +290,7 @@ export function createGridFocus(
       if (next === null) {
         return false;
       }
-      focusCell(next.rowIndex, next.columnIndex);
+      focusCell(next);
       return true;
     },
     attach(next, root) {
@@ -313,7 +313,7 @@ export function createGridFocus(
         return;
       }
       const cell = cellIn(
-        drawn.rowIndex === HEADER_ROW
+        drawn.area === "header"
           ? rows.getHeaderRow()
           : rows.getBodyRow(drawn.rowIndex),
         drawn.columnIndex,
@@ -332,11 +332,12 @@ export function createGridFocus(
       // be brought into range; the move stays pending, so the next drawing
       // retries once the row mounts. Without virtualization (or for a row
       // out of bounds even for it) there is nothing further to try, so the
-      // move is dropped rather than left to retry forever.
+      // move is dropped rather than left to retry forever. The header is
+      // never virtualized.
       const range = options.virtualRange;
       if (
         range != null &&
-        drawn.rowIndex !== HEADER_ROW &&
+        drawn.area === "body" &&
         (drawn.rowIndex < range.startIndex || drawn.rowIndex > range.endIndex)
       ) {
         range.scrollToIndex(drawn.rowIndex);
