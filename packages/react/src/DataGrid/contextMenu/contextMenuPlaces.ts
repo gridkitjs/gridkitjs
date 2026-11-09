@@ -1,7 +1,9 @@
 import {
-  HEADER_ROW,
+  bodyFocus,
+  headerFocus,
   type DisplayRow,
   type GridContextMenuTarget,
+  type GridFocus,
 } from "@gridkitjs/core";
 import {
   bodyCellFrom,
@@ -14,8 +16,7 @@ import {
 /** The cell a menu opens on, with its place in the grid's focus. */
 export interface TargetCell {
   readonly element: HTMLTableCellElement;
-  readonly rowIndex: number;
-  readonly columnIndex: number;
+  readonly focus: GridFocus;
 }
 
 /** Where a context menu opens: its target, and what it is drawn on. */
@@ -52,7 +53,7 @@ function headerCell(
   const element = parts.headerTable?.tHead?.rows[0]?.cells[columnIndex];
   return element === undefined
     ? null
-    : { element, rowIndex: HEADER_ROW, columnIndex };
+    : { element, focus: headerFocus(columnIndex) };
 }
 
 function bodyCell(
@@ -61,7 +62,9 @@ function bodyCell(
   columnIndex: number,
 ): TargetCell | null {
   const element = findBodyRow(parts.bodyTable, rowIndex)?.cells[columnIndex];
-  return element === undefined ? null : { element, rowIndex, columnIndex };
+  return element === undefined
+    ? null
+    : { element, focus: bodyFocus(rowIndex, columnIndex) };
 }
 
 /** The part of the viewport where `element` can be seen: its grid's scrolled view. */

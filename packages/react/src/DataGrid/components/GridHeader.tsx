@@ -1,6 +1,7 @@
 import { createPortal } from "react-dom";
 import {
   buildKeyShortcuts,
+  headerFocus,
   intentOf,
   isColumnFiltered,
   KEYBOARD_STEP,
@@ -23,7 +24,7 @@ import { isOwnEvent } from "../isOwnEvent";
 import type { GridPanelsApi } from "../panels/useGridPanels";
 import type { ColumnDragApi } from "../useColumnDrag";
 import type { ColumnResizeApi } from "../useColumnResize";
-import { HEADER_ROW, type GridNavigationApi } from "../useGridNavigation";
+import type { GridNavigationApi } from "../useGridNavigation";
 import {
   keyboardSelectIntent,
   type GridSelectionApi,
@@ -149,14 +150,14 @@ export default function GridHeader<Row>({
               role="columnheader"
               data-gridkit-column={entry.id}
               aria-colindex={index + 1}
-              tabIndex={nav.tabIndexFor(HEADER_ROW, index)}
+              tabIndex={nav.tabIndexFor(headerFocus(index))}
               {...ariaAttr(
                 selection.columnMode !== false,
                 "aria-selected",
                 selected,
               )}
               onFocus={() => {
-                nav.focusCell(HEADER_ROW, index);
+                nav.focusCell(headerFocus(index));
               }}
               onClick={(event) => {
                 /*
