@@ -923,6 +923,57 @@ describe("createGridController: subscribers", () => {
     expect(onCellSelectionChange).toHaveBeenCalledTimes(1);
   });
 
+  test("are not called when a controlled slice only asks for a change", () => {
+    const onColumnSortChange = vi.fn();
+    const controller = create({ columnSort: [], onColumnSortChange });
+    const listener = vi.fn();
+    controller.subscribe(listener);
+    const state = controller.getState();
+
+    controller.toggleColumnSort("Amount");
+
+    expect(onColumnSortChange).toHaveBeenCalledTimes(1);
+    expect(listener).not.toHaveBeenCalled();
+    expect(controller.getState()).toBe(state);
+  });
+
+  test("are not called by clearSelection when every selection is controlled", () => {
+    const onRowSelectionChange = vi.fn();
+    const onColumnSelectionChange = vi.fn();
+    const onCellSelectionChange = vi.fn();
+    const controller = create({
+      rowSelection: ["1"],
+      columnSelection: ["Id"],
+      cellSelection: { rowId: "2", columnId: "Region" },
+      onRowSelectionChange,
+      onColumnSelectionChange,
+      onCellSelectionChange,
+    });
+    const listener = vi.fn();
+    controller.subscribe(listener);
+
+    controller.clearSelection();
+
+    expect(onRowSelectionChange).toHaveBeenCalledTimes(1);
+    expect(onColumnSelectionChange).toHaveBeenCalledTimes(1);
+    expect(onCellSelectionChange).toHaveBeenCalledTimes(1);
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  test("are called once by clearSelection when only an uncontrolled slice changed", () => {
+    const controller = create({
+      rowSelection: ["1"],
+      defaultColumnSelection: ["Id"],
+    });
+    const listener = vi.fn();
+    controller.subscribe(listener);
+
+    controller.clearSelection();
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(controller.getState().columnSelection).toEqual([]);
+  });
+
   test("stop being called once unsubscribed", () => {
     const controller = create();
     const listener = vi.fn();

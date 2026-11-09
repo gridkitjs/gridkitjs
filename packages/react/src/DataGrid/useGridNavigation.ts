@@ -112,6 +112,8 @@ export default function useGridNavigation({
     virtualRange,
   };
   const [gridFocus] = useState(() => createGridFocus(options));
+  // During render, like `useGridController`'s `setOptions`: the focus this
+  // render draws is clamped to this render's row and column counts.
   gridFocus.setOptions(options);
   // `getFocus` serves the server too: nothing can move focus before the grid
   // hydrates, so both sides draw the same initial tab stop.
