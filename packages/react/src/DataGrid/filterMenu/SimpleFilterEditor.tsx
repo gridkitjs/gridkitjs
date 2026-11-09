@@ -20,7 +20,7 @@ import type { FilterEditorProps } from "./filterEditor";
 import {
   initialSimpleEditorState,
   openConditions,
-  sameConditionsDraft,
+  sameConditionRows,
   simpleEditorReducer,
   type Combinator,
 } from "./simpleEditorState";
@@ -168,7 +168,7 @@ export default function SimpleFilterEditor<Row>({
       // Nothing typed since it opened: OK closes it, as Cancel would, rather
       // than asking for a value.
       if (
-        sameConditionsDraft(draft, opened.draft) &&
+        sameConditionRows(draft, opened.draft) &&
         !unreadable.includes(true)
       ) {
         return true;

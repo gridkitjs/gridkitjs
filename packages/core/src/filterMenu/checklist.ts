@@ -1,5 +1,5 @@
 import type { FilterScalar } from "../types";
-import type { FilterEditorDraft } from "../util/filterEditor";
+import type { ValuesDraft } from "../util/filterEditor";
 import {
   keyOf,
   selectAllCoversBlanks,
@@ -63,7 +63,7 @@ export interface FilterChecklist {
 /**
  * The list a checklist editor draws for `draft`: the window of values its
  * search shows, as items carrying what each row says and whether it is
- * checked.
+ * checked. A draft on its conditions draws through `toValuesDraft`.
  *
  * A column can hold far more values than a list is worth scrolling, so the
  * list shows at most `valueLimit` of them. Past that, it shows nothing until
@@ -77,7 +77,7 @@ export interface FilterChecklist {
  * on what the list shows.
  */
 export function filterChecklist<Row>(
-  draft: FilterEditorDraft<Row>,
+  draft: ValuesDraft<Row>,
   { valueLimit, blanksLabel }: FilterChecklistOptions,
 ): FilterChecklist {
   const visible = visibleFilterOptions(draft);

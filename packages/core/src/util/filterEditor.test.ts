@@ -8,7 +8,12 @@ import type {
   FilterState,
   OperatorFilterEntry,
 } from "../types";
-import type { FilterEditorAction, FilterEditorDraft } from "./filterEditor";
+import type {
+  ConditionsDraft,
+  FilterEditorAction,
+  FilterEditorDraft,
+  ValuesDraft,
+} from "./filterEditor";
 import { serializeGridState } from "./serialize";
 import {
   columnValueOptions,
@@ -452,30 +457,61 @@ function openRegion(filter: FilterState<SampleRow> = []) {
   );
 }
 
+/** `draft`, which the test expects on its checklist. */
+function onValues<Row>(draft: FilterEditorDraft<Row>): ValuesDraft<Row> {
+  if (draft.kind !== "values") {
+    throw new Error(`Expected a draft on its checklist, got ${draft.kind}.`);
+  }
+  return draft;
+}
+
+/** `draft`, which the test expects on its conditions. */
+function onConditions<Row>(
+  draft: FilterEditorDraft<Row>,
+): ConditionsDraft<Row> {
+  if (draft.kind !== "conditions") {
+    throw new Error(`Expected a draft on its conditions, got ${draft.kind}.`);
+  }
+  return draft;
+}
+
+/** `draft` after each of `actions` in turn. */
+function edit(
+  draft: FilterEditorDraft<SampleRow>,
+  ...actions: FilterEditorAction<SampleRow>[]
+): FilterEditorDraft<SampleRow> {
+  return actions.reduce(filterEditorReducer<SampleRow>, draft);
+}
+
+function toggle(value: string): FilterEditorAction<SampleRow> {
+  return { type: "toggleValue", value };
+}
+
 function checkedValues(draft: FilterEditorDraft<SampleRow>): unknown[] {
-  return [...draft.checked.values()];
+  return [...onValues(draft).checked.values()];
 }
 
 describe("initialFilterEditorDraft", () => {
   test("no filter: every value and the blanks checked", () => {
-    const draft = openRegion();
+    const draft = onValues(openRegion());
 
-    expect(draft.mode).toBe("values");
     expect(checkedValues(draft)).toEqual(["East", "north", "West"]);
     expect(draft.includeBlanks).toBe(true);
   });
 
   test("no filter on a column without blanks leaves the blanks off", () => {
-    const draft = initialFilterEditorDraft(
-      { kind: "none" },
-      columnValueOptions(rows, dataColumns, [], "Amount"),
+    const draft = onValues(
+      initialFilterEditorDraft(
+        { kind: "none" },
+        columnValueOptions(rows, dataColumns, [], "Amount"),
+      ),
     );
 
     expect(draft.includeBlanks).toBe(false);
   });
 
   test("a checklist: its own values, kept even when the list doesn't offer them", () => {
-    const draft = openRegion([regionIn(["West", "South"])]);
+    const draft = onValues(openRegion([regionIn(["West", "South"])]));
 
     expect(checkedValues(draft)).toEqual(["West", "South"]);
     expect(draft.includeBlanks).toBe(false);
@@ -497,7 +533,7 @@ describe("initialFilterEditorDraft", () => {
     );
 
     expect(draft).toMatchObject({
-      mode: "conditions",
+      kind: "conditions",
       conditions: [amountAbove, amountBelow],
       combinator: "or",
     });
@@ -580,12 +616,12 @@ describe("a checklist on a date column holding ISO strings", () => {
         ],
       },
     ]);
-    expect(selectAllState(reopened)).toBe("mixed");
+    expect(selectAllState(onValues(reopened))).toBe("mixed");
     const all = filterEditorReducer(reopened, {
       type: "toggleValue",
       value: january,
     });
-    expect(selectAllState(all)).toBe("checked");
+    expect(selectAllState(onValues(all))).toBe("checked");
     expect(draftToFilter(all, "Due", restoring.getState().filter)).toEqual([]);
   });
 });
@@ -601,7 +637,7 @@ describe("filterEditorReducer", () => {
       "East",
       "West",
     ]);
-    expect(draft.checked.size).toBe(3);
+    expect(onValues(draft).checked.size).toBe(3);
   });
 
   test("toggleValue unchecks, then checks again, and switches to the checklist", () => {
@@ -614,7 +650,7 @@ describe("filterEditorReducer", () => {
       value: "West",
     });
 
-    expect(unchecked.mode).toBe("values");
+    expect(unchecked.kind).toBe("values");
     expect(checkedValues(unchecked)).toEqual(["East", "north"]);
     expect(
       checkedValues(
@@ -624,7 +660,9 @@ describe("filterEditorReducer", () => {
   });
 
   test("toggleAll unchecks everything, blanks included, once all is checked", () => {
-    const draft = filterEditorReducer(openRegion(), { type: "toggleAll" });
+    const draft = onValues(
+      filterEditorReducer(openRegion(), { type: "toggleAll" }),
+    );
 
     expect(draft.checked.size).toBe(0);
     expect(draft.includeBlanks).toBe(false);
@@ -632,24 +670,24 @@ describe("filterEditorReducer", () => {
   });
 
   test("toggleAll checks every visible value from a mixed state", () => {
-    let draft = filterEditorReducer(openRegion(), { type: "toggleAll" });
-    draft = filterEditorReducer(draft, { type: "toggleValue", value: "East" });
-    expect(selectAllState(draft)).toBe("mixed");
+    const mixed = onValues(
+      edit(openRegion(), { type: "toggleAll" }, toggle("East")),
+    );
+    expect(selectAllState(mixed)).toBe("mixed");
 
-    draft = filterEditorReducer(draft, { type: "toggleAll" });
+    const draft = onValues(edit(mixed, { type: "toggleAll" }));
 
     expect(selectAllState(draft)).toBe("checked");
     expect(draft.includeBlanks).toBe(true);
   });
 
   test("toggleAll under a search acts on the visible values only, blanks left alone", () => {
-    let draft = filterEditorReducer(openRegion(), {
-      type: "search",
-      search: "st",
-    });
-    expect(selectAllState(draft)).toBe("checked");
+    const searched = onValues(
+      edit(openRegion(), { type: "search", search: "st" }),
+    );
+    expect(selectAllState(searched)).toBe("checked");
 
-    draft = filterEditorReducer(draft, { type: "toggleAll" });
+    const draft = onValues(edit(searched, { type: "toggleAll" }));
 
     expect(checkedValues(draft)).toEqual(["north"]);
     expect(draft.includeBlanks).toBe(true);
@@ -657,19 +695,17 @@ describe("filterEditorReducer", () => {
   });
 
   test("select-all over a search that shows nothing is unchecked", () => {
-    const draft = filterEditorReducer(openRegion(), {
-      type: "search",
-      search: "zzz",
-    });
+    const draft = onValues(
+      edit(openRegion(), { type: "search", search: "zzz" }),
+    );
 
     expect(selectAllState(draft)).toBe("unchecked");
   });
 
   test("setIncludeBlanks", () => {
-    const draft = filterEditorReducer(openRegion(), {
-      type: "setIncludeBlanks",
-      includeBlanks: false,
-    });
+    const draft = onValues(
+      edit(openRegion(), { type: "setIncludeBlanks", includeBlanks: false }),
+    );
 
     expect(draft.includeBlanks).toBe(false);
     expect(selectAllState(draft)).toBe("mixed");
@@ -686,29 +722,82 @@ describe("filterEditorReducer", () => {
       combinator: "or",
     });
 
-    expect(kept).toMatchObject({ mode: "conditions", combinator: "and" });
-    expect(given.combinator).toBe("or");
+    expect(kept).toMatchObject({ kind: "conditions", combinator: "and" });
+    expect(onConditions(given).combinator).toBe("or");
   });
 
-  test("clear: every value checked, no conditions, no search", () => {
-    let draft = filterEditorReducer(openRegion(), { type: "toggleAll" });
-    draft = filterEditorReducer(draft, { type: "search", search: "w" });
-    draft = filterEditorReducer(draft, {
+  test("switching arms starts the new one as the editor opened and drops the old", () => {
+    const opened = openRegion([regionIn(["West"])]);
+    const conditions = edit(
+      opened,
+      toggle("East"),
+      { type: "search", search: "o" },
+      { type: "setConditions", conditions: [regionBlank] },
+    );
+    const values = edit(conditions, toggle("north"));
+
+    expect(conditions).not.toHaveProperty("checked");
+    expect(conditions).not.toHaveProperty("includeBlanks");
+    expect(values).not.toHaveProperty("conditions");
+    expect(values).not.toHaveProperty("combinator");
+    expect(values.search).toBe("o");
+    expect(checkedValues(values)).toEqual(["West", "north"]);
+  });
+
+  test("setConditions over a checklist keeps the combinator the editor opened with", () => {
+    const opened = openRegion([
+      {
+        kind: "group",
+        combinator: "or",
+        entries: [
+          {
+            kind: "operator",
+            columnId: "Region",
+            operator: "startsWith",
+            value: "w",
+          },
+          regionBlank,
+        ],
+      },
+    ]);
+    const draft = edit(opened, toggle("East"), {
       type: "setConditions",
-      conditions: [regionBlank],
+      conditions: [regionBlank, regionIn(["West"])],
     });
 
-    draft = filterEditorReducer(draft, { type: "clear" });
+    expect(draft).toMatchObject({ kind: "conditions", combinator: "or" });
+  });
 
-    expect(draft).toMatchObject({
-      search: "",
-      includeBlanks: true,
-      conditions: [],
-    });
+  test("clear on the checklist: every value checked, no search", () => {
+    const draft = onValues(
+      edit(
+        openRegion(),
+        { type: "toggleAll" },
+        { type: "search", search: "w" },
+        { type: "clear" },
+      ),
+    );
+
+    expect(draft).toMatchObject({ search: "", includeBlanks: true });
     expect(selectAllState(draft)).toBe("checked");
   });
 
-  test("clear leaves the mode as it was", () => {
+  test("clear on the conditions: no conditions, no search", () => {
+    const draft = edit(
+      openRegion(),
+      { type: "search", search: "w" },
+      { type: "setConditions", conditions: [regionBlank] },
+      { type: "clear" },
+    );
+
+    expect(draft).toMatchObject({
+      kind: "conditions",
+      search: "",
+      conditions: [],
+    });
+  });
+
+  test("clear leaves the draft on its arm", () => {
     const values = filterEditorReducer(openRegion([regionIn(["West"])]), {
       type: "clear",
     });
@@ -724,8 +813,8 @@ describe("filterEditorReducer", () => {
       { type: "clear" },
     );
 
-    expect(values.mode).toBe("values");
-    expect(conditions.mode).toBe("conditions");
+    expect(values.kind).toBe("values");
+    expect(conditions.kind).toBe("conditions");
   });
 
   test("clear removes the column's filter from either mode", () => {
@@ -758,15 +847,6 @@ describe("filterDraftChanged", () => {
     operator: "startsWith",
     value: "w",
   };
-  const edit = (
-    draft: FilterEditorDraft<SampleRow>,
-    ...actions: FilterEditorAction<SampleRow>[]
-  ) => actions.reduce(filterEditorReducer<SampleRow>, draft);
-  const toggle = (value: string): FilterEditorAction<SampleRow> => ({
-    type: "toggleValue",
-    value,
-  });
-
   test.each<[string, FilterState<SampleRow>]>([
     ["no filter", []],
     ["a checklist", [regionIn(["West"])]],

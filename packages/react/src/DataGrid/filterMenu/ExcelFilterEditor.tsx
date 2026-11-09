@@ -13,7 +13,6 @@ import {
   selectAllState,
   type ColumnValueOptions,
   type FilterChecklistItem,
-  type FilterEditorAction,
   type FilterOperator,
 } from "@gridkitjs/core";
 import { ChevronLeftIcon } from "../menu/menuIcons";
@@ -21,6 +20,7 @@ import {
   excelEditorReducer,
   initialExcelEditorState,
   openValues,
+  type ChecklistAction,
 } from "./excelEditorState";
 import type { FilterEditorHandle, FilterEditorProps } from "./filterEditor";
 import OperatorMenuButton from "./OperatorMenuButton";
@@ -52,7 +52,7 @@ const OPENED_ON_VALUES: ExcelEditorMode = {
 };
 
 /** What a checklist item's toggle does to the draft. */
-function toggleOf<Row>(item: FilterChecklistItem): FilterEditorAction<Row> {
+function toggleOf<Row>(item: FilterChecklistItem): ChecklistAction<Row> {
   return item.kind === "blanks"
     ? { type: "setIncludeBlanks", includeBlanks: !item.checked }
     : { type: "toggleValue", value: item.value };

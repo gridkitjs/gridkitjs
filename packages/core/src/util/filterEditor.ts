@@ -84,28 +84,45 @@ export interface ColumnValueOptions {
   readonly columnType?: ColumnType | undefined;
 }
 
-/**
- * A checklist or condition editor's working copy of one column's filter,
- * changed by `filterEditorReducer` and turned into a filter by
- * `draftToFilter` only when the user applies it — so cancelling is just
- * dropping the draft.
- */
-export interface FilterEditorDraft<Row> {
-  /** Which half of the draft `draftToFilter` applies: the last one changed. */
-  readonly mode: "values" | "conditions";
+/** What a `FilterEditorDraft` holds on either arm. */
+export interface FilterEditorDraftBase<Row> {
   /** Every value the editor offers, from `columnValueOptions`. */
   readonly options: readonly ColumnValueOption[];
   /** How many rows hold a blank; the blanks entry only matters when some do. */
   readonly blanks: number;
   readonly search: string;
-  /** The checked values, keyed as an `in` filter on the column keys them. */
-  readonly checked: ReadonlyMap<string, FilterScalar>;
-  readonly includeBlanks: boolean;
-  readonly conditions: readonly OperatorFilterEntry<Row>[];
-  readonly combinator: "and" | "or";
+  /**
+   * The column's filter as the editor opened on it. An action for the other
+   * arm builds that arm from it, as reopening the editor would show it.
+   */
+  readonly openedShape: ColumnFilterShape<Row>;
   /** The column's `type`, from `ColumnValueOptions` — what values are keyed by. */
   readonly columnType?: ColumnType | undefined;
 }
+
+/** A draft on its checklist: the values `draftToFilter` writes as an `in` entry. */
+export interface ValuesDraft<Row> extends FilterEditorDraftBase<Row> {
+  readonly kind: "values";
+  /** The checked values, keyed as an `in` filter on the column keys them. */
+  readonly checked: ReadonlyMap<string, FilterScalar>;
+  readonly includeBlanks: boolean;
+}
+
+/** A draft on its conditions: the operator entries `draftToFilter` writes. */
+export interface ConditionsDraft<Row> extends FilterEditorDraftBase<Row> {
+  readonly kind: "conditions";
+  readonly conditions: readonly OperatorFilterEntry<Row>[];
+  readonly combinator: "and" | "or";
+}
+
+/**
+ * A checklist or condition editor's working copy of one column's filter,
+ * changed by `filterEditorReducer` and turned into a filter by
+ * `draftToFilter` only when the user applies it — so cancelling is just
+ * dropping the draft. It is on one arm at a time, the one `draftToFilter`
+ * applies: the last one changed.
+ */
+export type FilterEditorDraft<Row> = ValuesDraft<Row> | ConditionsDraft<Row>;
 
 export type FilterEditorAction<Row> =
   | { readonly type: "search"; readonly search: string }
@@ -116,10 +133,16 @@ export type FilterEditorAction<Row> =
   | {
       readonly type: "setConditions";
       readonly conditions: readonly OperatorFilterEntry<Row>[];
-      /** Keeps the draft's own when omitted. */
+      /**
+       * Keeps the draft's own when omitted; a checklist draft's is the opened
+       * filter's, or `"and"`.
+       */
       readonly combinator?: "and" | "or";
     }
-  /** Back to "no filter": every value checked, no conditions, no search. */
+  /**
+   * Back to "no filter" on the draft's own arm — every value checked, or no
+   * conditions — and no search.
+   */
   | { readonly type: "clear" };
 
 /** A select-all checkbox's state over the values the search shows. */
@@ -336,65 +359,115 @@ export function columnValueOptions<Row>(
   };
 }
 
-/** The key `draft.checked` holds `value` under. */
+/** The key a checklist draft's `checked` holds `value` under. */
 export function keyOf<Row>(
-  draft: Pick<FilterEditorDraft<Row>, "columnType">,
+  draft: Pick<FilterEditorDraftBase<Row>, "columnType">,
   value: FilterScalar,
 ): string {
   return filterValueKey(value, draft.columnType);
 }
 
 function everyOption<Row>(
-  draft: Pick<FilterEditorDraft<Row>, "columnType" | "options">,
+  draft: Pick<FilterEditorDraftBase<Row>, "columnType" | "options">,
 ): ReadonlyMap<string, FilterScalar> {
   return new Map(
     draft.options.map((option) => [keyOf(draft, option.value), option.value]),
   );
 }
 
+/** What `draft` holds on either arm, without the arm's own fields. */
+function baseOf<Row>(
+  draft: FilterEditorDraft<Row>,
+): FilterEditorDraftBase<Row> {
+  const { options, blanks, search, openedShape, columnType } = draft;
+  return { options, blanks, search, openedShape, columnType };
+}
+
+/**
+ * The checklist `base`'s opened filter shows: a checklist's own values, kept
+ * even when the other filters now hide them; anything else, every value
+ * checked, the blanks too when there are any.
+ */
+function openedValues<Row>(base: FilterEditorDraftBase<Row>): ValuesDraft<Row> {
+  const shape = base.openedShape;
+  if (shape.kind !== "values") {
+    return {
+      kind: "values",
+      ...base,
+      checked: everyOption(base),
+      includeBlanks: base.blanks > 0,
+    };
+  }
+  return {
+    kind: "values",
+    ...base,
+    checked: new Map(
+      shape.values
+        .filter((value) => !isEmptyCell(value))
+        .map((value) => [keyOf(base, value), value]),
+    ),
+    includeBlanks: shape.includeBlanks,
+  };
+}
+
+/** The conditions `base`'s opened filter holds, or none when it holds no conditions. */
+function openedConditions<Row>(
+  base: FilterEditorDraftBase<Row>,
+): ConditionsDraft<Row> {
+  const shape = base.openedShape;
+  return shape.kind === "conditions"
+    ? {
+        kind: "conditions",
+        ...base,
+        conditions: shape.conditions,
+        combinator: shape.combinator,
+      }
+    : { kind: "conditions", ...base, conditions: [], combinator: "and" };
+}
+
 /**
  * A draft showing `shape` over `values` — what an editor opens with. A
- * column with no filter, or one only a custom editor could show, opens with
- * every value checked; a checklist with its own values checked, kept even
- * when the other filters now hide them; conditions as they are.
+ * column filtered by conditions opens on them as they are. Anything else
+ * opens on the checklist: with no filter, or one only a custom editor could
+ * show, every value checked; a checklist with its own values checked, kept
+ * even when the other filters now hide them.
  */
 export function initialFilterEditorDraft<Row>(
   shape: ColumnFilterShape<Row>,
   values: ColumnValueOptions,
 ): FilterEditorDraft<Row> {
-  const draft: FilterEditorDraft<Row> = {
-    mode: "values",
+  const base: FilterEditorDraftBase<Row> = {
     options: values.options,
     blanks: values.blanks,
     search: "",
-    checked: everyOption(values),
-    includeBlanks: values.blanks > 0,
-    conditions: [],
-    combinator: "and",
+    openedShape: shape,
     columnType: values.columnType,
   };
-  switch (shape.kind) {
-    case "values":
-      return {
-        ...draft,
-        checked: new Map(
-          shape.values
-            .filter((value) => !isEmptyCell(value))
-            .map((value) => [keyOf(draft, value), value]),
-        ),
-        includeBlanks: shape.includeBlanks,
-      };
-    case "conditions":
-      return {
-        ...draft,
-        mode: "conditions",
-        conditions: shape.conditions,
-        combinator: shape.combinator,
-      };
-    case "none":
-    case "custom":
-      return draft;
-  }
+  return shape.kind === "conditions"
+    ? openedConditions(base)
+    : openedValues(base);
+}
+
+/**
+ * `draft` on its checklist: itself when it is there, otherwise the checklist
+ * the filter it opened on shows, its conditions dropped. What a value action
+ * starts from, and what a checklist draws over a draft on its conditions.
+ */
+export function toValuesDraft<Row>(
+  draft: FilterEditorDraft<Row>,
+): ValuesDraft<Row> {
+  return draft.kind === "values" ? draft : openedValues(baseOf(draft));
+}
+
+/**
+ * `draft` on its conditions: itself when it is there, otherwise the
+ * conditions the filter it opened on holds (none unless it was conditions),
+ * its checklist dropped. What `setConditions` starts from.
+ */
+export function toConditionsDraft<Row>(
+  draft: FilterEditorDraft<Row>,
+): ConditionsDraft<Row> {
+  return draft.kind === "conditions" ? draft : openedConditions(baseOf(draft));
 }
 
 /** The options the draft's search shows — those a select-all acts on. */
@@ -420,9 +493,7 @@ export function selectAllCoversBlanks<Row>(
  * checked, none is, or some are — blanks included while nothing is
  * searched.
  */
-export function selectAllState<Row>(
-  draft: FilterEditorDraft<Row>,
-): SelectAllState {
+export function selectAllState<Row>(draft: ValuesDraft<Row>): SelectAllState {
   const states = visibleFilterOptions(draft).map((option) =>
     draft.checked.has(keyOf(draft, option.value)),
   );
@@ -435,7 +506,21 @@ export function selectAllState<Row>(
   return states.some(Boolean) ? "mixed" : "unchecked";
 }
 
-function toggleAll<Row>(draft: FilterEditorDraft<Row>): FilterEditorDraft<Row> {
+function toggleValue<Row>(
+  draft: ValuesDraft<Row>,
+  value: FilterScalar,
+): ValuesDraft<Row> {
+  const key = keyOf(draft, value);
+  const checked = new Map(draft.checked);
+  if (checked.has(key)) {
+    checked.delete(key);
+  } else {
+    checked.set(key, value);
+  }
+  return { ...draft, checked };
+}
+
+function toggleAll<Row>(draft: ValuesDraft<Row>): ValuesDraft<Row> {
   const check = selectAllState(draft) !== "checked";
   const checked = new Map(draft.checked);
   for (const option of visibleFilterOptions(draft)) {
@@ -448,17 +533,33 @@ function toggleAll<Row>(draft: FilterEditorDraft<Row>): FilterEditorDraft<Row> {
   }
   return {
     ...draft,
-    mode: "values",
     checked,
     includeBlanks: selectAllCoversBlanks(draft) ? check : draft.includeBlanks,
   };
 }
 
+/** `draft` as no filter on its own arm, with no search. */
+function cleared<Row>(draft: FilterEditorDraft<Row>): FilterEditorDraft<Row> {
+  switch (draft.kind) {
+    case "values":
+      return {
+        ...draft,
+        search: "",
+        checked: everyOption(draft),
+        includeBlanks: draft.blanks > 0,
+      };
+    case "conditions":
+      return { ...draft, search: "", conditions: [] };
+  }
+}
+
 /**
  * The next draft after `action` — a plain reducer, so a renderer can hold
  * the draft in whatever state it has (`useReducer`, a signal, a store).
- * Changing a value or the blanks switches the draft to its checklist;
- * setting conditions switches it to them.
+ * Changing a value or the blanks puts the draft on its checklist; setting
+ * conditions puts it on its conditions. An action for the arm the draft
+ * is not on starts that arm as the filter the editor opened on shows it
+ * (`toValuesDraft`, `toConditionsDraft`), dropping what the other arm held.
  */
 export function filterEditorReducer<Row>(
   draft: FilterEditorDraft<Row>,
@@ -467,35 +568,22 @@ export function filterEditorReducer<Row>(
   switch (action.type) {
     case "search":
       return { ...draft, search: action.search };
-    case "toggleValue": {
-      const key = keyOf(draft, action.value);
-      const checked = new Map(draft.checked);
-      if (checked.has(key)) {
-        checked.delete(key);
-      } else {
-        checked.set(key, action.value);
-      }
-      return { ...draft, mode: "values", checked };
-    }
+    case "toggleValue":
+      return toggleValue(toValuesDraft(draft), action.value);
     case "toggleAll":
-      return toggleAll(draft);
+      return toggleAll(toValuesDraft(draft));
     case "setIncludeBlanks":
-      return { ...draft, mode: "values", includeBlanks: action.includeBlanks };
-    case "setConditions":
+      return { ...toValuesDraft(draft), includeBlanks: action.includeBlanks };
+    case "setConditions": {
+      const conditions = toConditionsDraft(draft);
       return {
-        ...draft,
-        mode: "conditions",
+        ...conditions,
         conditions: action.conditions,
-        combinator: action.combinator ?? draft.combinator,
+        combinator: action.combinator ?? conditions.combinator,
       };
+    }
     case "clear":
-      return {
-        ...draft,
-        search: "",
-        checked: everyOption(draft),
-        includeBlanks: draft.blanks > 0,
-        conditions: [],
-      };
+      return cleared(draft);
   }
 }
 
@@ -503,7 +591,7 @@ export function filterEditorReducer<Row>(
  * Whether the checklist keeps every row: every offered value checked, and
  * the blanks too when there are any.
  */
-function checksEverything<Row>(draft: FilterEditorDraft<Row>): boolean {
+function checksEverything<Row>(draft: ValuesDraft<Row>): boolean {
   return (
     draft.options.every((option) =>
       draft.checked.has(keyOf(draft, option.value)),
@@ -512,20 +600,10 @@ function checksEverything<Row>(draft: FilterEditorDraft<Row>): boolean {
   );
 }
 
-/** The entries `draft` stands for on `columnId` — none for "no filter". */
-function draftEntries<Row>(
-  draft: FilterEditorDraft<Row>,
+function valuesEntries<Row>(
+  draft: ValuesDraft<Row>,
   columnId: string,
 ): FilterState<Row> {
-  if (draft.mode === "conditions") {
-    const conditions = draft.conditions.map((condition) => ({
-      ...condition,
-      columnId,
-    }));
-    return conditions.length > 1
-      ? [{ kind: "group", combinator: draft.combinator, entries: conditions }]
-      : conditions;
-  }
   if (checksEverything(draft)) {
     return [];
   }
@@ -547,6 +625,32 @@ function draftEntries<Row>(
         },
       ]
     : [picked];
+}
+
+function conditionsEntries<Row>(
+  draft: ConditionsDraft<Row>,
+  columnId: string,
+): FilterState<Row> {
+  const conditions = draft.conditions.map((condition) => ({
+    ...condition,
+    columnId,
+  }));
+  return conditions.length > 1
+    ? [{ kind: "group", combinator: draft.combinator, entries: conditions }]
+    : conditions;
+}
+
+/** The entries `draft` stands for on `columnId` — none for "no filter". */
+function draftEntries<Row>(
+  draft: FilterEditorDraft<Row>,
+  columnId: string,
+): FilterState<Row> {
+  switch (draft.kind) {
+    case "values":
+      return valuesEntries(draft, columnId);
+    case "conditions":
+      return conditionsEntries(draft, columnId);
+  }
 }
 
 /**
@@ -574,11 +678,8 @@ export function draftToFilter<Row>(
   return [...kept.slice(0, first), ...replacement, ...kept.slice(first)];
 }
 
-/** Whether two drafts check the same values and treat the blanks alike. */
-function sameValues<Row>(
-  a: FilterEditorDraft<Row>,
-  b: FilterEditorDraft<Row>,
-): boolean {
+/** Whether two checklists check the same values and treat the blanks alike. */
+function sameValues<Row>(a: ValuesDraft<Row>, b: ValuesDraft<Row>): boolean {
   return (
     a.includeBlanks === b.includeBlanks &&
     a.checked.size === b.checked.size &&
@@ -609,8 +710,8 @@ function sameOperand(
  * `draftToFilter` writes them onto the column it is given.
  */
 function sameConditions<Row>(
-  a: FilterEditorDraft<Row>,
-  b: FilterEditorDraft<Row>,
+  a: ConditionsDraft<Row>,
+  b: ConditionsDraft<Row>,
 ): boolean {
   return (
     a.conditions.length === b.conditions.length &&
@@ -633,12 +734,13 @@ function sameConditions<Row>(
  * a value unchecked and checked again, or the same conditions typed again,
  * is no change; the search never is one.
  *
- * Only the half `draftToFilter` applies counts. A checklist changes when its
- * checked values or blanks differ from those it opened with, so one left as
- * it opened over conditions or a custom filter leaves that filter be.
- * Conditions change when they differ from those the draft opened with, and
- * always when it opened on a checklist, no filter or a custom one: setting
- * conditions there replaces it, none removing it.
+ * Only the arm `draft` is on counts. A checklist changes when its checked
+ * values or blanks differ from those `opened` shows (`toValuesDraft`), so
+ * one left as it opened over conditions or a custom filter leaves that
+ * filter be. Conditions change when they differ from those `opened` holds,
+ * and always when `opened` is on its checklist (it opened on a checklist,
+ * no filter or a custom one): setting conditions there replaces it, none
+ * removing it.
  *
  * `clear` over a custom filter leaves a draft equal to the one it opened
  * with, so this reads it as no change.
@@ -647,8 +749,10 @@ export function filterDraftChanged<Row>(
   opened: FilterEditorDraft<Row>,
   draft: FilterEditorDraft<Row>,
 ): boolean {
-  if (draft.mode === "values") {
-    return !sameValues(opened, draft);
+  switch (draft.kind) {
+    case "values":
+      return !sameValues(toValuesDraft(opened), draft);
+    case "conditions":
+      return opened.kind !== "conditions" || !sameConditions(opened, draft);
   }
-  return opened.mode !== "conditions" || !sameConditions(opened, draft);
 }

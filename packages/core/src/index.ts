@@ -275,9 +275,12 @@ export type {
   ColumnValueOption,
   ColumnValueOptions,
   ColumnValueQuery,
+  ConditionsDraft,
   FilterEditorAction,
   FilterEditorDraft,
+  FilterEditorDraftBase,
   SelectAllState,
+  ValuesDraft,
 } from "./util/filterEditor";
 export {
   columnValueOptions,
@@ -288,6 +291,8 @@ export {
   initialFilterEditorDraft,
   isColumnFiltered,
   selectAllState,
+  toConditionsDraft,
+  toValuesDraft,
   visibleFilterOptions,
 } from "./util/filterEditor";
 export type {
