@@ -184,7 +184,12 @@ export {
   resolveRowId,
 } from "./util/grid";
 export type { GridFocus, NavigationModifiers } from "./util/navigation";
-export { clampFocus, HEADER_ROW, nextFocusForKey } from "./util/navigation";
+export {
+  bodyFocus,
+  clampFocus,
+  headerFocus,
+  nextFocusForKey,
+} from "./util/navigation";
 export {
   applyColumnOrder,
   moveColumnBefore,
