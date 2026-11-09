@@ -60,14 +60,10 @@ handle.addEventListener("pointerdown", (event) => {
 
 ### Drag to reorder
 
-`startDragReorder(id, grabElement, press, { resolveTarget, onState, onDrop })` is the gesture behind every reorder in the grid — a header dragged among the others or into the group-by bar, a group-by chip dragged within it. Nothing is reported until the pointer has travelled 4 pixels in any direction, so a press that stays put remains a click; from then on every move asks `resolveTarget(clientX, clientY, id)` where a drop would land and reports `onState({ draggedId, dropTarget, ghostTransform })` — what to draw, with `ghostTransform` a CSS `transform` keeping the ghost under the pointer where it was picked up. Release over a target calls `onDrop(target, id)`; every ending reports `onState(NO_DRAG)`.
+`startDragReorder(id, grabElement, press, { resolveTarget, onState, onDrop })` is the gesture behind every reorder in the grid — a header dragged among the others or into the group-by bar, a group-by chip dragged within it. Nothing is reported until the pointer has travelled 4 pixels in any direction, so a press that stays put remains a click; from then on every move asks `resolveTarget(clientX, clientY, id)` where a drop would land and reports `onState({ kind: "dragging", draggedId, dropTarget, ghostTransform })` — what to draw, with `ghostTransform` a CSS `transform` keeping the ghost under the pointer where it was picked up. Release over a target calls `onDrop(target, id)`; every ending, release or cancel, reports `onState(NO_DRAG)`, the `{ kind: "idle" }` state, which carries none of those fields.
 
 ```ts
-import {
-  NO_DRAG,
-  resolveColumnDropTarget,
-  startDragReorder,
-} from "@gridkitjs/dom";
+import { resolveColumnDropTarget, startDragReorder } from "@gridkitjs/dom";
 
 header.addEventListener("pointerdown", (event) => {
   startDragReorder(columnId, header, event, {
@@ -77,7 +73,8 @@ header.addEventListener("pointerdown", (event) => {
         groupBy,
         groupByDraggableIds,
       }),
-    onState: (state) => draw(state),
+    onState: (state) =>
+      state.kind === "dragging" ? drawDrag(state) : clearDrag(),
     onDrop: (target, id) =>
       target.kind === "group-by"
         ? controller.moveGroupBy(id, target.beforeColumnId)
@@ -109,7 +106,8 @@ header.addEventListener("pointerdown", (event) => {
   gesture = new AbortController();
   startDragReorder(columnId, header, event, {
     resolveTarget,
-    onState: (state) => draw(state),
+    onState: (state) =>
+      state.kind === "dragging" ? drawDrag(state) : clearDrag(),
     onDrop,
     signal: gesture.signal,
   });
@@ -244,7 +242,7 @@ A live region speaks only when its text changes, so `announce` makes a repeat of
 | `BodyRowTarget`               | `{ rowIndex, columnId }`, what `bodyRowFrom` returns. `columnId` is `null` when the event was in no cell.                                                                                                          |
 | `PointerPress`                | The part of a `pointerdown` a gesture reads: `pointerId`, `clientX`, `clientY`, `button`, `isPrimary` and `preventDefault()`. A native `PointerEvent` fits, and so does React's synthetic one.                     |
 | `ColumnResizeGestureHandlers` | `{ onMove, onEnd, onCancel, signal? }`, the last argument of `startColumnResizeGesture`, described under [column resize](#column-resize).                                                                          |
-| `DragReorderState<Target>`    | `{ draggedId, dropTarget, ghostTransform }`, what `onState` reports while a reorder drag is open. `NO_DRAG` is the state with all three `null`.                                                                    |
+| `DragReorderState<Target>`    | What `onState` reports: `{ kind: "idle" }` while nothing is dragged (`NO_DRAG`), or `{ kind: "dragging", draggedId, dropTarget, ghostTransform }` once a press has become a drag.                                  |
 | `DragReorderHandlers<Target>` | `{ resolveTarget, onState, onDrop, signal? }`, the last argument of `startDragReorder`.                                                                                                                            |
 | `ColumnDropTarget`            | Where a dragged header would land: `{ kind: "column-order", beforeId }` among the headers (`beforeId` is `null` for the end), or a `GroupByDropTarget`.                                                            |
 | `GroupByDropTarget`           | `{ kind: "group-by", beforeColumnId }`: a drop into the group-by bar, in front of `beforeColumnId`, or appended when it is `null`.                                                                                 |

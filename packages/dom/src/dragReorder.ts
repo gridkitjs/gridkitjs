@@ -19,22 +19,25 @@ type DragPhase<Target> =
   | { readonly kind: "pressed" }
   | { readonly kind: "dragging"; readonly target: Target | null };
 
-/** What a renderer draws while a reorder drag is open. */
-export interface DragReorderState<Target> {
-  /** The item being dragged, once the press has become a drag. */
-  readonly draggedId: string | null;
-  /** Where it would land if released now, `null` for nowhere valid. */
-  readonly dropTarget: Target | null;
-  /** Where the element trailing the pointer sits, as a CSS `transform`. */
-  readonly ghostTransform: string | null;
-}
+/**
+ * What a renderer draws for a reorder gesture: nothing while `idle`, which
+ * covers a press still short of the drag threshold, then while `dragging` the
+ * dragged item, where it would land and the ghost trailing the pointer.
+ */
+export type DragReorderState<Target> =
+  | { readonly kind: "idle" }
+  | {
+      readonly kind: "dragging";
+      /** The item being dragged. */
+      readonly draggedId: string;
+      /** Where it would land if released now, `null` for nowhere valid. */
+      readonly dropTarget: Target | null;
+      /** Where the element trailing the pointer sits, as a CSS `transform`. */
+      readonly ghostTransform: string;
+    };
 
 /** The state while nothing is dragged — the one a drag reports when it ends. */
-export const NO_DRAG: DragReorderState<never> = {
-  draggedId: null,
-  dropTarget: null,
-  ghostTransform: null,
-};
+export const NO_DRAG: DragReorderState<never> = { kind: "idle" };
 
 export interface DragReorderHandlers<Target> {
   /**
@@ -109,6 +112,7 @@ export function startDragReorder<Target>(
           target: handlers.resolveTarget(clientX, clientY, id),
         };
         handlers.onState({
+          kind: "dragging",
           draggedId: id,
           dropTarget: phase.target,
           ghostTransform: `translate(${String(clientX - grabX)}px, ${String(clientY)}px)`,
