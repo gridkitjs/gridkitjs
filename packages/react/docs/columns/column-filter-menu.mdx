@@ -103,15 +103,21 @@ OK, or <Kbd>Enter</Kbd>, applies the conditions in place of every entry about th
 
 ```ts
 // "Score" between 10 and 25
-[{ columnId: "score", operator: "between", value: [10, 25] }];
+[{ kind: "operator", columnId: "score", operator: "between", value: [10, 25] }];
 
 // "Name" contains "Ch" or starts with "Al"
 [
   {
+    kind: "group",
     combinator: "or",
     entries: [
-      { columnId: "name", operator: "contains", value: "Ch" },
-      { columnId: "name", operator: "startsWith", value: "Al" },
+      { kind: "operator", columnId: "name", operator: "contains", value: "Ch" },
+      {
+        kind: "operator",
+        columnId: "name",
+        operator: "startsWith",
+        value: "Al",
+      },
     ],
   },
 ];
@@ -149,15 +155,28 @@ OK, or <Kbd>Enter</Kbd>, applies the checked values in place of every entry abou
 
 ```ts
 // "Name": Alice and Bravo checked
-[{ columnId: "name", operator: "in", value: ["Alice", "Bravo"] }];
+[
+  {
+    kind: "operator",
+    columnId: "name",
+    operator: "in",
+    value: ["Alice", "Bravo"],
+  },
+];
 
 // "Joined": one day and the blanks checked
 [
   {
+    kind: "group",
     combinator: "or",
     entries: [
-      { columnId: "joined", operator: "in", value: [new Date(2024, 4, 20)] },
-      { columnId: "joined", operator: "isEmpty" },
+      {
+        kind: "operator",
+        columnId: "joined",
+        operator: "in",
+        value: [new Date(2024, 4, 20)],
+      },
+      { kind: "operator", columnId: "joined", operator: "isEmpty" },
     ],
   },
 ];
