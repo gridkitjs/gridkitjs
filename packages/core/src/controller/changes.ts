@@ -1,6 +1,7 @@
 import type {
   FilterEntry,
   FilterState,
+  GroupExpansionState,
   OperatorFilterEntry,
   PaginationState,
   SortDirection,
@@ -78,6 +79,14 @@ export function sameItems<Item>(
     previous.length === next.length &&
     previous.every((item, index) => item === next[index])
   );
+}
+
+/** Whether two expansions have the same mode and the same exceptions in the same order. */
+export function sameGroupExpansion(
+  previous: GroupExpansionState,
+  next: GroupExpansionState,
+): boolean {
+  return previous.mode === next.mode && sameItems(previous.except, next.except);
 }
 
 export function samePagination(

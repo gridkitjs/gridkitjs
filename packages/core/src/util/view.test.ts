@@ -8,7 +8,7 @@ import type {
   ResolvedRow,
 } from "../types";
 import { computeAggregates, withGroupAggregates } from "./aggregation";
-import { groupRows } from "./grouping";
+import { ALL_EXPANDED, groupRows } from "./grouping";
 import { resolveDataColumns } from "./ordering";
 import { paginateRows } from "./paging";
 import { resolveShownRows } from "./rows";
@@ -41,7 +41,7 @@ const emptyState: GridViewState<SampleRow> = {
   columnSort: [],
   filter: [],
   groupBy: [],
-  groupExpansion: [],
+  groupExpansion: ALL_EXPANDED,
   pagination: { pageIndex: 0, pageSize: 25 },
 };
 
@@ -119,7 +119,7 @@ describe("resolveGridView", () => {
     );
     const groupBy = [{ columnId: "Region" }];
     const aggregated = withGroupAggregates(
-      groupRows(shown, groupBy, [], dataColumns),
+      groupRows(shown, groupBy, ALL_EXPANDED, dataColumns),
       shown,
       groupBy,
       amountTotal,

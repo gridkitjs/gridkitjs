@@ -8,7 +8,7 @@ import type {
   ResolvedRow,
 } from "../types";
 import { withGroupAggregates } from "./aggregation";
-import { groupRowId, groupRows } from "./grouping";
+import { ALL_EXPANDED, groupRowId, groupRows } from "./grouping";
 import { paginateRows } from "./paging";
 
 interface SampleRow {
@@ -93,7 +93,7 @@ describe("paginateRows", () => {
 
     test("never splits a group across a page boundary", () => {
       const groupBy: GroupByState = [{ columnId: "Region" }];
-      const displayRows = groupRows(rows, groupBy, [], columns);
+      const displayRows = groupRows(rows, groupBy, ALL_EXPANDED, columns);
 
       // One unit per top-level group (East, West). pageSize 1 puts East's
       // header+2 rows entirely on page 0 and West's header+3 rows entirely
@@ -155,7 +155,7 @@ describe("paginateRows", () => {
         { columnId: "Region" },
         { columnId: "Status" },
       ];
-      const displayRows = groupRows(rows, groupBy, [], columns);
+      const displayRows = groupRows(rows, groupBy, ALL_EXPANDED, columns);
 
       // East: header + 2 nested Status headers + 2 rows = 5 entries.
       const page0 = paginateRows(displayRows, { pageIndex: 0, pageSize: 1 });
@@ -185,7 +185,7 @@ describe("paginateRows", () => {
       const specs: AggregateState<SampleRow> = [
         { columnId: "Id", fn: "count" },
       ];
-      const displayRows = groupRows(rows, groupBy, [], columns);
+      const displayRows = groupRows(rows, groupBy, ALL_EXPANDED, columns);
       const aggregatedRows = withGroupAggregates(
         displayRows,
         rows,
@@ -326,7 +326,7 @@ describe('paginateRows with unit "row"', () => {
   }
 
   test("counts data rows, repeating the header of a group continued from the page before", () => {
-    const displayRows = groupRows(rows, byRegion, [], columns);
+    const displayRows = groupRows(rows, byRegion, ALL_EXPANDED, columns);
 
     expect(page(displayRows, 0, 4).pageCount).toBe(2);
     expect(labels(page(displayRows, 0, 4).rows)).toEqual([
@@ -341,7 +341,7 @@ describe('paginateRows with unit "row"', () => {
   });
 
   test("a repeated header is the same group row, renumbered to the top of its page", () => {
-    const displayRows = groupRows(rows, byRegion, [], columns);
+    const displayRows = groupRows(rows, byRegion, ALL_EXPANDED, columns);
     const [first] = page(displayRows, 1, 4).rows;
     const original = displayRows.find(
       (entry) => isGroup(entry) && entry.value === "West",
@@ -354,7 +354,12 @@ describe('paginateRows with unit "row"', () => {
   });
 
   test("repeats every enclosing header of nested groups, outermost first", () => {
-    const displayRows = groupRows(rows, byRegionAndStatus, [], columns);
+    const displayRows = groupRows(
+      rows,
+      byRegionAndStatus,
+      ALL_EXPANDED,
+      columns,
+    );
 
     expect(page(displayRows, 0, 2).pageCount).toBe(3);
     expect(labels(page(displayRows, 0, 2).rows)).toEqual([
@@ -384,7 +389,10 @@ describe('paginateRows with unit "row"', () => {
     const displayRows = groupRows(
       rows,
       byRegionAndStatus,
-      [groupRowId(["East", "Closed"]), groupRowId(["West"])],
+      {
+        mode: "allExpanded",
+        except: [groupRowId(["East", "Closed"]), groupRowId(["West"])],
+      },
       columns,
     );
 
@@ -406,7 +414,7 @@ describe('paginateRows with unit "row"', () => {
   test("puts a group's summary row on the page holding its last row", () => {
     const specs: AggregateState<OrderRow> = [{ columnId: "Id", fn: "count" }];
     const displayRows = withGroupAggregates(
-      groupRows(rows, byRegionAndStatus, [], columns),
+      groupRows(rows, byRegionAndStatus, ALL_EXPANDED, columns),
       rows,
       byRegionAndStatus,
       specs,
@@ -446,7 +454,7 @@ describe('paginateRows with unit "row"', () => {
   });
 
   test("clamps a stale pageIndex to the last page, headers included", () => {
-    const displayRows = groupRows(rows, byRegion, [], columns);
+    const displayRows = groupRows(rows, byRegion, ALL_EXPANDED, columns);
     const result = page(displayRows, 99, 4);
 
     expect(result.pageIndex).toBe(1);

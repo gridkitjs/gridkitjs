@@ -481,16 +481,21 @@ export interface GroupByEvent {
 }
 
 /**
- * Group keys collapsed by the user — holding only the exceptions, the same
- * way ColumnSizingState holds only resized widths. A key absent from this
- * set is expanded; there is no separate "collapsed by default" concept.
+ * Which groups are expanded, as a policy with exceptions: under
+ * `allExpanded` every group is expanded but those whose `groupId` is in
+ * `except`; under `allCollapsed` every group is collapsed but those. The
+ * mode covers every group, including one hidden under a collapsed ancestor
+ * and one that appears only after the state was set, so `except` holds just
+ * the groups toggled against it.
  */
-export type GroupExpansionState = readonly string[];
+export type GroupExpansionState =
+  | { readonly mode: "allExpanded"; readonly except: readonly string[] }
+  | { readonly mode: "allCollapsed"; readonly except: readonly string[] };
 
 /**
  * Reports a user expansion change. `groupId` is the group toggled, or `null`
- * for expandAllGroups/collapseAllGroups, which touch every group in one call
- * rather than one at a time.
+ * for expandAllGroups/collapseAllGroups and setGroupExpansion, which touch
+ * every group in one call rather than one at a time.
  */
 export interface GroupExpansionEvent {
   readonly groupId: string | null;
@@ -507,7 +512,7 @@ export interface GroupExpansionEvent {
  */
 export interface ResolvedGroupRow {
   readonly kind: "group";
-  /** Stable id for this node: this plan's join of `path`, used as the React key and the GroupExpansionState entry. Opaque — build it with `groupRowId`, never construct one by hand. */
+  /** Stable id for this node: this plan's join of `path`, used as the React key and in GroupExpansionState's `except`. Opaque — build it with `groupRowId`, never construct one by hand. */
   readonly groupId: string;
   /** Nesting depth, 0 for a top-level group. */
   readonly level: number;

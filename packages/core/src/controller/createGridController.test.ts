@@ -61,7 +61,7 @@ describe("createGridController: state and view", () => {
     expect(controller.getState()).toMatchObject({
       columnSort: [{ columnId: "Amount", direction: "desc" }],
       groupBy: [{ columnId: "Region" }],
-      groupExpansion: [],
+      groupExpansion: { mode: "allExpanded", except: [] },
       pagination: { pageIndex: 1, pageSize: 2 },
     });
   });
@@ -344,14 +344,38 @@ describe("createGridController: grouping", () => {
     controller.expandAllGroups();
     controller.expandAllGroups();
     controller.collapseAllGroups();
-    controller.setGroupExpansion([]);
+    controller.setGroupExpansion({ mode: "allCollapsed", except: [] });
+    controller.setGroupExpansion({ mode: "allExpanded", except: [] });
 
     expect(onGroupExpansionChange.mock.calls.map(([event]) => event)).toEqual([
-      { groupId: first, expansion: [first] },
-      { groupId: null, expansion: [] },
-      { groupId: null, expansion: groupIds },
-      { groupId: null, expansion: [] },
+      { groupId: first, expansion: { mode: "allExpanded", except: [first] } },
+      { groupId: null, expansion: { mode: "allExpanded", except: [] } },
+      { groupId: null, expansion: { mode: "allCollapsed", except: [] } },
+      { groupId: null, expansion: { mode: "allExpanded", except: [] } },
     ]);
+  });
+
+  test("collapseAllGroups also collapses groups that appear after it", () => {
+    const options: GridControllerOptions<SampleRow> = {
+      dataSource: data.slice(0, 2),
+      getRowId: (row) => String(row.Id),
+      columns,
+      defaultGroupBy: [{ columnId: "Region" }],
+    };
+    const controller = createGridController(options);
+
+    controller.collapseAllGroups();
+    controller.setOptions({ ...options, dataSource: data });
+
+    const view = controller.getView();
+    expect(
+      view.displayRows.flatMap((entry) =>
+        "kind" in entry && entry.kind === "group"
+          ? [`${String(entry.value)}:${String(entry.expanded)}`]
+          : [],
+      ),
+    ).toEqual(["East:false", "North:false", "West:false"]);
+    expect(view.displayDataRows).toEqual([]);
   });
 });
 

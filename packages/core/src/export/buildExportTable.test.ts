@@ -379,7 +379,10 @@ describe("buildExportTable", () => {
     test("export every group expanded, whatever its state on screen", () => {
       const source = sourceFor({
         defaultGroupBy: [{ columnId: "Region" }],
-        defaultGroupExpansion: [groupRowId(["West"])],
+        defaultGroupExpansion: {
+          mode: "allExpanded",
+          except: [groupRowId(["West"])],
+        },
       });
       // Check the precondition: the screen hides the collapsed group's rows.
       expect(source.view.displayDataRows.map((entry) => entry.rowId)).toEqual([
@@ -484,7 +487,10 @@ describe("buildExportTable", () => {
       const table = buildExportTable(
         sourceFor({
           defaultGroupBy: [{ columnId: "Region" }],
-          defaultGroupExpansion: [groupRowId(["West"])],
+          defaultGroupExpansion: {
+            mode: "allExpanded",
+            except: [groupRowId(["West"])],
+          },
           aggregates,
         }),
       );

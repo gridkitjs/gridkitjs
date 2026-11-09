@@ -114,6 +114,10 @@ export interface GridController<Row, Node = string> {
    * filter or grouping that would otherwise send it back to the first page.
    * A slice that throws stops the restore there, after the slices before it
    * are shown, reported and announced as above.
+   *
+   * A `groupExpansion` saved as a bare list of group ids, as GridKit saved
+   * it before the slice carried a mode, restores as `allExpanded` with those
+   * ids as the exceptions.
    */
   readonly restoreState: (
     saved: Partial<GridState<Row>> | Partial<SerializedGridState<Row>>,
@@ -265,13 +269,19 @@ export interface GridController<Row, Node = string> {
   ) => void;
 
   /**
-   * Replaces the collapsed groups. Reported with `groupId: null`, as a change
-   * to every group at once; the same ids in the same order report nothing.
+   * Replaces which groups are expanded. Reported with `groupId: null`, as a
+   * change to every group at once; the same mode with the same exceptions
+   * in the same order reports nothing.
    */
   readonly setGroupExpansion: (expansion: GroupExpansionState) => void;
+  /** Expands a collapsed group or collapses an expanded one — see `toggleGroupExpansion`. */
   readonly toggleGroupExpansion: (groupId: string) => void;
+  /** Expands every group, including those that appear later — see `expandAllGroups`. */
   readonly expandAllGroups: () => void;
-  /** Collapses every group currently shown — see `collapseAllGroups`. */
+  /**
+   * Collapses every group, including one under a collapsed ancestor and
+   * those that appear later — see `collapseAllGroups`.
+   */
   readonly collapseAllGroups: () => void;
 
   /**

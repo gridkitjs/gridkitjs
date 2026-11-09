@@ -7,7 +7,7 @@ import type {
   ResolvedColumn,
 } from "../types";
 import { computeAggregates, withGroupAggregates } from "./aggregation";
-import { groupRows } from "./grouping";
+import { ALL_EXPANDED, groupRowId, groupRows } from "./grouping";
 
 interface SampleRow {
   Id: number;
@@ -168,7 +168,7 @@ describe("withGroupAggregates", () => {
   ];
 
   test("returns displayRows unchanged, by reference, for empty specs", () => {
-    const displayRows = groupRows(rows, groupBy, [], columns);
+    const displayRows = groupRows(rows, groupBy, ALL_EXPANDED, columns);
     expect(withGroupAggregates(displayRows, rows, groupBy, [], columns)).toBe(
       displayRows,
     );
@@ -178,7 +178,7 @@ describe("withGroupAggregates", () => {
     const specs: AggregateState<SampleRow> = [
       { columnId: "Amount", fn: "sum" },
     ];
-    const displayRows = groupRows(rows, groupBy, [], columns);
+    const displayRows = groupRows(rows, groupBy, ALL_EXPANDED, columns);
     const result = withGroupAggregates(
       displayRows,
       rows,
@@ -201,7 +201,12 @@ describe("withGroupAggregates", () => {
     const specs: AggregateState<SampleRow> = [
       { columnId: "Amount", fn: "sum" },
     ];
-    const displayRows = groupRows(rows, groupBy, ['["East"]'], columns);
+    const displayRows = groupRows(
+      rows,
+      groupBy,
+      { mode: "allExpanded", except: [groupRowId(["East"])] },
+      columns,
+    );
     const result = withGroupAggregates(
       displayRows,
       rows,
@@ -255,7 +260,12 @@ describe("withGroupAggregates", () => {
         fn: (scoped) => new Set(scoped.map((r) => r.Tag)).size,
       },
     ];
-    const displayRows = groupRows(nestedRows, nestedGroupBy, [], nestedColumns);
+    const displayRows = groupRows(
+      nestedRows,
+      nestedGroupBy,
+      ALL_EXPANDED,
+      nestedColumns,
+    );
     const result = withGroupAggregates(
       displayRows,
       nestedRows,
@@ -278,7 +288,7 @@ describe("withGroupAggregates", () => {
       const specs: AggregateState<SampleRow> = [
         { columnId: "Amount", fn: "sum" },
       ];
-      const displayRows = groupRows(rows, groupBy, [], columns);
+      const displayRows = groupRows(rows, groupBy, ALL_EXPANDED, columns);
       const result = withGroupAggregates(
         displayRows,
         rows,
@@ -297,7 +307,7 @@ describe("withGroupAggregates", () => {
       const specs: AggregateState<SampleRow> = [
         { columnId: "Amount", fn: "sum" },
       ];
-      const displayRows = groupRows(rows, groupBy, [], columns);
+      const displayRows = groupRows(rows, groupBy, ALL_EXPANDED, columns);
       const result = withGroupAggregates(
         displayRows,
         rows,
@@ -347,7 +357,12 @@ describe("withGroupAggregates", () => {
       const specs: AggregateState<SampleRow> = [
         { columnId: "Amount", fn: "sum" },
       ];
-      const displayRows = groupRows(rows, groupBy, ['["East"]'], columns);
+      const displayRows = groupRows(
+        rows,
+        groupBy,
+        { mode: "allExpanded", except: [groupRowId(["East"])] },
+        columns,
+      );
       const result = withGroupAggregates(
         displayRows,
         rows,
@@ -404,7 +419,7 @@ describe("withGroupAggregates", () => {
       const displayRows = groupRows(
         nestedRows,
         nestedGroupBy,
-        [],
+        ALL_EXPANDED,
         nestedColumns,
       );
       const result = withGroupAggregates(
@@ -446,7 +461,7 @@ describe("withGroupAggregates", () => {
       const specs: AggregateState<SampleRow> = [
         { columnId: "Amount", fn: "sum" },
       ];
-      const displayRows = groupRows(rows, groupBy, [], columns);
+      const displayRows = groupRows(rows, groupBy, ALL_EXPANDED, columns);
       const result = withGroupAggregates(
         displayRows,
         rows,

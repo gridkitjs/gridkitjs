@@ -8,15 +8,17 @@ import type {
   ResolvedRow,
 } from "../types";
 import {
+  ALL_COLLAPSED,
+  ALL_EXPANDED,
   collapseAllGroups,
   expandAllGroups,
   groupRowId,
   groupRows,
+  isGroupExpanded,
   moveGroupByBefore,
   movesGroupBy,
   toggleGroupExpansion,
 } from "./grouping";
-import { withGroupAggregates } from "./aggregation";
 
 describe("groupRowId", () => {
   test("does not collide when a value itself contains characters a naive delimiter join might use", () => {
@@ -78,18 +80,18 @@ function isGroup<Row>(
 
 describe("groupRows", () => {
   test("returns rows unchanged for an empty groupBy", () => {
-    expect(groupRows(rows, [], [], columns)).toBe(rows);
+    expect(groupRows(rows, [], ALL_EXPANDED, columns)).toBe(rows);
   });
 
   test("returns rows unchanged for a groupBy naming only a removed column", () => {
     const groupBy: GroupByState = [{ columnId: "Removed" }];
 
-    expect(groupRows(rows, groupBy, [], columns)).toBe(rows);
+    expect(groupRows(rows, groupBy, ALL_EXPANDED, columns)).toBe(rows);
   });
 
   test("groups by a single column, ordering groups and preserving row order within each", () => {
     const groupBy: GroupByState = [{ columnId: "Region" }];
-    const result = groupRows(rows, groupBy, [], columns);
+    const result = groupRows(rows, groupBy, ALL_EXPANDED, columns);
 
     const groups = result.filter(isGroup);
     expect(groups.map((entry) => entry.value)).toEqual(["East", "West"]);
@@ -106,7 +108,7 @@ describe("groupRows", () => {
 
   test("orders group values by direction", () => {
     const groupBy: GroupByState = [{ columnId: "Region", direction: "desc" }];
-    const result = groupRows(rows, groupBy, [], columns);
+    const result = groupRows(rows, groupBy, ALL_EXPANDED, columns);
 
     expect(result.filter(isGroup).map((entry) => entry.value)).toEqual([
       "West",
@@ -119,7 +121,7 @@ describe("groupRows", () => {
       { columnId: "Region" },
       { columnId: "Status" },
     ];
-    const result = groupRows(rows, groupBy, [], columns);
+    const result = groupRows(rows, groupBy, ALL_EXPANDED, columns);
     const groups = result.filter(isGroup);
 
     expect(
@@ -148,7 +150,10 @@ describe("groupRows", () => {
       { columnId: "Region" },
       { columnId: "Status" },
     ];
-    const expansion: GroupExpansionState = [groupRowId(["East"])];
+    const expansion: GroupExpansionState = {
+      mode: "allExpanded",
+      except: [groupRowId(["East"])],
+    };
     const result = groupRows(rows, groupBy, expansion, columns);
 
     const eastHeader = result.find(
@@ -176,7 +181,7 @@ describe("groupRows", () => {
       { columnId: "Region" },
       { columnId: "Status" },
     ];
-    const result = groupRows(rows, groupBy, [], columns);
+    const result = groupRows(rows, groupBy, ALL_EXPANDED, columns);
 
     expect(result.map((entry) => entry.rowIndex)).toEqual(
       result.map((_entry, index) => index),
@@ -187,61 +192,127 @@ describe("groupRows", () => {
   });
 });
 
-describe("toggleGroupExpansion", () => {
-  test("collapses an expanded group by adding its id", () => {
-    expect(toggleGroupExpansion([], "g1")).toEqual(["g1"]);
+describe("isGroupExpanded", () => {
+  test("under allExpanded, every group but the exceptions is expanded", () => {
+    const expansion: GroupExpansionState = {
+      mode: "allExpanded",
+      except: ["g1"],
+    };
+
+    expect(isGroupExpanded(expansion, "g1")).toBe(false);
+    expect(isGroupExpanded(expansion, "g2")).toBe(true);
   });
 
-  test("expands a collapsed group by removing its id", () => {
-    expect(toggleGroupExpansion(["g1", "g2"], "g1")).toEqual(["g2"]);
+  test("under allCollapsed, only the exceptions are expanded", () => {
+    const expansion: GroupExpansionState = {
+      mode: "allCollapsed",
+      except: ["g1"],
+    };
+
+    expect(isGroupExpanded(expansion, "g1")).toBe(true);
+    expect(isGroupExpanded(expansion, "g2")).toBe(false);
   });
 });
 
+describe("toggleGroupExpansion", () => {
+  test.each(["allExpanded", "allCollapsed"] as const)(
+    "under %s, adds a group to the exceptions, then takes it out",
+    (mode) => {
+      const toggled = toggleGroupExpansion({ mode, except: ["g2"] }, "g1");
+
+      expect(toggled).toEqual({ mode, except: ["g2", "g1"] });
+      expect(toggleGroupExpansion(toggled, "g1")).toEqual({
+        mode,
+        except: ["g2"],
+      });
+    },
+  );
+
+  test.each(["allExpanded", "allCollapsed"] as const)(
+    "under %s, flips whether the group shows expanded",
+    (mode) => {
+      const before: GroupExpansionState = { mode, except: [] };
+      const after = toggleGroupExpansion(before, "g1");
+
+      expect(isGroupExpanded(after, "g1")).toBe(!isGroupExpanded(before, "g1"));
+    },
+  );
+});
+
 describe("expandAllGroups", () => {
-  test("reduces expansion to empty", () => {
-    expect(expandAllGroups(["g1", "g2"])).toEqual([]);
+  test("expands every group, dropping the exceptions", () => {
+    expect(
+      expandAllGroups({ mode: "allCollapsed", except: ["g1", "g2"] }),
+    ).toBe(ALL_EXPANDED);
+    expect(expandAllGroups({ mode: "allExpanded", except: ["g1"] })).toBe(
+      ALL_EXPANDED,
+    );
   });
 
-  test("returns the same reference when already empty", () => {
-    const expansion: GroupExpansionState = [];
+  test("returns the same reference when every group is already expanded", () => {
+    const expansion: GroupExpansionState = { mode: "allExpanded", except: [] };
+
     expect(expandAllGroups(expansion)).toBe(expansion);
   });
 });
 
 describe("collapseAllGroups", () => {
-  test("collects every group id present in the given display rows", () => {
-    const groupBy: GroupByState = [
-      { columnId: "Region" },
-      { columnId: "Status" },
-    ];
-    const displayRows = groupRows(rows, groupBy, [], columns);
+  const groupBy: GroupByState = [
+    { columnId: "Region" },
+    { columnId: "Status" },
+  ];
 
-    expect(new Set(collapseAllGroups(displayRows))).toEqual(
-      new Set([
-        groupRowId(["East"]),
-        groupRowId(["East", "Closed"]),
-        groupRowId(["East", "Open"]),
-        groupRowId(["West"]),
-        groupRowId(["West", "Closed"]),
-        groupRowId(["West", "Open"]),
-      ]),
-    );
+  function headers(
+    displayRows: readonly DisplayRow<SampleRow>[],
+  ): readonly string[] {
+    return displayRows
+      .filter(isGroup)
+      .map((entry) => `${entry.groupId}:${String(entry.expanded)}`);
+  }
+
+  test("collapses every group, dropping the exceptions", () => {
+    expect(
+      collapseAllGroups({ mode: "allExpanded", except: ["g1", "g2"] }),
+    ).toBe(ALL_COLLAPSED);
   });
 
-  test("skips summary rows, which share their group's id", () => {
-    const groupBy: GroupByState = [{ columnId: "Region" }];
-    const displayRows = withGroupAggregates(
-      groupRows(rows, groupBy, [], columns),
-      rows,
-      groupBy,
-      [{ columnId: "Id", fn: "count" }],
-      columns,
-      "row",
-    );
+  test("returns the same reference when every group is already collapsed", () => {
+    const expansion: GroupExpansionState = {
+      mode: "allCollapsed",
+      except: [],
+    };
 
-    expect(collapseAllGroups(displayRows)).toEqual([
-      groupRowId(["East"]),
-      groupRowId(["West"]),
+    expect(collapseAllGroups(expansion)).toBe(expansion);
+  });
+
+  test("collapses a nested group hidden under a collapsed parent", () => {
+    const parentCollapsed: GroupExpansionState = {
+      mode: "allExpanded",
+      except: [groupRowId(["East"])],
+    };
+
+    const collapsed = collapseAllGroups(parentCollapsed);
+    const reopened = toggleGroupExpansion(collapsed, groupRowId(["East"]));
+
+    expect(headers(groupRows(rows, groupBy, reopened, columns))).toEqual([
+      `${groupRowId(["East"])}:true`,
+      `${groupRowId(["East", "Closed"])}:false`,
+      `${groupRowId(["East", "Open"])}:false`,
+      `${groupRowId(["West"])}:false`,
+    ]);
+  });
+
+  test("collapses a group that appears after the call", () => {
+    const byRegion: GroupByState = [{ columnId: "Region" }];
+    const collapsed = collapseAllGroups(ALL_EXPANDED);
+    const north = resolvedRow(5, { Id: 6, Region: "North", Status: "Open" });
+
+    expect(
+      headers(groupRows([...rows, north], byRegion, collapsed, columns)),
+    ).toEqual([
+      `${groupRowId(["East"])}:false`,
+      `${groupRowId(["North"])}:false`,
+      `${groupRowId(["West"])}:false`,
     ]);
   });
 });

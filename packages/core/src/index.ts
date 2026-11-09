@@ -234,10 +234,13 @@ export {
   setColumnFilter,
 } from "./util/filtering";
 export {
+  ALL_COLLAPSED,
+  ALL_EXPANDED,
   collapseAllGroups,
   expandAllGroups,
   groupRowId,
   groupRows,
+  isGroupExpanded,
   moveGroupByBefore,
   movesGroupBy,
   toggleGroupExpansion,
