@@ -8,6 +8,7 @@ import { mountGrid } from "./support/mountGrid";
 import PrintGrid from "./support/PrintGrid";
 import PrintHarness from "./support/PrintHarness";
 import type { RecordedPrint } from "./support/printRecorder";
+import { trackWindowListeners } from "./support/windowListeners";
 
 /** Every print the harness saw open, in order. */
 async function printsOf(root: MountResult): Promise<RecordedPrint[]> {
@@ -18,51 +19,6 @@ async function printsOf(root: MountResult): Promise<RecordedPrint[]> {
 /** The print frame, which `printDocument` puts straight into `document.body`. */
 function printFrames(page: Page) {
   return page.locator("body > iframe");
-}
-
-interface TrackedWindow {
-  trackedReturnListeners: Set<unknown>;
-}
-
-/**
- * Starts tracking the `pointerdown` and `keydown` listeners added to
- * `window` from now on, and returns a reader for how many are still
- * attached. An open print listens there for the user coming back to the
- * page, so a count left above zero once it has settled is a print that
- * never cleaned up.
- */
-async function trackReturnListeners(
-  page: Page,
-): Promise<() => Promise<number>> {
-  await page.evaluate(() => {
-    const types = new Set(["pointerdown", "keydown"]);
-    const tracked = new Set<unknown>();
-    const add: EventTarget["addEventListener"] =
-      window.addEventListener.bind(window);
-    const remove: EventTarget["removeEventListener"] =
-      window.removeEventListener.bind(window);
-    Object.assign(window, {
-      trackedReturnListeners: tracked,
-      addEventListener(...args: Parameters<EventTarget["addEventListener"]>) {
-        if (types.has(args[0])) {
-          tracked.add(args[1]);
-        }
-        add(...args);
-      },
-      removeEventListener(
-        ...args: Parameters<EventTarget["removeEventListener"]>
-      ) {
-        if (types.has(args[0])) {
-          tracked.delete(args[1]);
-        }
-        remove(...args);
-      },
-    });
-  });
-  return () =>
-    page.evaluate(
-      () => (window as unknown as TrackedWindow).trackedReturnListeners.size,
-    );
 }
 
 test.describe("printDocument", () => {
@@ -127,7 +83,10 @@ test.describe("printDocument", () => {
     page,
   }) => {
     const root = await mount(<PrintHarness />);
-    const returnListeners = await trackReturnListeners(page);
+    const returnListeners = await trackWindowListeners(page, [
+      "pointerdown",
+      "keydown",
+    ]);
     await root.getByRole("button", { name: "Print, failing" }).click();
 
     await expect(root.getByTestId("settled")).toHaveText("first failed");

@@ -9,7 +9,7 @@ import { expect, test } from "./support/coverage";
 import ControlledStateGrid from "./support/ControlledStateGrid";
 import PointerGestureHarness from "./support/PointerGestureHarness";
 import { mountGrid, updateGrid } from "./support/mountGrid";
-import { trackWindowKeydownListeners } from "./support/windowKeydownListeners";
+import { trackWindowListeners } from "./support/windowListeners";
 
 interface Row {
   id: string;
@@ -657,7 +657,7 @@ test("unmounting the grid mid-resize cancels it, leaving nothing listening", asy
   mount,
   page,
 }) => {
-  const listening = await trackWindowKeydownListeners(page);
+  const listening = await trackWindowListeners(page, ["keydown"]);
   const events: ColumnResizeEvent[] = [];
   const root = await mountGrid(
     mount,

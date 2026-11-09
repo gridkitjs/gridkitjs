@@ -19,6 +19,27 @@ no framework's types. Logic that does not need the DOM belongs in `core`.
 `src/index.ts` is the package's only entry point. A new export goes there,
 and into the docs as described under [Docs](#docs).
 
+## State and teardown
+
+| Machine            | File                     | States                                     | Tests                                               |
+| ------------------ | ------------------------ | ------------------------------------------ | --------------------------------------------------- |
+| `DragPhase`        | `src/dragReorder.ts`     | `pressed`, `dragging`                      | `column-reorder.spec.tsx`, `group-by-drag.spec.tsx` |
+| `LoadState`        | `src/infiniteScroll.ts`  | `idle`, `requested`, `loading`, `detached` | `infinite-scroll.spec.tsx`                          |
+| `VirtualizerPhase` | `src/rowVirtualizer.ts`  | `ready`, `awaiting-row`, `destroyed`       | `row-virtualization.spec.tsx`                       |
+| `Typeahead`        | `src/menu/attachMenu.ts` | `idle`, `typing`                           | `menu.spec.tsx`                                     |
+| `Hover`            | `src/menu/attachMenu.ts` | `away`, `resting`, `rested`                | `menu.spec.tsx`                                     |
+
+The specs are in `apps/playground/tests-ct/`. The convention is in the root
+[State](../../AGENTS.md#state) section.
+
+Every behaviour releases what it holds on every exit. One that returns a
+handle ends with its `detach` or `destroy`; one whose return type is fixed
+(`startDragReorder` and `startColumnResizeGesture` return whether they
+started) takes an optional `signal: AbortSignal` in its handlers instead.
+Aborting runs the cancel path (`onState` with no drag, or `onCancel`),
+removes every listener and releases pointer capture, and an already-aborted
+signal starts nothing.
+
 ## Commands
 
 ```bash

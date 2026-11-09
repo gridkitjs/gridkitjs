@@ -9,7 +9,7 @@ import { expect, test } from "./support/coverage";
 import ControlledStateGrid from "./support/ControlledStateGrid";
 import PointerGestureHarness from "./support/PointerGestureHarness";
 import { mountGrid, updateGrid } from "./support/mountGrid";
-import { trackWindowKeydownListeners } from "./support/windowKeydownListeners";
+import { trackWindowListeners } from "./support/windowListeners";
 
 interface Row {
   id: string;
@@ -716,7 +716,7 @@ test("unmounting the grid mid-drag leaves nothing listening on window", async ({
   mount,
   page,
 }) => {
-  const listening = await trackWindowKeydownListeners(page);
+  const listening = await trackWindowListeners(page, ["keydown"]);
   const root = await mountGrid(
     mount,
     <DataGrid
