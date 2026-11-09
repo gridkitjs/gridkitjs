@@ -37,16 +37,20 @@ Once a stack has two or more levels, drag a chip to reposition it — the same d
 Click a group header, or focus it (it holds the grid's tab stop as a single unit — see [accessibility](/docs/react/accessibility)) and press <Kbd>Space</Kbd> or <Kbd>Enter</Kbd>, to toggle it. A collapsed group still reports its full leaf-row count in its header; only its descendants — nested group headers and data rows alike — drop out of what's rendered.
 
 ```ts
-defaultGroupExpansion?: GroupExpansionState; // group ids collapsed to start with
+defaultGroupExpansion?: GroupExpansionState; // how groups start: every group open by default
 onGroupExpansionChange?: (event: GroupExpansionEvent) => void;
+
+type GroupExpansionState =
+  | { mode: "allExpanded"; except: readonly string[] }
+  | { mode: "allCollapsed"; except: readonly string[] };
 ```
 
-`GroupExpansionState` holds only the collapsed exceptions — a group id absent from it is expanded, the same way `ColumnSizingState` holds only resized widths. Build a group id with `groupRowId(path)` (`@gridkitjs/core`) rather than constructing one by hand; each group row already carries its own as `groupId`, in the rows the ref's `getDisplayRows()` returns.
+`GroupExpansionState` is a mode with exceptions: under `"allExpanded"` every group is open except the group ids in `except`, and under `"allCollapsed"` every group is closed except those. The mode covers every group, including one nested under a collapsed group and one that appears only later, so `{ mode: "allCollapsed", except: [] }` keeps the grid collapsed as the data changes. Ask `isGroupExpanded(expansion, groupId)` (`@gridkitjs/core`) whether a group is open rather than reading `except` by hand, since what membership means depends on the mode. Build a group id with `groupRowId(path)` (`@gridkitjs/core`) rather than constructing one by hand; each group row already carries its own as `groupId`, in the rows the ref's `getDisplayRows()` returns. Grouped by region, `defaultGroupExpansion={{ mode: "allExpanded", except: [groupRowId(["East"])] }}` starts every group open but East.
 
-| Field       | Type                  | Description                                                                                                          |
-| ----------- | --------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `groupId`   | `string \| null`      | The group toggled, or `null` for `expandAllGroups()` and `collapseAllGroups()`, which touch every group in one call. |
-| `expansion` | `GroupExpansionState` | The full collapsed set after the change.                                                                             |
+| Field       | Type                  | Description                                                                                                                                                                                                                     |
+| ----------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `groupId`   | `string \| null`      | The group toggled, or `null` for `expandAllGroups()` and `collapseAllGroups()`, which touch every group in one call.                                                                                                            |
+| `expansion` | `GroupExpansionState` | The whole expansion after the change. A toggle adds the group to `except` or takes it out and keeps the mode; expand-all reports `{ mode: "allExpanded", except: [] }` and collapse-all `{ mode: "allCollapsed", except: [] }`. |
 
 "Expand all groups" and "Collapse all groups" — the `group.expandAll` and `group.collapseAll` commands — are in the default [context menu](/docs/react/context-menu#default-items) of a group row and, while the grid is grouped, of a cell; a [toolbar](/docs/react/toolbar) can list them too. From a button of your own, call `gridRef.current?.expandAllGroups()` or `collapseAllGroups()`. See [imperative handle](/docs/react/imperative-handle) for both, and for `getGroupBy()`, `getGroupExpansion()` and `getDisplayRows()`.
 
@@ -120,16 +124,16 @@ export default function App() {
 }
 ```
 
-`useGroupByState` returns a `GroupByStateApi`, below. To toggle a single group, give the ref's `setGroupExpansion(expansion)` the collapsed set with that group's id added or removed — it replaces the set and fires `onGroupExpansionChange` with `groupId: null`; `setGroupBy(groupBy)` replaces the stack the same way. A group's own aggregates are on its header row's `aggregates` field, in the rows `getDisplayRows()` returns, rather than a getter here — see [`useAggregateState`](/docs/react/aggregate-functions) for the grand-total equivalent.
+`useGroupByState` returns a `GroupByStateApi`, below. To toggle a single group, give the ref's `setGroupExpansion(expansion)` the result of `toggleGroupExpansion(groupExpansion, groupId)` (`@gridkitjs/core`); it replaces the expansion and fires `onGroupExpansionChange` with `groupId: null`; `setGroupBy(groupBy)` replaces the stack the same way. A group's own aggregates are on its header row's `aggregates` field, in the rows `getDisplayRows()` returns, rather than a getter here — see [`useAggregateState`](/docs/react/aggregate-functions) for the grand-total equivalent.
 
-| Field               | Type                  | Description                                    |
-| ------------------- | --------------------- | ---------------------------------------------- |
-| `groupBy`           | `GroupByState`        | The active group-by stack, outer to inner.     |
-| `groupExpansion`    | `GroupExpansionState` | Group ids currently collapsed.                 |
-| `expandAllGroups`   | `() => void`          | Expands every group at once.                   |
-| `collapseAllGroups` | `() => void`          | Collapses every group currently shown at once. |
+| Field               | Type                  | Description                                                                       |
+| ------------------- | --------------------- | --------------------------------------------------------------------------------- |
+| `groupBy`           | `GroupByState`        | The active group-by stack, outer to inner.                                        |
+| `groupExpansion`    | `GroupExpansionState` | Which groups are open: a mode and the group ids toggled against it.               |
+| `expandAllGroups`   | `() => void`          | Expands every group at once, including those that appear later.                   |
+| `collapseAllGroups` | `() => void`          | Collapses every group at once, including nested ones and those that appear later. |
 
-Before the grid mounts, both fields read as empty and the actions are no-ops. See [imperative handle](/docs/react/imperative-handle) for `subscribe`, the primitive this hook is built on.
+Before the grid mounts, `groupBy` reads as empty, `groupExpansion` as `{ mode: "allExpanded", except: [] }`, and the actions are no-ops. See [imperative handle](/docs/react/imperative-handle) for `subscribe`, the primitive this hook is built on.
 
 ## Group-by bar visibility
 
@@ -189,8 +193,8 @@ export default function App() {
 | `defaultGroupBy`          | `GroupByState`                         |          | The group-by stack to start with, outer to inner. Uncontrolled.                                                                              |
 | `groupBy`                 | `GroupByState`                         |          | The group-by stack, controlled — changed only through `onGroupByChange`. See [controlled state](/docs/react/state).                          |
 | `onGroupByChange`         | `(event: GroupByEvent) => void`        |          | Once when the user adds, removes, or reorders a level.                                                                                       |
-| `defaultGroupExpansion`   | `GroupExpansionState`                  |          | Group ids collapsed to start with — every other group starts expanded. Uncontrolled.                                                         |
-| `groupExpansion`          | `GroupExpansionState`                  |          | The collapsed groups, controlled — changed only through `onGroupExpansionChange`. See [controlled state](/docs/react/state).                 |
+| `defaultGroupExpansion`   | `GroupExpansionState`                  |          | How groups start, as a mode and the group ids toggled against it. Every group starts open without it. Uncontrolled.                          |
+| `groupExpansion`          | `GroupExpansionState`                  |          | Which groups are open, controlled — changed only through `onGroupExpansionChange`. See [controlled state](/docs/react/state).                |
 | `onGroupExpansionChange`  | `(event: GroupExpansionEvent) => void` |          | Once when the user expands or collapses a group, or every group at once.                                                                     |
 
 `GroupByState` is `readonly { columnId: string; direction?: "asc" | "desc" }[]` — each level's own `direction` orders _that level's_ group values (via the same comparator [column sorting](/docs/react/column-sorting) uses), not the row order within a group.
