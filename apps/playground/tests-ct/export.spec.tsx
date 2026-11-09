@@ -445,7 +445,7 @@ test.describe("exportData", () => {
     const root = await mountGrid(
       mount,
       <ExportGrid
-        defaultFilter={[{ columnId: "name", query: "%l%" }]}
+        defaultFilter={[{ kind: "text", columnId: "name", query: "%l%" }]}
         defaultColumnSort={[{ columnId: "score", direction: "desc" }]}
         paginated
         defaultPagination={{ pageIndex: 0, pageSize: 2 }}
@@ -484,7 +484,9 @@ test.describe("exportData", () => {
   test("writes with a writer passed to it", async ({ mount }) => {
     const root = await mountGrid(
       mount,
-      <ExportGrid defaultFilter={[{ columnId: "region", query: "West" }]} />,
+      <ExportGrid
+        defaultFilter={[{ kind: "text", columnId: "region", query: "West" }]}
+      />,
     );
 
     expect(JSON.parse(await exportResult(root, "Export lines"))).toEqual({

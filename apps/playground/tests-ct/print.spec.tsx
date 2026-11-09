@@ -159,7 +159,7 @@ test.describe("printing the grid", () => {
         toolbar={{ items: ["print"] }}
         paginated
         defaultPagination={{ pageIndex: 0, pageSize: 5 }}
-        defaultFilter={[{ columnId: "region", query: "West" }]}
+        defaultFilter={[{ kind: "text", columnId: "region", query: "West" }]}
       />,
     );
     await expect(printButton(root)).toHaveText("Print");

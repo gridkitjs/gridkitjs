@@ -449,7 +449,11 @@ test.describe("DataGrid toolbar", () => {
     await expect(search).toHaveValue("");
     expect(await names(root)).toEqual(["Charlie", "Alice", "Bravo"]);
 
-    await updateGrid(root, <ToolbarGrid filter={[{ query: "%li%" }]} />, WIDE);
+    await updateGrid(
+      root,
+      <ToolbarGrid filter={[{ kind: "text", query: "%li%" }]} />,
+      WIDE,
+    );
     await expect(search).toHaveValue("li");
     expect(await names(root)).toEqual(["Charlie", "Alice"]);
     await expect(root.locator('[role="status"]')).toHaveText("");
@@ -461,7 +465,10 @@ test.describe("DataGrid toolbar", () => {
     const root = await mountGrid(
       mount,
       <ToolbarGrid
-        defaultFilter={[{ query: "%ar%" }, { columnId: "score", query: "30" }]}
+        defaultFilter={[
+          { kind: "text", query: "%ar%" },
+          { kind: "text", columnId: "score", query: "30" },
+        ]}
       />,
       WIDE,
     );

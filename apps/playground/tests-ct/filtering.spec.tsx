@@ -42,7 +42,9 @@ async function names(root: MountResult): Promise<string[]> {
 test("a column-scoped TextFilterEntry renders only matching rows", async ({
   mount,
 }) => {
-  const filter: FilterState<Row> = [{ columnId: "name", query: "Ali%" }];
+  const filter: FilterState<Row> = [
+    { kind: "text", columnId: "name", query: "Ali%" },
+  ];
   const root = await mountGrid(
     mount,
     <DataGrid
@@ -60,7 +62,7 @@ test("a column-scoped TextFilterEntry renders only matching rows", async ({
 test("a global TextFilterEntry matches against every column", async ({
   mount,
 }) => {
-  const filter: FilterState<Row> = [{ query: "%Char%" }];
+  const filter: FilterState<Row> = [{ kind: "text", query: "%Char%" }];
   const root = await mountGrid(
     mount,
     <DataGrid
@@ -77,7 +79,9 @@ test("a global TextFilterEntry matches against every column", async ({
 test("a ValueFilterEntry matches only the exact value on a correctly-typed column", async ({
   mount,
 }) => {
-  const filter: FilterState<Row> = [{ columnId: "score", value: 42 }];
+  const filter: FilterState<Row> = [
+    { kind: "value", columnId: "score", value: 42 },
+  ];
   const root = await mountGrid(
     mount,
     <DataGrid
@@ -94,7 +98,9 @@ test("a ValueFilterEntry matches only the exact value on a correctly-typed colum
 test("a ValueFilterEntry never matches a differently-typed column, even with an equal-looking stringified value", async ({
   mount,
 }) => {
-  const filter: FilterState<Row> = [{ columnId: "name", value: 42 }];
+  const filter: FilterState<Row> = [
+    { kind: "value", columnId: "name", value: 42 },
+  ];
   const root = await mountGrid(
     mount,
     <DataGrid
@@ -124,10 +130,11 @@ test('a GroupFilterEntry with combinator "or" renders rows matching either neste
 }) => {
   const filter: FilterState<Row> = [
     {
+      kind: "group",
       combinator: "or",
       entries: [
-        { columnId: "name", query: "Alice" },
-        { columnId: "name", query: "Bob" },
+        { kind: "text", columnId: "name", query: "Alice" },
+        { kind: "text", columnId: "name", query: "Bob" },
       ],
     },
   ];
@@ -148,8 +155,8 @@ test("two entries of different variants AND together, narrower than either alone
   mount,
 }) => {
   const filter: FilterState<Row> = [
-    { columnId: "name", query: "%a%" },
-    { columnId: "active", value: true },
+    { kind: "text", columnId: "name", query: "%a%" },
+    { kind: "value", columnId: "active", value: true },
   ];
   const root = await mountGrid(
     mount,
@@ -167,7 +174,9 @@ test("two entries of different variants AND together, narrower than either alone
 test("a defaultFilter matching nothing renders zero body rows, not a crash", async ({
   mount,
 }) => {
-  const filter: FilterState<Row> = [{ columnId: "name", query: "Nobody" }];
+  const filter: FilterState<Row> = [
+    { kind: "text", columnId: "name", query: "Nobody" },
+  ];
   const root = await mountGrid(
     mount,
     <DataGrid
@@ -185,7 +194,9 @@ test("a defaultFilter matching nothing renders zero body rows, not a crash", asy
 test("defaultFilter and defaultColumnSort together filter before sorting", async ({
   mount,
 }) => {
-  const filter: FilterState<Row> = [{ columnId: "active", value: true }];
+  const filter: FilterState<Row> = [
+    { kind: "value", columnId: "active", value: true },
+  ];
   const root = await mountGrid(
     mount,
     <DataGrid
@@ -214,7 +225,9 @@ test("setFilter through the ref filters the rendered rows, goes back to page 0 a
   mount,
 }) => {
   const events: FilterChangeEvent<Row>[] = [];
-  const filter: FilterState<Row> = [{ columnId: "active", value: true }];
+  const filter: FilterState<Row> = [
+    { kind: "value", columnId: "active", value: true },
+  ];
   const root = await mountGrid(
     mount,
     <ImperativeApiGrid
