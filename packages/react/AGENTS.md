@@ -32,6 +32,7 @@ which is what `@source` used to paper over.
 | `simpleEditorReducer`  | `src/DataGrid/filterMenu/simpleEditorState.ts`  | `{ opened, draft, invalid }`                          | `filter-menu.spec.tsx`                      |
 | `ExcelEditorMode`      | `src/DataGrid/filterMenu/ExcelFilterEditor.tsx` | `values`, `condition`                                 | `filter-menu.spec.tsx`                      |
 | `useAnnounceWhenDrawn` | `src/DataGrid/useAnnounceWhenDrawn.ts`          | one announcement waiting for the render that draws it | `filter-menu.spec.tsx`, `toolbar.spec.tsx`  |
+| `useCopyToClipboard`   | `src/DataGrid/clipboard/useCopyToClipboard.ts`  | the latest copy, the only one announced               | `clipboard.spec.tsx`                        |
 | `Subscription`         | `src/DataGrid/hooks/useGridSnapshot.ts`         | `waiting`, `subscribed`                               | `reactive-hooks.spec.tsx`                   |
 | `SaveState`            | `src/DataGrid/export/useSaveFile.ts`            | `idle`, `writing`                                     | `export.spec.tsx`                           |
 

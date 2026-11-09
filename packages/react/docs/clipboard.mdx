@@ -46,7 +46,7 @@ It is left to the browser while focus is in a text field inside a cell, or while
 
 ## Announcements
 
-Nothing on screen shows that a copy happened, so a screen reader hears what was copied — "3 rows copied", "1 cell copied", "2 columns copied" — once it is on the clipboard. When the browser refuses the clipboard, as it may outside a secure (`https`) page or without the user's gesture, it hears "Copy failed" and the error is logged with a `console.error`.
+Nothing on screen shows that a copy happened, so a screen reader hears what was copied — "3 rows copied", "1 cell copied", "2 columns copied" — once it is on the clipboard. When the browser refuses the clipboard, as it may outside a secure (`https`) page or without the user's gesture, it hears "Copy failed" and the error is logged with a `console.error`. When a second copy starts before the first is on the clipboard, only the second is announced.
 
 ## From the ref
 
