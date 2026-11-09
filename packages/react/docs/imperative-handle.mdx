@@ -153,7 +153,7 @@ Most consumers should reach for one of the `use*State` hooks built on it instead
 | `useColumnVisibilityState` | `getColumnVisibility` — see [column visibility](/docs/react/column-definition#column-visibility).                                                          |
 | `useFilterState`           | `getFilter`, plus `setFilter` — see [column filtering](/docs/react/column-filtering#change-the-filter-from-your-own-ui).                                   |
 
-Each hook falls back to an empty/zero value before the grid mounts, the same way its matching getter would if called too early.
+Each hook falls back to an empty/zero value before the grid mounts, the same way its matching getter would if called too early. A hook can be called before its grid exists, in the component that renders the grid only once its data has arrived: it follows the grid from the render that mounts it. A ref says nothing when it changes, so a hook in a component that render leaves alone follows the grid from that component's next render, as it does a grid swapped for another.
 
 ## See also
 

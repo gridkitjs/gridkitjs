@@ -260,9 +260,10 @@ function exportCommand<Row>({
         selection ? { ...defaults, scope: "selection" } : defaults,
         resolveExportWriters(exportWriters),
       );
-      if (file !== null) {
-        context.host.saveFile(file);
+      if (file === null) {
+        return;
       }
+      return context.host.saveFile(file) !== false;
     },
   };
 }

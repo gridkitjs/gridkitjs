@@ -11,6 +11,7 @@ import type {
   PaginationState,
 } from "@gridkitjs/core";
 import { expect, test } from "./support/coverage";
+import LateMountReactiveHooksGrid from "./support/LateMountReactiveHooksGrid";
 import { mountGrid } from "./support/mountGrid";
 import ReactiveHooksGrid from "./support/ReactiveHooksGrid";
 import UnmountableReactiveHooksGrid from "./support/UnmountableReactiveHooksGrid";
@@ -353,6 +354,33 @@ test("unmounting the hook's owning component doesn't throw and stops receiving u
   });
   await root.getByRole("button", { name: "Next", exact: true }).click();
   expect(consoleErrors).toEqual([]);
+});
+
+test("a hook called before its grid mounts follows the grid once it does", async ({
+  mount,
+}) => {
+  const root = await mount(
+    <LateMountReactiveHooksGrid
+      columns={columns}
+      dataSource={buildRows()}
+      paginated
+      defaultPagination={{ pageIndex: 0, pageSize: 3 }}
+    />,
+  );
+  const pageIndex = async () =>
+    (
+      JSON.parse(
+        (await root.getByTestId("reactive-status").textContent()) ?? "{}",
+      ) as PaginationState
+    ).pageIndex;
+
+  await root.getByRole("button", { name: "load-grid" }).click();
+  await expect(root.getByRole("grid")).toBeVisible();
+  await expect.poll(pageIndex).toBe(0);
+
+  await root.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(root.getByRole("button", { name: "Previous" })).toBeEnabled();
+  await expect.poll(pageIndex).toBe(1);
 });
 
 test("the reactive hooks don't warn under React Strict Mode's double-render/double-effect behavior", async ({

@@ -346,6 +346,73 @@ test.describe("export writers on the grid", () => {
     );
     expect(downloads).toBe(1);
   });
+
+  test("a written export the browser refuses to save is logged and announced", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ExportGrid withWriters toolbar={{ items: ["export"] }} />,
+    );
+    const errors: string[] = [];
+    const pageErrors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") errors.push(message.text());
+    });
+    page.on("pageerror", (error) => {
+      pageErrors.push(error.message);
+    });
+
+    await exportButton(root).click();
+    await exportMenu(page)
+      .getByRole("menuitem", { name: "Export to Excel" })
+      .click();
+    await page.evaluate(() => {
+      URL.createObjectURL = () => {
+        throw new Error("Downloads are blocked.");
+      };
+    });
+    await root.getByRole("button", { name: "Finish writing" }).click();
+
+    await expect(root.locator('[role="status"]')).toHaveText("Export failed");
+    await expect
+      .poll(() => errors)
+      .toContainEqual(expect.stringContaining("could not be saved"));
+    expect(pageErrors).toEqual([]);
+  });
+
+  test("an export dropped while another is written is not reported to onCommand", async ({
+    mount,
+    page,
+  }) => {
+    const commands: string[] = [];
+    const root = await mountGrid(
+      mount,
+      <ExportGrid
+        withWriters
+        toolbar={{ items: ["export"] }}
+        onCommand={(event) => {
+          commands.push(event.commandId);
+        }}
+      />,
+    );
+
+    await exportButton(root).click();
+    await exportMenu(page)
+      .getByRole("menuitem", { name: "Export to Excel" })
+      .click();
+    // The fixture finishes only its latest xlsx write, so the second is a CSV.
+    await exportButton(root).click();
+    await exportMenu(page)
+      .getByRole("menuitem", { name: "Export to CSV" })
+      .click();
+    await download(page, () =>
+      root.getByRole("button", { name: "Finish writing" }).click(),
+    );
+
+    expect(commands).toEqual(["export.xlsx"]);
+  });
 });
 
 test.describe("the context menu", () => {

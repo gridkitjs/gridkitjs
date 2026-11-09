@@ -49,7 +49,7 @@ export function resolveCommands<Row>(
  * Runs `command` when it is visible and enabled on `context`'s target, and
  * says whether it did — so a renderer reports only a command that ran, and a
  * stale button or a call through the API cannot run one the grid's state no
- * longer allows.
+ * longer allows. A command whose `execute` returns `false` did not run.
  */
 export function runCommand<Row>(
   command: GridCommand<Row>,
@@ -61,6 +61,5 @@ export function runCommand<Row>(
   ) {
     return false;
   }
-  command.execute(context);
-  return true;
+  return command.execute(context) !== false;
 }

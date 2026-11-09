@@ -245,7 +245,10 @@ export interface GridMessages {
   exportSelectionJson: string;
   /** `exportSelection.xlsx` */
   exportSelectionXlsx: string;
-  /** Announced when an export's writer fails, so no file is saved. */
+  /**
+   * Announced when an export's writer fails or the browser refuses its
+   * download, so no file is saved.
+   */
   exportFailed: string;
   /** `copy.cell` */
   copyCell: string;
@@ -259,6 +262,8 @@ export interface GridMessages {
   copyFailed: string;
   /** `print` */
   print: string;
+  /** Announced when the browser fails to print, so nothing is printed. */
+  printFailed: string;
 }
 
 /** Prints a count — "1,204" under `"en"`, "1.204" under `"de-DE"`. */
@@ -519,6 +524,7 @@ export function createDefaultMessages(locale?: FormatLocale): GridMessages {
     copied: (count, unit) => copied(n, count, unit),
     copyFailed: "Copy failed",
     print: "Print",
+    printFailed: "Print failed",
   };
 }
 

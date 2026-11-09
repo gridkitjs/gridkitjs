@@ -83,12 +83,12 @@ function builtIn(
   id: BuiltInCommandId,
   controller: GridController<Order>,
   target: GridCommandTarget,
+  host: GridCommandHost = inertHost(),
 ) {
   const command = builtInCommands<Order>().find((entry) => entry.id === id);
   if (command === undefined) {
     throw new Error(`no built-in ${id}`);
   }
-  const host = inertHost();
   const context = () =>
     createCommandContext({
       controller,
@@ -915,6 +915,17 @@ describe("export.csv", () => {
     controller.setFilter([{ query: "%North%" }]);
     expect(command.visible()).toBe(true);
     expect(command.enabled()).toBe(false);
+  });
+
+  test("did not run when the host drops the file", () => {
+    const saveFile = vi.fn(() => false);
+    const command = builtIn("export.csv", create(), GRID, {
+      ...inertHost(),
+      saveFile,
+    });
+
+    expect(command.run()).toBe(false);
+    expect(saveFile).toHaveBeenCalledOnce();
   });
 
   test("hands the host the view as a CSV file", () => {

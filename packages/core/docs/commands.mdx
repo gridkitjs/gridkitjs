@@ -46,7 +46,7 @@ if (sortAscending !== undefined) {
 A `GridCommand<Row>`:
 
 | Field       | Type                            | Description                                                                                                                 |
-| ----------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| ----------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `id`        | `string`                        | `"sort.ascending"` for a built-in, or any id of your own. Never `"separator"`, which a menu reads as one.                   |
 | `label`     | `string \| (context) => string` | What a menu item or toolbar button reads.                                                                                   |
 | `icon`      | `string`                        | A key the renderer maps to an icon of its own. A key it does not know draws nothing.                                        |
@@ -54,7 +54,7 @@ A `GridCommand<Row>`:
 | `isVisible` | `(context) => boolean`          | Whether the command shows here at all. Defaults to always.                                                                  |
 | `isEnabled` | `(context) => boolean`          | Whether it can run. A disabled command still shows, so a user can see what is not possible. Defaults to always.             |
 | `isChecked` | `(context) => boolean`          | Present for a checkable command — a checkbox item in a menu, a toggle button in a toolbar — and says whether it is checked. |
-| `execute`   | `(context) => void`             | What it does.                                                                                                               |
+| `execute`   | `(context) => void              | boolean`                                                                                                                    | What it does. Return `false` when it turns out to do nothing after all, and the command did not run: `runCommand` returns `false` and `onCommand` does not hear it. |
 
 The predicates are asked whenever a menu or toolbar is resolved, so a command follows the grid's state without being told about it.
 
@@ -94,14 +94,14 @@ A context is a snapshot. A renderer builds one each time it resolves a menu or a
 
 A `GridCommandHost` holds what a command needs that only a renderer has. A caller with no renderer — a test, a script in Node — passes members that do nothing.
 
-| Member                      | Description                                                                                                                                                                     |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `autoFitColumns(columnIds)` | Sizes each column to fit its content, as double-clicking its resize handle does.                                                                                                |
-| `openPanel(kind, target)`   | Opens one of the grid's [panels](#panels) anchored to the target. `kind` is a `GridPanelKind`: `"columnChooser"` or `"filter"`.                                                 |
-| `announce(text)`            | Reads `text` out through the grid's live region.                                                                                                                                |
-| `saveFile(file)`            | Saves an [`ExportFile`](/docs/core/export#exporting-a-file) — in a browser, a download. Given a promise of one, it waits for it, and reports a rejected one rather than saving. |
-| `writeClipboard(content)`   | Puts a [`CopyContent`](/docs/core/export#copying) on the clipboard as text and HTML, and announces it — `messages.copied(count, unit)` — or `messages.copyFailed`.              |
-| `print(document, options)`  | Puts a [`PrintDocument`](/docs/core/export#printing) on paper — in a browser, the print dialog — under the `PrintOptions` it was built with.                                    |
+| Member                      | Description                                                                                                                                                                                                                                                                                                                                          |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `autoFitColumns(columnIds)` | Sizes each column to fit its content, as double-clicking its resize handle does.                                                                                                                                                                                                                                                                     |
+| `openPanel(kind, target)`   | Opens one of the grid's [panels](#panels) anchored to the target. `kind` is a `GridPanelKind`: `"columnChooser"` or `"filter"`.                                                                                                                                                                                                                      |
+| `announce(text)`            | Reads `text` out through the grid's live region.                                                                                                                                                                                                                                                                                                     |
+| `saveFile(file)`            | Saves an [`ExportFile`](/docs/core/export#exporting-a-file) — in a browser, a download. Given a promise of one, it waits for it, and reports a rejected one rather than saving. Returns `false` for a file it drops unsaved, as a host saving one file at a time does with one asked for while it waits on the last: the export command did not run. |
+| `writeClipboard(content)`   | Puts a [`CopyContent`](/docs/core/export#copying) on the clipboard as text and HTML, and announces it — `messages.copied(count, unit)` — or `messages.copyFailed`.                                                                                                                                                                                   |
+| `print(document, options)`  | Puts a [`PrintDocument`](/docs/core/export#printing) on paper — in a browser, the print dialog — under the `PrintOptions` it was built with.                                                                                                                                                                                                         |
 
 ## Built-in commands
 
@@ -257,7 +257,7 @@ A grid takes its app commands through the `commands` option, which a renderer pa
 />
 ```
 
-`onCommand` is called after a command runs, with a `GridCommandEvent` — and after an inline menu item runs, with that item's id. A hidden or disabled one, which does not run, is not reported.
+`onCommand` is called after a command runs, with a `GridCommandEvent` — and after an inline menu item runs, with that item's id. A hidden or disabled one, which does not run, is not reported, and neither is one whose `execute` returned `false`, such as an export the host dropped.
 
 | Field       | Type                                                  | Description                                                                                      |
 | ----------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------ |

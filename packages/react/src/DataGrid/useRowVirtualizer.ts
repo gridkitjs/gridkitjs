@@ -45,6 +45,13 @@ function ignoreRow(): () => void {
  * one — `estimatedRowHeight` or `overscan` changed — re-renders every row
  * with its own ref callbacks, so the rows already mounted are measured anew.
  *
+ * Both stay in state once `enabled` goes off and the virtualizer is
+ * destroyed. A destroyed virtualizer measures and scrolls nothing, and its
+ * last window, drawn again the moment `enabled` comes back on, keeps the
+ * body as tall as it was, and so its scroll position, until the new one
+ * reports. An empty window there would collapse the body and send the
+ * scroll back to the top.
+ *
  * Layout effects, so the window settles before paint rather than showing the
  * previous one for a frame — the same reason `useElementWidth` measures in a
  * layout effect.

@@ -176,13 +176,14 @@ Functions are called with numbers that count from one, and receive a column by i
 | `exportSelectionCsv`       | `string`                                           | "Export selection to CSV" — `exportSelection.csv`.                                                                                                                  |
 | `exportSelectionJson`      | `string`                                           | "Export selection to JSON" — `exportSelection.json`.                                                                                                                |
 | `exportSelectionXlsx`      | `string`                                           | "Export selection to Excel" — `exportSelection.xlsx`.                                                                                                               |
-| `exportFailed`             | `string`                                           | "Export failed" — announced when an export's writer fails, so no file is saved.                                                                                     |
+| `exportFailed`             | `string`                                           | "Export failed" — announced when an export's writer fails or the browser refuses its download, so no file is saved.                                                 |
 | `copyCell`                 | `string`                                           | "Copy cell" — `copy.cell`.                                                                                                                                          |
 | `copyRow`                  | `string`                                           | "Copy row" — `copy.row`.                                                                                                                                            |
 | `copySelection`            | `string`                                           | "Copy selection" — `copy.selection`.                                                                                                                                |
 | `copied`                   | `(count, unit) => string`                          | "3 rows copied", "1 cell copied" — announced once a [copy](/docs/react/clipboard) is on the clipboard. `unit` is `"cells"`, `"rows"` or `"columns"`.                |
 | `copyFailed`               | `string`                                           | "Copy failed" — announced when the browser refuses the clipboard, so nothing was copied.                                                                            |
 | `print`                    | `string`                                           | "Print" — `print`, the toolbar's Print button and the [printing](/docs/react/printing) menu item.                                                                   |
+| `printFailed`              | `string`                                           | "Print failed" — announced when the browser fails to print, so nothing is printed.                                                                                  |
 
 ## What messages don't cover
 
