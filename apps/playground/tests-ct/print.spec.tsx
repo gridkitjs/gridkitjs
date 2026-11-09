@@ -151,6 +151,23 @@ test.describe("printDocument", () => {
     expect(await printsOf(root)).toHaveLength(1);
   });
 
+  test("a print whose fonts never report ready prints without them, and the next print runs", async ({
+    mount,
+  }) => {
+    const root = await mount(<PrintHarness />);
+    await root
+      .getByRole("button", { name: "Print, fonts never ready" })
+      .click();
+    await expect(root.getByTestId("settled")).toHaveText("first", {
+      timeout: 10_000,
+    });
+    expect(await printsOf(root)).toHaveLength(1);
+
+    await root.getByRole("button", { name: "Print", exact: true }).click();
+    await expect(root.getByTestId("settled")).toHaveText("first,first");
+    expect(await printsOf(root)).toHaveLength(2);
+  });
+
   test("gives focus back where it was", async ({ mount }) => {
     const root = await mount(<PrintHarness />);
     const print = root.getByRole("button", { name: "Print", exact: true });
