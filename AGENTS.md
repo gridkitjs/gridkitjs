@@ -67,6 +67,21 @@ installs them into fresh Vite, Next.js and Node apps; see
 - **Versioning** — Changesets: see
   [.claude/rules/versioning.md](.claude/rules/versioning.md).
 
+### State
+
+- Model a lifecycle as one union tagged `kind` (`{ kind: "idle" } | { kind:
+"loading" }`), held in one variable, not as several booleans or `X | null`
+  fields that can disagree. Impossible combinations should not type-check.
+- Put every transition in one function or reducer (`filterEditorReducer` is
+  the model); callers ask for a transition, they don't assign the state.
+- Every state that holds listeners, timers, animation frames or pointer
+  capture releases them on every exit, including destroy or unmount while in
+  that state.
+- No state-machine library: a union and a function are enough.
+- Test the transitions: Vitest in `core`, Playwright component tests for `dom`
+  and `react`. Each package's `AGENTS.md` lists its machines and the tests
+  that cover them.
+
 ### Comments
 
 A comment describes the code as it is now, for a reader who never saw an

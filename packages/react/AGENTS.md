@@ -22,6 +22,37 @@ and the theme's stylesheet targets them. Keep it that way: a Tailwind utility
 written in a component would oblige every consumer to scan our source for it,
 which is what `@source` used to paper over.
 
+## State
+
+| Machine                | File                                            | States                                                | Tests                                       |
+| ---------------------- | ----------------------------------------------- | ----------------------------------------------------- | ------------------------------------------- |
+| `GridOverlayState`     | `src/DataGrid/overlay/useGridOverlay.ts`        | `closed`, `contextMenu`, `panel`                      | `overlay.spec.tsx`, `context-menu.spec.tsx` |
+| `MenuButtonState`      | `src/DataGrid/menu/useMenuButton.ts`            | `closed`, `open`                                      | `toolbar.spec.tsx`, `filter-menu.spec.tsx`  |
+| `simpleEditorReducer`  | `src/DataGrid/filterMenu/simpleEditorState.ts`  | `{ opened, draft, invalid }`                          | `filter-menu.spec.tsx`                      |
+| `ExcelEditorMode`      | `src/DataGrid/filterMenu/ExcelFilterEditor.tsx` | `values`, `condition`                                 | `filter-menu.spec.tsx`                      |
+| `useAnnounceWhenDrawn` | `src/DataGrid/useAnnounceWhenDrawn.ts`          | one announcement waiting for the render that draws it | `filter-menu.spec.tsx`, `toolbar.spec.tsx`  |
+| `Subscription`         | `src/DataGrid/hooks/useGridSnapshot.ts`         | `waiting`, `subscribed`                               | `reactive-hooks.spec.tsx`                   |
+| `SaveState`            | `src/DataGrid/export/useSaveFile.ts`            | `idle`, `writing`                                     | `export.spec.tsx`                           |
+
+The specs are in `apps/playground/tests-ct/`. The convention is in the root
+[State](../../AGENTS.md#state) section. A gesture started from React goes
+through `useGestureSignal`, which hands the dom starter a `signal` and aborts
+it on unmount or when the gesture's element is removed; a new menu button
+uses `useMenuButton`.
+
+### Known debt
+
+Logic that belongs lower, left here for now:
+
+- `src/DataGrid/contextMenu/contextMenuPlaces.ts`: where a context menu opens
+  for a cell or header is geometry, a `dom` concern.
+- `src/DataGrid/panels/useGridPanels.ts`: a panel's placement reads the grid's
+  bounding box, also geometry for `dom`.
+- `holdsUnreadable` in `src/DataGrid/filterMenu/SimpleFilterEditor.tsx`: the
+  browser's `validity.badInput` check on a row's inputs.
+- `scrollToColumn` in `src/DataGrid/DataGrid.tsx`: finds a column's element
+  and scrolls it into view, as `scrollToRow` does through the virtualizer.
+
 ## Commands
 
 ```bash

@@ -1,28 +1,31 @@
 import type { Page } from "@playwright/test";
 
 interface TrackedWindow {
-  trackedKeydownListeners: Set<unknown>;
+  trackedWindowListeners: Set<unknown>;
 }
 
 /**
- * Starts tracking the `keydown` listeners added to `window` from now on, and
- * returns a reader for how many of them are still attached. A pointer gesture
- * listens there for Escape, so a count left above zero once the grid is gone
- * is a gesture that was never torn down.
+ * Starts tracking the listeners of the given event types added to `window`
+ * from now on, and returns a reader for how many of them are still attached.
+ * A behaviour that listens there for as long as it is open (a pointer gesture
+ * for Escape, a print for the user coming back) leaves a count above zero
+ * once it should be gone if it was never torn down.
  */
-export async function trackWindowKeydownListeners(
+export async function trackWindowListeners(
   page: Page,
+  eventTypes: readonly string[],
 ): Promise<() => Promise<number>> {
-  await page.evaluate(() => {
+  await page.evaluate((types) => {
     const tracked = new Set<unknown>();
+    const watched = new Set(types);
     const add: EventTarget["addEventListener"] =
       window.addEventListener.bind(window);
     const remove: EventTarget["removeEventListener"] =
       window.removeEventListener.bind(window);
     Object.assign(window, {
-      trackedKeydownListeners: tracked,
+      trackedWindowListeners: tracked,
       addEventListener(...args: Parameters<EventTarget["addEventListener"]>) {
-        if (args[0] === "keydown") {
+        if (watched.has(args[0])) {
           tracked.add(args[1]);
         }
         add(...args);
@@ -30,15 +33,15 @@ export async function trackWindowKeydownListeners(
       removeEventListener(
         ...args: Parameters<EventTarget["removeEventListener"]>
       ) {
-        if (args[0] === "keydown") {
+        if (watched.has(args[0])) {
           tracked.delete(args[1]);
         }
         remove(...args);
       },
     });
-  });
+  }, eventTypes);
   return () =>
     page.evaluate(
-      () => (window as unknown as TrackedWindow).trackedKeydownListeners.size,
+      () => (window as unknown as TrackedWindow).trackedWindowListeners.size,
     );
 }
