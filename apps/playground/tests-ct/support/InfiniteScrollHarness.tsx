@@ -1,6 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { attachInfiniteScroll, type InfiniteScroll } from "@gridkitjs/dom";
 
+interface InfiniteScrollHarnessProps {
+  /**
+   * Whether each load adds a 20px row in front of the sentinel within the
+   * same render and without `isLoadingMore`, as a load answered from memory
+   * would. The sentinel moves down with each row and stays in view until the
+   * third.
+   */
+  readonly appendOnLoad?: boolean;
+}
+
 /**
  * `attachInfiniteScroll` on a scrolling box whose sentinel is in view from
  * the start, driven directly rather than through `DataGrid`, whose own
@@ -9,7 +19,9 @@ import { attachInfiniteScroll, type InfiniteScroll } from "@gridkitjs/dom";
  * current options to `update`, detached or not, and
  * `data-testid="load-count"` counts the `onLoadMore` calls.
  */
-export default function InfiniteScrollHarness() {
+export default function InfiniteScrollHarness({
+  appendOnLoad = false,
+}: InfiniteScrollHarnessProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scroll = useRef<InfiniteScroll | null>(null);
@@ -44,6 +56,9 @@ export default function InfiniteScrollHarness() {
     <div>
       <div ref={rootRef} style={{ height: 100, overflowY: "auto" }}>
         <div style={{ height: 50 }} />
+        {Array.from({ length: appendOnLoad ? loadCount : 0 }, (_, index) => (
+          <div key={index} style={{ height: 20 }} />
+        ))}
         <div ref={sentinelRef} style={{ height: 1 }} />
       </div>
       <button

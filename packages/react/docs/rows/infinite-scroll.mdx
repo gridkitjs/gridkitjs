@@ -21,7 +21,7 @@ description: "Loading more rows as the user scrolls near the bottom, instead of 
 ```
 
 - `hasMore` — whether a further `onLoadMore` could still return more rows. `false` removes the loading [sentinel row](/docs/react#terms) entirely, so no further scrolling can trigger a load.
-- `onLoadMore` — called at most once per genuine threshold-crossing: when the sentinel comes within `rootMargin` of the body's visible area. Not again until the load finishes (`isLoadingMore` back to `false`), `hasMore` changes, or the sentinel leaves `rootMargin` and comes back.
+- `onLoadMore` — called at most once per genuine threshold-crossing: when the sentinel comes within `rootMargin` of the body's visible area. Not again until the load finishes (`isLoadingMore` back to `false`), `hasMore` changes, the rows it asked for arrive without `isLoadingMore` ever reading `true`, or the sentinel leaves `rootMargin` and comes back.
 - `isLoadingMore` — whether a load triggered by `onLoadMore` is still in flight. Suppresses further calls to it until this goes back to `false`.
 
 <InfiniteScrollExample />

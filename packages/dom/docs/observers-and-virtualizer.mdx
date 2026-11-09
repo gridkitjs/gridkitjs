@@ -81,9 +81,10 @@ Once `onLoadMore` has been called, it is not called again until one of these hap
 
 - The load finishes: `isLoadingMore` goes from `true` back to `false`.
 - `hasMore` changes, as it does when a new query starts over with a new dataset.
-- The sentinel leaves `rootMargin` and comes back: a fresh approach. This is what re-arms a load that finishes within one render, so `isLoadingMore` never reads `true`, or an `onLoadMore` that starts nothing.
+- Rows are added or removed in front of the sentinel, moving it, before `isLoadingMore` has read `true`: the answer to a load that finished within one render. Only while such a load is outstanding does `update` measure where the sentinel sits.
+- The sentinel leaves `rootMargin` and comes back: a fresh approach. This is what re-arms an `onLoadMore` that starts nothing.
 
-When a load finishes, or `hasMore` changes, with the sentinel still in range, the next load starts at once: nothing would scroll it out and back in to trigger one.
+When a load finishes, `hasMore` changes, or rows answer a load, with the sentinel still in range, the next load starts at once: nothing would scroll it out and back in to trigger one.
 
 There is no retry or backoff. A load that fails and leaves `isLoadingMore` `false` with the sentinel in range is tried again at once, so stop it through the options: set `hasMore` to `false` until the user asks again, or keep `isLoadingMore` `true` while the failure is shown.
 
