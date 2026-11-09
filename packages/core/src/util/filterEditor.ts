@@ -133,7 +133,7 @@ export function touchesColumn<Row>(
   entry: FilterEntry<Row>,
   columnId: string,
 ): boolean {
-  return "combinator" in entry
+  return entry.kind === "group"
     ? entry.entries.some((nested) => touchesColumn(nested, columnId))
     : entry.columnId === columnId;
 }
@@ -142,7 +142,7 @@ function isOperatorOn<Row>(
   entry: FilterEntry<Row>,
   columnId: string,
 ): entry is OperatorFilterEntry<Row> {
-  return "operator" in entry && entry.columnId === columnId;
+  return entry.kind === "operator" && entry.columnId === columnId;
 }
 
 /** An operator entry on `columnId` a condition editor can show: any but `in`. */
@@ -175,7 +175,7 @@ function valuesShape<Row>(
     return { kind: "values", values: alone, includeBlanks: false };
   }
   if (
-    !("combinator" in entry) ||
+    entry.kind !== "group" ||
     entry.combinator !== "or" ||
     entry.entries.length !== 2
   ) {
@@ -195,7 +195,7 @@ function conditionsShape<Row>(
 ): ColumnFilterShape<Row> | undefined {
   const [only] = touching;
   const grouped =
-    touching.length === 1 && only !== undefined && "combinator" in only;
+    touching.length === 1 && only !== undefined && only.kind === "group";
   const entries = grouped ? only.entries : touching;
   const combinator = grouped ? only.combinator : "and";
   if (entries.length === 0 || entries.length > 2) {
@@ -523,13 +523,14 @@ function draftEntries<Row>(
       columnId,
     }));
     return conditions.length > 1
-      ? [{ combinator: draft.combinator, entries: conditions }]
+      ? [{ kind: "group", combinator: draft.combinator, entries: conditions }]
       : conditions;
   }
   if (checksEverything(draft)) {
     return [];
   }
   const picked: OperatorFilterEntry<Row> = {
+    kind: "operator",
     columnId,
     operator: "in",
     value: [...draft.checked.values()],
@@ -537,8 +538,12 @@ function draftEntries<Row>(
   return draft.includeBlanks
     ? [
         {
+          kind: "group",
           combinator: "or",
-          entries: [picked, { columnId, operator: "isEmpty" }],
+          entries: [
+            picked,
+            { kind: "operator", columnId, operator: "isEmpty" },
+          ],
         },
       ]
     : [picked];

@@ -7,6 +7,7 @@ import type {
   ColumnSortEvent,
   ColumnVisibilityEvent,
   FilterChangeEvent,
+  FilterState,
   GroupByEvent,
   GroupExpansionEvent,
   PaginationChangeEvent,
@@ -668,7 +669,9 @@ describe("createGridController: filter", () => {
     const onFilterChange =
       vi.fn<(event: FilterChangeEvent<SampleRow>) => void>();
     const controller = create({ onFilterChange });
-    const filter = [{ columnId: "Region", query: "West" }];
+    const filter: FilterState<SampleRow> = [
+      { kind: "text", columnId: "Region", query: "West" },
+    ];
 
     controller.setFilter(filter);
     controller.setFilter([...filter]);
@@ -688,7 +691,7 @@ describe("createGridController: filter", () => {
       onPaginationChange,
     });
 
-    controller.setFilter([{ columnId: "Region", query: "East" }]);
+    controller.setFilter([{ kind: "text", columnId: "Region", query: "East" }]);
 
     expect(controller.getState().pagination.pageIndex).toBe(0);
     expect(onPaginationChange).not.toHaveBeenCalled();
@@ -698,7 +701,7 @@ describe("createGridController: filter", () => {
     const onFilterChange = vi.fn();
     const controller = create({ filter: [], onFilterChange });
 
-    controller.setFilter([{ columnId: "Region", query: "West" }]);
+    controller.setFilter([{ kind: "text", columnId: "Region", query: "West" }]);
 
     expect(onFilterChange).toHaveBeenCalledTimes(1);
     expect(controller.getView().rows).toHaveLength(5);

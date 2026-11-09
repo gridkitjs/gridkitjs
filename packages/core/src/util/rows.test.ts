@@ -58,7 +58,9 @@ const rows: readonly ResolvedRow<SampleRow>[] = [
 
 describe("resolveShownRows", () => {
   test("filters and sorts together, matching manual filter-then-sort", () => {
-    const filter: FilterState<SampleRow> = [{ columnId: "Name", query: "%a%" }];
+    const filter: FilterState<SampleRow> = [
+      { kind: "text", columnId: "Name", query: "%a%" },
+    ];
     const sort: ColumnSortState = [{ columnId: "Score", direction: "desc" }];
 
     const composed = resolveShownRows(rows, filter, sort, columns);
@@ -75,6 +77,7 @@ describe("resolveShownRows", () => {
   test("excludes a filtered-out row before ordering the remainder", () => {
     const filter: FilterState<SampleRow> = [
       {
+        kind: "predicate",
         columnId: "Score",
         predicate: (value) => typeof value === "number" && value >= 10,
       },
@@ -101,7 +104,9 @@ describe("resolveShownRows", () => {
   });
 
   test("only filter given behaves exactly like filterRows alone", () => {
-    const filter: FilterState<SampleRow> = [{ columnId: "Name", query: "%a%" }];
+    const filter: FilterState<SampleRow> = [
+      { kind: "text", columnId: "Name", query: "%a%" },
+    ];
 
     expect(resolveShownRows(rows, filter, [], columns)).toEqual(
       filterRows(rows, filter, columns),
@@ -113,7 +118,9 @@ describe("resolveShownRows", () => {
       { id: "Name", column: { field: "Name" } },
       { id: "Score", column: { field: "Score", type: "number" } },
     ];
-    const filter: FilterState<SampleRow> = [{ columnId: "Name", query: "%a%" }];
+    const filter: FilterState<SampleRow> = [
+      { kind: "text", columnId: "Name", query: "%a%" },
+    ];
     const sort: ColumnSortState = [{ columnId: "Score", direction: "desc" }];
 
     expect(resolveShownRows(rows, filter, sort, dataColumns)).toEqual(

@@ -206,7 +206,7 @@ describe("createGridController: row selection", () => {
   test("a range from an anchor filtered away selects the row clicked", () => {
     const controller = create();
     controller.selectRow("2", "replace");
-    controller.setFilter([{ columnId: "Region", query: "West" }]);
+    controller.setFilter([{ kind: "text", columnId: "Region", query: "West" }]);
 
     controller.selectRow("3", "range");
 

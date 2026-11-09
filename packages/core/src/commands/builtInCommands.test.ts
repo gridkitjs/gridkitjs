@@ -727,11 +727,11 @@ describe("filter.clear", () => {
     );
 
     // A search across every column filters none in particular.
-    controller.setFilter([{ query: "%West%" }]);
+    controller.setFilter([{ kind: "text", query: "%West%" }]);
     expect(command.enabled()).toBe(false);
 
     controller.setFilter([
-      { columnId: "Region", operator: "eq", value: "West" },
+      { kind: "operator", columnId: "Region", operator: "eq", value: "West" },
     ]);
     expect(command.enabled()).toBe(true);
   });
@@ -740,16 +740,22 @@ describe("filter.clear", () => {
     const controller = create({
       filterableColumns: true,
       defaultFilter: [
-        { columnId: "Region", operator: "in", value: ["West"] },
-        { query: "%a%" },
         {
+          kind: "operator",
+          columnId: "Region",
+          operator: "in",
+          value: ["West"],
+        },
+        { kind: "text", query: "%a%" },
+        {
+          kind: "group",
           combinator: "or",
           entries: [
-            { columnId: "Region", operator: "isEmpty" },
-            { columnId: "Amount", operator: "gt", value: 15 },
+            { kind: "operator", columnId: "Region", operator: "isEmpty" },
+            { kind: "operator", columnId: "Amount", operator: "gt", value: 15 },
           ],
         },
-        { columnId: "Amount", operator: "lt", value: 100 },
+        { kind: "operator", columnId: "Amount", operator: "lt", value: 100 },
       ],
     });
 
@@ -757,8 +763,8 @@ describe("filter.clear", () => {
       true,
     );
     expect(controller.getState().filter).toEqual([
-      { query: "%a%" },
-      { columnId: "Amount", operator: "lt", value: 100 },
+      { kind: "text", query: "%a%" },
+      { kind: "operator", columnId: "Amount", operator: "lt", value: 100 },
     ]);
   });
 });
@@ -860,13 +866,16 @@ describe("filter.clearAll", () => {
       builtIn("filter.clearAll", controller, group("Region")).visible(),
     ).toBe(false);
 
-    controller.setFilter([{ query: "%West%" }]);
+    controller.setFilter([{ kind: "text", query: "%West%" }]);
     expect(command.enabled()).toBe(true);
   });
 
   test("empties the filter, search included", () => {
     const controller = create({
-      defaultFilter: [{ query: "%West%" }, { columnId: "Id", value: 1 }],
+      defaultFilter: [
+        { kind: "text", query: "%West%" },
+        { kind: "value", columnId: "Id", value: 1 },
+      ],
     });
     builtIn("filter.clearAll", controller, GRID).run();
 
@@ -912,7 +921,7 @@ describe("export.csv", () => {
       expect(builtIn("export.csv", controller, target).visible()).toBe(false);
     }
 
-    controller.setFilter([{ query: "%North%" }]);
+    controller.setFilter([{ kind: "text", query: "%North%" }]);
     expect(command.visible()).toBe(true);
     expect(command.enabled()).toBe(false);
   });
@@ -1044,7 +1053,7 @@ describe("exportSelection", () => {
       builtIn("exportSelection.csv", controller, header("Id")).visible(),
     ).toBe(false);
 
-    controller.setFilter([{ query: "%West%" }]);
+    controller.setFilter([{ kind: "text", query: "%West%" }]);
     expect(command.visible()).toBe(true);
     expect(command.enabled()).toBe(false);
   });
@@ -1221,7 +1230,7 @@ describe("print", () => {
       expect(builtIn("print", controller, target).visible()).toBe(false);
     }
 
-    controller.setFilter([{ query: "%North%" }]);
+    controller.setFilter([{ kind: "text", query: "%North%" }]);
     expect(command.enabled()).toBe(true);
 
     controller.hideColumns(["Id", "Region", "Amount"]);
