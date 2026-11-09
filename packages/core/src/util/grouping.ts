@@ -130,7 +130,7 @@ function buildLevel<Row>(
   for (const group of groups) {
     const path = [...parentPath, group.value];
     const groupId = groupRowId(path);
-    const expanded = !expansion.includes(groupId);
+    const expanded = isGroupExpanded(expansion, groupId);
     const header: ResolvedGroupRow = {
       kind: "group",
       groupId,
@@ -158,9 +158,9 @@ function buildLevel<Row>(
  * `rows`, regrouped into `groupBy`'s stacked levels — a group header per
  * distinct value at each level, ordered by `compareValues` per that level's
  * own `direction`, followed depth-first by its nested groups and/or data
- * rows. A collapsed group (its `groupId` present in `expansion`) contributes
- * only its own header, nothing beneath it — but its `count` still reports
- * the group's full leaf-row count either way.
+ * rows. A group `expansion` collapses contributes only its own header,
+ * nothing beneath it — but its `count` still reports the group's full
+ * leaf-row count either way.
  *
  * Filter and sort are expected to have already run (see `resolveShownRows`):
  * this only reshapes their output, and never changes which rows appear or
@@ -198,46 +198,71 @@ export function groupRows<Row>(
   return renumberRows(out);
 }
 
+/** Every group expanded, with no exceptions: where an uncontrolled grid starts. */
+export const ALL_EXPANDED: GroupExpansionState = {
+  mode: "allExpanded",
+  except: [],
+};
+
+/** Every group collapsed, with no exceptions. */
+export const ALL_COLLAPSED: GroupExpansionState = {
+  mode: "allCollapsed",
+  except: [],
+};
+
+/** Whether `expansion` shows the group `groupId` names expanded. */
+export function isGroupExpanded(
+  expansion: GroupExpansionState,
+  groupId: string,
+): boolean {
+  const excepted = expansion.except.includes(groupId);
+  return expansion.mode === "allExpanded" ? !excepted : excepted;
+}
+
 /**
  * The expansion with `groupId` collapsed if it was expanded, or expanded if
- * it was collapsed.
+ * it was collapsed: it joins `except`, or leaves it, whatever the mode.
  */
 export function toggleGroupExpansion(
   expansion: GroupExpansionState,
   groupId: string,
 ): GroupExpansionState {
-  return expansion.includes(groupId)
-    ? expansion.filter((id) => id !== groupId)
-    : [...expansion, groupId];
-}
-
-/** `expansion` reduced to empty — every group expanded. Mirrors `clearAllFilters`. */
-export function expandAllGroups(
-  expansion: GroupExpansionState,
-): GroupExpansionState {
-  return expansion.length === 0 ? expansion : [];
+  const except = expansion.except.includes(groupId)
+    ? expansion.except.filter((id) => id !== groupId)
+    : [...expansion.except, groupId];
+  return { mode: expansion.mode, except };
 }
 
 /**
- * Every group id present in `rows` — for collapsing every group currently
- * shown in one call. Operates on the already-grouped display, not the raw
- * grouping, so a group hidden beneath an already-collapsed ancestor (and so
- * absent from `rows`) keeps whatever expansion it already had rather than
- * being forced closed too; expanding that ancestor again reveals it exactly
- * as it was left.
- *
- * Group headers only: a summary row (`groupAggregateDisplay: "row"`) carries
- * its group's id too, and counting it would list that group twice.
+ * Every group expanded, now and as groups appear. Returns `expansion` itself
+ * when it already says so, so expanding twice is no change.
  */
-export function collapseAllGroups<Row>(
-  rows: readonly DisplayRow<Row>[],
+export function expandAllGroups(
+  expansion: GroupExpansionState,
 ): GroupExpansionState {
-  return rows
-    .filter(
-      (entry): entry is ResolvedGroupRow =>
-        "kind" in entry && entry.kind === "group",
-    )
-    .map((entry) => entry.groupId);
+  return isWithoutExceptions(expansion, "allExpanded")
+    ? expansion
+    : ALL_EXPANDED;
+}
+
+/**
+ * Every group collapsed, now and as groups appear: one hidden under a
+ * collapsed ancestor too, so expanding that ancestor shows its children
+ * collapsed. Returns `expansion` itself when it already says so.
+ */
+export function collapseAllGroups(
+  expansion: GroupExpansionState,
+): GroupExpansionState {
+  return isWithoutExceptions(expansion, "allCollapsed")
+    ? expansion
+    : ALL_COLLAPSED;
+}
+
+function isWithoutExceptions(
+  expansion: GroupExpansionState,
+  mode: GroupExpansionState["mode"],
+): boolean {
+  return expansion.mode === mode && expansion.except.length === 0;
 }
 
 /**

@@ -343,7 +343,7 @@ test("expandAllGroups/collapseAllGroups drive the whole tree at once", async ({
   await root.getByRole("button", { name: "expand-all-groups" }).click();
   await root.getByRole("button", { name: "report" }).click();
   status = await readStatus(root);
-  expect(status.groupExpansion).toHaveLength(0);
+  expect(status.groupExpansion).toEqual({ mode: "allExpanded", except: [] });
   expect(status.displayRowCount).toBe(11);
 });
 
@@ -501,7 +501,7 @@ test("a controlled groupExpansion keeps a clicked group open until the parent ap
       dataSource={buildRows()}
       label="Controlled expansion"
       defaultGroupBy={[{ columnId: "region" }]}
-      controlled={{ groupExpansion: [] }}
+      controlled={{ groupExpansion: { mode: "allExpanded", except: [] } }}
     />,
   );
 

@@ -223,7 +223,7 @@ export interface DataGridApi<Row>
   selectRows(rowIds: readonly string[], intent?: "replace" | "toggle"): void;
   /** Expands every group at once, as the `group.expandAll` command does. */
   expandAllGroups(): void;
-  /** Collapses every group currently shown at once — see `collapseAllGroups` in `@gridkitjs/core` for what "currently shown" means for a group already nested under a collapsed one. */
+  /** Collapses every group at once, as the `group.collapseAll` command does — one nested under a collapsed group, and one that appears later, too. */
   collapseAllGroups(): void;
   /** Moves to the given page, clamped into range. */
   goToPage(pageIndex: number): void;
@@ -259,7 +259,7 @@ export interface DataGridApi<Row>
   setColumnSort(sort: ColumnSortState): void;
   /** Replaces the group-by stack. Reports through `onGroupByChange`. */
   setGroupBy(groupBy: GroupByState): void;
-  /** Replaces the collapsed groups. Reports through `onGroupExpansionChange` with `groupId: null`. */
+  /** Replaces the group expansion. Reports through `onGroupExpansionChange` with `groupId: null`, and nothing for an equal expansion. */
   setGroupExpansion(expansion: GroupExpansionState): void;
   /** Replaces the page and page size as given. Reports through `onPaginationChange`. */
   setPagination(pagination: PaginationState): void;

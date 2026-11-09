@@ -91,9 +91,9 @@ Every action works out the next value, stops if it is the value the slice alread
 | `toggleGroupBy(columnId)`                                          | `onGroupByChange`          | Adds a column to the end of the group-by stack, or removes it.                                                                                 |
 | `moveGroupBy(columnId, beforeColumnId)`                            | `onGroupByChange`          | Puts a column in front of another in the stack, or at the end for `null`.                                                                      |
 | `setGroupBy(groupBy)`                                              | `onGroupByChange`          | Replaces the stack, naming the first level that changed.                                                                                       |
-| `toggleGroupExpansion(groupId)`                                    | `onGroupExpansionChange`   | Collapses an expanded group, or expands a collapsed one.                                                                                       |
-| `expandAllGroups()` / `collapseAllGroups()`                        | `onGroupExpansionChange`   | Every group at once, reported with `groupId: null`.                                                                                            |
-| `setGroupExpansion(expansion)`                                     | `onGroupExpansionChange`   | Replaces the collapsed groups, reported with `groupId: null`.                                                                                  |
+| `toggleGroupExpansion(groupId)`                                    | `onGroupExpansionChange`   | Collapses an expanded group, or expands a collapsed one: see [`toggleGroupExpansion`](/docs/core/grouping#expanding-and-collapsing).           |
+| `expandAllGroups()` / `collapseAllGroups()`                        | `onGroupExpansionChange`   | Every group at once, including those not on screen yet, reported with `groupId: null`.                                                         |
+| `setGroupExpansion(expansion)`                                     | `onGroupExpansionChange`   | Replaces which groups are expanded, reported with `groupId: null`.                                                                             |
 | `goToPage(pageIndex)`                                              | `onPaginationChange`       | Moves to a page, clamped into range.                                                                                                           |
 | `nextPage()` / `previousPage()`                                    | `onPaginationChange`       | One page on or back.                                                                                                                           |
 | `setPageSize(pageSize)`                                            | `onPaginationChange`       | Changes the page size and goes back to the first page.                                                                                         |
@@ -124,6 +124,8 @@ if (stored !== null) {
 ```
 
 A saved state may be partial — `{ columnSizing, columnOrder, columnVisibility }` restores a column layout and leaves the sort, filter and selection alone.
+
+A `groupExpansion` saved as a bare list of group ids, as releases before the slice had a mode wrote it, still restores: it lists the collapsed groups, so it reads as `{ mode: "allExpanded", except: ids }`. A value of any other shape throws, like other unreadable state.
 
 ## See also
 

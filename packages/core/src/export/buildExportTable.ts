@@ -21,7 +21,7 @@ import {
   type FormatLocale,
 } from "../util/format";
 import { accessDotted, resolveColumnHeaderText } from "../util/grid";
-import { groupRows } from "../util/grouping";
+import { ALL_EXPANDED, groupRows } from "../util/grouping";
 import { resolveColumnWidths } from "../util/sizing";
 import type {
   ExportCell,
@@ -330,9 +330,13 @@ export function buildExportTable<Row>(
   };
 
   const rows = scopedRows(source, options.scope ?? "all");
-  // No collapsed ids: a collapsed group hides its rows from the screen, not
-  // from an export.
-  const grouped = groupRows(rows, state.groupBy, [], view.dataColumns);
+  // A collapsed group hides its rows from the screen, not from an export.
+  const grouped = groupRows(
+    rows,
+    state.groupBy,
+    ALL_EXPANDED,
+    view.dataColumns,
+  );
   const displayRows =
     (options.includeGroups ?? true)
       ? withGroupAggregates(

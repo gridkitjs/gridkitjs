@@ -488,11 +488,14 @@ describe("group.expandAll", () => {
   test("expands every group", () => {
     const controller = create({
       defaultGroupBy: [{ columnId: "Region" }],
-      defaultGroupExpansion: ["West"],
+      defaultGroupExpansion: { mode: "allExpanded", except: ['["West"]'] },
     });
     builtIn("group.expandAll", controller, GRID).run();
 
-    expect(controller.getState().groupExpansion).toEqual([]);
+    expect(controller.getState().groupExpansion).toEqual({
+      mode: "allExpanded",
+      except: [],
+    });
   });
 });
 
@@ -510,7 +513,11 @@ describe("group.collapseAll", () => {
     const controller = create({ defaultGroupBy: [{ columnId: "Region" }] });
     builtIn("group.collapseAll", controller, GRID).run();
 
-    expect(controller.getState().groupExpansion).toHaveLength(2);
+    expect(controller.getState().groupExpansion).toEqual({
+      mode: "allCollapsed",
+      except: [],
+    });
+    expect(controller.getView().displayDataRows).toEqual([]);
   });
 });
 

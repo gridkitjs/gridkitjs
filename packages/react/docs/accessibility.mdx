@@ -123,7 +123,7 @@ A `role="status" aria-live="polite"` region, outside the table itself, reports c
 - **Copy** — once a copy is on the clipboard, announces what it holds ("3 rows copied", "1 cell copied"), as nothing on screen shows it; a copy the browser refuses announces "Copy failed".
 - **Search** — once a search typed into the toolbar's box applies, announces how many rows it found ("3 rows found").
 - **Filter menu** — once a column's [filter menu](/docs/react/column-filter-menu) applies and the grid has drawn the rows its filter keeps, announces how many of all the rows they are ("2 of 3 rows").
-- **Group expand/collapse** — a single group toggle announces "Group expanded"/"Group collapsed"; `expandAllGroups()`/`collapseAllGroups()` announce the whole-tree result instead ("All groups expanded"/"All groups collapsed").
+- **Group expand/collapse** — a single group toggle announces "Group expanded"/"Group collapsed"; `expandAllGroups()`/`collapseAllGroups()` announce the whole-tree result instead ("All groups expanded"/"All groups collapsed"), and so does the ref's `setGroupExpansion()`, by the mode it sets.
 - **Page change** — moving to another page or changing the page size announces where the grid is now, as the `pageStatus` message has it ("Page 2 of 5"). The silent reset to the first page a filter, sort or regroup causes is not announced on its own.
 
 Each announcement's wording is a `messages` key, so it can be translated — see [localization](/docs/react/localization).

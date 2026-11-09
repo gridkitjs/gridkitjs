@@ -5,6 +5,7 @@ import type {
   FilterScalar,
   FilterState,
   GridState,
+  GroupExpansionState,
   OperatorFilterEntry,
   SerializedFilterEntry,
   SerializedFilterScalar,
@@ -215,4 +216,39 @@ export function reviveFilter<Row>(
 ): FilterState<Row> {
   const types = new Map(columns.map((entry) => [entry.id, entry.column.type]));
   return reviveEntries(filter, (columnId) => types.get(columnId));
+}
+
+function isStringList(value: unknown): value is readonly string[] {
+  return (
+    Array.isArray(value) && value.every((item) => typeof item === "string")
+  );
+}
+
+function isGroupExpansion(value: unknown): value is GroupExpansionState {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "mode" in value &&
+    (value.mode === "allExpanded" || value.mode === "allCollapsed") &&
+    "except" in value &&
+    isStringList(value.except)
+  );
+}
+
+/**
+ * A saved `groupExpansion` back as a `GroupExpansionState`. A bare list of
+ * group ids, as GridKit saved the slice before it carried a mode, names the
+ * collapsed groups, so it reads as `allExpanded` with them as the
+ * exceptions. Anything else throws.
+ */
+export function reviveGroupExpansion(saved: unknown): GroupExpansionState {
+  if (isStringList(saved)) {
+    return { mode: "allExpanded", except: saved };
+  }
+  if (isGroupExpansion(saved)) {
+    return saved;
+  }
+  throw new TypeError(
+    "GridKit: a saved `groupExpansion` is neither `{ mode, except }` nor a list of group ids.",
+  );
 }

@@ -19,7 +19,7 @@ const view = resolveGridView({
     columnSort: [{ columnId: "Amount", direction: "desc" }],
     filter: [],
     groupBy: [{ columnId: "Region" }],
-    groupExpansion: [],
+    groupExpansion: { mode: "allExpanded", except: [] },
     pagination: { pageIndex: 0, pageSize: 25 },
   },
   options: { paginated: true, aggregates: [{ columnId: "Amount", fn: "sum" }] },

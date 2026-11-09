@@ -6,10 +6,12 @@ import type {
   FilterChangeEvent,
   FilterState,
   GridState,
+  GroupExpansionState,
   PaginationChangeEvent,
   SerializedFilterState,
   SerializedGridState,
 } from "../types";
+import { ALL_EXPANDED } from "../util/grouping";
 import { serializeGridState } from "../util/serialize";
 import { createGridController } from "./createGridController";
 import type { GridControllerOptions } from "./gridController";
@@ -74,7 +76,7 @@ const saved: GridState<SampleRow> = {
     },
   ],
   groupBy: [{ columnId: "Region", direction: "desc" }],
-  groupExpansion: ["West"],
+  groupExpansion: { mode: "allExpanded", except: ["West"] },
   pagination: { pageIndex: 1, pageSize: 1 },
   rowSelection: ["3", "1"],
   columnSelection: ["Amount"],
@@ -446,5 +448,50 @@ describe("createGridController: restoreState", () => {
 
     expect(onColumnSortChange).toHaveBeenCalledTimes(1);
     expect(controller.getState().columnSort).toEqual([]);
+  });
+});
+
+describe("group expansion", () => {
+  /** A layout read back from storage, whatever shape it was saved in. */
+  function parseSaved(json: string): Partial<SerializedGridState<SampleRow>> {
+    return JSON.parse(json) as Partial<SerializedGridState<SampleRow>>;
+  }
+
+  test("serializeGridState writes the mode and its exceptions", () => {
+    const groupExpansion: GroupExpansionState = {
+      mode: "allCollapsed",
+      except: ['["East"]'],
+    };
+
+    expect(throughJson({ ...saved, groupExpansion }).groupExpansion).toEqual(
+      groupExpansion,
+    );
+  });
+
+  test("a bare list of group ids, as saved before the slice had a mode, restores as its collapsed groups", () => {
+    const controller = create({ defaultGroupBy: [{ columnId: "Region" }] });
+
+    controller.restoreState(
+      parseSaved(`{ "groupExpansion": ["[\\"West\\"]"] }`),
+    );
+
+    expect(controller.getState().groupExpansion).toEqual({
+      mode: "allExpanded",
+      except: ['["West"]'],
+    });
+    expect(
+      controller.getView().displayDataRows.map((entry) => entry.rowId),
+    ).toEqual(["2", "5", "4"]);
+  });
+
+  test("a saved groupExpansion of any other shape throws", () => {
+    const controller = create();
+
+    expect(() => {
+      controller.restoreState(
+        parseSaved(`{ "groupExpansion": { "mode": "someCollapsed" } }`),
+      );
+    }).toThrow(TypeError);
+    expect(controller.getState().groupExpansion).toEqual(ALL_EXPANDED);
   });
 });

@@ -12,6 +12,7 @@ import type {
 } from "../types";
 import { defineColumnsFromRows } from "../util/grid";
 import {
+  ALL_EXPANDED,
   collapseAllGroups as collapsedGroups,
   expandAllGroups as expandedGroups,
   moveGroupByBefore,
@@ -21,7 +22,7 @@ import { memoizeLast } from "../util/memoize";
 import { moveColumnBefore } from "../util/ordering";
 import { paginateRows, type PaginatedRows } from "../util/paging";
 import { reportError } from "../util/report";
-import { reviveFilter } from "../util/serialize";
+import { reviveFilter, reviveGroupExpansion } from "../util/serialize";
 import { resolveColumnWidths, revertColumnSize } from "../util/sizing";
 import { toggleColumnSort as toggledColumnSort } from "../util/sorting";
 import { createGridViewResolver } from "../util/view";
@@ -31,7 +32,7 @@ import {
   changedId,
   changedKeys,
   sameFilter,
-  sameItems,
+  sameGroupExpansion,
   samePagination,
 } from "./changes";
 import type { GridController, GridControllerOptions } from "./gridController";
@@ -106,7 +107,7 @@ function startingState<Row>(options: GridOptions<Row>): OwnState<Row> {
     columnSort: options.defaultColumnSort ?? [],
     filter: options.defaultFilter ?? [],
     groupBy: options.defaultGroupBy ?? [],
-    groupExpansion: options.defaultGroupExpansion ?? [],
+    groupExpansion: options.defaultGroupExpansion ?? ALL_EXPANDED,
     pagination: options.defaultPagination ?? {
       pageIndex: 0,
       pageSize: DEFAULT_PAGE_SIZE,
@@ -708,7 +709,7 @@ export function createGridController<Row, Node = string>(
     },
 
     setGroupExpansion(expansion) {
-      if (!sameItems(state.groupExpansion, expansion)) {
+      if (!sameGroupExpansion(state.groupExpansion, expansion)) {
         commitGroupExpansion(expansion, null);
       }
     },
@@ -722,7 +723,7 @@ export function createGridController<Row, Node = string>(
       commitGroupExpansion(expandedGroups(state.groupExpansion), null);
     },
     collapseAllGroups() {
-      commitGroupExpansion(collapsedGroups(getView().displayRows), null);
+      commitGroupExpansion(collapsedGroups(state.groupExpansion), null);
     },
 
     setPagination: commitPagination,
@@ -765,7 +766,7 @@ export function createGridController<Row, Node = string>(
       controller.setGroupBy(saved.groupBy);
     }
     if (saved.groupExpansion !== undefined) {
-      controller.setGroupExpansion(saved.groupExpansion);
+      controller.setGroupExpansion(reviveGroupExpansion(saved.groupExpansion));
     }
     if (saved.pagination !== undefined) {
       controller.setPagination(saved.pagination);

@@ -1,10 +1,14 @@
 import { useCallback, type RefObject } from "react";
-import type { GroupByState, GroupExpansionState } from "@gridkitjs/core";
+import {
+  ALL_EXPANDED,
+  type GroupByState,
+  type GroupExpansionState,
+} from "@gridkitjs/core";
 import type { DataGridApi } from "../DataGrid";
 import useGridSnapshot from "./useGridSnapshot";
 
 const FALLBACK_GROUP_BY: GroupByState = [];
-const FALLBACK_EXPANSION: GroupExpansionState = [];
+const FALLBACK_EXPANSION: GroupExpansionState = ALL_EXPANDED;
 
 export interface GroupByStateApi {
   groupBy: GroupByState;
@@ -19,14 +23,14 @@ export interface GroupByStateApi {
  * outside the grid's own DOM.
  *
  * The ref's `setGroupBy` and `setGroupExpansion` change the grouping and the
- * collapsed groups for a custom group-by UI; this hook carries only the
+ * group expansion for a custom group-by UI; this hook carries only the
  * all-at-once expansion actions. A specific
  * group's own computed aggregates are read off `getDisplayRows()`'s
  * per-header `aggregates` field instead of a getter here — see
  * `useAggregateState` for the grand-total equivalent.
  *
- * Before the grid mounts, both fields read as empty and the actions are
- * no-ops.
+ * Before the grid mounts, `groupBy` reads as empty, `groupExpansion` as
+ * `ALL_EXPANDED`, and the actions are no-ops.
  */
 export default function useGroupByState<Row>(
   gridRef: RefObject<DataGridApi<Row> | null>,

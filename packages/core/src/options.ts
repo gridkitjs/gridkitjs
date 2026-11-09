@@ -288,10 +288,14 @@ export interface GridOptions<Row> {
    * or reordering a level.
    */
   onGroupByChange?: ((event: GroupByEvent) => void) | undefined;
-  /** Group keys collapsed to start with — every other group starts expanded. Uncontrolled. */
+  /**
+   * Which groups start expanded, as a mode with exceptions — `{ mode:
+   * "allCollapsed", except: [] }` starts every group collapsed. Every group
+   * starts expanded when it is left out. Uncontrolled.
+   */
   defaultGroupExpansion?: GroupExpansionState | undefined;
   /**
-   * The collapsed groups, controlled — applied as given, changed only
+   * Which groups are expanded, controlled — applied as given, changed only
    * through `onGroupExpansionChange`. Leave it `undefined` for the grid to
    * keep it itself, starting from `defaultGroupExpansion`.
    */
