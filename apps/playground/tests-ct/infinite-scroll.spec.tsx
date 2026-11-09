@@ -157,6 +157,32 @@ test.describe("infinite scroll", () => {
     await expect(loadCount).toHaveText("2");
   });
 
+  test("loads that finish within one render keep coming while the sentinel stays in range", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <InfiniteScrollGrid
+        columns={columns}
+        allRows={buildRows(60)}
+        chunkSize={20}
+        instantLoads
+        // Past the bottom of all 60 rows, so no load takes the sentinel out
+        // of range.
+        rootMargin="5000px"
+        label="Infinite scroll instant cascade"
+        height={150}
+      />,
+    );
+
+    const loadCount = root.getByTestId("load-count");
+    await expect(loadCount).toHaveText("2");
+    await expect(root.locator(".grid-sentinel-row")).toHaveCount(0);
+    await afterNextFrames(page);
+    await expect(loadCount).toHaveText("2");
+  });
+
   test("hasMore turning true again for a new dataset loads again while the sentinel is near", async ({
     mount,
   }) => {
@@ -355,6 +381,32 @@ test.describe("attachInfiniteScroll", () => {
     const root = await mount(<InfiniteScrollHarness />);
     await root.getByRole("button", { name: "Has more" }).click();
 
+    await expect(root.getByTestId("load-count")).toHaveText("1");
+  });
+
+  test("a load answered without isLoadingMore that leaves the sentinel in view loads again", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<InfiniteScrollHarness appendOnLoad />);
+    await root.getByRole("button", { name: "Has more" }).click();
+
+    // Each load moves the sentinel down a row; the third takes it out of view.
+    await expect(root.getByTestId("load-count")).toHaveText("3");
+    await afterNextFrames(page);
+    await expect(root.getByTestId("load-count")).toHaveText("3");
+  });
+
+  test("a request still unanswered is not repeated by an update that moves nothing", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<InfiniteScrollHarness />);
+    await root.getByRole("button", { name: "Has more" }).click();
+    await expect(root.getByTestId("load-count")).toHaveText("1");
+
+    // The load's own render updates with the sentinel where it was.
+    await afterNextFrames(page);
     await expect(root.getByTestId("load-count")).toHaveText("1");
   });
 

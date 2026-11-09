@@ -414,7 +414,7 @@ if (entries.length > 0) {
 }
 ```
 
-`onContextMenuOpenChange` is called as a grid's context menu opens and closes, with a `ContextMenuOpenChangeEvent` — `{ open, target }`, where the menu opened or where the one closing had. A menu opened in place of another reports that one closing first. The open state itself is the renderer's: no option holds it.
+`onContextMenuOpenChange` is called as a grid's context menu opens and closes, with a `ContextMenuOpenChangeEvent` — `{ open, target }`, where the menu opened or where the one closing had. A menu opened in place of another reports that one closing first, and a menu also reports closing when a panel opens in its place, when the grid unmounts and when `contextMenu` is turned off while it is open. The open state itself is the renderer's: no option holds it.
 
 @gridkitjs/react draws them and opens them for you — see its [context menu](/docs/react/context-menu).
 

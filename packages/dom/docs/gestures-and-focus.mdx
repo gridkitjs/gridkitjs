@@ -32,7 +32,7 @@ A gesture starts from a `PointerPress` — the `pointerdown` that began it, nati
 
 ### Column resize
 
-`startColumnResizeGesture(handle, press, session, { onMove, onEnd, onCancel })` drags a column's edge. `session` comes from @gridkitjs/core's `beginColumnResize`, which also turns each pointer position into a clamped width. `onMove(width)` reports every move; `onEnd(width)` reports the release, with `null` when the width ended where it started — a click on the handle is not a resize; `onCancel()` reports <Kbd>Escape</Kbd> or a cancelled pointer.
+`startColumnResizeGesture(handle, press, session, { onMove, onEnd, onCancel })` drags a column's edge. `session` comes from @gridkitjs/core's `beginColumnResize`, which also turns each pointer position into a clamped width. `onMove(width)` reports every move; `onEnd(width)` reports the release, with `null` when the width never changed (a click on the handle is not a resize), and with the start width for a drag that came back to it; `onCancel()` reports <Kbd>Escape</Kbd> or a cancelled pointer.
 
 ```ts
 import { beginColumnResize } from "@gridkitjs/core";
@@ -189,7 +189,7 @@ The list is the element that scrolls — the virtualizer's scroll element — so
 
 A key pressed with <Kbd>Ctrl</Kbd>, <Kbd>Alt</Kbd>, <Kbd>Shift</Kbd> or <Kbd>Meta</Kbd> is left alone. A move to an item outside the window asks `scrollToIndex` for it and focuses it once it mounts, unless focus has gone elsewhere in the meantime. There is no typeahead: a checklist of values comes with a search box.
 
-`setCount(count)` says how many items the whole list holds. It starts at 0, so call it straight after attaching, and again whenever the list changes — a search narrowing it, say; a focused place past the new end moves back to the last item, and so does a move still waiting for an item past it. `focusItem(index)` focuses an item from code, scrolling to it first.
+`setCount(count)` says how many items the whole list holds. It starts at 0, so call it straight after attaching, and again whenever the list changes — a search narrowing it, say; a focused place past the new end moves back to the last item, and so does a move still waiting for an item past it. `focusItem(index)` focuses an item from code, scrolling to it first. `detach()` removes its listeners and observer; after it, `setCount` and `focusItem` do nothing, and a move still waiting for its item is dropped.
 
 ```ts
 import { attachChecklist, createRowVirtualizer } from "@gridkitjs/dom";

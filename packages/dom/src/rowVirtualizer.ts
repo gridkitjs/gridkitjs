@@ -16,7 +16,11 @@ export interface RowVirtualizerOptions {
 export interface RowVirtualizer {
   /** How many rows there are. Measured heights of the rows that remain are kept. */
   readonly setRowCount: (count: number) => void;
-  /** Forgets every measured height, for rows that are no longer the ones measured. */
+  /**
+   * Forgets every measured height, for rows that are no longer the ones
+   * measured. A `scrollToIndex` still waiting for its row is dropped too:
+   * the row it asked for is no longer at that index.
+   */
   readonly resetHeights: () => void;
   /**
    * A ref callback for the element of row `index` (its place among all the
@@ -29,8 +33,8 @@ export interface RowVirtualizer {
    * Scrolls so row `index` is in view. A mounted row is scrolled to directly;
    * one outside the window is jumped to at its estimated offset, then
    * scrolled to properly once it mounts and can be measured. A later call
-   * replaces one still waiting for its row, and so does a row count that no
-   * longer holds that row.
+   * replaces one still waiting for its row; a row count that no longer holds
+   * that row, or `resetHeights`, drops it.
    */
   readonly scrollToIndex: (
     index: number,
@@ -167,6 +171,9 @@ export function createRowVirtualizer(
       recompute();
     },
     resetHeights() {
+      if (phase.kind === "awaiting-row") {
+        phase = READY;
+      }
       heights = new Array<number | undefined>(heights.length).fill(undefined);
       recompute();
     },

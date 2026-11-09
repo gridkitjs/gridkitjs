@@ -1,5 +1,74 @@
 # @gridkitjs/dom
 
+## 0.4.0
+
+### Minor Changes
+
+- c5ff365: `DragReorderHandlers` and `ColumnResizeGestureHandlers` take an optional
+  `signal`, an `AbortSignal`. Aborting it cancels the gesture as Escape does
+  (`onState(NO_DRAG)` for a drag, `onCancel()` for a resize) and releases its
+  listeners and pointer capture, so a renderer can end a gesture whose element
+  goes away mid-drag. With a signal that is already aborted,
+  `startDragReorder` and `startColumnResizeGesture` start nothing and return
+  `false`.
+- 7007a80: `createGridFocus`'s `attach` takes an optional second argument, `root`: the
+  grid element holding the rows. Given one, a move still waiting for its
+  virtualized row to mount is dropped when focus leaves `root` or the user
+  scrolls or presses inside it, so the row mounting later no longer scrolls
+  the grid back to it or pulls focus back into the grid.
+
+  ```ts
+  focus.attach({ getHeaderRow, getBodyRow }, gridElement);
+  ```
+
+- 35d135c: `attachOverlay` takes a `returnFocusFallback` option: a function naming where
+  focus goes on detach when `returnFocusTo` is `null` or has left the page, as a
+  menu button does when an item in its menu hides it. Without it, focus falls to
+  the page as before.
+
+### Patch Changes
+
+- c5ff365: `startDragReorder` opens a drag once the pointer has travelled 4 pixels in any
+  direction, as documented. It used to count horizontal travel only, so a header
+  dragged straight up toward the group-by bar never opened a drag.
+- c5ff365: `startDragReorder` and `startColumnResizeGesture` follow only the pointer that
+  started them. A second finger landing mid-gesture used to steer the drag or
+  resize, and lifting it ended the gesture; its events are now ignored.
+- 7007a80: `attachInfiniteScroll` no longer stops loading for good after a load that
+  never reported `isLoadingMore: true`, such as one that finished within a
+  single render or an `onLoadMore` that started nothing. A load is now
+  re-armed when it finishes, when `hasMore` changes (a new dataset loads
+  again while the sentinel is in range), or when the sentinel leaves
+  `rootMargin` and comes back. An `update` after `detach()` does nothing,
+  where it used to start observing again.
+- 7007a80: `attachMenu` starts the typeahead afresh after any other key it acts on, so
+  a letter typed after an arrow key searches for that letter alone rather than
+  for every letter typed in the last half second. A key it acts on also
+  cancels the wait of a pointer resting on an item, so a submenu item the
+  pointer was resting on no longer opens its submenu after the keyboard moved
+  focus on.
+- 7007a80: A scroll or focus move still waiting for its row or item to mount no longer
+  acts once it no longer applies. `createRowVirtualizer`'s `scrollToIndex`
+  replaces a far scroll still waiting when it is called again, even for a
+  mounted row, and drops it when `setRowCount` no longer holds its row; the
+  far row mounting later used to scroll the list back to it. After
+  `destroy()`, `scrollToIndex` no longer scrolls. `attachChecklist`'s
+  `setCount` moves a focus move waiting for an item past the new end to the
+  last item, as it does the focused place, where the item first asked for
+  used to take focus whenever it mounted later.
+- 7007a80: `printDocument` cleans up after a print that fails. When the browser fails
+  to open the print dialog, the listeners the print added to `window` are
+  removed along with its frame. When the frame is taken out of the page
+  before it loads, the promise rejects instead of never settling, so later
+  prints are no longer refused as if that one were still open.
+- Updated dependencies [071c1b7]
+- Updated dependencies [04748e4]
+- Updated dependencies [0e66a82]
+- Updated dependencies [04748e4]
+- Updated dependencies [071c1b7]
+- Updated dependencies [071c1b7]
+  - @gridkitjs/core@0.16.0
+
 ## 0.3.3
 
 ### Patch Changes

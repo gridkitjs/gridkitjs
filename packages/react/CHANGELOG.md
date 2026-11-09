@@ -1,5 +1,69 @@
 # @gridkitjs/react
 
+## 0.16.0
+
+### Minor Changes
+
+- 35d135c: The context menu and the grid's panels (the column chooser and a column's
+  filter menu) are now open one at a time, through the ref as well as in the
+  grid. Before, `openColumnChooser()` or `openFilterMenu(columnId)` called while
+  a context menu was open left both open; now the panel closes the menu, which
+  reports `onContextMenuOpenChange({ open: false, target })`. Likewise
+  `openContextMenu(target)` closes a panel open.
+
+### Patch Changes
+
+- 35d135c: A context menu open when `contextMenu` is turned off, or when the grid
+  unmounts, now closes and reports `onContextMenuOpenChange({ open: false })`.
+  Before, turning the option off left the menu up, and unmounting closed it
+  without a word.
+- c5ff365: A header click after a column drag cancelled with Escape is no longer
+  swallowed. When the button was released away from the header, the next click
+  on any header, including one that cannot be dragged, used to be taken for the
+  end of the cancelled drag and did nothing.
+- 04748e4: An export whose download the browser refuses is logged and announced as "Export failed", as a failing writer already was. It used to end in an unhandled promise rejection, or an exception thrown out of the menu item or `runCommand`, with nothing said to the user.
+- 04748e4: An export dropped because another is still being written is no longer reported to `onCommand`, and `runCommand` returns `false` for it. Choosing a slow export twice used to report two exports while saving one file.
+- 0e66a82: A filter applied from a filter menu, or a search typed in the toolbar's search box, that a controlled `filter` doesn't take is no longer announced later. Before, the "2 of 3 rows" or "2 rows found" announcement waited, and was read out at whatever render next showed that filter or search, such as the app taking it a while after.
+- 0e66a82: OK in a filter menu that changes nothing leaves the column's filter as it is, and `onFilterChange` hears nothing. Before, the excel editor removed a filter set in code (conditions, or a custom filter) once a value had been unchecked and checked again, or "Select all" pressed twice; and the simple editor rewrote the column's own conditions on an untouched OK: two top-level conditions came back as one group, and a date set as a string as a `Date`. A value typed into the simple editor and taken out again now closes the menu on OK, as an untouched one does, rather than marking the box invalid.
+- 35d135c: `closeFilterMenu` called right after `openFilterMenu`, before the grid has
+  redrawn, closes the menu just opened rather than leaving it open.
+- 0e66a82: An open filter menu now shows its column's filter when it is set in code while the menu is open, through `setFilter` or a controlled `filter`, as it would on opening the menu again. Before, it kept what was typed or checked, and OK wrote that over the new filter. A change to another column's filter leaves what was typed in the simple editor.
+- c5ff365: `DataGrid` ends a column drag or resize when the grid unmounts, or when the
+  column being dragged is hidden mid-gesture. Either used to leave the gesture
+  listening for Escape: a hidden column's drag kept the group-by bar open and
+  its ghost came back with the column, and the first Escape afterwards cancelled
+  the dead gesture instead of clearing the selection. A resize cut short this
+  way now puts the column back to its starting width, as Escape does.
+- 7007a80: A virtualized `DataGrid` no longer scrolls back and pulls focus into a row a
+  keyboard move asked for when focus has left the grid, or the body was
+  scrolled or pressed, before that row mounted.
+- 04748e4: A print from the toolbar, a menu or `runCommand` that fails is announced as "Print failed" (`messages.printFailed`), as a failed export or copy already was. It used to be logged only.
+- 04748e4: The `use*State` hooks follow a grid that mounts after them. A hook called in the component that renders `DataGrid` only once its data has arrived used to stay on its fallback value for good; it now subscribes from the render that mounts the grid, and moves to a new grid when the ref's grid is swapped.
+- 35d135c: A toolbar dropdown's submenu open while its entry leaves the menu, as one
+  whose items all hide when the grid's state changes, stays closed when the
+  entry comes back, rather than opening again by itself.
+- 35d135c: A toolbar dropdown closed with Escape, or by an item that changed
+  nothing, no longer pulls focus into the toolbar on a later redraw of the grid.
+  A "More" menu open while the toolbar widens and takes its button away hands
+  focus to the toolbar rather than dropping it to the page.
+- Updated dependencies [071c1b7]
+- Updated dependencies [04748e4]
+- Updated dependencies [c5ff365]
+- Updated dependencies [0e66a82]
+- Updated dependencies [c5ff365]
+- Updated dependencies [c5ff365]
+- Updated dependencies [7007a80]
+- Updated dependencies [7007a80]
+- Updated dependencies [7007a80]
+- Updated dependencies [35d135c]
+- Updated dependencies [7007a80]
+- Updated dependencies [7007a80]
+- Updated dependencies [04748e4]
+- Updated dependencies [071c1b7]
+- Updated dependencies [071c1b7]
+  - @gridkitjs/core@0.16.0
+  - @gridkitjs/dom@0.4.0
+
 ## 0.15.0
 
 ### Minor Changes
