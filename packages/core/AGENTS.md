@@ -27,7 +27,7 @@ doc page (see [Docs](#docs)).
 | Machine               | File                                     | States                                                          | Tests                                                                     |
 | --------------------- | ---------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | `ControllerMode`      | `src/controller/createGridController.ts` | `idle`, `transaction` (commits held and reported as one change) | `src/controller/createGridController.test.ts`, `selectionActions.test.ts` |
-| `filterEditorReducer` | `src/util/filterEditor.ts`               | a `FilterEditorDraft` and the actions that change it            | `src/util/filterEditor.test.ts`                                           |
+| `filterEditorReducer` | `src/util/filterEditor.ts`               | a `FilterEditorDraft`: `values` or `conditions`, by its `kind`  | `src/util/filterEditor.test.ts`                                           |
 
 The convention is in the root [State](../../AGENTS.md#state) section.
 

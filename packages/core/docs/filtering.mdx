@@ -89,7 +89,22 @@ Each column keeps its latest list. New rows, columns, locale or messages drop ev
 
 ## The editor draft
 
-`initialFilterEditorDraft(shape, values)` opens a `FilterEditorDraft` over a shape and the list from `columnValueOptions`. With no filter (or a custom one) every value is checked, the blanks too when there are any; a checklist opens with its own values checked, kept even when the other filters now hide them; conditions open as they are.
+`initialFilterEditorDraft(shape, values)` opens a `FilterEditorDraft` over a shape and the list from `columnValueOptions`. A draft is on one of two arms at a time, tagged by `kind`, and holds only that arm's fields; the arm it is on is the one `draftToFilter` applies:
+
+| `kind`         | Type              | Holds                      | Opens on it when the column's filter is |
+| -------------- | ----------------- | -------------------------- | --------------------------------------- |
+| `"values"`     | `ValuesDraft`     | `checked`, `includeBlanks` | none, a checklist, or custom            |
+| `"conditions"` | `ConditionsDraft` | `conditions`, `combinator` | conditions                              |
+
+Both arms extend `FilterEditorDraftBase`: the `options` and `blanks` from `columnValueOptions`, the `search`, the `columnType`, and `openedShape`, the shape the draft opened over. With no filter (or a custom one) every value is checked, the blanks too when there are any; a checklist opens with its own values checked, kept even when the other filters now hide them; conditions open as they are.
+
+```ts
+if (draft.kind === "values") {
+  console.log(draft.checked.size, draft.includeBlanks);
+} else {
+  console.log(draft.conditions.length, draft.combinator);
+}
+```
 
 The draft keys its checked values the way the column's `in` entry matches them, using the `columnType` that `columnValueOptions` returns. So a saved checklist on a date column whose cells hold ISO strings, which `restoreState` reads back as `Date`s, opens with those dates checked.
 
@@ -102,13 +117,21 @@ The draft keys its checked values the way the column's `in` entry matches them, 
 | `{ type: "toggleAll" }`                              | Checks every value the search shows — or unchecks them, once all are. The blanks count while nothing is searched. |
 | `{ type: "setIncludeBlanks", includeBlanks }`        | Checks or unchecks the blanks.                                                                                    |
 | `{ type: "setConditions", conditions, combinator? }` | Replaces the conditions, keeping the combinator unless one is given.                                              |
-| `{ type: "clear" }`                                  | Back to no filter: every value checked, no conditions, no search.                                                 |
+| `{ type: "clear" }`                                  | Back to no filter on the draft's arm (every value checked, or no conditions) and no search.                       |
 
-A value or blanks action switches the draft to its checklist (`mode: "values"`); `setConditions` switches it to its conditions. `clear` leaves `mode` as it was: either half, cleared, is no filter. `visibleFilterOptions(draft)` returns the values the search shows, and `selectAllState(draft)` the select-all checkbox's `"checked"`, `"unchecked"` or `"mixed"` over them.
+A value or blanks action puts the draft on its checklist, and `setConditions` puts it on its conditions; `search` and `clear` leave it on its arm. An action for the arm the draft isn't on starts that arm from `openedShape`, as reopening the editor would show it, and drops what the other arm held. So values checked, then conditions set, then a value toggled starts again from the values the editor opened with, and `setConditions` without a `combinator` over a checklist takes the one the editor opened with, or `"and"`.
+
+`toValuesDraft(draft)` and `toConditionsDraft(draft)` return the draft on that arm the same way, or the draft itself when it is already there: a checklist drawn beside a draft on its conditions reads it through `toValuesDraft`. `visibleFilterOptions(draft)` returns the values the search shows, on either arm, and `selectAllState(valuesDraft)` the select-all checkbox's `"checked"`, `"unchecked"` or `"mixed"` over them.
+
+```ts
+import { selectAllState, toValuesDraft } from "@gridkitjs/core";
+
+const selectAll = selectAllState(toValuesDraft(draft));
+```
 
 ## A checklist's window
 
-`filterChecklist(draft, options)`, with `FilterChecklistOptions` — `{ valueLimit, blanksLabel }` — is the list a checklist editor draws under its search box and select-all — what each row says and whether it is checked:
+`filterChecklist(draft, options)`, with `FilterChecklistOptions` — `{ valueLimit, blanksLabel }` — is the list a checklist editor draws under its search box and select-all — what each row says and whether it is checked. It takes a `ValuesDraft`; pass `toValuesDraft(draft)` for a draft that may be on its conditions:
 
 ```ts
 import { filterChecklist } from "@gridkitjs/core";
@@ -158,9 +181,9 @@ if (filterDraftChanged(opened, draft)) {
 }
 ```
 
-It compares by value, not identity, and only the half the draft applies:
+It compares by value, not identity, and only the arm the draft is on:
 
-- **A checklist** changes when its checked values or its blanks differ from those it opened with. A value unchecked and checked again is no change, so a checklist left as it opened over conditions or a custom filter leaves that filter be.
+- **A checklist** changes when its checked values or its blanks differ from those it opened with (`toValuesDraft(opened)`). A value unchecked and checked again is no change, so a checklist left as it opened over conditions or a custom filter leaves that filter be.
 - **Conditions** change when an operator, an operand or their number differs from those the draft opened with, or the combinator between two of them. Operands are compared as an `in` entry tells values apart, so on a date column a date string and the `Date` it names are the same. Conditions set over a draft that opened on anything but conditions are always a change: they replace that filter, and no conditions remove it.
 - The search is never a change.
 
