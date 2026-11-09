@@ -85,7 +85,8 @@ export interface ExportGridProps extends Omit<
   /**
    * Registers two writers a spec cannot pass, being functions: an xlsx one
    * that writes the bytes of `rows: N` only once "Finish writing" is
-   * pressed, and a PDF one that always fails.
+   * pressed, counting in `xlsx-writes` each time it starts, and a PDF one
+   * that always fails.
    */
   readonly withWriters?: boolean;
   /** Registers the real xlsx writer, `@gridkitjs/export-xlsx`'s. */
@@ -113,19 +114,22 @@ export default function ExportGrid({
   const gridRef = useRef<DataGridApi<Row>>(null);
   const finishRef = useRef<(() => void) | null>(null);
   const [result, setResult] = useState("");
+  const [xlsxWrites, setXlsxWrites] = useState(0);
   const [writers] = useState<readonly ExportWriter[]>(() => [
     {
       format: "xlsx",
       fileExtension: "xlsx",
       mimeType: "application/octet-stream",
-      write: (table) =>
-        new Promise((resolve) => {
+      write: (table) => {
+        setXlsxWrites((count) => count + 1);
+        return new Promise((resolve) => {
           finishRef.current = () => {
             resolve(
               new TextEncoder().encode(`rows: ${String(table.rows.length)}`),
             );
           };
-        }),
+        });
+      },
     },
     failingWriter,
   ]);
@@ -185,6 +189,7 @@ export default function ExportGrid({
         Finish writing
       </button>
       <output data-testid="result">{result}</output>
+      <output data-testid="xlsx-writes">{xlsxWrites}</output>
     </div>
   );
 }

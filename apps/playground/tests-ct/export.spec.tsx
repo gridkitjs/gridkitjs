@@ -276,6 +276,39 @@ test.describe("export writers on the grid", () => {
     expect(names).toEqual(["export.xlsx", "export.csv"]);
   });
 
+  test("an export asked for while another is written builds no file", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ExportGrid withWriters toolbar={{ items: ["export"] }} />,
+    );
+    const errors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") errors.push(message.text());
+    });
+    const writes = root.getByTestId("xlsx-writes");
+
+    for (let press = 0; press < 2; press += 1) {
+      await exportButton(root).click();
+      await exportMenu(page)
+        .getByRole("menuitem", { name: "Export to Excel" })
+        .click();
+      await expect(exportMenu(page)).toHaveCount(0);
+    }
+    await expect
+      .poll(() => errors)
+      .toContainEqual(expect.stringContaining("still being written"));
+    await expect(writes).toHaveText("1");
+
+    const xlsx = await download(page, () =>
+      root.getByRole("button", { name: "Finish writing" }).click(),
+    );
+    expect(xlsx).toEqual({ name: "export.xlsx", text: "rows: 4" });
+    await expect(writes).toHaveText("1");
+  });
+
   test("the xlsx writer shows Excel in the dropdown and downloads a workbook", async ({
     mount,
     page,

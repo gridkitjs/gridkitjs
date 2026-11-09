@@ -72,7 +72,7 @@ export default function useGridCommands<Row>({
   openPanel,
 }: UseGridCommandsOptions<Row>): GridCommandsApi<Row> {
   const commands = useMemo(() => resolveCommands(appCommands), [appCommands]);
-  const saveFile = useSaveFile({ messages, announce });
+  const { saveFile, canSave } = useSaveFile({ messages, announce });
   const writeClipboard = useCopyToClipboard({ messages, announce });
 
   const host: GridCommandHost = {
@@ -94,6 +94,7 @@ export default function useGridCommands<Row>({
     openPanel,
     announce,
     saveFile,
+    canSave,
     writeClipboard,
     print: (document, options) => {
       printGrid(document, options).catch((error: unknown) => {
