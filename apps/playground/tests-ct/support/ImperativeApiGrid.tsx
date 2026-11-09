@@ -21,7 +21,11 @@ export interface ImperativeApiGridProps<Row extends RowWithId> extends Omit<
   DataGridProps<Row>,
   "ref" | "getRowId"
 > {
-  /** Row id `scroll-to-row` scrolls to, and column id `scroll-to-column` scrolls to. */
+  /**
+   * Row id `scroll-to-row` scrolls to, and `scroll-then-sort` scrolls
+   * to before applying `sortToSet` in the same task; column id
+   * `scroll-to-column` scrolls to.
+   */
   scrollRowId?: string;
   scrollColumnId?: string;
   /** Row ids `scroll-to-each-row` scrolls to one after another, in a single task. */
@@ -229,6 +233,17 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         }}
       >
         scroll-to-each-row
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          if (scrollRowId !== undefined) {
+            gridRef.current?.scrollToRow(scrollRowId);
+          }
+          gridRef.current?.setColumnSort(sortToSet ?? []);
+        }}
+      >
+        scroll-then-sort
       </button>
       <button
         type="button"

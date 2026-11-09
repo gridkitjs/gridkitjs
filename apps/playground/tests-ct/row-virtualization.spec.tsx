@@ -2,6 +2,7 @@
 // ./support/coverage rather than directly from the CT package — see that
 // file for why.
 import type { MountResult } from "@playwright/experimental-ct-react";
+import type { Locator } from "@playwright/test";
 import type { ColumnDefinition } from "@gridkitjs/core";
 import RowIdentifiedGrid from "./support/RowIdentifiedGrid";
 import { ariaRowCount, ariaRowIndexes, consecutive } from "./support/ariaRows";
@@ -40,6 +41,45 @@ const columns: readonly ColumnDefinition<Row>[] = [
 
 function mountedDataRows(root: MountResult) {
   return root.locator("tbody tr[data-gridkit-row-index]");
+}
+
+/**
+ * Scrolls `body` by hand, in small steps from 80% of its height less a
+ * little, until `row` (one around 80% of the way down) mounts in the
+ * overscan below the viewport, then waits for the grid to settle.
+ */
+async function scrollByHandUntilMounted(
+  body: Locator,
+  row: Locator,
+): Promise<void> {
+  let top = await body.evaluate((element) => element.scrollHeight * 0.8 - 1000);
+  for (let step = 0; step < 100 && (await row.count()) === 0; step++) {
+    top += 40;
+    await body.evaluate((element, scrollTop) => {
+      element.scrollTop = scrollTop;
+      return new Promise((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+      });
+    }, top);
+  }
+  await expect(row).toHaveCount(1);
+  await body.evaluate(
+    () =>
+      new Promise((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+      }),
+  );
+}
+
+/** How far below the top of the grid body `row` sits. */
+function offsetInBody(row: Locator): Promise<number> {
+  return row.evaluate((element) => {
+    const scroller = element.closest(".gridkit-data-grid-body");
+    if (scroller === null) throw new Error("row outside the body");
+    return (
+      element.getBoundingClientRect().top - scroller.getBoundingClientRect().top
+    );
+  });
 }
 
 test.describe("row virtualization", () => {
@@ -114,7 +154,6 @@ test.describe("row virtualization", () => {
 
   test("a scrollToRow a later one replaced leaves the body alone once its row mounts", async ({
     mount,
-    page,
   }) => {
     const root = await mountGrid(
       mount,
@@ -137,34 +176,47 @@ test.describe("row virtualization", () => {
     // top instead.
     const body = root.locator(".gridkit-data-grid-body");
     const row800 = root.locator('tbody tr[data-gridkit-row-index="800"]');
-    let top = await body.evaluate(
-      (element) => element.scrollHeight * 0.8 - 1000,
-    );
-    for (let step = 0; step < 100 && (await row800.count()) === 0; step++) {
-      top += 40;
-      await body.evaluate((element, scrollTop) => {
-        element.scrollTop = scrollTop;
-        return new Promise((resolve) => {
-          requestAnimationFrame(() => requestAnimationFrame(resolve));
-        });
-      }, top);
-    }
-    await expect(row800).toHaveCount(1);
-    await page.evaluate(
-      () =>
-        new Promise((resolve) => {
-          requestAnimationFrame(() => requestAnimationFrame(resolve));
-        }),
+    await scrollByHandUntilMounted(body, row800);
+    expect(await offsetInBody(row800)).toBeGreaterThan(100);
+  });
+
+  test("a scrollToRow made just before the rows are sorted leaves the body alone once its row's place mounts", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={columns}
+        dataSource={buildRows(1000)}
+        label="Virtualized api"
+        height={200}
+        virtualized
+        scrollRowId="row-800"
+        sortToSet={[{ columnId: "name", direction: "desc" }]}
+      />,
     );
 
-    const offset = await row800.evaluate((row) => {
-      const scroller = row.closest(".gridkit-data-grid-body");
-      if (scroller === null) throw new Error("row outside the body");
-      return (
-        row.getBoundingClientRect().top - scroller.getBoundingClientRect().top
-      );
-    });
-    expect(offset).toBeGreaterThan(100);
+    // Scrolled back to the top in the same task, before row 800's place can
+    // mount, as the user scrolling away before the far rows draw would.
+    const body = root.locator(".gridkit-data-grid-body");
+    await root
+      .getByRole("button", { name: "scroll-then-sort" })
+      .evaluate((button: HTMLElement) => {
+        button.click();
+        const scroller = document.querySelector(".gridkit-data-grid-body");
+        if (scroller === null) throw new Error("no grid body");
+        scroller.scrollTop = 0;
+      });
+    await expect(
+      root.locator('tbody tr[data-gridkit-row-index="0"]'),
+    ).toBeVisible();
+
+    // Scrolled by hand towards row 800's place until it mounts in the
+    // overscan below the viewport. Scrolled to as the call before the sort
+    // asked, its new row would sit at the top instead.
+    const row800 = root.locator('tbody tr[data-gridkit-row-index="800"]');
+    await scrollByHandUntilMounted(body, row800);
+    expect(await offsetInBody(row800)).toBeGreaterThan(100);
   });
 
   test("keyboard navigation moves focus correctly across the mounted window's boundary", async ({
