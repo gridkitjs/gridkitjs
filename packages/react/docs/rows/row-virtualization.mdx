@@ -48,6 +48,10 @@ const gridRef = useRef<DataGridApi<Row>>(null);
 gridRef.current?.scrollToRow("row-2000");
 ```
 
+## Turning `virtualized` on and off
+
+`virtualized` can change at any time. Turning it on keeps every row mounted until the grid has worked out the window around the scroll position, then unmounts the rest, so a focused cell in that window keeps the browser's focus. A `scrollToRow` in the same commit, such as one from a parent's layout effect, already scrolls the virtualized body.
+
 ## Interaction with pagination and grouping
 
 `virtualized` windows whatever the grid is about to render — the current page's rows when `paginated` is on, the full set otherwise — so the two compose freely. Virtualizing an already-small paginated page still works, it's just low-value: there's rarely enough rows on one page for windowing to matter.
