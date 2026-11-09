@@ -21,13 +21,14 @@ and into the docs as described under [Docs](#docs).
 
 ## State and teardown
 
-| Machine            | File                     | States                                     | Tests                                               |
-| ------------------ | ------------------------ | ------------------------------------------ | --------------------------------------------------- |
-| `DragPhase`        | `src/dragReorder.ts`     | `pressed`, `dragging`                      | `column-reorder.spec.tsx`, `group-by-drag.spec.tsx` |
-| `LoadState`        | `src/infiniteScroll.ts`  | `idle`, `requested`, `loading`, `detached` | `infinite-scroll.spec.tsx`                          |
-| `VirtualizerPhase` | `src/rowVirtualizer.ts`  | `ready`, `awaiting-row`, `destroyed`       | `row-virtualization.spec.tsx`                       |
-| `Typeahead`        | `src/menu/attachMenu.ts` | `idle`, `typing`                           | `menu.spec.tsx`                                     |
-| `Hover`            | `src/menu/attachMenu.ts` | `away`, `resting`, `rested`                | `menu.spec.tsx`                                     |
+| Machine            | File                               | States                                     | Tests                                               |
+| ------------------ | ---------------------------------- | ------------------------------------------ | --------------------------------------------------- |
+| `DragPhase`        | `src/dragReorder.ts`               | `pressed`, `dragging`                      | `column-reorder.spec.tsx`, `group-by-drag.spec.tsx` |
+| `LoadState`        | `src/infiniteScroll.ts`            | `idle`, `requested`, `loading`, `detached` | `infinite-scroll.spec.tsx`                          |
+| `VirtualizerPhase` | `src/rowVirtualizer.ts`            | `ready`, `awaiting-row`, `destroyed`       | `row-virtualization.spec.tsx`                       |
+| `Typeahead`        | `src/menu/attachMenu.ts`           | `idle`, `typing`                           | `menu.spec.tsx`                                     |
+| `Hover`            | `src/menu/attachMenu.ts`           | `away`, `resting`, `rested`                | `menu.spec.tsx`                                     |
+| `ChecklistState`   | `src/checklist/attachChecklist.ts` | `settled`, `awaiting-item`, `detached`     | `checklist.spec.tsx`                                |
 
 The specs are in `apps/playground/tests-ct/`. The convention is in the root
 [State](../../AGENTS.md#state) section.
