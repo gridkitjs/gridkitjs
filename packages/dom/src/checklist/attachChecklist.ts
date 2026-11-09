@@ -30,12 +30,28 @@ export interface AttachedChecklist {
    * An item outside the mounted window is focused once it mounts.
    */
   readonly focusItem: (index: number) => void;
-  /** Removes every listener and observer. The items keep their `tabindex`. */
+  /**
+   * Removes every listener and observer. The items keep their `tabindex`.
+   * After it, `setCount` and `focusItem` do nothing: they neither scroll
+   * nor focus, and a move still waiting for its item is dropped.
+   */
   readonly detach: () => void;
 }
 
 const ITEM = "[data-gridkit-checklist-item]";
 const INDEX = "data-gridkit-checklist-index";
+
+/**
+ * Where focus is going besides the focused place: nowhere, to an item a move
+ * is waiting to see mounted, or nowhere ever again once detached.
+ */
+type ChecklistState =
+  | { readonly kind: "settled" }
+  | { readonly kind: "awaiting-item"; readonly index: number }
+  | { readonly kind: "detached" };
+
+const SETTLED: ChecklistState = { kind: "settled" };
+const DETACHED: ChecklistState = { kind: "detached" };
 
 function indexOf(item: Element): number {
   return Number(item.getAttribute(INDEX));
@@ -72,8 +88,7 @@ export function attachChecklist(
   let count = 0;
   /** The focused place in the whole list: the tab stop, mounted or not. */
   let active = 0;
-  /** The place a move is waiting to see mounted, to focus it. */
-  let pending: number | null = null;
+  let state: ChecklistState = SETTLED;
 
   function items(): HTMLElement[] {
     return Array.from(list.querySelectorAll<HTMLElement>(ITEM));
@@ -107,7 +122,7 @@ export function attachChecklist(
   }
 
   function moveTo(index: number): void {
-    if (count === 0) {
+    if (state.kind === "detached" || count === 0) {
       return;
     }
     const target = Math.max(0, Math.min(index, count - 1));
@@ -116,9 +131,9 @@ export function attachChecklist(
     options.scrollToIndex(target);
     const item = itemAt(target);
     if (item === null) {
-      pending = target;
+      state = { kind: "awaiting-item", index: target };
     } else {
-      pending = null;
+      state = SETTLED;
       item.focus({ preventScroll: true });
     }
   }
@@ -186,7 +201,7 @@ export function attachChecklist(
   function onFocusIn(event: FocusEvent): void {
     const item = itemOf(event.target);
     if (item !== null) {
-      pending = null;
+      state = SETTLED;
       makeActive(indexOf(item));
       setTabStop();
     }
@@ -202,12 +217,12 @@ export function attachChecklist(
 
   // The item a move waits for takes focus only if focus is still in the
   // list, or dropped to nothing when the item it was on unmounted.
-  function focusPendingIfMounted(): void {
-    const item = pending === null ? null : itemAt(pending);
+  function focusAwaitedItemIfMounted(): void {
+    const item = state.kind === "awaiting-item" ? itemAt(state.index) : null;
     if (item === null) {
       return;
     }
-    pending = null;
+    state = SETTLED;
     const focused = document.activeElement;
     if (
       focused === null ||
@@ -222,7 +237,7 @@ export function attachChecklist(
   // another place when the list changes under it.
   const observer = new MutationObserver(() => {
     setTabStop();
-    focusPendingIfMounted();
+    focusAwaitedItemIfMounted();
   });
   observer.observe(list, {
     childList: true,
@@ -237,17 +252,26 @@ export function attachChecklist(
 
   return {
     setCount(next) {
+      if (state.kind === "detached") {
+        return;
+      }
       count = next;
       active = Math.max(0, Math.min(active, count - 1));
-      if (pending !== null) {
-        pending = count === 0 ? null : Math.min(pending, count - 1);
+      if (state.kind === "awaiting-item") {
+        state =
+          count === 0
+            ? SETTLED
+            : {
+                kind: "awaiting-item",
+                index: Math.min(state.index, count - 1),
+              };
       }
       setTabStop();
-      focusPendingIfMounted();
+      focusAwaitedItemIfMounted();
     },
     focusItem: moveTo,
     detach() {
-      pending = null;
+      state = DETACHED;
       observer.disconnect();
       list.removeEventListener("keydown", onKeyDown);
       list.removeEventListener("focusin", onFocusIn);
