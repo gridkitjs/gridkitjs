@@ -1,5 +1,6 @@
 import {
   isColumnVisible,
+  isGroupExpanded,
   type ColumnResizeEvent,
   type ColumnSortEvent,
   type ColumnVisibilityEvent,
@@ -158,24 +159,25 @@ export function announcedCallbacks<Row>({
     },
 
     /**
-     * `groupId: null` marks `expandAll`/`collapseAll`, which touch every
-     * group in one call rather than one at a time — announced as a single
-     * summary instead of naming a group that doesn't apply.
+     * `groupId: null` marks `expandAll`/`collapseAll` and
+     * `setGroupExpansion`, which touch every group in one call rather than
+     * one at a time — announced as a single summary of the mode the groups
+     * now follow, instead of naming a group that doesn't apply.
      */
     onGroupExpansionChange: (event) => {
       callbacks.onGroupExpansionChange?.(event);
       if (event.groupId === null) {
         announce(
-          event.expansion.length === 0
+          event.expansion.mode === "allExpanded"
             ? messages.allGroupsExpanded
             : messages.allGroupsCollapsed,
         );
         return;
       }
       announce(
-        event.expansion.includes(event.groupId)
-          ? messages.groupCollapsed
-          : messages.groupExpanded,
+        isGroupExpanded(event.expansion, event.groupId)
+          ? messages.groupExpanded
+          : messages.groupCollapsed,
       );
     },
 
