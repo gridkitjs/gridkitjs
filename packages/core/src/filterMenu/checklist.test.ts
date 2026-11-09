@@ -5,11 +5,13 @@ import type {
   ColumnValueOptions,
   FilterEditorAction,
   FilterEditorDraft,
+  ValuesDraft,
 } from "../util/filterEditor";
 import {
   columnValueOptions,
   filterEditorReducer,
   initialFilterEditorDraft,
+  toValuesDraft,
 } from "../util/filterEditor";
 import type { FilterChecklistOptions } from "./checklist";
 import { filterChecklist } from "./checklist";
@@ -36,8 +38,16 @@ const options: FilterChecklistOptions = {
   blanksLabel: "(Blanks)",
 };
 
-/** The region checklist as an editor opens it with no filter, after `actions`. */
-function regionDraft(
+/** `draft`, which the test expects on its checklist. */
+function onValues(draft: FilterEditorDraft<SampleRow>): ValuesDraft<SampleRow> {
+  if (draft.kind !== "values") {
+    throw new Error(`Expected a draft on its checklist, got ${draft.kind}.`);
+  }
+  return draft;
+}
+
+/** The region draft as an editor opens it with no filter, after `actions`. */
+function editRegion(
   ...actions: FilterEditorAction<SampleRow>[]
 ): FilterEditorDraft<SampleRow> {
   return actions.reduce(
@@ -47,6 +57,13 @@ function regionDraft(
       columnValueOptions(regions, regionColumns, [], "Region"),
     ),
   );
+}
+
+/** The region checklist as an editor opens it with no filter, after `actions`. */
+function regionDraft(
+  ...actions: FilterEditorAction<SampleRow>[]
+): ValuesDraft<SampleRow> {
+  return onValues(editRegion(...actions));
 }
 
 /** A column holding `count` distinct values, `Value 0`… in order. */
@@ -67,14 +84,19 @@ function manyValues(count: number, blanks = 0): ColumnValueOptions {
 function manyDraft(
   count: number,
   ...actions: FilterEditorAction<SampleRow>[]
-): FilterEditorDraft<SampleRow> {
-  return actions.reduce(
-    filterEditorReducer,
-    initialFilterEditorDraft<SampleRow>({ kind: "none" }, manyValues(count, 3)),
+): ValuesDraft<SampleRow> {
+  return onValues(
+    actions.reduce(
+      filterEditorReducer,
+      initialFilterEditorDraft<SampleRow>(
+        { kind: "none" },
+        manyValues(count, 3),
+      ),
+    ),
   );
 }
 
-function labels(draft: FilterEditorDraft<SampleRow>, valueLimit = 10_000) {
+function labels(draft: ValuesDraft<SampleRow>, valueLimit = 10_000) {
   return filterChecklist(draft, { ...options, valueLimit }).items.map(
     (item) => item.label,
   );
@@ -129,11 +151,23 @@ describe("filterChecklist", () => {
   });
 
   test("no blanks item when no cell is blank", () => {
-    const draft = initialFilterEditorDraft<SampleRow>(
-      { kind: "none" },
-      manyValues(2),
+    const draft = onValues(
+      initialFilterEditorDraft<SampleRow>({ kind: "none" }, manyValues(2)),
     );
     expect(labels(draft)).toEqual(["Value 0", "Value 1"]);
+  });
+
+  test("a draft on its conditions draws the checklist its opened filter shows", () => {
+    const draft = editRegion(
+      { type: "toggleValue", value: "West" },
+      { type: "setConditions", conditions: [] },
+    );
+
+    expect(
+      filterChecklist(toValuesDraft(draft), options).items.map(
+        (item) => item.checked,
+      ),
+    ).toEqual([true, true, true, true]);
   });
 
   test("a search shows its matches and hides the blanks", () => {
