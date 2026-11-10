@@ -28,7 +28,7 @@ tbody.addEventListener("click", (event) => {
 
 ## Gestures
 
-A gesture starts from a `PointerPress` — the `pointerdown` that began it, native or a framework's wrapper around one — and only from the main button of the primary pointer: a right-click or a second finger starts nothing, and the starter returns `false`. While it runs, the pointer is captured, so the gesture keeps reporting wherever the pointer goes, and <Kbd>Escape</Kbd> cancels it. Only the pointer that started it moves or ends it: a second finger landing mid-gesture is ignored. An aborted `signal` cancels it too, as described under [cancelling a gesture](#cancelling-a-gesture).
+A gesture starts from a `PointerPress` — the `pointerdown` that began it, native or a framework's wrapper around one — and only from the main button of the primary pointer: a right-click or a second finger starts nothing, and the starter returns `false`. While it runs, the pointer is captured, so the gesture keeps reporting wherever the pointer goes, even when the renderer moves the captured element elsewhere in the document mid-gesture, as a keyed list does when the order changes, and <Kbd>Escape</Kbd> cancels it. Only the pointer that started it moves or ends it: a second finger landing mid-gesture is ignored. An aborted `signal` cancels it too, as described under [cancelling a gesture](#cancelling-a-gesture).
 
 ### Column resize
 
