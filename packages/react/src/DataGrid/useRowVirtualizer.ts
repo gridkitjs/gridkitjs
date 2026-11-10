@@ -1,6 +1,10 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import type { VisibleRange } from "@gridkitjs/core";
-import { createRowVirtualizer, type RowVirtualizer } from "@gridkitjs/dom";
+import {
+  bodyRowFrom,
+  createRowVirtualizer,
+  type RowVirtualizer,
+} from "@gridkitjs/dom";
 
 export interface RowVirtualizerApi extends VisibleRange {
   /** Ref callback `GridBody` attaches to each rendered row's `<tr>`, keyed by that row's index in the full array. */
@@ -23,6 +27,8 @@ interface UseRowVirtualizerOptions {
   rows: readonly unknown[];
   /** The `.gridkit-data-grid-body` scroll wrapper. */
   bodyScrollRef: RefObject<HTMLDivElement | null>;
+  /** The body's `<table>`, whose mounted rows a new virtualizer measures before its first window. */
+  bodyTableRef: RefObject<HTMLTableElement | null>;
   estimatedRowHeight: number;
   overscan: number;
 }
@@ -56,6 +62,18 @@ function rangeOf(rowWindow: RowWindow, rowCount: number): VisibleRange {
   };
 }
 
+/** The body rows mounted in `table`, each with its index among all the rows; spacer and sentinel rows carry none. */
+function* mountedRows(
+  table: HTMLTableElement | null,
+): Generator<readonly [number, HTMLTableRowElement]> {
+  for (const row of table?.tBodies[0]?.rows ?? []) {
+    const target = bodyRowFrom(row);
+    if (target !== null) {
+      yield [target.rowIndex, row];
+    }
+  }
+}
+
 /** What a row is measured with before the first virtualizer is created. */
 function ignoreRow(): () => void {
   return () => undefined;
@@ -78,6 +96,10 @@ function ignoreRow(): () => void {
  * browser's focus with it, and the body keeps its height, and so its scroll
  * position. An empty window, or the last one reported, would unmount them
  * for a pass, and could collapse the body and send its scroll to the top.
+ * The new virtualizer measures every mounted row before it reports, so its
+ * first window is the rows on screen: one placed by `estimatedRowHeight`
+ * could miss them when real heights differ from it, unmounting the focused
+ * row all the same.
  *
  * Layout effects, so the window settles before paint rather than showing the
  * previous one for a frame — the same reason `useElementWidth` measures in a
@@ -94,6 +116,7 @@ export default function useRowVirtualizer({
   enabled,
   rows,
   bodyScrollRef,
+  bodyTableRef,
   estimatedRowHeight,
   overscan,
 }: UseRowVirtualizerOptions): RowVirtualizerApi {
@@ -126,14 +149,16 @@ export default function useRowVirtualizer({
         setRowWindow({ kind: "range", range });
       },
     });
-    // Before its first window is drawn, which would otherwise be empty.
+    // Before its first window is drawn, which would otherwise be empty, and
+    // placed from the rows on screen rather than from estimated heights.
     created.setRowCount(rowCount.current);
+    created.measureRows(mountedRows(bodyTableRef.current));
     instance.current = created;
     setVirtualizer(created);
     return () => {
       created.destroy();
     };
-  }, [enabled, bodyScrollRef, estimatedRowHeight, overscan]);
+  }, [enabled, bodyScrollRef, bodyTableRef, estimatedRowHeight, overscan]);
 
   const range = rangeOf(rowWindow, rows.length);
   return {
