@@ -515,8 +515,6 @@ test("a drop lands by the column order given mid-drag, not the order the drag be
 
   const start = await dragStart(page, headerLocators.nth(1));
   await page.mouse.move(start.x + 10, start.y, { steps: 3 });
-  // Only "id" moves in the page: moving the dragged header would take its
-  // pointer capture, and the drag with it.
   await updateGrid(root, grid(["name", "status", "id"]), { width: 900 });
   expect(await columnIds(root)).toEqual(["name", "status", "id"]);
 
@@ -531,6 +529,67 @@ test("a drop lands by the column order given mid-drag, not the order the drag be
 
   expect(events).toHaveLength(1);
   expect(events[0]?.order).toEqual(["status", "name", "id"]);
+});
+
+test("a drag whose own header moves mid-drag keeps following the pointer, drops by the new order, and leaves the next drag free", async ({
+  mount,
+  page,
+}) => {
+  const events: ColumnOrderEvent[] = [];
+  const grid = (order: readonly string[]) => (
+    <DataGrid
+      columns={columns}
+      dataSource={buildRows(2)}
+      label="Dragged header moved"
+      reorderableColumns
+      columnOrder={order}
+      onColumnOrderChange={(event) => {
+        events.push(event);
+      }}
+    />
+  );
+  const root = await mountGrid(mount, grid(["id", "name", "status"]), {
+    width: 900,
+  });
+  const headerLocators = headers(root);
+  const dragged = root.locator('thead th[data-gridkit-column="id"]');
+  const ghost = page.locator(".drag-ghost");
+
+  const start = await dragStart(page, dragged);
+  await page.mouse.move(start.x + 10, start.y, { steps: 3 });
+  await expect(dragged).toHaveClass(/is-dragging/);
+  await dragged.evaluate((element) => {
+    element.dataset.probe = "pressed";
+  });
+
+  // React re-inserts the dragged header's own node to put it last.
+  await updateGrid(root, grid(["name", "status", "id"]), { width: 900 });
+  expect(await columnIds(root)).toEqual(["name", "status", "id"]);
+  await expect(dragged).toHaveAttribute("data-probe", "pressed");
+
+  const ghostBefore = await ghost.getAttribute("style");
+  // The leading half of "name", now first: the gap before everything.
+  const box = await headerLocators.nth(0).boundingBox();
+  if (box === null) throw new Error("header 0 not visible");
+  await page.mouse.move(box.x + box.width * 0.25, box.y + box.height / 2, {
+    steps: 5,
+  });
+  await expect(headerLocators.nth(0)).toHaveClass(/is-drop-before/);
+  expect(await ghost.getAttribute("style")).not.toBe(ghostBefore);
+  await page.mouse.up();
+
+  await expect(ghost).toHaveCount(0);
+  await expect(dragged).not.toHaveClass(/is-dragging/);
+  await expect(headerLocators.nth(0)).not.toHaveClass(/is-drop-before/);
+  expect(events).toHaveLength(1);
+  expect(events[0]?.order).toEqual(["id", "name", "status"]);
+
+  const next = await dragStart(page, headerLocators.nth(0));
+  await page.mouse.move(next.x + 20, next.y, { steps: 3 });
+  await expect(ghost).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+  await expect(ghost).toHaveCount(0);
 });
 
 test("Ctrl+Arrow moves a middle column one place; the first column leftward and the last rightward are no-ops", async ({
