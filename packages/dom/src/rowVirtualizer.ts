@@ -30,6 +30,17 @@ export interface RowVirtualizer {
    */
   readonly measureRow: (index: number) => (element: HTMLElement | null) => void;
   /**
+   * Reads the heights of rows already laid out, each paired with its index
+   * among all the rows, and works out the window once for all of them: for
+   * rows drawn before this virtualizer existed, so its first window is the
+   * one on screen rather than one placed by `estimatedRowHeight`. Indices
+   * past the row count are skipped. It does not observe the rows;
+   * `measureRow` does that once the renderer hands them over.
+   */
+  readonly measureRows: (
+    rows: Iterable<readonly [index: number, element: Element]>,
+  ) => void;
+  /**
    * Scrolls so row `index` is in view. A mounted row is scrolled to directly;
    * one outside the window is jumped to at its estimated offset, then
    * scrolled to properly once it mounts and can be measured. A later call
@@ -201,6 +212,17 @@ export function createRowVirtualizer(
         refCallbacks.set(index, callback);
       }
       return callback;
+    },
+    measureRows(rows) {
+      if (phase.kind === "destroyed") {
+        return;
+      }
+      for (const [index, element] of rows) {
+        if (index >= 0 && index < heights.length) {
+          heights[index] = element.getBoundingClientRect().height;
+        }
+      }
+      recompute();
     },
     scrollToIndex(index, scrollOptions) {
       if (phase.kind === "destroyed" || heights.length === 0) {
