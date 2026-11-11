@@ -1,5 +1,17 @@
 # @gridkitjs/react
 
+## 0.17.1
+
+### Patch Changes
+
+- e09082a: Turning `virtualized` on keeps the focused cell and the scroll position in a
+  body whose row heights differ from `estimatedRowHeight`. The first window was
+  placed by the estimate, so far down a body of tall or mixed rows it could miss
+  the rows on screen, drop the browser's focus and jump the scroll.
+- Updated dependencies [dec6ab8]
+- Updated dependencies [e09082a]
+  - @gridkitjs/dom@0.6.0
+
 ## 0.17.0
 
 ### Minor Changes
