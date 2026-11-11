@@ -637,6 +637,62 @@ test.describe("row virtualization", () => {
     await expect(cell(4)).toBeFocused();
   });
 
+  test("turning virtualized on keeps the focus and the scroll of a body of mixed row heights scrolled far down", async ({
+    mount,
+  }) => {
+    const rows = buildRows(300);
+    // A notes column this narrow wraps every fifth row onto many lines, so
+    // offsets worked out from `estimatedRowHeight` fall far short of the
+    // real ones.
+    const mixedColumns: readonly ColumnDefinition<Row>[] = columns.map(
+      (column) =>
+        column.field === "notes" ? { ...column, width: 60 } : column,
+    );
+    function grid(virtualized: boolean) {
+      return (
+        <VirtualizedToggleGrid
+          columns={mixedColumns}
+          dataSource={rows}
+          label="Toggled mixed heights"
+          height={300}
+          estimatedRowHeight={40}
+          virtualized={virtualized}
+        />
+      );
+    }
+    const root = await mountGrid(mount, grid(false));
+    const body = root.locator(".gridkit-data-grid-body");
+    await body.evaluate((element) => {
+      element.scrollTop = element.scrollHeight * 0.7;
+    });
+
+    // The first cell of the row in the middle of the body, wherever that is.
+    const rowIndex = await body.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const hit = document.elementFromPoint(
+        rect.left + 20,
+        rect.top + rect.height / 2,
+      );
+      return hit?.closest("tr")?.getAttribute("data-gridkit-row-index");
+    });
+    expect(Number(rowIndex)).toBeGreaterThan(150);
+    const cell = root
+      .locator(`tbody tr[data-gridkit-row-index="${String(rowIndex)}"] td`)
+      .first();
+    await cell.focus();
+    await expect(cell).toBeFocused();
+    const scrollTop = await body.evaluate((element) => element.scrollTop);
+
+    await updateGrid(root, grid(true));
+    await expect.poll(() => mountedDataRows(root).count()).toBeLessThan(60);
+    await expect(cell).toBeFocused();
+    expect(
+      Math.abs(
+        (await body.evaluate((element) => element.scrollTop)) - scrollTop,
+      ),
+    ).toBeLessThanOrEqual(1);
+  });
+
   test("a scrollToRow in the commit that turns virtualized on lands on its row", async ({
     mount,
   }) => {

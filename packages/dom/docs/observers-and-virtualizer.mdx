@@ -21,13 +21,14 @@ const disconnect = observeElementWidth(viewportElement, (width) => {
 
 `createRowVirtualizer(scrollElement, { estimatedRowHeight, overscan, onRange })` windows a long list of rows inside a scrolling element down to those near its scroll position. It measures each rendered row's real height — rows need not be uniform — and reports the window to render through `onRange({ startIndex, endIndex, offsetBefore, offsetAfter })`, with `offsetBefore`/`offsetAfter` the heights of the spacers that stand in for the rows outside it. It reports only when the window moves.
 
-| Member                          | Description                                                                                                                                                                                                               |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `setRowCount(count)`            | How many rows there are. Heights measured for rows that remain are kept.                                                                                                                                                  |
-| `resetHeights()`                | Forgets every measured height — after a sort or filter, when the rows at each index are different rows. Drops a `scrollToIndex` still waiting for its row.                                                                |
-| `measureRow(index)`             | A ref callback for row `index`'s element, measuring it while mounted. The same function for the same index every time.                                                                                                    |
-| `scrollToIndex(index, options)` | Scrolls a mounted row into view; jumps to an unmounted one's estimated offset, then scrolls to it properly once it mounts. A later call replaces one still waiting, and so does a row count that no longer holds its row. |
-| `destroy()`                     | Stops listening, measuring and scrolling, for good: every method does nothing after it.                                                                                                                                   |
+| Member                          | Description                                                                                                                                                                                                                   |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setRowCount(count)`            | How many rows there are. Heights measured for rows that remain are kept.                                                                                                                                                      |
+| `resetHeights()`                | Forgets every measured height — after a sort or filter, when the rows at each index are different rows. Drops a `scrollToIndex` still waiting for its row.                                                                    |
+| `measureRow(index)`             | A ref callback for row `index`'s element, measuring it while mounted. The same function for the same index every time.                                                                                                        |
+| `measureRows(rows)`             | Reads the heights of rows already on screen, given as `[index, element]` pairs, and works out the window once: for rows drawn before the virtualizer was created, so its first window matches them. It does not observe them. |
+| `scrollToIndex(index, options)` | Scrolls a mounted row into view; jumps to an unmounted one's estimated offset, then scrolls to it properly once it mounts. A later call replaces one still waiting, and so does a row count that no longer holds its row.     |
+| `destroy()`                     | Stops listening, measuring and scrolling, for good: every method does nothing after it.                                                                                                                                       |
 
 ```ts
 import { createRowVirtualizer } from "@gridkitjs/dom";
@@ -38,6 +39,8 @@ const virtualizer = createRowVirtualizer(bodyElement, {
   onRange: (range) => drawRows(range), // rows startIndex..endIndex, between two spacers
 });
 virtualizer.setRowCount(rows.length);
+// rows drawn before the virtualizer existed, if any:
+virtualizer.measureRows(rowElements.map((element, index) => [index, element]));
 
 // while drawing row `index`:
 virtualizer.measureRow(index)(rowElement);
@@ -93,7 +96,7 @@ There is no retry or backoff. A load that fails and leaves `isLoadingMore` `fals
 | Type                    | Description                                                                                                                                                                                                             |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `RowVirtualizerOptions` | `{ estimatedRowHeight, overscan, onRange }` for `createRowVirtualizer`. `onRange` receives the `VisibleRange` from `@gridkitjs/core`, `{ startIndex, endIndex, offsetBefore, offsetAfter }`, with `endIndex` inclusive. |
-| `RowVirtualizer`        | `{ setRowCount, resetHeights, measureRow, scrollToIndex, destroy }`, what `createRowVirtualizer` returns; tabled under [row virtualizer](#row-virtualizer).                                                             |
+| `RowVirtualizer`        | `{ setRowCount, resetHeights, measureRow, measureRows, scrollToIndex, destroy }`, what `createRowVirtualizer` returns; tabled under [row virtualizer](#row-virtualizer).                                                |
 | `InfiniteScrollOptions` | `{ sentinel, hasMore, onLoadMore?, isLoadingMore?, rootMargin? }`, tabled under [infinite scroll](#infinite-scroll).                                                                                                    |
 | `InfiniteScroll`        | `{ update, detach }`, what `attachInfiniteScroll` returns.                                                                                                                                                              |
 

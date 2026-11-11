@@ -316,7 +316,7 @@ export default function App() {
 }
 ```
 
-The grid calls `onLoadMore` once as the last row nears the bottom of the body, then not again until `isLoadingMore` goes back to `false`, so a slow request is never sent twice. Here `onLoadMore` only asks for one more page, and the effect fetches it, so every request is cancelled when the sort or filter changes under it. `virtualized` keeps the number of mounted rows small however many load. See [infinite scroll](/docs/react/infinite-scroll) for `rootMargin` and the loading row.
+The grid calls `onLoadMore` once as the last row nears the bottom of the body, then not again while that load is in flight (`isLoadingMore` is `true`), so a slow request is never sent twice. Here `onLoadMore` only asks for one more page, and the effect fetches it, so every request is cancelled when the sort or filter changes under it. `virtualized` keeps the number of mounted rows small however many load. See [infinite scroll](/docs/react/infinite-scroll) for `rootMargin`, the loading row and everything that lets `onLoadMore` be called again.
 
 ## With TanStack Query
 

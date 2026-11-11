@@ -50,7 +50,7 @@ gridRef.current?.scrollToRow("row-2000");
 
 ## Turning `virtualized` on and off
 
-`virtualized` can change at any time. Turning it on keeps every row mounted until the grid has worked out the window around the scroll position, then unmounts the rest, so a focused cell in that window keeps the browser's focus. A `scrollToRow` in the same commit, such as one from a parent's layout effect, already scrolls the virtualized body.
+`virtualized` can change at any time. Turning it on keeps every row mounted until the grid has worked out the window around the scroll position, then unmounts the rest, so a focused cell in that window keeps the browser's focus. That window comes from the rows' measured heights, not `estimatedRowHeight`, so it is the rows on screen and the scroll position stays put, however far the real heights are from the estimate. A `scrollToRow` in the same commit, such as one from a parent's layout effect, already scrolls the virtualized body.
 
 ## Interaction with pagination and grouping
 

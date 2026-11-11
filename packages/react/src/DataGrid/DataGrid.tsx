@@ -617,6 +617,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     enabled: virtualized,
     rows: view.pageRows,
     bodyScrollRef,
+    bodyTableRef,
     estimatedRowHeight,
     overscan,
   });
