@@ -1,5 +1,24 @@
 # @gridkitjs/dom
 
+## 0.6.0
+
+### Minor Changes
+
+- e09082a: `RowVirtualizer` has a `measureRows(rows)` method, which reads the heights of
+  rows already on screen (`[index, element]` pairs) and works out the window
+  once. Call it after `setRowCount` on a virtualizer created over rows drawn
+  before it existed, so its first window matches them rather than one placed by
+  `estimatedRowHeight`.
+
+### Patch Changes
+
+- dec6ab8: A gesture started by `startDragReorder` or `startColumnResizeGesture` keeps
+  following the pointer when its element is moved elsewhere in the document
+  mid-gesture, as a keyed list moves a header when a controlled `columnOrder`
+  changes during the drag. The browser released the pointer capture on the
+  move, so the gesture stopped hearing moves and the release: its ghost and
+  drop marker stayed drawn until the next press or Escape.
+
 ## 0.5.0
 
 ### Minor Changes
