@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@gridkitjs/core": "^0.17.0",
-    "@gridkitjs/react": "^0.17.0",
+    "@gridkitjs/react": "^0.17.1",
     "@gridkitjs/theme-tailwind": "^0.12.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
