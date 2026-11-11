@@ -39,8 +39,14 @@ interface PointerGestureHandlers {
  * state reset that goes with it).
  *
  * Only the pointer that started the gesture moves or ends it: another finger
- * landing mid-drag fires its own events on the same element, and they are
- * ignored.
+ * landing mid-drag fires its own events, and they are ignored.
+ *
+ * The pointer is captured on `element`, but its events are heard on the
+ * document, in the capture phase. A renderer that moves `element` within the
+ * document mid-gesture, as a keyed list re-inserting it does, makes the
+ * browser release the capture, and events heard only on `element` would then
+ * go to whatever lies under the pointer, leaving the gesture with no move and
+ * no release. Capture is taken again while `element` is still connected.
  */
 export function startPointerGesture(
   element: HTMLElement,
@@ -48,12 +54,14 @@ export function startPointerGesture(
   handlers: PointerGestureHandlers,
   signal: AbortSignal | undefined,
 ): void {
+  const { ownerDocument } = element;
   element.setPointerCapture(pointerId);
 
   function stop(): void {
-    element.removeEventListener("pointermove", move);
-    element.removeEventListener("pointerup", end);
-    element.removeEventListener("pointercancel", cancel);
+    ownerDocument.removeEventListener("pointermove", move, true);
+    ownerDocument.removeEventListener("pointerup", end, true);
+    ownerDocument.removeEventListener("pointercancel", cancel, true);
+    element.removeEventListener("lostpointercapture", recapture);
     window.removeEventListener("keydown", onKeyDown);
     signal?.removeEventListener("abort", abandon);
     if (element.hasPointerCapture(pointerId)) {
@@ -80,6 +88,12 @@ export function startPointerGesture(
     }
   }
 
+  function recapture(event: PointerEvent): void {
+    if (event.pointerId === pointerId && element.isConnected) {
+      element.setPointerCapture(pointerId);
+    }
+  }
+
   function abandon(): void {
     stop();
     handlers.onCancel();
@@ -91,9 +105,10 @@ export function startPointerGesture(
     }
   }
 
-  element.addEventListener("pointermove", move);
-  element.addEventListener("pointerup", end);
-  element.addEventListener("pointercancel", cancel);
+  ownerDocument.addEventListener("pointermove", move, true);
+  ownerDocument.addEventListener("pointerup", end, true);
+  ownerDocument.addEventListener("pointercancel", cancel, true);
+  element.addEventListener("lostpointercapture", recapture);
   window.addEventListener("keydown", onKeyDown);
   signal?.addEventListener("abort", abandon);
 }
