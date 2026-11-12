@@ -29,11 +29,14 @@ function indentRule(selector: string, level: number): string {
  */
 function groupIndentRules(): string {
   const rules = [
-    indentRule('.export-group:not([data-level="0"])', DEEPEST_INDENTED_LEVEL),
+    indentRule(
+      '.gridkit-export-group:not([data-level="0"])',
+      DEEPEST_INDENTED_LEVEL,
+    ),
   ];
   for (let level = 1; level < DEEPEST_INDENTED_LEVEL; level++) {
     rules.push(
-      indentRule(`.export-group[data-level="${String(level)}"]`, level),
+      indentRule(`.gridkit-export-group[data-level="${String(level)}"]`, level),
     );
   }
   return rules.join("\n");
@@ -42,8 +45,8 @@ function groupIndentRules(): string {
 const BASE_RULES = `html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 body { margin: 0; background: #fff; color: #000; font: 10pt/1.35 system-ui, sans-serif; }
 .gridkit-print-header { margin-bottom: 8pt; }
-.print-title { margin: 0; font-size: 14pt; }
-.print-subtitle, .print-timestamp { margin: 2pt 0 0; color: #444; }
+.gridkit-print-title { margin: 0; font-size: 14pt; }
+.gridkit-print-subtitle, .gridkit-print-timestamp { margin: 2pt 0 0; color: #444; }
 .gridkit-print-footer { margin-top: 8pt; color: #444; }
 .gridkit-export-table { width: 100%; border-collapse: collapse; }
 .gridkit-export-table thead { display: table-header-group; }
@@ -51,8 +54,8 @@ body { margin: 0; background: #fff; color: #000; font: 10pt/1.35 system-ui, sans
 .gridkit-export-table tr { break-inside: avoid; }
 .gridkit-export-table th, .gridkit-export-table td { border: 1px solid #bbb; padding: 3pt ${CELL_PADDING_X}; text-align: left; vertical-align: top; }
 .gridkit-export-table th { background: #eee; font-weight: 600; }
-.export-group > td { background: #f5f5f5; font-weight: 600; }
-.export-group-summary > td, .gridkit-export-table tfoot td { font-weight: 600; }
+.gridkit-export-group > td { background: #f5f5f5; font-weight: 600; }
+.gridkit-export-group-summary > td, .gridkit-export-table tfoot td { font-weight: 600; }
 .gridkit-export-table tfoot td { border-top: 2px solid #888; }`;
 
 const FIT_TO_WIDTH_RULES = `.gridkit-export-table { table-layout: fixed; font-size: 8pt; }

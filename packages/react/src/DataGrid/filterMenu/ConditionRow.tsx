@@ -56,7 +56,7 @@ function OperandField({
 }: OperandFieldProps) {
   const field = {
     ref: fieldRef,
-    className: "filter-menu-value",
+    className: "gridkit-filter-menu-value",
     "aria-label": label,
     "aria-invalid": invalidMessageId === undefined ? undefined : true,
     "aria-describedby": invalidMessageId,
@@ -141,11 +141,11 @@ export default function ConditionRow({
       ref={ref}
       role="group"
       aria-label={messages.filterConditionLabel(position)}
-      className="filter-menu-condition"
+      className="gridkit-filter-menu-condition"
     >
       <select
         ref={arity === 0 ? focusRef : undefined}
-        className="filter-menu-operator"
+        className="gridkit-filter-menu-operator"
         aria-label={messages.filterOperatorFieldLabel}
         value={row.operator}
         onChange={(event) => {

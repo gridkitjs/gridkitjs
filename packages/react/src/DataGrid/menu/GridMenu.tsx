@@ -92,25 +92,25 @@ function MenuItem({
     <div
       role={checked === undefined ? "menuitem" : "menuitemcheckbox"}
       data-gridkit-menu-item={entry.id}
-      className="menu-item"
+      className="gridkit-menu-item"
       {...ariaAttr(isItem && entry.disabled, "aria-disabled", true)}
       {...ariaAttr(checked !== undefined, "aria-checked", checked)}
       {...ariaAttr(shortcut !== undefined, "aria-keyshortcuts", shortcut)}
       {...ariaAttr<"aria-haspopup", "menu">(!isItem, "aria-haspopup", "menu")}
       {...ariaAttr(!isItem, "aria-expanded", expanded)}
     >
-      <span className="menu-item-icon" aria-hidden="true">
+      <span className="gridkit-menu-item-icon" aria-hidden="true">
         {checked === true ? <CheckIcon /> : <MenuIcon name={entry.icon} />}
       </span>
-      <span className="menu-item-label">{entry.label}</span>
+      <span className="gridkit-menu-item-label">{entry.label}</span>
       {/* Read out through `aria-keyshortcuts`, not as part of the name. */}
       {shortcut !== undefined && (
-        <span className="menu-item-shortcut" aria-hidden="true">
+        <span className="gridkit-menu-item-shortcut" aria-hidden="true">
           {shortcut}
         </span>
       )}
       {!isItem && (
-        <span className="menu-submenu-indicator" aria-hidden="true">
+        <span className="gridkit-menu-submenu-indicator" aria-hidden="true">
           <ChevronRightIcon />
         </span>
       )}
@@ -256,7 +256,11 @@ export default function GridMenu({
       >
         {entries.map((entry) =>
           entry.type === "separator" ? (
-            <div key={entry.key} role="separator" className="menu-separator" />
+            <div
+              key={entry.key}
+              role="separator"
+              className="gridkit-menu-separator"
+            />
           ) : (
             <MenuItem
               key={entry.id}

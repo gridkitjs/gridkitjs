@@ -366,7 +366,7 @@ test.describe("DataGrid toolbar", () => {
 
     await root
       .getByRole("columnheader", { name: "Name" })
-      .locator(".header-sort-toggle")
+      .locator(".gridkit-header-sort-toggle")
       .click();
     await expect(clearSort).not.toHaveAttribute("aria-disabled");
     expect(await names(root)).toEqual(["Alice", "Bravo", "Charlie"]);
@@ -399,7 +399,7 @@ test.describe("DataGrid toolbar", () => {
 
     await expect(
       gridToolbar(root).locator('[data-gridkit-toolbar-item="status"]'),
-    ).toHaveClass("toolbar-custom");
+    ).toHaveClass("gridkit-toolbar-custom");
     await expect(toolbarButton(root, "status: roomy")).toBeVisible();
   });
 
@@ -755,7 +755,7 @@ test.describe("DataGrid toolbar overflow", () => {
     const root = await mountGrid(mount, <ToolbarGrid />, NARROW);
     const more = toolbarButton(root, "More");
 
-    await expect(more).toHaveClass(/toolbar-more/);
+    await expect(more).toHaveClass(/gridkit-toolbar-more/);
     expect(await entryKeys(gridToolbar(root))).toEqual([
       "search",
       "separator-1",
@@ -961,7 +961,9 @@ test.describe("DataGrid toolbar item attributes", () => {
       "aria-haspopup",
       "menu",
     );
-    await expect(page.locator("#status-slot")).toHaveClass("toolbar-custom");
+    await expect(page.locator("#status-slot")).toHaveClass(
+      "gridkit-toolbar-custom",
+    );
     await expect(
       page.locator("#status-slot").getByRole("button", {
         name: "status: roomy",

@@ -113,7 +113,7 @@ export default function GroupByBar<Row>({
       aria-label={messages.groupByBarLabel}
     >
       {showPlaceholder && (
-        <span className="group-by-bar-placeholder">
+        <span className="gridkit-group-by-bar-placeholder">
           {messages.groupByBarPlaceholder}
         </span>
       )}
@@ -128,7 +128,7 @@ export default function GroupByBar<Row>({
           <span
             key={entry.columnId}
             className={classNames(
-              "group-by-chip",
+              "gridkit-group-by-chip",
               dragging ? "is-dragging" : "",
               dropBefore ? "is-drop-before" : "",
               dropAfter ? "is-drop-after" : "",
@@ -156,12 +156,12 @@ export default function GroupByBar<Row>({
               }
             }}
           >
-            <span className="group-by-chip-label">
+            <span className="gridkit-group-by-chip-label">
               {labelFor(entry.columnId)}
             </span>
             <button
               type="button"
-              className="group-by-chip-remove"
+              className="gridkit-group-by-chip-remove"
               aria-label={messages.removeGroupBy(columnName(entry.columnId))}
               onPointerDown={(event) => {
                 // Otherwise the chip's own `onPointerDown` sees this bubble
@@ -187,7 +187,7 @@ export default function GroupByBar<Row>({
         chipDrag.ghostTransform !== null &&
         createPortal(
           <span
-            className="group-by-chip drag-ghost"
+            className="gridkit-group-by-chip gridkit-drag-ghost"
             style={{ transform: chipDrag.ghostTransform }}
             aria-hidden="true"
           >

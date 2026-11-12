@@ -91,7 +91,7 @@ function GridGroupRowComponent<Row>({
       // the array position rather than the DOM's `sectionRowIndex`.
       data-gridkit-row-index={rowIndex}
       className={classNames(
-        "grid-group-row",
+        "gridkit-grid-group-row",
         `is-group-level-${String(level)}`,
       )}
     >
@@ -102,7 +102,7 @@ function GridGroupRowComponent<Row>({
         aria-keyshortcuts={
           contextMenu ? "Space Enter Shift+F10" : "Space Enter"
         }
-        className="grid-group-cell"
+        className="gridkit-grid-group-cell"
       >
         {/*
          * The flex layout lives on this inner `div`, not the `<td>` itself:
@@ -113,23 +113,23 @@ function GridGroupRowComponent<Row>({
          * the cell is can miss it and hit the table underneath instead).
          */}
         <div
-          className="grid-group-cell-content"
+          className="gridkit-grid-group-cell-content"
           style={{ paddingInlineStart: `${String(level * 1.25 + 0.5)}rem` }}
         >
           <span
             className={classNames(
-              "group-toggle",
+              "gridkit-group-toggle",
               expanded ? "is-expanded" : "is-collapsed",
             )}
             aria-hidden="true"
           />
-          <span className="group-label">
+          <span className="gridkit-group-label">
             {resolveColumnLabel(groupColumn)}:{" "}
             {formatGroupValue(value, groupColumn, locale, cellMessages)}
           </span>
-          <span className="group-count">({count})</span>
+          <span className="gridkit-group-count">({count})</span>
           {aggregates.length > 0 && (
-            <span className="group-aggregates">
+            <span className="gridkit-group-aggregates">
               {aggregates.map((spec) => {
                 const key = spec.id ?? spec.columnId;
                 const aggregateValue = results.get(key);
@@ -151,7 +151,7 @@ function GridGroupRowComponent<Row>({
                     ? spec.columnId
                     : resolveColumnLabel(column));
                 return (
-                  <span key={key} className="group-aggregate">
+                  <span key={key} className="gridkit-group-aggregate">
                     {aggregateLabel}: {rendered}
                   </span>
                 );

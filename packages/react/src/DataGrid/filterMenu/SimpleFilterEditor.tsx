@@ -59,10 +59,10 @@ function CombinatorChoice({
     <div
       role="radiogroup"
       aria-label={messages.filterCombinatorLabel}
-      className="filter-menu-combinator"
+      className="gridkit-filter-menu-combinator"
     >
       {COMBINATORS.map((choice) => (
-        <label key={choice} className="filter-menu-combinator-option">
+        <label key={choice} className="gridkit-filter-menu-combinator-option">
           <input
             type="radio"
             name={name}
@@ -191,9 +191,9 @@ export default function SimpleFilterEditor<Row>({
   }, [invalid]);
 
   return (
-    <div className="filter-menu-conditions">
+    <div className="gridkit-filter-menu-conditions">
       {opened.custom && (
-        <p className="filter-menu-custom">{messages.customFilter}</p>
+        <p className="gridkit-filter-menu-custom">{messages.customFilter}</p>
       )}
       {draft.rows.map((row, index) => (
         // A row is its place: the first condition, or the second.
@@ -228,7 +228,7 @@ export default function SimpleFilterEditor<Row>({
         </Fragment>
       ))}
       {invalid.length > 0 && (
-        <p id={invalidMessageId} className="filter-menu-invalid">
+        <p id={invalidMessageId} className="gridkit-filter-menu-invalid">
           {messages.filterValueInvalid(menu.family)}
         </p>
       )}

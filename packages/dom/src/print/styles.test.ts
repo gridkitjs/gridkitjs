@@ -58,13 +58,13 @@ describe("printStyles", () => {
   it("steps each group level in, the deepest shared by every level past it", () => {
     const styles = printStyles(page);
     expect(styles).toContain(
-      '.export-group[data-level="1"] > td:first-child { padding-left: calc(5pt + 1 * 12pt); }',
+      '.gridkit-export-group[data-level="1"] > td:first-child { padding-left: calc(5pt + 1 * 12pt); }',
     );
     expect(styles).toContain(
-      '.export-group[data-level="5"] > td:first-child { padding-left: calc(5pt + 5 * 12pt); }',
+      '.gridkit-export-group[data-level="5"] > td:first-child { padding-left: calc(5pt + 5 * 12pt); }',
     );
     expect(styles).toContain(
-      '.export-group:not([data-level="0"]) > td:first-child { padding-left: calc(5pt + 6 * 12pt); }',
+      '.gridkit-export-group:not([data-level="0"]) > td:first-child { padding-left: calc(5pt + 6 * 12pt); }',
     );
     expect(styles).not.toContain('[data-level="6"]');
     // The catch-all comes first, so each level's own rule wins over it.

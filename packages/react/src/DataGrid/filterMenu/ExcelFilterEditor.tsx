@@ -161,12 +161,12 @@ export default function ExcelFilterEditor<Row>({
       <>
         <button
           type="button"
-          className="filter-menu-back"
+          className="gridkit-filter-menu-back"
           onClick={() => {
             setMode({ kind: "values", focusOnMount: true });
           }}
         >
-          <span className="filter-menu-back-icon" aria-hidden="true">
+          <span className="gridkit-filter-menu-back-icon" aria-hidden="true">
             <ChevronLeftIcon />
           </span>
           {messages.filterBackToValues}
@@ -189,7 +189,7 @@ export default function ExcelFilterEditor<Row>({
 
   const { shape } = opened;
   return (
-    <div className="filter-menu-values">
+    <div className="gridkit-filter-menu-values">
       {menu.operators.length > 0 && (
         <OperatorMenuButton
           ref={operatorButton}
@@ -206,7 +206,7 @@ export default function ExcelFilterEditor<Row>({
         />
       )}
       {(shape.kind === "conditions" || shape.kind === "custom") && (
-        <p className="filter-menu-custom">
+        <p className="gridkit-filter-menu-custom">
           {shape.kind === "conditions"
             ? messages.filterByCondition
             : messages.customFilter}
@@ -215,7 +215,7 @@ export default function ExcelFilterEditor<Row>({
       <input
         ref={initialFocusRef}
         type="search"
-        className="filter-menu-search"
+        className="gridkit-filter-menu-search"
         aria-label={messages.filterSearchLabel}
         placeholder={messages.searchPlaceholder}
         value={draft.search}
@@ -223,7 +223,7 @@ export default function ExcelFilterEditor<Row>({
           dispatch({ type: "search", search: event.currentTarget.value });
         }}
       />
-      <label className="filter-menu-select-all">
+      <label className="gridkit-filter-menu-select-all">
         <input
           ref={selectAllRef}
           type="checkbox"
@@ -237,7 +237,7 @@ export default function ExcelFilterEditor<Row>({
         {messages.filterSelectAll}
       </label>
       {checklist.needsSearch ? (
-        <p className="filter-menu-search-first">
+        <p className="gridkit-filter-menu-search-first">
           {messages.filterSearchFirst(checklist.total)}
         </p>
       ) : (
@@ -251,7 +251,7 @@ export default function ExcelFilterEditor<Row>({
         />
       )}
       {checklist.hiddenCount > 0 && (
-        <p role="status" className="filter-menu-more">
+        <p role="status" className="gridkit-filter-menu-more">
           {messages.filterMoreValues(checklist.hiddenCount)}
         </p>
       )}

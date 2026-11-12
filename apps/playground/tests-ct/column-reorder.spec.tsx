@@ -156,7 +156,7 @@ test("a right-button drag across another header does not reorder the columns", a
   await page.mouse.move(target.x + target.width * 0.75, target.y + 5, {
     steps: 5,
   });
-  await expect(page.locator(".drag-ghost")).toHaveCount(0);
+  await expect(page.locator(".gridkit-drag-ghost")).toHaveCount(0);
   await expect(headers(root).first()).not.toHaveClass(/is-dragging/);
   await page.mouse.up({ button: "right" });
 
@@ -181,7 +181,7 @@ test("crossing the drag threshold shows a ghost portalled to document.body, not 
   const start = await dragStart(page, headers(root).first());
   await page.mouse.move(start.x + 20, start.y, { steps: 3 });
 
-  const ghost = page.locator(".drag-ghost");
+  const ghost = page.locator(".gridkit-drag-ghost");
   await expect(ghost).toBeVisible();
   expect(
     await ghost.evaluate((element) => element.closest("table") !== null),
@@ -268,7 +268,7 @@ test("Escape mid-drag cancels: order unchanged, onColumnOrderChange never called
 
   expect(await columnIds(root)).toEqual(idsBefore);
   expect(events).toHaveLength(0);
-  await expect(root.locator(".drag-ghost")).toHaveCount(0);
+  await expect(root.locator(".gridkit-drag-ghost")).toHaveCount(0);
 });
 
 /**
@@ -370,7 +370,7 @@ test("a second pointer neither steers nor ends a header drag", async ({
 
   await secondPointer(dragged, "pointerup", overLast);
   await expect(dragged).toHaveClass(/is-dragging/);
-  await expect(page.locator(".drag-ghost")).toBeVisible();
+  await expect(page.locator(".gridkit-drag-ghost")).toBeVisible();
 
   await page.keyboard.press("Escape");
   await page.mouse.up();
@@ -408,7 +408,7 @@ test("a cancelled pointer mid-drag ends the drag and leaves the order as it was"
     isPrimary: true,
     bubbles: true,
   });
-  await expect(page.locator(".drag-ghost")).toHaveCount(0);
+  await expect(page.locator(".gridkit-drag-ghost")).toHaveCount(0);
   await expect(dragged).not.toHaveClass(/is-dragging/);
   await expect(headers(root).nth(2)).not.toHaveClass(/is-drop-after/);
 
@@ -553,7 +553,7 @@ test("a drag whose own header moves mid-drag keeps following the pointer, drops 
   });
   const headerLocators = headers(root);
   const dragged = root.locator('thead th[data-gridkit-column="id"]');
-  const ghost = page.locator(".drag-ghost");
+  const ghost = page.locator(".gridkit-drag-ghost");
 
   const start = await dragStart(page, dragged);
   await page.mouse.move(start.x + 10, start.y, { steps: 3 });
@@ -803,7 +803,7 @@ test("hiding the dragged column mid-drag ends the drag: no ghost, the group-by b
   await updateGrid(root, grid({}), { width: 900 });
   await expect(headers(root)).toHaveCount(3);
 
-  await expect(page.locator(".drag-ghost")).toHaveCount(0);
+  await expect(page.locator(".gridkit-drag-ghost")).toHaveCount(0);
   await expect(headers(root).nth(1)).not.toHaveClass(/is-dragging/);
   await expect(bar).toHaveCount(0);
 
@@ -830,7 +830,7 @@ test("unmounting the grid mid-drag leaves nothing listening on window", async ({
   );
   const start = await dragStart(page, headers(root).first());
   await page.mouse.move(start.x + 20, start.y, { steps: 3 });
-  await expect(page.locator(".drag-ghost")).toBeVisible();
+  await expect(page.locator(".gridkit-drag-ghost")).toBeVisible();
 
   await root.unmount();
   expect(await listening()).toBe(0);

@@ -1277,7 +1277,9 @@ describe("print", () => {
       title: "Orders",
       page: { orientation: "portrait", paperSize: "A4" },
     });
-    expect(document.bodyHtml).toContain('<h1 class="print-title">Orders</h1>');
+    expect(document.bodyHtml).toContain(
+      '<h1 class="gridkit-print-title">Orders</h1>',
+    );
     expect(options).toEqual({});
   });
 

@@ -64,7 +64,7 @@ function GridGroupSummaryRowComponent<Row>({
       // the array position rather than the DOM's `sectionRowIndex`.
       data-gridkit-row-index={rowIndex}
       className={classNames(
-        "grid-group-summary-row",
+        "gridkit-grid-group-summary-row",
         `is-group-level-${String(level)}`,
       )}
     >
@@ -78,12 +78,12 @@ function GridGroupSummaryRowComponent<Row>({
             key={entry.id}
             role="gridcell"
             data-gridkit-column={entry.id}
-            className="grid-group-summary-cell"
+            className="gridkit-grid-group-summary-cell"
             style={{ textAlign: specs[0]?.alignment ?? entry.alignment }}
           >
             {entry.id === columns[0]?.id && (
               <span
-                className="grid-group-summary-indent"
+                className="gridkit-grid-group-summary-indent"
                 style={{ width: `${String(level * 1.25 + 0.5)}rem` }}
                 aria-hidden="true"
               />

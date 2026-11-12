@@ -368,11 +368,11 @@ test("a column's group toggle adds and removes it from the group-by stack, and t
   await regionHeader.press("Alt+ArrowDown");
 
   await expect(groupHeaders(root)).toHaveCount(2);
-  const chip = root.locator(".group-by-chip");
+  const chip = root.locator(".gridkit-group-by-chip");
   await expect(chip).toHaveCount(1);
   await expect(chip).toContainText("region");
 
-  await chip.locator(".group-by-chip-remove").click();
+  await chip.locator(".gridkit-group-by-chip-remove").click();
   await expect(groupHeaders(root)).toHaveCount(0);
   await expect(root.locator(".gridkit-group-by-bar")).toHaveCount(0);
 });
@@ -397,11 +397,13 @@ test("groupToggleIcon: false hides only that column's icon, without disabling it
   );
   const headerLocators = root.locator("thead th");
   const regionHeader = headerLocators.filter({ hasText: "region" });
-  await expect(regionHeader.locator(".header-group-toggle")).toHaveCount(0);
+  await expect(
+    regionHeader.locator(".gridkit-header-group-toggle"),
+  ).toHaveCount(0);
   await expect(
     headerLocators
       .filter({ hasText: "status" })
-      .locator(".header-group-toggle"),
+      .locator(".gridkit-header-group-toggle"),
   ).toHaveCount(1);
 
   // Alt+ArrowDown still groups the icon-less column.
@@ -423,7 +425,7 @@ test("groupToggleIconColumns={false} hides every column's icon grid-wide, withou
       groupToggleIconColumns={false}
     />,
   );
-  await expect(root.locator(".header-group-toggle")).toHaveCount(0);
+  await expect(root.locator(".gridkit-header-group-toggle")).toHaveCount(0);
 
   const regionHeader = root.locator("thead th").filter({ hasText: "region" });
   await regionHeader.focus();
@@ -444,7 +446,7 @@ test('groupByBarVisibility="always" renders the bar even with an empty groupBy',
     />,
   );
   await expect(root.locator(".gridkit-group-by-bar")).toHaveCount(1);
-  await expect(root.locator(".group-by-chip")).toHaveCount(0);
+  await expect(root.locator(".gridkit-group-by-chip")).toHaveCount(0);
 });
 
 test('groupByBarVisibility="never" hides the bar even with a non-empty defaultGroupBy', async ({

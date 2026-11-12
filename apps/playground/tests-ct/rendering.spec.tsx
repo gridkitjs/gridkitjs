@@ -146,9 +146,13 @@ test.describe("structural rendering", () => {
       const table = gridTable(root);
       for (const other of BORDER_VALUES) {
         if (other === borders) {
-          await expect(table).toHaveClass(new RegExp(`borders-${other}`));
+          await expect(table).toHaveClass(
+            new RegExp(`gridkit-borders-${other}`),
+          );
         } else {
-          await expect(table).not.toHaveClass(new RegExp(`borders-${other}`));
+          await expect(table).not.toHaveClass(
+            new RegExp(`gridkit-borders-${other}`),
+          );
         }
       }
     });
@@ -165,10 +169,10 @@ test.describe("structural rendering", () => {
         label="No borders prop"
       />,
     );
-    await expect(gridTable(root)).not.toHaveClass(/borders-/);
+    await expect(gridTable(root)).not.toHaveClass(/gridkit-borders-/);
   });
 
-  test("hoverable={{ rows: false }} adds no-hover-rows and leaves the other two hoverable", async ({
+  test("hoverable={{ rows: false }} adds gridkit-no-hover-rows and leaves the other two hoverable", async ({
     mount,
   }) => {
     const root = await mountGrid(
@@ -181,9 +185,9 @@ test.describe("structural rendering", () => {
       />,
     );
     const table = gridTable(root);
-    await expect(table).toHaveClass(/no-hover-rows/);
-    await expect(table).not.toHaveClass(/no-hover-columns/);
-    await expect(table).not.toHaveClass(/no-hover-cells/);
+    await expect(table).toHaveClass(/gridkit-no-hover-rows/);
+    await expect(table).not.toHaveClass(/gridkit-no-hover-columns/);
+    await expect(table).not.toHaveClass(/gridkit-no-hover-cells/);
   });
 
   test('resizeMode="fixed" keeps a column\'s declared width regardless of container width', async ({
@@ -329,7 +333,7 @@ test.describe("value formatting", () => {
     await expect(cell(root, 1, "price")).toHaveText("3");
     await expect(cell(root, 0, "due")).toHaveText(due);
     await expect(
-      root.locator('.grid-footer td[data-gridkit-column="price"]'),
+      root.locator('.gridkit-grid-footer td[data-gridkit-column="price"]'),
     ).toHaveText(total);
   });
 
@@ -361,7 +365,7 @@ test.describe("value formatting", () => {
     await expect(cell(root, 1, "price")).toHaveText("$3.00");
     await expect(cell(root, 0, "due")).toHaveText("March 15, 2024");
     await expect(
-      root.locator('.grid-footer td[data-gridkit-column="price"]'),
+      root.locator('.gridkit-grid-footer td[data-gridkit-column="price"]'),
     ).toHaveText("$1,237.50");
   });
 });

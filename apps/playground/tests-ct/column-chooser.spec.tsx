@@ -107,12 +107,9 @@ test.describe("column chooser", () => {
     expect(panel.y).toBeCloseTo(button.y + button.height + ANCHOR_GAP, 0);
     await expect(chooser).toHaveClass("gridkit-column-chooser");
 
-    await expect(chooser.locator(".column-chooser-list li")).toHaveText([
-      "Id",
-      "Name",
-      "Score",
-      "Notes",
-    ]);
+    await expect(chooser.locator(".gridkit-column-chooser-list li")).toHaveText(
+      ["Id", "Name", "Score", "Notes"],
+    );
     await expect(option(chooser, "Id")).toBeChecked();
     await expect(option(chooser, "Id")).toBeDisabled();
     await expect(option(chooser, "Name")).toBeChecked();
@@ -208,10 +205,9 @@ test.describe("column chooser", () => {
     ).toBe(true);
 
     await page.keyboard.type("O");
-    await expect(chooser.locator(".column-chooser-list li")).toHaveText([
-      "Score",
-      "Notes",
-    ]);
+    await expect(chooser.locator(".gridkit-column-chooser-list li")).toHaveText(
+      ["Score", "Notes"],
+    );
 
     await showAll.click();
 
@@ -337,10 +333,9 @@ test.describe("column chooser", () => {
     await expect(header(root, "Name")).toHaveCount(0);
     await chooser.getByRole("searchbox").fill("s");
 
-    await expect(chooser.locator(".column-chooser-list li")).toHaveText([
-      "Score",
-      "Notes",
-    ]);
+    await expect(chooser.locator(".gridkit-column-chooser-list li")).toHaveText(
+      ["Score", "Notes"],
+    );
     await expect.poll(async () => (await boxOf(chooser)).x).toBe(before.x);
     expect((await boxOf(chooser)).y).toBe(before.y);
 

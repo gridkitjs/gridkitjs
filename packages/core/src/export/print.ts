@@ -112,11 +112,15 @@ function line(
 function headerHtml(options: PrintOptions): string {
   const { timestamp = false } = options;
   const lines =
-    line("h1", "print-title", options.title) +
-    line("p", "print-subtitle", options.subtitle) +
+    line("h1", "gridkit-print-title", options.title) +
+    line("p", "gridkit-print-subtitle", options.subtitle) +
     (timestamp === false
       ? ""
-      : line("p", "print-timestamp", timestampText(timestamp, options.locale)));
+      : line(
+          "p",
+          "gridkit-print-timestamp",
+          timestampText(timestamp, options.locale),
+        ));
   return lines === ""
     ? ""
     : `<header class="gridkit-print-header">${lines}</header>`;
@@ -131,8 +135,8 @@ function headerHtml(options: PrintOptions): string {
  * `printDocument` in a browser.
  *
  * The heading and footer carry semantic class names for a stylesheet:
- * `gridkit-print-header` around `print-title`, `print-subtitle` and
- * `print-timestamp`, and `gridkit-print-footer`.
+ * `gridkit-print-header` around `gridkit-print-title`, `gridkit-print-subtitle` and
+ * `gridkit-print-timestamp`, and `gridkit-print-footer`.
  */
 export function buildPrintDocument(
   table: ExportTable,

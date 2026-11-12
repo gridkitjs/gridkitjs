@@ -74,7 +74,7 @@ function groupRowHtml(
     .slice(span)
     .map((cell, index) => cellHtml("td", cell.text, columns[span + index]))
     .join("");
-  return `<tr class="export-group" data-level="${String(row.level)}">${label}${aggregates}</tr>`;
+  return `<tr class="gridkit-export-group" data-level="${String(row.level)}">${label}${aggregates}</tr>`;
 }
 
 function rowHtml(row: ExportRow, columns: readonly ExportColumn[]): string {
@@ -84,7 +84,7 @@ function rowHtml(row: ExportRow, columns: readonly ExportColumn[]): string {
     case "group":
       return groupRowHtml(row, columns);
     case "groupSummary":
-      return `<tr class="export-group-summary" data-level="${String(row.level)}">${cellsHtml(row.cells, columns)}</tr>`;
+      return `<tr class="gridkit-export-group-summary" data-level="${String(row.level)}">${cellsHtml(row.cells, columns)}</tr>`;
   }
 }
 
@@ -93,8 +93,8 @@ function rowHtml(row: ExportRow, columns: readonly ExportColumn[]): string {
  * the table has a header, every row in `<tbody>`, and the grand total in
  * `<tfoot>`. Every piece of text is escaped. It carries the semantic class
  * names a stylesheet targets — `gridkit-export-table` on the table,
- * `export-group` with a `data-level` on group headers,
- * `export-group-summary` on summary rows — and nothing else of style but
+ * `gridkit-export-group` with a `data-level` on group headers,
+ * `gridkit-export-group-summary` on summary rows — and nothing else of style but
  * each column's alignment, so it reads the same pasted into a document as
  * it does printed.
  */

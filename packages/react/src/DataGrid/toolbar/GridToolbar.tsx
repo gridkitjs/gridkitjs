@@ -177,7 +177,7 @@ function Toolbar<Row>({
             key={item.key}
             {...item.attributes}
             type="button"
-            className="toolbar-button"
+            className="gridkit-toolbar-button"
             data-gridkit-toolbar-item={item.key}
             {...ariaAttr(item.disabled, "aria-disabled", true)}
             {...ariaAttr(
@@ -195,7 +195,7 @@ function Toolbar<Row>({
             }}
           >
             {item.icon !== undefined && (
-              <span className="toolbar-button-icon" aria-hidden="true">
+              <span className="gridkit-toolbar-button-icon" aria-hidden="true">
                 <MenuIcon name={item.icon} />
               </span>
             )}
@@ -231,7 +231,7 @@ function Toolbar<Row>({
             key={item.key}
             role="separator"
             aria-orientation="vertical"
-            className="toolbar-separator"
+            className="gridkit-toolbar-separator"
             data-gridkit-toolbar-item={item.key}
           />
         );
@@ -239,7 +239,7 @@ function Toolbar<Row>({
         return (
           <div
             key={item.key}
-            className="toolbar-spacer"
+            className="gridkit-toolbar-spacer"
             data-gridkit-toolbar-item={item.key}
           />
         );
@@ -248,7 +248,7 @@ function Toolbar<Row>({
           <div
             key={item.key}
             {...item.attributes}
-            className="toolbar-custom"
+            className="gridkit-toolbar-custom"
             data-gridkit-toolbar-item={item.key}
           >
             {renderItem?.(item.id)}

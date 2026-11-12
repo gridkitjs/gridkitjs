@@ -38,7 +38,9 @@ test("a custom messages.previousPage renames the pager's Previous button", async
   await expect(pager.getByRole("button", { name: "Back" })).toBeVisible();
   // Keys left out keep their English.
   await expect(pager.getByRole("button", { name: "Next" })).toBeVisible();
-  await expect(pager.locator(".grid-pager-status")).toHaveText("Page 1 of 3");
+  await expect(pager.locator(".gridkit-grid-pager-status")).toHaveText(
+    "Page 1 of 3",
+  );
 });
 
 test("interpolated messages render and announce in their own words", async ({
@@ -54,9 +56,13 @@ test("interpolated messages render and announce in their own words", async ({
     />,
   );
   const pager = root.locator(".gridkit-grid-pager");
-  await expect(pager.locator(".grid-pager-status")).toHaveText("Seite 1 von 3");
+  await expect(pager.locator(".gridkit-grid-pager-status")).toHaveText(
+    "Seite 1 von 3",
+  );
   await pager.getByRole("button", { name: "Weiter" }).click();
-  await expect(pager.locator(".grid-pager-status")).toHaveText("Seite 2 von 3");
+  await expect(pager.locator(".gridkit-grid-pager-status")).toHaveText(
+    "Seite 2 von 3",
+  );
   await expect(root.locator('[role="status"]')).toHaveText("Seite 2 von 3");
 });
 

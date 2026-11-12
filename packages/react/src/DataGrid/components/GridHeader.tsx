@@ -99,7 +99,7 @@ export default function GridHeader<Row>({
 
   return (
     <thead role="rowgroup">
-      <tr className="grid-header" role="row" aria-rowindex={1}>
+      <tr className="gridkit-grid-header" role="row" aria-rowindex={1}>
         {columns.map((entry, index) => {
           const { column } = entry;
           const resizing = resize.activeColumnId === entry.id;
@@ -174,10 +174,14 @@ export default function GridHeader<Row>({
                 }
                 if (
                   event.target instanceof Element &&
-                  (event.target.closest(".header-resize-handle") !== null ||
-                    event.target.closest(".header-sort-toggle") !== null ||
-                    event.target.closest(".header-group-toggle") !== null ||
-                    event.target.closest(".header-filter-toggle") !== null)
+                  (event.target.closest(".gridkit-header-resize-handle") !==
+                    null ||
+                    event.target.closest(".gridkit-header-sort-toggle") !==
+                      null ||
+                    event.target.closest(".gridkit-header-group-toggle") !==
+                      null ||
+                    event.target.closest(".gridkit-header-filter-toggle") !==
+                      null)
                 ) {
                   return;
                 }
@@ -248,7 +252,7 @@ export default function GridHeader<Row>({
                 nav.onKeyDown(event);
               }}
               className={classNames(
-                "header-cell",
+                "gridkit-header-cell",
                 // The grab affordance a header showing either drag
                 // destination shares — a column dragged only for grouping
                 // (`groupByDraggable` without `reorderable`) grabs the same
@@ -293,7 +297,7 @@ export default function GridHeader<Row>({
                  */
                 <span
                   className={classNames(
-                    "header-group-toggle",
+                    "gridkit-header-group-toggle",
                     isGrouped ? "is-grouped" : "",
                   )}
                   aria-hidden="true"
@@ -321,7 +325,7 @@ export default function GridHeader<Row>({
                  */
                 <span
                   className={classNames(
-                    "header-sort-toggle",
+                    "gridkit-header-sort-toggle",
                     sortDirection !== null ? `is-sorted-${sortDirection}` : "",
                   )}
                   aria-hidden="true"
@@ -348,7 +352,9 @@ export default function GridHeader<Row>({
                     <ChevronUpIcon />
                   )}
                   {sortPriority !== null && sortPriority > 1 && (
-                    <span className="header-sort-priority">{sortPriority}</span>
+                    <span className="gridkit-header-sort-priority">
+                      {sortPriority}
+                    </span>
                   )}
                 </span>
               )}
@@ -361,7 +367,7 @@ export default function GridHeader<Row>({
                  */
                 <span
                   className={classNames(
-                    "header-filter-toggle",
+                    "gridkit-header-filter-toggle",
                     filtered ? "is-filtered" : "",
                   )}
                   aria-hidden="true"
@@ -385,7 +391,7 @@ export default function GridHeader<Row>({
                  * The keyboard resizes from the header itself, under Alt.
                  */
                 <span
-                  className="header-resize-handle"
+                  className="gridkit-header-resize-handle"
                   aria-hidden="true"
                   tabIndex={-1}
                   onPointerDown={(event) => {
@@ -409,7 +415,7 @@ export default function GridHeader<Row>({
         drag.ghostTransform !== null &&
         createPortal(
           <div
-            className="gridkit-data-grid header-cell drag-ghost"
+            className="gridkit-data-grid gridkit-header-cell gridkit-drag-ghost"
             style={{
               width: draggedEntry.width,
               transform: drag.ghostTransform,

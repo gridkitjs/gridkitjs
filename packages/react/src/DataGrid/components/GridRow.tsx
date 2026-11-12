@@ -93,7 +93,7 @@ function GridRowComponent<Row>({
       // otherwise have every row announce that it is not.
       {...ariaAttr(rowsSelectable, "aria-selected", selected)}
       className={classNames(
-        "grid-row",
+        "gridkit-grid-row",
         selected ? "is-selected" : "",
         rowClassName,
       )}
@@ -114,7 +114,7 @@ function GridRowComponent<Row>({
             {...ariaAttr(cellsSelectable, "aria-selected", cellSelected)}
             {...ariaAttr(shortcuts !== "", "aria-keyshortcuts", shortcuts)}
             className={classNames(
-              "grid-cell",
+              "gridkit-grid-cell",
               id === activeColumnId ? "is-resizing" : "",
               cellSelected || selectedColumnIds.has(id) ? "is-selected" : "",
               column.wrap?.cells ? "is-wrapped" : "",

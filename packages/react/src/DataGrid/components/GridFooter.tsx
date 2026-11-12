@@ -50,7 +50,11 @@ export default function GridFooter<Row>({
 }: GridFooterProps<Row>) {
   return (
     <tfoot role="rowgroup">
-      <tr className="grid-footer" role="row" aria-rowindex={ariaRowIndex}>
+      <tr
+        className="gridkit-grid-footer"
+        role="row"
+        aria-rowindex={ariaRowIndex}
+      >
         {columns.map((entry) => {
           const specs = aggregates.filter(
             (candidate) => candidate.columnId === entry.id,
@@ -61,7 +65,7 @@ export default function GridFooter<Row>({
               key={entry.id}
               role="gridcell"
               data-gridkit-column={entry.id}
-              className="grid-footer-cell"
+              className="gridkit-grid-footer-cell"
               style={{ textAlign: specs[0]?.alignment ?? entry.alignment }}
             >
               {specs

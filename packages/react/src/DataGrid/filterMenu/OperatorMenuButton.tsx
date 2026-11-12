@@ -82,14 +82,17 @@ export default function OperatorMenuButton({
       <button
         ref={ref}
         type="button"
-        className="filter-menu-submenu"
+        className="gridkit-filter-menu-submenu"
         {...buttonProps}
       >
-        <span className="filter-menu-submenu-icon" aria-hidden="true">
+        <span className="gridkit-filter-menu-submenu-icon" aria-hidden="true">
           {active !== undefined && <CheckIcon />}
         </span>
         {label}
-        <span className="filter-menu-submenu-indicator" aria-hidden="true">
+        <span
+          className="gridkit-filter-menu-submenu-indicator"
+          aria-hidden="true"
+        >
           <ChevronRightIcon />
         </span>
       </button>

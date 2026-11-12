@@ -486,7 +486,11 @@ test("restoreState puts back a layout saved through serializeGridState and JSON"
 
   await root.getByRole("button", { name: "show-columns" }).click();
   await root.getByRole("button", { name: "clear-selection" }).click();
-  await root.locator("thead th").first().locator(".header-sort-toggle").click();
+  await root
+    .locator("thead th")
+    .first()
+    .locator(".gridkit-header-sort-toggle")
+    .click();
   await expect(root.locator("thead th")).toHaveCount(2);
 
   await root.getByRole("button", { name: "restore-state" }).click();

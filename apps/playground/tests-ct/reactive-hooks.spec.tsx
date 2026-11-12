@@ -166,7 +166,7 @@ test("useColumnSizingState reflects a live resize with no onColumnResize passed"
   expect(status.columnSizing["id"]).toBeUndefined();
 
   const idHeader = root.locator("thead th").filter({ hasText: "id" });
-  const handle = idHeader.locator(".header-resize-handle");
+  const handle = idHeader.locator(".gridkit-header-resize-handle");
   const box = await handle.boundingBox();
   if (box === null) throw new Error("resize handle not found");
   await root.page().mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -234,7 +234,7 @@ test("usePaginationState updates on the silent page reset from a sort change, wi
   await root
     .locator("thead th")
     .filter({ hasText: "amount" })
-    .locator(".header-sort-toggle")
+    .locator(".gridkit-header-sort-toggle")
     .click();
 
   status = await readReactiveStatus(root);
@@ -282,7 +282,7 @@ test("useColumnSortState updates from a header click with no onColumnSortChange 
   await root
     .locator("thead th")
     .filter({ hasText: "amount" })
-    .locator(".header-sort-toggle")
+    .locator(".gridkit-header-sort-toggle")
     .click();
 
   status = await readReactiveStatus(root);

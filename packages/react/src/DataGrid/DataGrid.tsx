@@ -966,22 +966,22 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   // Shared by all three tables below, so borders/hover/selectable styling —
   // every `.gridkit-data-grid.<modifier>` rule in `theme-tailwind` — applies
   // identically to each rather than only to whichever one happened to carry
-  // it. Each rule's own descendant selector (e.g. `.borders-horizontal
-  // .grid-cell`) still needs the modifier class on that cell's own table
+  // it. Each rule's own descendant selector (e.g. `.gridkit-borders-horizontal
+  // .gridkit-grid-cell`) still needs the modifier class on that cell's own table
   // ancestor, which is exactly what splitting into one table per section
   // would otherwise lose.
   const gridTableClassName = classNames(
     "gridkit-data-grid",
-    borders ? `borders-${borders}` : "",
+    borders ? `gridkit-borders-${borders}` : "",
     // Hover is on by default and selection off, so one set of classes
     // turns styling off and the other turns it on. The polarity differs
     // because the defaults do.
-    hoverRows ? "" : "no-hover-rows",
-    hoverColumns ? "" : "no-hover-columns",
-    hoverCells ? "" : "no-hover-cells",
-    selection.rowMode === false ? "" : "selectable-rows",
-    selection.columnMode === false ? "" : "selectable-columns",
-    selection.cellMode === false ? "" : "selectable-cells",
+    hoverRows ? "" : "gridkit-no-hover-rows",
+    hoverColumns ? "" : "gridkit-no-hover-columns",
+    hoverCells ? "" : "gridkit-no-hover-cells",
+    selection.rowMode === false ? "" : "gridkit-selectable-rows",
+    selection.columnMode === false ? "" : "gridkit-selectable-columns",
+    selection.cellMode === false ? "" : "gridkit-selectable-cells",
   );
   const hasFooter = aggregates.length > 0;
 

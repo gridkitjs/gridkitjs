@@ -281,7 +281,7 @@ test("an announcement names a column by its header text, not its headerTemplate 
 
   const costHeader = root.locator('th[data-gridkit-column="cost"]');
   await expect(costHeader).toContainText("Cost (EUR)");
-  await costHeader.locator(".header-sort-toggle").click();
+  await costHeader.locator(".gridkit-header-sort-toggle").click();
   await expect(root.locator('[role="status"]')).toHaveText(
     "Cost sorted ascending",
   );

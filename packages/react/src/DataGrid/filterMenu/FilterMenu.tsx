@@ -118,7 +118,7 @@ export default function FilterMenu<Row>({
        * an apply with a tooltip of the browser's own.
        */}
       <form
-        className="filter-menu-form"
+        className="gridkit-filter-menu-form"
         noValidate
         onSubmit={apply}
         onKeyDown={(event) => {
@@ -135,12 +135,12 @@ export default function FilterMenu<Row>({
         }}
       >
         {sortItems.length > 0 && (
-          <div className="filter-menu-sort">
+          <div className="gridkit-filter-menu-sort">
             {sortItems.map((item) => (
               <button
                 key={item.id}
                 type="button"
-                className="filter-menu-sort-item"
+                className="gridkit-filter-menu-sort-item"
                 disabled={item.disabled}
                 {...ariaAttr(
                   item.checked !== undefined,
@@ -151,7 +151,10 @@ export default function FilterMenu<Row>({
                   run(item);
                 }}
               >
-                <span className="filter-menu-sort-icon" aria-hidden="true">
+                <span
+                  className="gridkit-filter-menu-sort-icon"
+                  aria-hidden="true"
+                >
                   <MenuIcon name={item.icon} />
                 </span>
                 {item.label}
@@ -164,11 +167,11 @@ export default function FilterMenu<Row>({
         ) : (
           <SimpleFilterEditor {...editorProps} />
         )}
-        <div className="filter-menu-actions">
+        <div className="gridkit-filter-menu-actions">
           {clearItem !== undefined && (
             <button
               type="button"
-              className="filter-menu-clear"
+              className="gridkit-filter-menu-clear"
               disabled={clearItem.disabled}
               onClick={() => {
                 run(clearItem);
@@ -177,10 +180,14 @@ export default function FilterMenu<Row>({
               {clearItem.label}
             </button>
           )}
-          <button type="button" className="filter-menu-cancel" onClick={close}>
+          <button
+            type="button"
+            className="gridkit-filter-menu-cancel"
+            onClick={close}
+          >
             {messages.cancelFilter}
           </button>
-          <button type="submit" className="filter-menu-apply">
+          <button type="submit" className="gridkit-filter-menu-apply">
             {messages.applyFilter}
           </button>
         </div>

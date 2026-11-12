@@ -34,7 +34,7 @@ function headers(root: MountResult) {
 }
 
 function toggle(header: ReturnType<typeof headers>) {
-  return header.locator(".header-sort-toggle");
+  return header.locator(".gridkit-header-sort-toggle");
 }
 
 interface ControlledStatus {
@@ -172,15 +172,15 @@ test("a priority badge shows only once two or more columns are stacked", async (
 
   await toggle(headerLocators.nth(0)).click();
   await expect(
-    toggle(headerLocators.nth(0)).locator(".header-sort-priority"),
+    toggle(headerLocators.nth(0)).locator(".gridkit-header-sort-priority"),
   ).toHaveCount(0);
 
   await toggle(headerLocators.nth(1)).click({ modifiers: ["Shift"] });
   await expect(
-    toggle(headerLocators.nth(1)).locator(".header-sort-priority"),
+    toggle(headerLocators.nth(1)).locator(".gridkit-header-sort-priority"),
   ).toHaveText("2");
   await expect(
-    toggle(headerLocators.nth(0)).locator(".header-sort-priority"),
+    toggle(headerLocators.nth(0)).locator(".gridkit-header-sort-priority"),
   ).toHaveCount(0);
 });
 
@@ -228,7 +228,7 @@ test("Alt+ArrowUp toggles like a click, and Alt+Shift+ArrowUp stacks like a Shif
   await expect(headerLocators.nth(0)).toHaveAttribute("aria-sort", "ascending");
   await expect(headerLocators.nth(1)).toHaveAttribute("aria-sort", "ascending");
   await expect(
-    toggle(headerLocators.nth(1)).locator(".header-sort-priority"),
+    toggle(headerLocators.nth(1)).locator(".gridkit-header-sort-priority"),
   ).toHaveText("2");
 });
 
