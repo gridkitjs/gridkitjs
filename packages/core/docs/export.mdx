@@ -180,12 +180,12 @@ toHtmlTable(table, { caption: "Sales, Q1" });
 
 The markup carries semantic class names for a stylesheet and no styles of its own, except each column's alignment:
 
-| Element                               | Marks                                                                                                                                     |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `table.gridkit-export-table`          | The table.                                                                                                                                |
-| `tr.export-group[data-level]`         | A group header, `data-level` its depth from `0`. Its label spans every column, or the columns before the first aggregate it shows inline. |
-| `tr.export-group-summary[data-level]` | A group's summary row.                                                                                                                    |
-| `style="text-align:right"` / `center` | A cell in a right- or centre-aligned column, numeric ones included. Inline, so the alignment survives a paste where no stylesheet goes.   |
+| Element                                       | Marks                                                                                                                                     |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `table.gridkit-export-table`                  | The table.                                                                                                                                |
+| `tr.gridkit-export-group[data-level]`         | A group header, `data-level` its depth from `0`. Its label spans every column, or the columns before the first aggregate it shows inline. |
+| `tr.gridkit-export-group-summary[data-level]` | A group's summary row.                                                                                                                    |
+| `style="text-align:right"` / `center`         | A cell in a right- or centre-aligned column, numeric ones included. Inline, so the alignment survives a paste where no stylesheet goes.   |
 
 ## Writers
 
@@ -339,9 +339,9 @@ Beside the [table's own class names](#html-table), the heading and footer carry 
 | Element                       | Marks                                       |
 | ----------------------------- | ------------------------------------------- |
 | `header.gridkit-print-header` | The heading, holding the three lines below. |
-| `h1.print-title`              | The title.                                  |
-| `p.print-subtitle`            | The subtitle.                               |
-| `p.print-timestamp`           | The timestamp.                              |
+| `h1.gridkit-print-title`      | The title.                                  |
+| `p.gridkit-print-subtitle`    | The subtitle.                               |
+| `p.gridkit-print-timestamp`   | The timestamp.                              |
 | `footer.gridkit-print-footer` | The footer line.                            |
 
 ### Printing a grid

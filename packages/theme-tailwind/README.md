@@ -18,7 +18,7 @@ Import it after Tailwind, in the stylesheet where you import `tailwindcss`:
 ```
 
 That is all — `@gridkitjs/react` renders semantic class names
-(`gridkit-data-grid`, `header-cell`, `grid-row`), and this stylesheet targets
+(`gridkit-data-grid`, `gridkit-header-cell`, `gridkit-grid-row`), and this stylesheet targets
 them directly. Nothing needs to scan the component source.
 
 ## Dark mode
@@ -95,18 +95,18 @@ highlight under the pointer.
 
 The grid marks its own state, so a consumer's CSS can reach it too:
 
-| Class                                                         | On                                                                                            |
-| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `is-selected`                                                 | A selected `grid-row`, `header-cell` or `grid-cell`                                           |
-| `is-resizing` / `is-dragging`                                 | The column being resized or dragged                                                           |
-| `is-drop-before` / `is-drop-after`                            | Where a dragged column would land                                                             |
-| `is-reorderable` / `is-wrapped`                               | A header that drags; a cell that wraps                                                        |
-| `selectable-rows` / `selectable-columns` / `selectable-cells` | On the grid, per `selectable`                                                                 |
-| `no-hover-rows` / `no-hover-columns` / `no-hover-cells`       | On the grid, per `hoverable`                                                                  |
-| `is-sorted-asc` / `is-sorted-desc`                            | A header's `header-sort-toggle` while its column sorts                                        |
-| `is-grouped`                                                  | A header's `header-group-toggle` while its column is grouped                                  |
-| `is-expanded`                                                 | A group row's `group-toggle` while the group is open                                          |
-| `is-drag-target` / `is-drag-blocked`                          | The group-by bar while a drag can drop on it; while a header already grouped is dragged at it |
+| Class                                                                                 | On                                                                                            |
+| ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `is-selected`                                                                         | A selected `gridkit-grid-row`, `gridkit-header-cell` or `gridkit-grid-cell`                   |
+| `is-resizing` / `is-dragging`                                                         | The column being resized or dragged                                                           |
+| `is-drop-before` / `is-drop-after`                                                    | Where a dragged column would land                                                             |
+| `is-reorderable` / `is-wrapped`                                                       | A header that drags; a cell that wraps                                                        |
+| `gridkit-selectable-rows` / `gridkit-selectable-columns` / `gridkit-selectable-cells` | On the grid, per `selectable`                                                                 |
+| `gridkit-no-hover-rows` / `gridkit-no-hover-columns` / `gridkit-no-hover-cells`       | On the grid, per `hoverable`                                                                  |
+| `is-sorted-asc` / `is-sorted-desc`                                                    | A header's `gridkit-header-sort-toggle` while its column sorts                                |
+| `is-grouped`                                                                          | A header's `gridkit-header-group-toggle` while its column is grouped                          |
+| `is-expanded`                                                                         | A group row's `gridkit-group-toggle` while the group is open                                  |
+| `is-drag-target` / `is-drag-blocked`                                                  | The group-by bar while a drag can drop on it; while a header already grouped is dragged at it |
 
 The `selectable-*` classes enable and the `no-hover-*` classes disable, because
 selection is off by default and hover is on — each follows its own default.
