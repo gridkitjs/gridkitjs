@@ -275,7 +275,7 @@ export interface DataGridApi<Row>
   setGroupExpansion(expansion: GroupExpansionState): void;
   /** Replaces the page and page size as given. Reports through `onPaginationChange`. */
   setPagination(pagination: PaginationState): void;
-  /** Replaces the column widths. Reports through `onColumnResize`, as the `"end"` of a resize. */
+  /** Replaces the column widths. Reports through `onColumnSizingChange`, as the `"end"` of a resize. */
   setColumnSizing(sizing: ColumnSizingState): void;
   /** Replaces the column order. Reports through `onColumnOrderChange`. */
   setColumnOrder(order: ColumnOrderState): void;
@@ -289,7 +289,7 @@ export interface DataGridApi<Row>
   setCellSelection(selection: CellSelectionState): void;
   /**
    * Sizes a shown column to fit its content, as double-clicking its resize
-   * handle does, reporting through `onColumnResize`. A hidden column, or one
+   * handle does, reporting through `onColumnSizingChange`. A hidden column, or one
    * with no rows to measure, is left as it is.
    */
   autoFitColumn(columnId: string): void;

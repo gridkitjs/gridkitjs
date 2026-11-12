@@ -19,7 +19,7 @@ import type {
 /** The change callbacks of a grid's props that announce what they report. */
 type AnnouncedProps<Row> = Pick<
   DataGridProps<Row>,
-  | "onColumnResize"
+  | "onColumnSizingChange"
   | "onColumnVisibilityChange"
   | "onColumnSortChange"
   | "onGroupByChange"
@@ -41,7 +41,7 @@ interface AnnouncedCallbacksOptions<Row> {
 
 /** What the grid hands its controller to hear each change through. */
 export interface AnnouncedCallbacks<Row> {
-  readonly onColumnResize: (event: ColumnResizeEvent) => void;
+  readonly onColumnSizingChange: (event: ColumnResizeEvent) => void;
   readonly onColumnVisibilityChange: (event: ColumnVisibilityEvent) => void;
   readonly onColumnSortChange: (event: ColumnSortEvent) => void;
   readonly onGroupByChange: (event: GroupByEvent) => void;
@@ -72,8 +72,8 @@ export function announcedCallbacks<Row>({
      * continuous `"move"` phase as well, and a live region given every frame
      * of a drag says nothing an assistive technology can keep up with.
      */
-    onColumnResize: (event) => {
-      callbacks.onColumnResize?.(event);
+    onColumnSizingChange: (event) => {
+      callbacks.onColumnSizingChange?.(event);
       if (event.phase === "end") {
         announce(
           messages.columnResized(

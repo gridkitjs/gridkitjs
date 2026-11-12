@@ -546,7 +546,7 @@ test("autoFitColumn sizes a column to its content and reports it as a resize", a
       label="autoFitColumn"
       resizeMode="fixed"
       autoFitColumnId="id"
-      onColumnResize={(event) => {
+      onColumnSizingChange={(event) => {
         events.push(event);
       }}
     />,

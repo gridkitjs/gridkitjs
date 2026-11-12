@@ -130,7 +130,7 @@ export interface GridController<Row, Node = string> {
   ) => void;
 
   /**
-   * Replaces the column widths. Reported through `onColumnResize` as the
+   * Replaces the column widths. Reported through `onColumnSizingChange` as the
    * `"end"` of a resize of the first column whose width changed, at its new
    * width — or, when its entry was removed, the width its definition gives
    * it. Equal widths report nothing.

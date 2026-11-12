@@ -149,7 +149,7 @@ test("useGroupByState's expandAllGroups/collapseAllGroups and useSelectionState'
   expect(status.rowSelection).toEqual([]);
 });
 
-test("useColumnSizingState reflects a live resize with no onColumnResize passed", async ({
+test("useColumnSizingState reflects a live resize with no onColumnSizingChange passed", async ({
   mount,
 }) => {
   const root = await mountGrid(
