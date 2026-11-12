@@ -41,13 +41,22 @@ These may change in any release, including a patch:
 
 ## Changes that are not breaking
 
-A minor release may make these changes. Write your code so it keeps working when one lands:
+GridKit ships additions in a minor release. These are the additions a minor release may make:
 
 - New optional props and options.
 - New exports.
-- New members in a union you may `switch` over: `GridCommandSource`, `GridPanelKind`, `GridCommandTarget` (by `area`), `FilterOperator`, `DisplayRow` (by `kind`), `GridFocus` (by `area`), `CellSelectionState` (by `kind`), `BuiltInCommandId`, `BuiltInCommandIcon`, `GridContextMenuArea` and `ExportRow` (by `kind`). Give such a `switch` a `default` branch, and a map keyed by one a fallback.
+- New fields on objects GridKit hands you: events, template contexts, `GridState`, `GridView`, resolved rows and columns, the command context and the results of the hooks.
+- New methods on `DataGridApi` and `GridController`.
+- New built-in commands, and new entries in `defaultContextMenu` and `defaultToolbar`. List the entries yourself to keep a menu or the toolbar as it is.
+- New class names, `is-*` state classes and attributes on the elements the grid renders.
+- New members in a union declared growable: `GridCommandSource`, `GridPanelKind`, `GridCommandTarget` (by `area`), `FilterOperator`, `DisplayRow` (by `kind`), `GridFocus` (by `area`), `CellSelectionState` (by `kind`), `BuiltInCommandId`, `BuiltInCommandIcon`, `GridContextMenuArea` and `ExportRow` (by `kind`).
 - New keys in `GridMessages`. `messages` takes a partial set, so a translation without a new key shows its English default.
 - New optional members on `GridCommandHost`, for a host built by hand. Its existing members stay required.
+
+Code that reads what the grid gives it, or calls its API, keeps working when one of these lands. Two kinds of code may need a small update after upgrading, and GridKit counts that as acceptable in a minor release:
+
+- An object of one of these types that you build yourself, such as a mock `DataGridApi` or a `CellTemplateContext` written out in a test, may need the new field or method.
+- Code that handles every member of a growable union with no `default` branch, or a map keyed by one with no fallback, has nothing for the new member. Give it one:
 
 ```ts
 import type { GridFocus } from "@gridkitjs/react";
@@ -63,6 +72,12 @@ export function describeFocus(focus: GridFocus): string {
   }
 }
 ```
+
+From 1.0, these still count as breaking and wait for a major release:
+
+- Renaming or removing anything this page lists as covered.
+- Changing an existing type or documented behaviour.
+- Adding anything your app must now provide: a new required option, prop, input field or callback parameter.
 
 ## See also
 
