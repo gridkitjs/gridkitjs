@@ -38,6 +38,8 @@ Use the table in [versioning.md](../../rules/versioning.md#versioning):
 `patch` when a correct caller sees no change, `minor` for new API, changed
 behaviour or anything breaking. Never `major` before 1.0. The commit type
 doesn't decide it: a `fix:` that changes a signature is `minor`.
+A change to a surface listed under "What counts as breaking" in
+[versioning.md](../../rules/versioning.md#versioning) is never a `patch`.
 
 ## 4. Write the file
 
