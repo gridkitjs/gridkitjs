@@ -24,7 +24,7 @@ export interface PrintOptions extends ExportOptions {
    */
   readonly timestamp?: boolean | Date | undefined;
   /** The language the timestamp is written in. Defaults to the grid's. */
-  readonly locale?: FormatLocale;
+  readonly locale?: FormatLocale | undefined;
   /**
    * Which way the paper is turned. Defaults to `"landscape"` for a table of
    * more than six columns, which rarely fits a portrait page, else

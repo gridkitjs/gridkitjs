@@ -51,9 +51,9 @@ export type Borders = "horizontal" | "vertical" | "all" | "none";
 
 /** Which hover highlighting a grid shows. Every member defaults to on. */
 export interface HoverableConfig {
-  rows?: boolean;
-  columns?: boolean;
-  cells?: boolean;
+  rows?: boolean | undefined;
+  columns?: boolean | undefined;
+  cells?: boolean | undefined;
 }
 
 /**
@@ -432,7 +432,7 @@ export interface GridOptions<Row> {
    * without it, only a column with its own `format` is formatted, in the
    * runtime's locale, and the rest print as they always have.
    */
-  locale?: FormatLocale;
+  locale?: FormatLocale | undefined;
   /**
    * The grid's own strings, replacing its English key by key — the pager's
    * buttons, the group-by bar, the loading row, boolean and blank values,
