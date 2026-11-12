@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { buildPrintDocument, type ExportTable } from "@gridkitjs/core";
+import type { ExportTable } from "@gridkitjs/core";
+import { buildPrintDocument } from "@gridkitjs/core/renderer";
 import { printDocument, printStyles } from "@gridkitjs/dom";
 import { recordPrints, type RecordedPrint } from "./printRecorder";
 

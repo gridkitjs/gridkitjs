@@ -32,10 +32,10 @@ A gesture starts from a `PointerPress` — the `pointerdown` that began it, nati
 
 ### Column resize
 
-`startColumnResizeGesture(handle, press, session, { onMove, onEnd, onCancel })` drags a column's edge. `session` comes from @gridkitjs/core's `beginColumnResize`, which also turns each pointer position into a clamped width. `onMove(width)` reports every move; `onEnd(width)` reports the release, with `null` when the width never changed (a click on the handle is not a resize), and with the start width for a drag that came back to it; `onCancel()` reports <Kbd>Escape</Kbd> or a cancelled pointer.
+`startColumnResizeGesture(handle, press, session, { onMove, onEnd, onCancel })` drags a column's edge. `session` comes from `beginColumnResize` in `@gridkitjs/core/renderer`, which also turns each pointer position into a clamped width. `onMove(width)` reports every move; `onEnd(width)` reports the release, with `null` when the width never changed (a click on the handle is not a resize), and with the start width for a drag that came back to it; `onCancel()` reports <Kbd>Escape</Kbd> or a cancelled pointer.
 
 ```ts
-import { beginColumnResize } from "@gridkitjs/core";
+import { beginColumnResize } from "@gridkitjs/core/renderer";
 import { startColumnResizeGesture } from "@gridkitjs/dom";
 
 handle.addEventListener("pointerdown", (event) => {

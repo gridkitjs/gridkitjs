@@ -1,13 +1,15 @@
 import type { ChangeEvent, Ref, RefCallback } from "react";
+import type {
+  ColumnType,
+  FilterOperatorFamily,
+  GridMessages,
+} from "@gridkitjs/core";
 import {
   filterOperandArity,
   parseFilterOperand,
-  type ColumnType,
   type ConditionRowDraft,
-  type FilterOperatorFamily,
-  type GridMessages,
   type ResolvedColumnFilterMenu,
-} from "@gridkitjs/core";
+} from "@gridkitjs/core/renderer";
 
 /**
  * The input a column of `type` takes an operand in, each writing what

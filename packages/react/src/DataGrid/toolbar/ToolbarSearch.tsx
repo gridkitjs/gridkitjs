@@ -1,10 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  searchTextOf,
-  setSearchText,
-  type GridMessages,
-  type ToolbarItemAttributes,
-} from "@gridkitjs/core";
+import type { GridMessages, ToolbarItemAttributes } from "@gridkitjs/core";
+import { searchTextOf, setSearchText } from "@gridkitjs/core/renderer";
 import useAnnounceWhenDrawn from "../useAnnounceWhenDrawn";
 import type { DataGridController } from "../useGridController";
 

@@ -156,7 +156,7 @@ const detach = attachToolbar(toolbarElement);
 
 ### Overflow
 
-`observeToolbarOverflow(toolbar, { items, onChange })` measures how many of a toolbar's entries fit in it, and reports the count — what @gridkitjs/core's [`fitToolbarItems`](/docs/core/toolbar#overflow) works out from the widths — through `onChange`: once straight away, so a renderer calling it before paint draws the right entries from the first frame, and again whenever it changes. Draw the first `count` entries and every pinned one — or let [`splitToolbarItems`](/docs/core/toolbar#overflow) split them — and put the rest in a "More" menu button at the end. It returns `update(options)` and `detach()`.
+`observeToolbarOverflow(toolbar, { items, onChange })` measures how many of a toolbar's entries fit in it, and reports the count — what [`fitToolbarItems`](/docs/core/toolbar#overflow) from `@gridkitjs/core/renderer` works out from the widths — through `onChange`: once straight away, so a renderer calling it before paint draws the right entries from the first frame, and again whenever it changes. Draw the first `count` entries and every pinned one — or let [`splitToolbarItems`](/docs/core/toolbar#overflow) split them — and put the rest in a "More" menu button at the end. It returns `update(options)` and `detach()`.
 
 | Option     | Type                             | Description                                                                                                |
 | ---------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -173,7 +173,8 @@ An entry moved into "More" is no longer drawn, so its width is remembered by key
 It measures again whenever the toolbar or an entry resizes, and whenever entries are drawn or taken away — those the count it reported lets in, or the "More" button — so the renderer only draws what it is told. When the items change, pass them to `update`.
 
 ```ts
-import { resolveToolbar, splitToolbarItems } from "@gridkitjs/core";
+import { resolveToolbar } from "@gridkitjs/core";
+import { splitToolbarItems } from "@gridkitjs/core/renderer";
 import { observeToolbarOverflow } from "@gridkitjs/dom";
 
 const overflow = observeToolbarOverflow(toolbarElement, {

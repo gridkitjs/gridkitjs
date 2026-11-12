@@ -1,4 +1,7 @@
-import { applyColumnResize, type ColumnResizeSession } from "@gridkitjs/core";
+import {
+  applyColumnResize,
+  type ColumnResizeSession,
+} from "@gridkitjs/core/renderer";
 import {
   mayStartGesture,
   startPointerGesture,

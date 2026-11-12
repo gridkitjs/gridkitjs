@@ -1,4 +1,4 @@
-import { nextMenuIndex, type MenuMove } from "@gridkitjs/core";
+import { nextMenuIndex, type MenuMove } from "@gridkitjs/core/renderer";
 
 /** Every element a toolbar is made of. Those with no control in them — separators, spacers — are passed over. */
 const ENTRY = "[data-gridkit-toolbar-item]";

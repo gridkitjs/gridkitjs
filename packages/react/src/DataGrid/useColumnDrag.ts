@@ -1,9 +1,6 @@
 import type { PointerEvent as ReactPointerEvent } from "react";
-import {
-  resolveKeyboardDropTarget,
-  type ColumnOrderState,
-  type GroupByState,
-} from "@gridkitjs/core";
+import type { ColumnOrderState, GroupByState } from "@gridkitjs/core";
+import { resolveKeyboardDropTarget } from "@gridkitjs/core/renderer";
 import { resolveColumnDropTarget, type ColumnDropTarget } from "@gridkitjs/dom";
 import type { ResolvedColumn } from "./DataGrid";
 import useDragReorder from "./useDragReorder";

@@ -6,15 +6,17 @@ import {
   useReducer,
   useRef,
 } from "react";
+import type {
+  FilterOperator,
+  GridMessages,
+  OperatorFilterEntry,
+} from "@gridkitjs/core";
 import {
   conditionsFromRows,
   draftToFilter,
   filterDraftChanged,
   filterEditorReducer,
-  type FilterOperator,
-  type GridMessages,
-  type OperatorFilterEntry,
-} from "@gridkitjs/core";
+} from "@gridkitjs/core/renderer";
 import ConditionRow from "./ConditionRow";
 import type { FilterEditorProps } from "./filterEditor";
 import {

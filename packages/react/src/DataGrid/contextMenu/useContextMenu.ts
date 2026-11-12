@@ -7,7 +7,6 @@ import {
 } from "react";
 import {
   contextMenuEntries,
-  hasContextMenu,
   isSameCell,
   resolveMenu,
   type GridContextMenuArea,
@@ -17,6 +16,7 @@ import {
   type ResolvedMenuEntry,
   type ResolvedMenuItem,
 } from "@gridkitjs/core";
+import { hasContextMenu } from "@gridkitjs/core/renderer";
 import {
   attachContextMenuTrigger,
   type ContextMenuRequest,

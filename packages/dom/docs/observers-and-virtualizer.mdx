@@ -46,7 +46,7 @@ virtualizer.measureRows(rowElements.map((element, index) => [index, element]));
 virtualizer.measureRow(index)(rowElement);
 ```
 
-The arithmetic is @gridkitjs/core's `visibleRange`; this owns the measured heights, the scroll and resize listeners, and one `ResizeObserver` for every mounted row.
+The arithmetic is `visibleRange` from `@gridkitjs/core/renderer`; this owns the measured heights, the scroll and resize listeners, and one `ResizeObserver` for every mounted row.
 
 ## Infinite scroll
 
@@ -93,12 +93,12 @@ There is no retry or backoff. A load that fails and leaves `isLoadingMore` `fals
 
 ## Types
 
-| Type                    | Description                                                                                                                                                                                                             |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `RowVirtualizerOptions` | `{ estimatedRowHeight, overscan, onRange }` for `createRowVirtualizer`. `onRange` receives the `VisibleRange` from `@gridkitjs/core`, `{ startIndex, endIndex, offsetBefore, offsetAfter }`, with `endIndex` inclusive. |
-| `RowVirtualizer`        | `{ setRowCount, resetHeights, measureRow, measureRows, scrollToIndex, destroy }`, what `createRowVirtualizer` returns; tabled under [row virtualizer](#row-virtualizer).                                                |
-| `InfiniteScrollOptions` | `{ sentinel, hasMore, onLoadMore?, isLoadingMore?, rootMargin? }`, tabled under [infinite scroll](#infinite-scroll).                                                                                                    |
-| `InfiniteScroll`        | `{ update, detach }`, what `attachInfiniteScroll` returns.                                                                                                                                                              |
+| Type                    | Description                                                                                                                                                                                                                      |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RowVirtualizerOptions` | `{ estimatedRowHeight, overscan, onRange }` for `createRowVirtualizer`. `onRange` receives the `VisibleRange` from `@gridkitjs/core/renderer`, `{ startIndex, endIndex, offsetBefore, offsetAfter }`, with `endIndex` inclusive. |
+| `RowVirtualizer`        | `{ setRowCount, resetHeights, measureRow, measureRows, scrollToIndex, destroy }`, what `createRowVirtualizer` returns; tabled under [row virtualizer](#row-virtualizer).                                                         |
+| `InfiniteScrollOptions` | `{ sentinel, hasMore, onLoadMore?, isLoadingMore?, rootMargin? }`, tabled under [infinite scroll](#infinite-scroll).                                                                                                             |
+| `InfiniteScroll`        | `{ update, detach }`, what `attachInfiniteScroll` returns.                                                                                                                                                                       |
 
 ## See also
 

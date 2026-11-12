@@ -35,8 +35,8 @@ pnpm install
 pnpm dev          # playground on http://localhost:5173
 ```
 
-Packages resolve to **source** locally — `exports` points at `src/index.ts` and
-is swapped to `dist` at publish time via `publishConfig`. Editing a package file
+Packages resolve to **source** locally — `exports` points at the files in `src/`
+and is swapped to `dist` at publish time via `publishConfig`. Editing a package file
 hot-reloads the playground immediately; never build to see a change.
 
 ## Standards

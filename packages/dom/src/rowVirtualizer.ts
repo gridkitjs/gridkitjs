@@ -1,4 +1,4 @@
-import { visibleRange, type VisibleRange } from "@gridkitjs/core";
+import { visibleRange, type VisibleRange } from "@gridkitjs/core/renderer";
 
 export interface RowVirtualizerOptions {
   /** The height assumed for a row not yet measured. */

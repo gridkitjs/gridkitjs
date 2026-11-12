@@ -7,6 +7,8 @@ These transforms are what a click, a <Kbd>Ctrl</Kbd>+click, and a <Kbd>Shift</Kb
 
 ## Functions
 
+`intentOf` and `diffSelection` serve a renderer reading an event or announcing a change, so they come from `@gridkitjs/core/renderer`; the rest from `@gridkitjs/core`.
+
 | Function                                                                  | Type                             | Description                                                                                                                          |
 | ------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `toggleSelection(selection, id, mode)`                                    | `SelectionState`                 | Adds id if absent, removes it if present — a <Kbd>Ctrl</Kbd>+click, or <Kbd>Space</Kbd> on the focused member.                       |

@@ -35,6 +35,20 @@ A filter is plain data — operator entries such as `{ kind: "operator", columnI
 
 `@gridkitjs/react` already depends on it; install it yourself only to import from it directly. See [choosing packages](/docs/react/choosing-packages) for which package an app needs.
 
+## Entry points
+
+The package has two entry points, and each name is exported from one of them:
+
+- `@gridkitjs/core` is for apps: the grid's data, options and state, the controller, commands, menu and toolbar options, the view pipeline's functions, messages, formatting and export. An app using a ready-made renderer such as @gridkitjs/react imports from here, if it imports from core at all.
+- `@gridkitjs/core/renderer` is for someone writing a renderer: how its menus, toolbar, header and filter editor are driven, where focus and drops land, the column resize session, the pager's window and the virtualizer's range. It may change in a minor release.
+
+```ts
+import { createGridController, paginateRows } from "@gridkitjs/core";
+import { paginationWindow } from "@gridkitjs/core/renderer";
+```
+
+Each page that lists renderer building blocks says which ones come from `@gridkitjs/core/renderer`.
+
 See [column definitions](/docs/core/column-definitions) for column inference, [resizing](/docs/core/resizing) and [ordering](/docs/core/ordering) for the logic underneath resizableColumns and reorderableColumns, or [selection](/docs/core/selection) for the primitives underneath selectable.
 
 ## See also

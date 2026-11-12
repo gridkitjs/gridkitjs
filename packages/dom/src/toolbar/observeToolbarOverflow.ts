@@ -1,8 +1,5 @@
-import {
-  fitToolbarItems,
-  isPinnedToolbarItem,
-  type ResolvedToolbarItem,
-} from "@gridkitjs/core";
+import type { ResolvedToolbarItem } from "@gridkitjs/core";
+import { fitToolbarItems, isPinnedToolbarItem } from "@gridkitjs/core/renderer";
 
 /**
  * A toolbar entry as the overflow reads it: its kind, the key its element

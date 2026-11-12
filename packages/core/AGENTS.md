@@ -18,9 +18,18 @@ rather than widening either.
 
 ## Public API
 
-`src/index.ts` is the package's only entry point: anything not exported from
-it is internal. A new public function or type is exported there, and needs a
-doc page (see [Docs](#docs)).
+The package has two entry points, and anything exported from neither is
+internal. `src/index.ts` (`@gridkitjs/core`) holds what an app uses: the
+grid's data, options and state, the controller, commands, menu and toolbar
+options, data functions, messages, formatting and export. `src/renderer.ts`
+(`@gridkitjs/core/renderer`) holds what only someone writing a renderer
+needs, and may change in a minor release.
+
+A name is exported from exactly one of them, and the renderer entry does not
+re-export the root. A new export goes in the renderer entry when an app using
+a ready-made renderer such as `DataGrid` would never call it: it models how a
+widget is driven or measured, not the grid's data, options or state. A new
+public function or type needs a doc page either way (see [Docs](#docs)).
 
 ## State
 

@@ -1,12 +1,12 @@
 import { useEffect, useRef, type SubmitEvent } from "react";
 import {
-  resolveColumnFilterMenu,
   resolveColumnHeaderText,
   resolveMenu,
   type BuiltInCommandId,
   type ResolvedMenuEntry,
   type ResolvedMenuItem,
 } from "@gridkitjs/core";
+import { resolveColumnFilterMenu } from "@gridkitjs/core/renderer";
 import { ariaAttr } from "../ariaAttr";
 import { MenuIcon } from "../menu/menuIcons";
 import type { GridPanelProps } from "../panels/GridPanels";

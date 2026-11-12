@@ -2,9 +2,9 @@ import type { Ref } from "react";
 import type {
   FilterOperator,
   GridMessages,
-  ResolvedColumnFilterMenu,
   ResolvedMenuItem,
 } from "@gridkitjs/core";
+import type { ResolvedColumnFilterMenu } from "@gridkitjs/core/renderer";
 import GridMenu from "../menu/GridMenu";
 import { CheckIcon, ChevronRightIcon } from "../menu/menuIcons";
 import useMenuButton from "../menu/useMenuButton";

@@ -15,7 +15,6 @@ import {
   resolveColumnHeaderText,
   resolveMessages,
   resolveRows,
-  totalColumnWidth,
   type ColumnDefinition as CoreColumnDefinition,
   type DataColumn as CoreDataColumn,
   type ResolvedColumn as CoreResolvedColumn,
@@ -53,6 +52,7 @@ import {
   type SerializedGridState,
   type GridFocus,
 } from "@gridkitjs/core";
+import { totalColumnWidth } from "@gridkitjs/core/renderer";
 import type { ColumnDropTarget } from "@gridkitjs/dom";
 import GridColgroup from "./components/GridColgroup";
 import GridHeader from "./components/GridHeader";

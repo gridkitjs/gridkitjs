@@ -1,5 +1,8 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import type { FilterChecklistItem, VisibleRange } from "@gridkitjs/core";
+import type {
+  FilterChecklistItem,
+  VisibleRange,
+} from "@gridkitjs/core/renderer";
 import {
   attachChecklist,
   createRowVirtualizer,

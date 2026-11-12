@@ -5,7 +5,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import { isPinnedToolbarItem } from "@gridkitjs/core";
+import { isPinnedToolbarItem } from "@gridkitjs/core/renderer";
 import {
   attachToolbar,
   observeToolbarOverflow,

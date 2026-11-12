@@ -30,7 +30,7 @@ The link's object URL is revoked a moment after the click, not during it: Safari
 `writeClipboard({ text, html })` puts one copy on the clipboard as both `text/plain` and `text/html`, so a paste into a spreadsheet splits into cells and a paste into a word processor keeps its table. It returns a promise that resolves once the copy is written and rejects when the browser refuses. Call it from a user's gesture — a key press or a menu choice — as browsers only allow the clipboard then.
 
 ```ts
-import { copyContent } from "@gridkitjs/core";
+import { copyContent } from "@gridkitjs/core/renderer";
 import { writeClipboard } from "@gridkitjs/dom";
 
 const content = copyContent(context, { kind: "selection" });
@@ -55,7 +55,8 @@ It tries each way a browser offers, best first:
 `printDocument({ title, bodyHtml, styles })` prints a document through a hidden frame: a page of its own holding only `bodyHtml` under `styles`, so what is printed is exactly what was built — every row, not the slice a virtualised grid has drawn — and nothing of the page around it. It returns a promise that resolves once the print dialog has closed and the frame is gone. A frame rather than a new window, which a popup blocker would stop.
 
 ```ts
-import { buildExportTable, buildPrintDocument } from "@gridkitjs/core";
+import { buildExportTable } from "@gridkitjs/core";
+import { buildPrintDocument } from "@gridkitjs/core/renderer";
 import { printDocument, printStyles } from "@gridkitjs/dom";
 
 const { title, bodyHtml, page } = buildPrintDocument(
@@ -91,7 +92,7 @@ The promise rejects if the frame is taken out of the page before it loads (by co
 
 | Type                   | Description                                                                                                                                             |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ClipboardContent`     | `{ text, html }`: one copy as plain text and as HTML, what `writeClipboard` takes. What `copyContent` from `@gridkitjs/core` returns fits it.           |
+| `ClipboardContent`     | `{ text, html }`: one copy as plain text and as HTML, what `writeClipboard` takes. What `copyContent` from `@gridkitjs/core/renderer` returns fits it.  |
 | `PrintDocumentOptions` | `{ title, bodyHtml, styles }` for `printDocument`: the document's title as text, the body markup `buildPrintDocument` writes, and the whole stylesheet. |
 
 ## See also

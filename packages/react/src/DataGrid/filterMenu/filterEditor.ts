@@ -1,10 +1,6 @@
 import type { ReactNode, Ref, RefCallback } from "react";
-import type {
-  DataColumn,
-  FilterState,
-  GridMessages,
-  ResolvedColumnFilterMenu,
-} from "@gridkitjs/core";
+import type { DataColumn, FilterState, GridMessages } from "@gridkitjs/core";
+import type { ResolvedColumnFilterMenu } from "@gridkitjs/core/renderer";
 import type { DataGridController } from "../useGridController";
 
 /** What a filter menu's editor lends the menu around it, whose OK applies it. */
