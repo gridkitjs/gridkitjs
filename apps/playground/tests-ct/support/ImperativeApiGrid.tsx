@@ -11,6 +11,7 @@ import {
   serializeGridState,
   type DataGridApi,
   type DataGridProps,
+  type GridFocus,
 } from "@gridkitjs/react";
 
 interface RowWithId {
@@ -30,8 +31,8 @@ export interface ImperativeApiGridProps<Row extends RowWithId> extends Omit<
   scrollColumnId?: string;
   /** Row ids `scroll-to-each-row` scrolls to one after another, in a single task. */
   scrollRowIds?: readonly string[];
-  focusRowIndex?: number;
-  focusColumnIndex?: number;
+  /** The cell `focus-cell` focuses; the first body cell when left out. */
+  focusTarget?: GridFocus;
   /** Column ids `hide-columns` hides and `show-columns` shows. */
   visibilityColumnIds?: readonly string[];
   /** The filter `set-filter` applies. */
@@ -82,8 +83,7 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
   scrollRowId,
   scrollColumnId,
   scrollRowIds,
-  focusRowIndex,
-  focusColumnIndex,
+  focusTarget,
   visibilityColumnIds,
   filterToSet,
   selectRowIds,
@@ -114,9 +114,15 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
     }
   }, [effectOpenings, contextMenuTarget, contextMenuPoint]);
 
+  /** What `getFocusedCell()` returned at the last `report`, compared by identity. */
+  const lastFocusedCell = useRef<GridFocus | null>(null);
+
   function report(): void {
     const api = gridRef.current;
     if (api === null) return;
+    const focusedCell = api.getFocusedCell();
+    const focusedCellUnchanged = focusedCell === lastFocusedCell.current;
+    lastFocusedCell.current = focusedCell;
     setStatus(
       JSON.stringify({
         hasElement: api.element !== null,
@@ -144,7 +150,8 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         selectedRowIds: api.getSelectedRows().map((row) => row.rowId),
         columnSelection: api.getColumnSelection(),
         cellSelection: api.getCellSelection(),
-        focusedCell: api.getFocusedCell(),
+        focusedCell,
+        focusedCellUnchanged,
         columnWidths: api
           .getColumns()
           .map((column) => [column.id, column.width]),
@@ -163,7 +170,9 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
       <button
         type="button"
         onClick={() => {
-          gridRef.current?.focusCell(focusRowIndex ?? 0, focusColumnIndex ?? 0);
+          gridRef.current?.focusCell(
+            focusTarget ?? { area: "body", rowIndex: 0, columnIndex: 0 },
+          );
         }}
       >
         focus-cell
