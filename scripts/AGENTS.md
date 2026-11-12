@@ -110,7 +110,7 @@ MDX_TAGS_FILE=../gridkit-website/public/mdx-tags.json node scripts/check-mdx-tag
 
 ## Package verification
 
-Locally, `exports` resolves to `src/index.ts`; only `pnpm pack` and
+Locally, `exports` resolves to the source under `src/`; only `pnpm pack` and
 `pnpm publish` apply `publishConfig`, which points it at `dist`. These three
 scripts test what a consumer installs instead: the packed tarballs. CI runs
 them in the `packages` job (check name `packages / verify`), from the
@@ -146,7 +146,7 @@ third-party versions pinned and no lockfile:
 | `vite-react/` | React, Vite and Tailwind: `tsc --noEmit` (with `skipLibCheck` off), `vite build`, the theme and a preset in the CSS.                      |
 | `vite-css/`   | React and Vite without Tailwind: `tsc --noEmit`, `vite build`, the plain-CSS theme's rules, tokens, dark palette and a preset in the CSS. |
 | `next-app/`   | A server component renders `DataGrid` directly; `next build` must prerender `/` with the grid's HTML.                                     |
-| `node-xlsx/`  | Plain Node, no DOM: `@gridkitjs/export-xlsx` writes a workbook.                                                                           |
+| `node-xlsx/`  | Plain Node, no DOM: `@gridkitjs/export-xlsx` writes a workbook, and a building block from `@gridkitjs/core/renderer` runs.                |
 
 A fixture lists its `@gridkitjs/*` dependencies at version `*`, and the run
 replaces each with its tarball. List the transitive ones too (`react` needs
