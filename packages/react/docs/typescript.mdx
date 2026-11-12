@@ -215,7 +215,7 @@ A `cellTemplate` receives a `CellTemplateContext<Row>`. Its `row` is typed, but 
 
 ## Events and the ref
 
-Each callback's event carries `ResolvedRow<Row>` entries, `{ rowId, row, rowIndex, datasetIndex }`, so the row itself is `entry.row`. `DataGridApi<Row>` is the `ref`'s type, and its getters return the same entries.
+Each callback's event carries `ResolvedRow<Row>` entries, `{ kind: "data", rowId, row, rowIndex, datasetIndex }`, so the row itself is `entry.row`. `DataGridApi<Row>` is the `ref`'s type, and its getters return the same entries.
 
 ## Types
 
@@ -225,7 +225,7 @@ Each callback's event carries `ResolvedRow<Row>` entries, `{ rowId, row, rowInde
 | `ColumnDefinition<Row>`        | `@gridkitjs/react` | One entry of `columns`; its templates return React nodes.                                      |
 | `FieldPath<Row>`               | `@gridkitjs/core`  | Every path `field` autocompletes.                                                              |
 | `CellTemplateContext<Row>`     | `@gridkitjs/react` | What `cellTemplate` receives: `value`, `row`, `rowIndex`, `datasetIndex`, `rowId`, `selected`. |
-| `ResolvedRow<Row>`             | `@gridkitjs/react` | A row with its id and position: `{ rowId, row, rowIndex, datasetIndex }`.                      |
+| `ResolvedRow<Row>`             | `@gridkitjs/react` | A row with its id and position: `{ kind: "data", rowId, row, rowIndex, datasetIndex }`.        |
 | `DataGridApi<Row>`             | `@gridkitjs/react` | The `ref`'s handle. See [imperative handle](/docs/react/imperative-handle).                    |
 | `RowPointerEvent<Row>`         | `@gridkitjs/react` | What `onRowClick` and `onRowDoubleClick` receive.                                              |
 | `RowSelectionChangeEvent<Row>` | `@gridkitjs/react` | What `onRowSelectionChange` receives: `added`, `removed`, `selected` and `selection`.          |

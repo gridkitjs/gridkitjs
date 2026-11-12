@@ -16,7 +16,7 @@ A `GroupByState` is `readonly GroupByEntry[]`, outer level first, each entry `{ 
 
 Filter and sort run first — [`resolveShownRows`](/docs/core/view#functions) does both — and grouping keeps their order within each group. `rowIndex` is renumbered across the output, headers included.
 
-A `DisplayRow<Row>` is a data row (`ResolvedRow<Row>`, with no `kind`), a group header (`ResolvedGroupRow`, `kind: "group"`), or a group's summary row (`ResolvedGroupSummaryRow`, `kind: "group-summary"`, only from [`withGroupAggregates`](/docs/core/aggregation)). Tell them apart with `"kind" in entry`, then `entry.kind`. A `ResolvedGroupRow` carries:
+A `DisplayRow<Row>` is a data row (`ResolvedRow<Row>`, `kind: "data"`), a group header (`ResolvedGroupRow`, `kind: "group"`), or a group's summary row (`ResolvedGroupSummaryRow`, `kind: "group-summary"`, only from [`withGroupAggregates`](/docs/core/aggregation)). Tell them apart with `entry.kind`. A `ResolvedGroupRow` carries:
 
 | Field          | Type                 | Description                                                                     |
 | -------------- | -------------------- | ------------------------------------------------------------------------------- |

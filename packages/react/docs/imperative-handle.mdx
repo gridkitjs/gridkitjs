@@ -58,12 +58,13 @@ Every getter reads the grid's state at the moment it is called, so a read straig
 
 `ResolvedRow<Row>`:
 
-| Field          | Type     | Description                                                                                        |
-| -------------- | -------- | -------------------------------------------------------------------------------------------------- |
-| `rowId`        | `string` | This row's id, as `getRowId` (or the position fallback) resolved it.                               |
-| `row`          | `Row`    | The row itself.                                                                                    |
-| `rowIndex`     | `number` | Position among the rows as rendered — filtered and sorted, and paginated once `paginated` is on.   |
-| `datasetIndex` | `number` | This row's absolute position in the whole filtered/sorted/grouped dataset, unaffected by the page. |
+| Field          | Type     | Description                                                                                                                                                     |
+| -------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `kind`         | `"data"` | Always `"data"`: what tells a data row apart from a group header (`"group"`) or a summary row (`"group-summary"`) among `getDisplayRows()` and `getPageRows()`. |
+| `rowId`        | `string` | This row's id, as `getRowId` (or the position fallback) resolved it.                                                                                            |
+| `row`          | `Row`    | The row itself.                                                                                                                                                 |
+| `rowIndex`     | `number` | Position among the rows as rendered — filtered and sorted, and paginated once `paginated` is on.                                                                |
+| `datasetIndex` | `number` | This row's absolute position in the whole filtered/sorted/grouped dataset, unaffected by the page.                                                              |
 
 `ResolvedColumn<Row>`:
 

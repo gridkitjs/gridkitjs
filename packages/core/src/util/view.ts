@@ -44,6 +44,7 @@ function identifyRows<Row>(
   getRowId: ((row: Row, index: number) => string) | undefined,
 ): readonly ResolvedRow<Row>[] {
   return rows.map((row, rowIndex) => ({
+    kind: "data",
     rowId: resolveRowId(row, rowIndex, getRowId),
     row,
     rowIndex,
@@ -135,7 +136,9 @@ function narrowToDataRows<Row>(
   reshaped: boolean,
 ): readonly ResolvedRow<Row>[] {
   return reshaped
-    ? pageRows.filter((entry): entry is ResolvedRow<Row> => !("kind" in entry))
+    ? pageRows.filter(
+        (entry): entry is ResolvedRow<Row> => entry.kind === "data",
+      )
     : rows;
 }
 

@@ -17,17 +17,23 @@ interface SampleRow {
 }
 
 function resolvedRow(rowIndex: number, row: SampleRow): ResolvedRow<SampleRow> {
-  return { rowId: String(row.Id), row, rowIndex, datasetIndex: rowIndex };
+  return {
+    kind: "data",
+    rowId: String(row.Id),
+    row,
+    rowIndex,
+    datasetIndex: rowIndex,
+  };
 }
 
 function isGroup<Row>(
   entry: DisplayRow<Row>,
 ): entry is Extract<DisplayRow<Row>, { kind: "group" }> {
-  return "kind" in entry && entry.kind === "group";
+  return entry.kind === "group";
 }
 
 function isDataRow<Row>(entry: DisplayRow<Row>): entry is ResolvedRow<Row> {
-  return !isGroup(entry);
+  return entry.kind === "data";
 }
 
 function ids(rows: readonly DisplayRow<SampleRow>[]): readonly number[] {
@@ -140,7 +146,13 @@ describe("paginateRows", () => {
       rowIndex: number,
       row: NestedRow,
     ): ResolvedRow<NestedRow> {
-      return { rowId: String(row.Id), row, rowIndex, datasetIndex: rowIndex };
+      return {
+        kind: "data",
+        rowId: String(row.Id),
+        row,
+        rowIndex,
+        datasetIndex: rowIndex,
+      };
     }
 
     test("a top-level group counts as one unit regardless of how many nested sub-groups or rows it contains", () => {
@@ -202,9 +214,7 @@ describe("paginateRows", () => {
       expect(page0.pageCount).toBe(2);
       expect(page0.rows).toHaveLength(4);
       expect(
-        page0.rows.filter(
-          (entry) => "kind" in entry && entry.kind === "group-summary",
-        ),
+        page0.rows.filter((entry) => entry.kind === "group-summary"),
       ).toHaveLength(1);
 
       const page1 = paginateRows(aggregatedRows, { pageIndex: 1, pageSize: 1 });
@@ -295,6 +305,7 @@ describe('paginateRows with unit "row"', () => {
     { Id: 5, Region: "West", Status: "Open" },
     { Id: 6, Region: "West", Status: "Open" },
   ].map((row, index) => ({
+    kind: "data" as const,
     rowId: String(row.Id),
     row,
     rowIndex: index,
@@ -310,7 +321,7 @@ describe('paginateRows with unit "row"', () => {
   /** Each row as a label: its id, its group's path, or `total` for a summary row. */
   function labels(page: readonly DisplayRow<OrderRow>[]): readonly string[] {
     return page.map((entry) => {
-      if (!("kind" in entry)) {
+      if (entry.kind === "data") {
         return String(entry.row.Id);
       }
       return entry.kind === "group" ? entry.path.join("/") : "total";

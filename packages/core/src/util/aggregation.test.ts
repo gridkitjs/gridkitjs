@@ -51,6 +51,7 @@ function row(
 
 function resolvedRow(rowIndex: number, data: SampleRow) {
   return {
+    kind: "data" as const,
     rowId: String(data.Id),
     row: data,
     rowIndex,
@@ -188,7 +189,7 @@ describe("withGroupAggregates", () => {
     );
     const groups = result.filter(
       (entry): entry is Extract<DisplayRow<SampleRow>, { kind: "group" }> =>
-        "kind" in entry && entry.kind === "group",
+        entry.kind === "group",
     );
     expect(groups).toHaveLength(2);
     const east = groups.find((entry) => entry.value === "East");
@@ -216,7 +217,7 @@ describe("withGroupAggregates", () => {
     );
     const east = result.find(
       (entry): entry is Extract<DisplayRow<SampleRow>, { kind: "group" }> =>
-        "kind" in entry && entry.kind === "group" && entry.value === "East",
+        entry.kind === "group" && entry.value === "East",
     );
     expect(east?.expanded).toBe(false);
     expect(east?.aggregates.get("Amount")).toBe(60);
@@ -245,6 +246,7 @@ describe("withGroupAggregates", () => {
       { Region: "West", Status: "Open", Tag: "X" },
       { Region: "West", Status: "Closed", Tag: "X" },
     ].map((data, index) => ({
+      kind: "data" as const,
       rowId: String(index),
       row: data,
       rowIndex: index,
@@ -275,7 +277,7 @@ describe("withGroupAggregates", () => {
     );
     const west = result.find(
       (entry): entry is Extract<DisplayRow<NestedRow>, { kind: "group" }> =>
-        "kind" in entry && entry.kind === "group" && entry.level === 0,
+        entry.kind === "group" && entry.level === 0,
     );
     // Both children see only "X" (distinct count 1 each); the parent's own
     // full leaf set is also just "X" (distinct count 1) — correct only if
@@ -296,11 +298,9 @@ describe("withGroupAggregates", () => {
         specs,
         columns,
       );
-      expect(
-        result.some(
-          (entry) => "kind" in entry && entry.kind === "group-summary",
-        ),
-      ).toBe(false);
+      expect(result.some((entry) => entry.kind === "group-summary")).toBe(
+        false,
+      );
     });
 
     test("emits one summary row per group, immediately after that group's last leaf row, carrying the same aggregates as its header", () => {
@@ -321,9 +321,7 @@ describe("withGroupAggregates", () => {
       // alphabetically by default (`compareValues`'s lexical string
       // comparison), so East precedes West here despite West appearing
       // first in the ungrouped input.
-      const kinds = result.map((entry) =>
-        "kind" in entry ? entry.kind : "data",
-      );
+      const kinds = result.map((entry) => entry.kind);
       expect(kinds).toEqual([
         "group", // East header
         "data", // Id 2
@@ -340,9 +338,7 @@ describe("withGroupAggregates", () => {
       if (
         westHeader === undefined ||
         westSummary === undefined ||
-        !("kind" in westHeader) ||
         westHeader.kind !== "group" ||
-        !("kind" in westSummary) ||
         westSummary.kind !== "group-summary"
       ) {
         throw new Error("unexpected shape");
@@ -372,9 +368,7 @@ describe("withGroupAggregates", () => {
         "row",
       );
 
-      const kinds = result.map((entry) =>
-        "kind" in entry ? entry.kind : "data",
-      );
+      const kinds = result.map((entry) => entry.kind);
       expect(kinds).toEqual([
         "group", // East header (collapsed — no descendants follow)
         "group-summary", // East summary, immediately after its own header
@@ -404,6 +398,7 @@ describe("withGroupAggregates", () => {
         { Region: "West", Status: "Closed", Amount: 30 },
       ];
       const nestedRows = nestedData.map((data, index) => ({
+        kind: "data" as const,
         rowId: String(index),
         row: data,
         rowIndex: index,
@@ -431,9 +426,7 @@ describe("withGroupAggregates", () => {
         "row",
       );
 
-      const kinds = result.map((entry) =>
-        "kind" in entry ? entry.kind : "data",
-      );
+      const kinds = result.map((entry) => entry.kind);
       expect(kinds).toEqual([
         "group", // West (level 0)
         "group", // Open (level 1)
@@ -446,11 +439,7 @@ describe("withGroupAggregates", () => {
       ]);
 
       const westSummary = result[7];
-      if (
-        westSummary === undefined ||
-        !("kind" in westSummary) ||
-        westSummary.kind !== "group-summary"
-      ) {
+      if (westSummary === undefined || westSummary.kind !== "group-summary") {
         throw new Error("unexpected shape");
       }
       expect(westSummary.level).toBe(0);
@@ -472,7 +461,7 @@ describe("withGroupAggregates", () => {
       );
       result.forEach((entry, index) => {
         expect(entry.rowIndex).toBe(index);
-        if ("kind" in entry) {
+        if (entry.kind !== "data") {
           expect(entry.datasetIndex).toBe(index);
         }
       });
