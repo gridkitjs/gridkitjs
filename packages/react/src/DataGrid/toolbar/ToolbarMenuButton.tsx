@@ -44,18 +44,21 @@ export default function ToolbarMenuButton({
       <button
         {...attributes}
         type="button"
-        className={classNames("toolbar-button", more && "toolbar-more")}
+        className={classNames(
+          "gridkit-toolbar-button",
+          more && "gridkit-toolbar-more",
+        )}
         data-gridkit-toolbar-item={itemKey}
         {...ariaAttr(more, "data-gridkit-toolbar-more", "")}
         {...buttonProps}
       >
         {icon !== undefined && (
-          <span className="toolbar-button-icon" aria-hidden="true">
+          <span className="gridkit-toolbar-button-icon" aria-hidden="true">
             <MenuIcon name={icon} />
           </span>
         )}
         {label}
-        <span className="toolbar-button-indicator" aria-hidden="true">
+        <span className="gridkit-toolbar-button-indicator" aria-hidden="true">
           <ChevronDownIcon />
         </span>
       </button>

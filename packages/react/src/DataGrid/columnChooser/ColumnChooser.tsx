@@ -49,7 +49,7 @@ export default function ColumnChooser<Row>({
     >
       <input
         type="search"
-        className="column-chooser-search"
+        className="gridkit-column-chooser-search"
         aria-label={messages.columnChooserSearchLabel}
         placeholder={messages.searchPlaceholder}
         value={search}
@@ -58,12 +58,12 @@ export default function ColumnChooser<Row>({
         }}
       />
       {entries.length === 0 ? (
-        <p role="status" className="column-chooser-empty">
+        <p role="status" className="gridkit-column-chooser-empty">
           {messages.noMatchingColumns}
         </p>
       ) : (
         <>
-          <label className="column-chooser-option column-chooser-all">
+          <label className="gridkit-column-chooser-option gridkit-column-chooser-all">
             <input
               ref={showAllRef}
               type="checkbox"
@@ -77,10 +77,10 @@ export default function ColumnChooser<Row>({
             />
             {messages.showAllColumns}
           </label>
-          <ul className="column-chooser-list">
+          <ul className="gridkit-column-chooser-list">
             {entries.map((entry) => (
               <li key={entry.columnId}>
-                <label className="column-chooser-option">
+                <label className="gridkit-column-chooser-option">
                   <input
                     type="checkbox"
                     checked={entry.visible}

@@ -80,7 +80,7 @@ export default function ToolbarSearch<Row>({
     <input
       {...attributes}
       type="search"
-      className="toolbar-search"
+      className="gridkit-toolbar-search"
       data-gridkit-toolbar-item={itemKey}
       aria-label={messages.searchLabel}
       placeholder={messages.searchPlaceholder}

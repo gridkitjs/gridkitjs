@@ -58,8 +58,8 @@ describe("buildPrintDocument", () => {
     expect(document.title).toBe("Orders");
     expect(document.bodyHtml).toBe(
       '<header class="gridkit-print-header">' +
-        '<h1 class="print-title">Orders</h1>' +
-        '<p class="print-subtitle">Q1, West</p>' +
+        '<h1 class="gridkit-print-title">Orders</h1>' +
+        '<p class="gridkit-print-subtitle">Q1, West</p>' +
         `</header>${toHtmlTable(table)}`,
     );
   });
@@ -88,10 +88,10 @@ describe("buildPrintDocument", () => {
     });
     expect(title).toBe("<script>A & B</script>");
     expect(bodyHtml).toContain(
-      '<h1 class="print-title">&lt;script&gt;A &amp; B&lt;/script&gt;</h1>',
+      '<h1 class="gridkit-print-title">&lt;script&gt;A &amp; B&lt;/script&gt;</h1>',
     );
     expect(bodyHtml).toContain(
-      '<p class="print-subtitle">&quot;quoted&quot;</p>',
+      '<p class="gridkit-print-subtitle">&quot;quoted&quot;</p>',
     );
     expect(bodyHtml).toContain(
       '<footer class="gridkit-print-footer">it&#39;s &lt;i&gt;</footer>',
@@ -114,7 +114,7 @@ describe("buildPrintDocument", () => {
         timeStyle: "short",
       }).format(date);
       expect(bodyHtml).toContain(
-        `<header class="gridkit-print-header"><p class="print-timestamp">${text}</p></header>`,
+        `<header class="gridkit-print-header"><p class="gridkit-print-timestamp">${text}</p></header>`,
       );
       expect(text).toContain("Mar 5, 2026");
     });
@@ -135,16 +135,16 @@ describe("buildPrintDocument", () => {
       });
       const year = String(before.getFullYear());
       expect(bodyHtml).toMatch(
-        new RegExp(`<p class="print-timestamp">[^<]*${year}[^<]*</p>`),
+        new RegExp(`<p class="gridkit-print-timestamp">[^<]*${year}[^<]*</p>`),
       );
     });
 
     test("prints nothing when false, as by default", () => {
       expect(
         buildPrintDocument(table, { timestamp: false }).bodyHtml,
-      ).not.toContain("print-timestamp");
+      ).not.toContain("gridkit-print-timestamp");
       expect(buildPrintDocument(table).bodyHtml).not.toContain(
-        "print-timestamp",
+        "gridkit-print-timestamp",
       );
     });
 
@@ -154,11 +154,11 @@ describe("buildPrintDocument", () => {
         subtitle: "S",
         timestamp: date,
       });
-      expect(bodyHtml.indexOf("print-subtitle")).toBeLessThan(
-        bodyHtml.indexOf("print-timestamp"),
+      expect(bodyHtml.indexOf("gridkit-print-subtitle")).toBeLessThan(
+        bodyHtml.indexOf("gridkit-print-timestamp"),
       );
-      expect(bodyHtml.indexOf("print-title")).toBeLessThan(
-        bodyHtml.indexOf("print-subtitle"),
+      expect(bodyHtml.indexOf("gridkit-print-title")).toBeLessThan(
+        bodyHtml.indexOf("gridkit-print-subtitle"),
       );
     });
   });
@@ -275,7 +275,7 @@ describe("exportPrintDocument", () => {
     expect(exportPrintDocument(source, { title: "Q1" }).title).toBe("Q1");
     expect(exportPrintDocument(source, { title: "" })).toMatchObject({
       title: "",
-      bodyHtml: expect.not.stringContaining("print-title") as unknown,
+      bodyHtml: expect.not.stringContaining("gridkit-print-title") as unknown,
     });
   });
 

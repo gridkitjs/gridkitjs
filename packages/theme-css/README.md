@@ -20,7 +20,7 @@ Import it once, before your own CSS:
 ```
 
 `@gridkitjs/react` renders semantic class names (`gridkit-data-grid`,
-`header-cell`, `grid-row`), and this stylesheet targets them directly.
+`gridkit-header-cell`, `gridkit-grid-row`), and this stylesheet targets them directly.
 
 ## Dark mode
 

@@ -128,7 +128,7 @@ test.describe("row props", () => {
       <RowPropsGrid dataSource={rows} label="Row props" />,
     );
     const overdue = root.locator('tbody tr[data-gridkit-row-id="b"]');
-    await expect(overdue).toHaveClass(/\bgrid-row\b/);
+    await expect(overdue).toHaveClass(/\bgridkit-grid-row\b/);
     await expect(overdue).toHaveClass(/\bis-overdue\b/);
     await expect(overdue).toHaveAttribute("data-status", "overdue");
     const open = root.locator('tbody tr[data-gridkit-row-id="a"]');

@@ -45,7 +45,7 @@ function valueOf(menu: Locator, position: number, name = "Value"): Locator {
 
 /** A header's filter button — a pointer affordance only, hidden from assistive technology. */
 function filterButton(root: MountResult, columnName: string): Locator {
-  return header(root, columnName).locator(".header-filter-toggle");
+  return header(root, columnName).locator(".gridkit-header-filter-toggle");
 }
 
 function names(root: MountResult): Promise<string[]> {
@@ -255,7 +255,9 @@ test.describe("filter menu", () => {
     const filterMenu = await openFromHeaderMenu(root, page, "Score");
 
     await expect(button(filterMenu, "Sort ascending")).toHaveCount(0);
-    await expect(filterMenu.locator(".filter-menu-sort")).toHaveCount(0);
+    await expect(filterMenu.locator(".gridkit-filter-menu-sort")).toHaveCount(
+      0,
+    );
     await expect(valueOf(filterMenu, 1)).toBeFocused();
   });
 
@@ -460,7 +462,7 @@ test.describe("filter menu from the header", () => {
     await root.getByRole("button", { name: "set-filter" }).click();
 
     await expect(filterButton(root, "name")).toHaveClass(
-      "header-filter-toggle is-filtered",
+      "gridkit-header-filter-toggle is-filtered",
     );
     await expect(name).toHaveAttribute("aria-description", "Filtered");
     await expect(header(root, "id")).not.toHaveAttribute("aria-description");
@@ -1380,7 +1382,7 @@ test.describe("the excel editor", () => {
     await expect(option(filterMenu, "false 1")).toBeVisible();
     await expect(option(filterMenu, "true 2")).toBeVisible();
     await expect(
-      checklistOf(filterMenu).locator(".filter-menu-option-count"),
+      checklistOf(filterMenu).locator(".gridkit-filter-menu-option-count"),
     ).toHaveText(["1", "2"]);
     await page.keyboard.press("Escape");
 
@@ -1388,7 +1390,7 @@ test.describe("the excel editor", () => {
     filterMenu = await openFromHeaderMenu(root, page, "Active");
     await expect(option(filterMenu, "true")).toBeVisible();
     await expect(
-      checklistOf(filterMenu).locator(".filter-menu-option-count"),
+      checklistOf(filterMenu).locator(".gridkit-filter-menu-option-count"),
     ).toHaveCount(0);
   });
 
@@ -1400,7 +1402,7 @@ test.describe("the excel editor", () => {
 
     let filterMenu = await openFromHeaderMenu(root, page, "Active");
     await expect(
-      checklistOf(filterMenu).locator(".filter-menu-option-count"),
+      checklistOf(filterMenu).locator(".gridkit-filter-menu-option-count"),
     ).toHaveText(["1", "2"]);
     await page.keyboard.press("Escape");
 
@@ -1794,7 +1796,7 @@ test.describe("the excel editor", () => {
     await expect(filterMenu.getByText("Filtered by condition")).toBeVisible();
     const submenuButton = button(filterMenu, "Number filters");
     await expect(
-      submenuButton.locator(".filter-menu-submenu-icon svg"),
+      submenuButton.locator(".gridkit-filter-menu-submenu-icon svg"),
     ).toHaveCount(1);
     await submenuButton.click();
     const greaterThan = operators.getByRole("menuitemcheckbox", {
@@ -1827,7 +1829,7 @@ test.describe("the excel editor", () => {
     filterMenu = await openFromHeaderMenu(root, page, "Name");
     await expect(
       button(filterMenu, "Text filters").locator(
-        ".filter-menu-submenu-icon svg",
+        ".gridkit-filter-menu-submenu-icon svg",
       ),
     ).toHaveCount(0);
   });

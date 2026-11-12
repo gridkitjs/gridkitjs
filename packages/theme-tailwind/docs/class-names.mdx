@@ -1,0 +1,292 @@
+---
+title: "Class names"
+description: "Every class name and data-gridkit-* attribute the grid renders, grouped by part of the grid, with what each one marks."
+---
+
+{/* scripts/class-names.test.mjs fails when a class or attribute the grid renders is missing from this page's tables, or one listed here is no longer rendered. */}
+
+`@gridkitjs/react` draws the grid as plain elements with semantic class names, and both themes, [`@gridkitjs/theme-tailwind`](/docs/theme-tailwind) and [`@gridkitjs/theme-css`](/docs/theme-css), style it through them alone. This page lists every class the grid renders, every state class, and every `data-gridkit-*` attribute, so your own CSS and your tests can target them.
+
+## The rules
+
+- Every class the grid renders starts with `gridkit-`, so none collides with a class of your app's own, and no rule of either theme matches an element outside the grid.
+- A state is an `is-*` class (`is-selected`, `is-sorted-asc`), always on an element that also has a `gridkit-` class. Target it together with that class, as `.gridkit-grid-row.is-selected`, never on its own. Some states are ARIA attributes instead, such as `[aria-disabled="true"]` on a toolbar button; each part's table says which.
+- A `data-gridkit-*` attribute carries an id or an index, for a test or a script to find an element by. The grid's own behaviours find their elements by these attributes, never by class.
+- Class names, state classes and `data-gridkit-*` attributes are public API: they change only in a release that says so.
+
+```css
+.gridkit-grid-row.is-selected {
+  outline: 1px solid var(--gridkit-accent);
+}
+```
+
+```ts
+const row = grid.querySelector('.gridkit-grid-row[data-gridkit-row-id="42"]');
+```
+
+## Layout
+
+The grid is a set of siblings rather than one table, so the header and footer never scroll with the rows:
+
+| Class                         | Element   | Description                                                                                                                                                       |
+| ----------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.gridkit-data-grid-viewport` | `<div>`   | The grid's root: the toolbar, the group-by bar, the tables and the pager, in that order. Scrolls sideways when the columns are wider than it.                     |
+| `.gridkit-data-grid-tables`   | `<div>`   | Holds the three tables and carries `role="grid"` (or `"treegrid"` while grouped), since the pattern needs one element around every row.                           |
+| `.gridkit-data-grid`          | `<table>` | Each of the grid's tables (header, rows and footer), not the grid's root. Carries the border, hover and selectable modifiers below.                               |
+| `.gridkit-data-grid-header`   | `<table>` | The header's table. Also a `.gridkit-data-grid`.                                                                                                                  |
+| `.gridkit-data-grid-body`     | `<div>`   | The scroll container around the rows' table, the one `height` bounds, through `--gridkit-body-height`.                                                            |
+| `.gridkit-data-grid-footer`   | `<table>` | The grand-total footer's table, while `aggregates` is non-empty. Also a `.gridkit-data-grid`.                                                                     |
+| `.gridkit-sr-only`            | `<div>`   | The live region announcements are read from, clipped to nothing but left in the accessibility tree. Usable on anything of your own that should be read, not seen. |
+
+### Borders, hover and selection
+
+The `borders`, `hoverable` and `selectable` props put modifiers on each `.gridkit-data-grid` table:
+
+| Class                         | Element   | Description                                                                     |
+| ----------------------------- | --------- | ------------------------------------------------------------------------------- |
+| `.gridkit-borders-horizontal` | `<table>` | `borders="horizontal"`: lines between rows.                                     |
+| `.gridkit-borders-vertical`   | `<table>` | `borders="vertical"`: lines between columns.                                    |
+| `.gridkit-borders-all`        | `<table>` | `borders="all"`: lines between rows and between columns.                        |
+| `.gridkit-borders-none`       | `<table>` | `borders="none"`: no lines, the same as leaving `borders` out.                  |
+| `.gridkit-no-hover-rows`      | `<table>` | `hoverable.rows` is `false`: no highlight on the row under the pointer.         |
+| `.gridkit-no-hover-columns`   | `<table>` | `hoverable.columns` is `false`: no highlight on the column under the pointer.   |
+| `.gridkit-no-hover-cells`     | `<table>` | `hoverable.cells` is `false`: no highlight on the cell under the pointer.       |
+| `.gridkit-selectable-rows`    | `<table>` | Rows can be selected: turns on the pointer cursor and the text-selection guard. |
+| `.gridkit-selectable-columns` | `<table>` | Columns can be selected, the same way.                                          |
+| `.gridkit-selectable-cells`   | `<table>` | Cells can be selected, the same way.                                            |
+
+## Header
+
+| Class                           | Element  | Description                                                                                                                                                                                                           |
+| ------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.gridkit-grid-header`          | `<tr>`   | The header row.                                                                                                                                                                                                       |
+| `.gridkit-header-cell`          | `<th>`   | A header cell. States: is-selected, is-resizing, is-dragging, is-drop-before, is-drop-after, is-wrapped, and is-reorderable on one that can be dragged.                                                               |
+| `.gridkit-header-resize-handle` | `<span>` | The strip on a resizable header's trailing edge that a drag resizes from and a double-click autofits.                                                                                                                 |
+| `.gridkit-header-sort-toggle`   | `<span>` | A sortable header's sort icon. Hidden until the header is hovered or focused, or the column sorts. `.is-sorted-asc` / `.is-sorted-desc` while it does, in accent.                                                     |
+| `.gridkit-header-sort-priority` | `<span>` | The column's place in a sort of more than one column, beside its sort icon.                                                                                                                                           |
+| `.gridkit-header-group-toggle`  | `<span>` | A groupable header's group icon, before its label. Faint until hovered or focused; `.is-grouped` while the column is grouped, in accent.                                                                              |
+| `.gridkit-header-filter-toggle` | `<span>` | A filterable header's filter button, at its end, the sort icon beside it. Hidden until hovered or focused; `.is-filtered` while the column is filtered, in accent.                                                    |
+| `.gridkit-drag-ghost`           | `<div>`  | The copy following the pointer during a drag, rendered into `document.body`: a header as `.gridkit-data-grid.gridkit-header-cell.gridkit-drag-ghost`, a group-by chip as `.gridkit-group-by-chip.gridkit-drag-ghost`. |
+
+## Body
+
+| Class                        | Element   | Description                                                                                                                         |
+| ---------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `.gridkit-grid-body`         | `<tbody>` | The rows' table body.                                                                                                               |
+| `.gridkit-grid-row`          | `<tr>`    | A data row. States: is-selected. Also carries the class `getRowProps` returns for it.                                               |
+| `.gridkit-grid-cell`         | `<td>`    | A data cell. States: is-selected, is-resizing, is-wrapped. Also carries the column's `cellClassName`.                               |
+| `.gridkit-grid-loading-row`  | `<tr>`    | The loading row, while `infiniteScroll.isLoadingMore` is on.                                                                        |
+| `.gridkit-grid-loading-cell` | `<td>`    | Its one cell, holding "Loading more…", or what `loadingTemplate` draws.                                                             |
+| `.gridkit-grid-sentinel-row` | `<tr>`    | An empty, hidden row after the last one, which tells [infinite scroll](/docs/react/infinite-scroll) the end of the rows is in view. |
+
+### Group rows
+
+| Class                              | Element  | Description                                                                                                  |
+| ---------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------ |
+| `.gridkit-grid-group-row`          | `<tr>`   | A group header row, also `.is-group-level-N` for its depth.                                                  |
+| `.gridkit-grid-group-cell`         | `<td>`   | Its one cell, spanning every column.                                                                         |
+| `.gridkit-grid-group-cell-content` | `<div>`  | The cell's content (toggle, label, count and aggregates in a row), which carries the padding and the indent. |
+| `.gridkit-group-toggle`            | `<span>` | The triangle; `.is-expanded` turns it open, `.is-collapsed` marks it closed.                                 |
+| `.gridkit-group-label`             | `<span>` | The grouped column's name and the group's value.                                                             |
+| `.gridkit-group-count`             | `<span>` | The group's row count.                                                                                       |
+| `.gridkit-group-aggregates`        | `<span>` | A group's own subtotals, inline after the count, under `groupAggregateDisplay: "inline"`.                    |
+| `.gridkit-group-aggregate`         | `<span>` | One of those subtotals.                                                                                      |
+
+### Footer and summary rows
+
+| Class                                | Element  | Description                                                                                |
+| ------------------------------------ | -------- | ------------------------------------------------------------------------------------------ |
+| `.gridkit-grid-footer`               | `<tr>`   | The grand-total row, in the footer's table.                                                |
+| `.gridkit-grid-footer-cell`          | `<td>`   | One column's grand total.                                                                  |
+| `.gridkit-grid-group-summary-row`    | `<tr>`   | A group's own summary row, under `groupAggregateDisplay: "row"`, also `.is-group-level-N`. |
+| `.gridkit-grid-group-summary-cell`   | `<td>`   | One column's subtotal in it.                                                               |
+| `.gridkit-grid-group-summary-indent` | `<span>` | The empty spacer in its first cell that indents the row to its group's depth.              |
+
+## Group-by bar
+
+The [group-by bar](/docs/react/row-grouping) sits above the tables, outside `.gridkit-data-grid`.
+
+| Class                               | Element    | Description                                                                                                                                                                           |
+| ----------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.gridkit-group-by-bar`             | `<div>`    | The bar. `.is-drag-target` while a chip or a header that can be grouped is dragged (a dashed accent outline), and `.is-drag-blocked` while a header already grouped is dragged at it. |
+| `.gridkit-group-by-bar-placeholder` | `<span>`   | The hint shown while nothing is grouped and a column can be dragged in.                                                                                                               |
+| `.gridkit-group-by-chip`            | `<span>`   | One level of the grouping. States: is-dragging, is-drop-before, is-drop-after; as `.gridkit-group-by-chip.gridkit-drag-ghost`, the chip following the pointer.                        |
+| `.gridkit-group-by-chip-label`      | `<span>`   | The chip's column name.                                                                                                                                                               |
+| `.gridkit-group-by-chip-remove`     | `<button>` | The chip's remove button.                                                                                                                                                             |
+
+## Pager
+
+The [pager](/docs/react/pagination#the-built-in-pager) sits below the tables, outside `.gridkit-data-grid` like the group-by bar.
+
+| Class                                 | Element    | Description                                                                                                                                                                                                          |
+| ------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.gridkit-grid-pager`                 | `<div>`    | The pager.                                                                                                                                                                                                           |
+| `.gridkit-grid-pager-bar`             | `<div>`    | First, Previous, the pages or the status, Next and Last, drawn as one connected bar with the radius on its outer corners. Its `--gridkit-pager-digits` (the page count's digits) sizes every page-number slot alike. |
+| `.gridkit-grid-pager-button`          | `<button>` | Every button in the bar. The current page's carries `[aria-current="page"]`, drawn in the accent with a ring.                                                                                                        |
+| `.gridkit-grid-pager-nav`             | `<button>` | The four arrow buttons. Their chevrons mirror right-to-left. One that leads nowhere is `[aria-disabled="true"]`, not `:disabled`, and stays focusable, so its chevron fades and its focus ring does not.             |
+| `.gridkit-grid-pager-first`           | `<button>` | First page. Also a `.gridkit-grid-pager-nav`.                                                                                                                                                                        |
+| `.gridkit-grid-pager-previous`        | `<button>` | Previous page. Also a `.gridkit-grid-pager-nav`.                                                                                                                                                                     |
+| `.gridkit-grid-pager-next`            | `<button>` | Next page. Also a `.gridkit-grid-pager-nav`.                                                                                                                                                                         |
+| `.gridkit-grid-pager-last`            | `<button>` | Last page. Also a `.gridkit-grid-pager-nav`.                                                                                                                                                                         |
+| `.gridkit-grid-pager-page`            | `<button>` | A page number, under `"numbered"`, in tabular numerals.                                                                                                                                                              |
+| `.gridkit-grid-pager-ellipsis`        | `<span>`   | The `…` standing for pages left out, under `"numbered"`.                                                                                                                                                             |
+| `.gridkit-grid-pager-status-slot`     | `<span>`   | The status segment under the default `"compact"` variant, as wide as its widest text.                                                                                                                                |
+| `.gridkit-grid-pager-status`          | `<span>`   | "Page 2 of 5", inside the status segment.                                                                                                                                                                            |
+| `.gridkit-grid-pager-status-sizer`    | `<span>`   | The status's widest text, hidden, which holds the segment's width.                                                                                                                                                   |
+| `.gridkit-grid-pager-page-size`       | `<label>`  | The page-size `<select>` beside the bar, while `pager.sizeOptions` is given.                                                                                                                                         |
+| `.gridkit-grid-pager-page-size-label` | `<span>`   | The text after that `<select>`.                                                                                                                                                                                      |
+
+## Toolbar
+
+The grid's [toolbar](/docs/react/toolbar) is the first thing inside it, above the group-by bar. It sticks to the grid's start edge, so it stays in view while the tables scroll sideways, and keeps its entries on one row: what does not fit moves into "More". States are ARIA attributes, not classes.
+
+| Class                               | Element    | Description                                                                                                                                                                                  |
+| ----------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.gridkit-toolbar`                  | `<div>`    | The toolbar (`role="toolbar"`): its row, padding, surface and bottom border.                                                                                                                 |
+| `.gridkit-toolbar-button`           | `<button>` | A command's button, a dropdown, or "More". `[aria-disabled="true"]` mutes it, `[aria-pressed="true"]` marks a toggle that is on, and `[aria-expanded="true"]` a dropdown whose menu is open. |
+| `.gridkit-toolbar-button-icon`      | `<span>`   | The icon before a button's label; hidden when empty.                                                                                                                                         |
+| `.gridkit-toolbar-button-indicator` | `<span>`   | The chevron after a dropdown's label.                                                                                                                                                        |
+| `.gridkit-toolbar-more`             | `<button>` | The "More" button, holding the entries that do not fit. Also a `.gridkit-toolbar-button`. Sticks to the toolbar's end edge when the search box and custom entries alone overflow it.         |
+| `.gridkit-toolbar-search`           | `<input>`  | The search box: `12rem`, or half the toolbar's width when that is less.                                                                                                                      |
+| `.gridkit-toolbar-separator`        | `<div>`    | A separator (`role="separator"`).                                                                                                                                                            |
+| `.gridkit-toolbar-spacer`           | `<div>`    | The free space, pushing what follows it to the far end.                                                                                                                                      |
+| `.gridkit-toolbar-custom`           | `<div>`    | Holds what `renderToolbarItem` draws.                                                                                                                                                        |
+
+A dropdown's menu, and "More"'s, are [menus](#overlays-and-menus) like the context menu's.
+
+## Overlays and menus
+
+The grid's [context menu](/docs/react/context-menu) renders into `document.body`, not inside the grid, so no scrolling ancestor clips it, and its selectors are top-level rather than under `.gridkit-data-grid`. States are ARIA attributes, not classes. How an overlay takes its colours is under [overlays and menus](/docs/theme-tailwind#overlays-and-menus) on the theme's overview.
+
+| Class                             | Element  | Description                                                                                                                                                                                 |
+| --------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.gridkit-overlay`                | `<div>`  | The positioned box around every menu, submenu and panel, `position: fixed` and above the grid. Carries the grid's `.gridkit-light`/`.gridkit-dark`.                                         |
+| `.gridkit-menu`                   | `<div>`  | A menu (`role="menu"`): its surface, border, shadow and padding.                                                                                                                            |
+| `.gridkit-menu-item`              | `<div>`  | An item. Focused (`:focus`) when the keyboard or the pointer is on it; `[aria-disabled="true"]`, `[aria-checked="true"]` and `[aria-expanded="true"]` (its submenu is open) style the rest. |
+| `.gridkit-menu-item-icon`         | `<span>` | The icon before the label: empty when the item has none, so labels line up; a checked item's check.                                                                                         |
+| `.gridkit-menu-item-label`        | `<span>` | The label.                                                                                                                                                                                  |
+| `.gridkit-menu-item-shortcut`     | `<span>` | A key-combination hint after the label.                                                                                                                                                     |
+| `.gridkit-menu-submenu-indicator` | `<span>` | The chevron on an item that opens a submenu.                                                                                                                                                |
+| `.gridkit-menu-separator`         | `<div>`  | A separator (`role="separator"`).                                                                                                                                                           |
+
+### Column chooser
+
+The [column chooser](/docs/react/column-chooser) is an overlay too, in a `.gridkit-overlay` like a menu. Its checkboxes are native, so a disabled one is `:disabled` rather than an ARIA attribute.
+
+| Class                            | Element   | Description                                                                                           |
+| -------------------------------- | --------- | ----------------------------------------------------------------------------------------------------- |
+| `.gridkit-column-chooser`        | `<div>`   | The chooser (`role="dialog"`): a fixed width, its surface, border, shadow and padding.                |
+| `.gridkit-column-chooser-search` | `<input>` | The search box.                                                                                       |
+| `.gridkit-column-chooser-option` | `<label>` | A checkbox and its label: "Show all", or a column. Muted while its checkbox is disabled.              |
+| `.gridkit-column-chooser-all`    | `<label>` | "Show all", set apart from the list below it. Also a `.gridkit-column-chooser-option`.                |
+| `.gridkit-column-chooser-list`   | `<ul>`    | The columns, one `<li>` each. Scrolls inside itself past about ten, which does not close the chooser. |
+| `.gridkit-column-chooser-empty`  | `<p>`     | "No matching columns", in place of the list when the search matches none.                             |
+
+### Filter menu
+
+A column's [filter menu](/docs/react/column-filter-menu) is an overlay too. Its buttons and fields are native, so a disabled button is `:disabled`; a sort entry for the direction the column sorts in is `[aria-pressed="true"]`, a value box marked invalid `[aria-invalid="true"]`, and a checklist value `[aria-checked="true"]` while checked. A marked box and its message take `--gridkit-error`, by default the accent turned red, as light or dark as the accent.
+
+| Class                                    | Element               | Description                                                                                                                 |
+| ---------------------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `.gridkit-filter-menu`                   | `<div>`               | The menu (`role="dialog"`): a fixed width, its surface, border, shadow and padding.                                         |
+| `.gridkit-filter-menu-form`              | `<form>`              | Everything inside it, in a column. Submitting it applies the editor.                                                        |
+| `.gridkit-filter-menu-sort`              | `<div>`               | The column's sort entries, set apart from what follows. Left out for a column that does not sort.                           |
+| `.gridkit-filter-menu-sort-item`         | `<button>`            | A sort entry, drawn as a menu item.                                                                                         |
+| `.gridkit-filter-menu-sort-icon`         | `<span>`              | The icon before its label: empty for "Clear sort", so labels line up; in accent while pressed.                              |
+| `.gridkit-filter-menu-conditions`        | `<div>`               | The simple editor: its conditions in a column, And/Or between them.                                                         |
+| `.gridkit-filter-menu-custom`            | `<p>`                 | "Custom filter" above either editor, or "Filtered by condition" above the checklist: a filter the editor can't show. Muted. |
+| `.gridkit-filter-menu-condition`         | `<div>`               | One condition (`role="group"`): its operator picker on a line of its own, its value boxes sharing the next.                 |
+| `.gridkit-filter-menu-operator`          | `<select>`            | A condition's operator picker.                                                                                              |
+| `.gridkit-filter-menu-value`             | `<input>`, `<select>` | A value box: a true/false `<select>` on a boolean column; a "Between" has two. Red-bordered while `[aria-invalid="true"]`.  |
+| `.gridkit-filter-menu-combinator`        | `<div>`               | And/Or (`role="radiogroup"`), between the two conditions.                                                                   |
+| `.gridkit-filter-menu-combinator-option` | `<label>`             | One of its native radio buttons, with its text.                                                                             |
+| `.gridkit-filter-menu-invalid`           | `<p>`                 | The message under the conditions while one is marked invalid, in red.                                                       |
+| `.gridkit-filter-menu-values`            | `<div>`               | The excel editor: its search box, "Select all" and checklist in a column, with a note above or below when one applies.      |
+| `.gridkit-filter-menu-submenu`           | `<button>`            | "Number filters", opening the column's conditions beside the menu: drawn as a menu item, shaded while its menu is open.     |
+| `.gridkit-filter-menu-submenu-icon`      | `<span>`              | The icon before its label: a tick, in accent, while the column is filtered by conditions; empty otherwise.                  |
+| `.gridkit-filter-menu-submenu-indicator` | `<span>`              | The chevron at the end of its line.                                                                                         |
+| `.gridkit-filter-menu-back`              | `<button>`            | "Back to values", above a condition its menu chose, in place of the checklist: drawn as a menu item.                        |
+| `.gridkit-filter-menu-back-icon`         | `<span>`              | The chevron before its label.                                                                                               |
+| `.gridkit-filter-menu-search`            | `<input>`             | The excel editor's search box.                                                                                              |
+| `.gridkit-filter-menu-select-all`        | `<label>`             | "Select all", a native checkbox and its label, lined up with the checklist's drawn checkboxes.                              |
+| `.gridkit-filter-menu-checklist`         | `<div>`               | The values (`role="listbox"`): a fixed-height box that scrolls inside itself, only its visible values drawn.                |
+| `.gridkit-filter-menu-option`            | `<div>`               | A value (`role="option"`), checked while `[aria-checked="true"]`; a ring while focused by the keyboard.                     |
+| `.gridkit-filter-menu-option-check`      | `<span>`              | Its drawn checkbox: an outline, filled with the accent and ticked while the value is checked.                               |
+| `.gridkit-filter-menu-option-label`      | `<span>`              | Its label, ending in an ellipsis when too long for the menu.                                                                |
+| `.gridkit-filter-menu-option-count`      | `<span>`              | How many rows hold it, under `showCounts`. Muted, at the end of the line.                                                   |
+| `.gridkit-filter-menu-search-first`      | `<p>`                 | "Type to search 12,000 values", in the checklist's box while it waits for a search. Muted.                                  |
+| `.gridkit-filter-menu-more`              | `<p>`                 | "250 more, refine the search" (`role="status"`), under a checklist the value limit cut short. Muted.                        |
+| `.gridkit-filter-menu-actions`           | `<div>`               | The buttons: "Clear filter" at the start, Cancel and OK at the end.                                                         |
+| `.gridkit-filter-menu-clear`             | `<button>`            | "Clear filter".                                                                                                             |
+| `.gridkit-filter-menu-cancel`            | `<button>`            | Cancel.                                                                                                                     |
+| `.gridkit-filter-menu-apply`             | `<button>`            | OK, the form's submit button, tinted.                                                                                       |
+
+## Theme classes
+
+The grid does not render these itself: you put one on the grid or an ancestor to [force a theme on one grid](/docs/theme-tailwind#forcing-a-theme-on-one-grid), and the grid copies it onto each `.gridkit-overlay` it opens.
+
+| Class            | Element | Description                                          |
+| ---------------- | ------- | ---------------------------------------------------- |
+| `.gridkit-light` | Any     | Pins the grid and its overlays to the light palette. |
+| `.gridkit-dark`  | Any     | Pins the grid and its overlays to the dark palette.  |
+
+## Copied and printed tables
+
+[Copying](/docs/react/clipboard) rows as HTML and the grid's own [Print](/docs/react/printing) build a plain table, outside the grid and outside both themes. The print document styles these classes with a stylesheet of its own, which the `print` option's `styles` extends.
+
+| Class                           | Element    | Description                                                                           |
+| ------------------------------- | ---------- | ------------------------------------------------------------------------------------- |
+| `.gridkit-export-table`         | `<table>`  | The table.                                                                            |
+| `.gridkit-export-group`         | `<tr>`     | A group header row, with `data-level` for its depth, 0 at the top.                    |
+| `.gridkit-export-group-summary` | `<tr>`     | A group's summary row, with `data-level` like its header.                             |
+| `.gridkit-print-header`         | `<header>` | Above the table in a print, holding the title, subtitle and timestamp that are given. |
+| `.gridkit-print-title`          | `<h1>`     | The print's `title`.                                                                  |
+| `.gridkit-print-subtitle`       | `<p>`      | The print's `subtitle`.                                                               |
+| `.gridkit-print-timestamp`      | `<p>`      | When the print was made, while `timestamp` is set.                                    |
+| `.gridkit-print-footer`         | `<footer>` | The print's `footer`, under the table.                                                |
+
+## State classes
+
+Each state class sits beside the `gridkit-` class of the element it marks.
+
+| Class                                | On                                                                | Description                                                                                              |
+| ------------------------------------ | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `.is-selected`                       | `.gridkit-grid-row`, `.gridkit-header-cell`, `.gridkit-grid-cell` | A selected row, column header or cell. A selected cell wins over its row and column.                     |
+| `.is-sorted-asc` / `.is-sorted-desc` | `.gridkit-header-sort-toggle`                                     | The column sorts ascending or descending.                                                                |
+| `.is-grouped`                        | `.gridkit-header-group-toggle`                                    | The column is grouped.                                                                                   |
+| `.is-filtered`                       | `.gridkit-header-filter-toggle`                                   | The column is filtered.                                                                                  |
+| `.is-reorderable`                    | `.gridkit-header-cell`                                            | The column can be dragged to a new place.                                                                |
+| `.is-resizing`                       | `.gridkit-header-cell`, `.gridkit-grid-cell`                      | The column is being resized.                                                                             |
+| `.is-wrapped`                        | `.gridkit-header-cell`, `.gridkit-grid-cell`                      | The column's `wrap` wraps the header's or the cells' text rather than cutting it short.                  |
+| `.is-dragging`                       | `.gridkit-header-cell`, `.gridkit-group-by-chip`                  | The header or chip being dragged.                                                                        |
+| `.is-drop-before`                    | `.gridkit-header-cell`, `.gridkit-group-by-chip`                  | A drag will drop before this header or chip.                                                             |
+| `.is-drop-after`                     | `.gridkit-header-cell`, `.gridkit-group-by-chip`                  | A drag will drop after this header or chip.                                                              |
+| `.is-drag-target`                    | `.gridkit-group-by-bar`                                           | A chip, or a header that can be grouped, is being dragged.                                               |
+| `.is-drag-blocked`                   | `.gridkit-group-by-bar`                                           | A header already grouped is being dragged at the bar, which won't take it.                               |
+| `.is-expanded` / `.is-collapsed`     | `.gridkit-group-toggle`                                           | The group is open or closed.                                                                             |
+| `.is-group-level-N`                  | `.gridkit-grid-group-row`, `.gridkit-grid-group-summary-row`      | The group's depth, `N` from 0 for a top-level group: `.is-group-level-0`, `.is-group-level-1` and so on. |
+
+## Data attributes
+
+| Attribute                      | On                                                                                                            | Holds                                                                                                                                               |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-gridkit-row-index`       | `.gridkit-grid-row`, `.gridkit-grid-group-row`, `.gridkit-grid-group-summary-row`                             | The row's place among every body row, counting group rows. It holds under virtualization, where `:nth-child` does not, and changes with every sort. |
+| `data-gridkit-row-id`          | `.gridkit-grid-row`                                                                                           | The row's id, which stays with it however it moves.                                                                                                 |
+| `data-gridkit-column`          | `.gridkit-header-cell`, `.gridkit-grid-cell`, `.gridkit-grid-footer-cell`, `.gridkit-grid-group-summary-cell` | The column's id.                                                                                                                                    |
+| `data-gridkit-group`           | `.gridkit-grid-group-row`                                                                                     | The group's id.                                                                                                                                     |
+| `data-gridkit-group-summary`   | `.gridkit-grid-group-summary-row`                                                                             | The id of the group it sums.                                                                                                                        |
+| `data-gridkit-group-by-bar`    | `.gridkit-group-by-bar`                                                                                       | Nothing: it marks the bar.                                                                                                                          |
+| `data-gridkit-group-chip`      | `.gridkit-group-by-chip`                                                                                      | The grouped column's id.                                                                                                                            |
+| `data-gridkit-toolbar-item`    | A toolbar entry                                                                                               | The entry's `key`.                                                                                                                                  |
+| `data-gridkit-toolbar-more`    | `.gridkit-toolbar-more`                                                                                       | Nothing: it marks the "More" button.                                                                                                                |
+| `data-gridkit-menu-item`       | `.gridkit-menu-item`                                                                                          | The item's id.                                                                                                                                      |
+| `data-gridkit-placement`       | `.gridkit-overlay`                                                                                            | Where the overlay sits beside what opened it, such as `"bottom-start"`, or `"top-start"` once flipped above; for pointing an arrow by.              |
+| `data-gridkit-checklist-item`  | `.gridkit-filter-menu-option`                                                                                 | Nothing: it marks a value in the filter menu's checklist.                                                                                           |
+| `data-gridkit-checklist-index` | `.gridkit-filter-menu-option`                                                                                 | The value's place in the whole list, of which only the visible part is drawn.                                                                       |
+
+## See also
+
+- [Overview](/docs/theme-tailwind) for how the stylesheet uses these classes, dark mode and printing.
+- [Theme tokens](/docs/theme-tailwind/tokens) for restyling the grid without new rules.
+- [Row props](/docs/react/data-grid#row-props) for adding your own class and `data-*` attributes to a row.
+- [Plain CSS theme](/docs/theme-css) for the same classes without Tailwind.

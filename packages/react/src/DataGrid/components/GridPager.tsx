@@ -19,7 +19,7 @@ interface GridPagerProps {
 }
 
 interface PagerNavButtonProps {
-  /** The modifier class beside `grid-pager-button grid-pager-nav`. */
+  /** The modifier class beside `gridkit-grid-pager-button gridkit-grid-pager-nav`. */
   className: string;
   label: string;
   disabled: boolean;
@@ -47,7 +47,7 @@ function PagerNavButton({
   return (
     <button
       type="button"
-      className={`grid-pager-button grid-pager-nav ${className}`}
+      className={`gridkit-grid-pager-button gridkit-grid-pager-nav ${className}`}
       aria-label={label}
       title={label}
       {...ariaAttr(disabled, "aria-disabled", true)}
@@ -92,9 +92,9 @@ export default function GridPager({ pager, config, messages }: GridPagerProps) {
       role="group"
       aria-label={messages.pagerLabel}
     >
-      <div className="grid-pager-bar" style={barStyle}>
+      <div className="gridkit-grid-pager-bar" style={barStyle}>
         <PagerNavButton
-          className="grid-pager-first"
+          className="gridkit-grid-pager-first"
           label={messages.firstPage}
           disabled={atFirst}
           onClick={() => {
@@ -104,7 +104,7 @@ export default function GridPager({ pager, config, messages }: GridPagerProps) {
           <ChevronsLeftIcon />
         </PagerNavButton>
         <PagerNavButton
-          className="grid-pager-previous"
+          className="gridkit-grid-pager-previous"
           label={messages.previousPage}
           disabled={atFirst}
           onClick={() => {
@@ -121,7 +121,7 @@ export default function GridPager({ pager, config, messages }: GridPagerProps) {
             entry === "ellipsis" ? (
               <span
                 key={`ellipsis-${String(index)}`}
-                className="grid-pager-ellipsis"
+                className="gridkit-grid-pager-ellipsis"
                 aria-hidden="true"
               >
                 …
@@ -130,7 +130,7 @@ export default function GridPager({ pager, config, messages }: GridPagerProps) {
               <button
                 key={entry}
                 type="button"
-                className="grid-pager-button grid-pager-page"
+                className="gridkit-grid-pager-button gridkit-grid-pager-page"
                 aria-label={messages.pageButtonLabel(entry)}
                 aria-current={entry === currentPage ? "page" : undefined}
                 onClick={() => {
@@ -142,21 +142,24 @@ export default function GridPager({ pager, config, messages }: GridPagerProps) {
             ),
           )
         ) : (
-          <span className="grid-pager-status-slot">
-            <span className="grid-pager-status">
+          <span className="gridkit-grid-pager-status-slot">
+            <span className="gridkit-grid-pager-status">
               {messages.pageStatus(
                 pageCount === 0 ? 0 : currentPage,
                 pageCount,
               )}
             </span>
             {/* The widest the status gets, invisible, so the slot never resizes as the page changes. */}
-            <span className="grid-pager-status-sizer" aria-hidden="true">
+            <span
+              className="gridkit-grid-pager-status-sizer"
+              aria-hidden="true"
+            >
               {messages.pageStatus(pageCount, pageCount)}
             </span>
           </span>
         )}
         <PagerNavButton
-          className="grid-pager-next"
+          className="gridkit-grid-pager-next"
           label={messages.nextPage}
           disabled={atLast}
           onClick={() => {
@@ -166,7 +169,7 @@ export default function GridPager({ pager, config, messages }: GridPagerProps) {
           <ChevronRightIcon />
         </PagerNavButton>
         <PagerNavButton
-          className="grid-pager-last"
+          className="gridkit-grid-pager-last"
           label={messages.lastPage}
           disabled={atLast}
           onClick={() => {
@@ -177,7 +180,7 @@ export default function GridPager({ pager, config, messages }: GridPagerProps) {
         </PagerNavButton>
       </div>
       {sizeOptions !== undefined && sizeOptions.length > 0 && (
-        <label className="grid-pager-page-size">
+        <label className="gridkit-grid-pager-page-size">
           <select
             value={pagination.pageSize}
             onChange={(event) => {
@@ -190,7 +193,7 @@ export default function GridPager({ pager, config, messages }: GridPagerProps) {
               </option>
             ))}
           </select>
-          <span className="grid-pager-page-size-label">
+          <span className="gridkit-grid-pager-page-size-label">
             {messages.pageSizeLabel}
           </span>
         </label>

@@ -38,12 +38,12 @@ function bar(root: MountResult) {
 }
 
 function chips(root: MountResult) {
-  return root.locator(".group-by-chip");
+  return root.locator(".gridkit-group-by-chip");
 }
 
 /**
  * Presses the pointer down on an element's center, without releasing it.
- * For a chip, pass its `.group-by-chip-label` rather than the chip itself —
+ * For a chip, pass its `.gridkit-group-by-chip-label` rather than the chip itself —
  * grabbing the chip's own geometric center can land on its remove button,
  * whose `stopPropagation` would swallow the `pointerdown` before the chip's
  * own handler (which starts the drag) ever sees it.
@@ -311,7 +311,10 @@ test("dragging a chip reorders the stack", async ({ mount, page }) => {
   const first = chips(root).nth(0);
   const last = chips(root).nth(2);
 
-  const start = await dragStart(page, first.locator(".group-by-chip-label"));
+  const start = await dragStart(
+    page,
+    first.locator(".gridkit-group-by-chip-label"),
+  );
   const lastBox = await last.boundingBox();
   if (lastBox === null) throw new Error("last chip not visible");
   await page.mouse.move(
@@ -353,7 +356,10 @@ test("Escape mid-chip-drag cancels: groupBy unchanged, onGroupByChange never cal
     elements.map((element) => element.getAttribute("data-gridkit-group-chip")),
   );
 
-  await dragStart(page, chips(root).nth(0).locator(".group-by-chip-label"));
+  await dragStart(
+    page,
+    chips(root).nth(0).locator(".gridkit-group-by-chip-label"),
+  );
   const secondBox = await chips(root).nth(1).boundingBox();
   if (secondBox === null) throw new Error("second chip not visible");
   await page.mouse.move(
@@ -392,7 +398,7 @@ test("dropping a chip back into the gap it already occupies is a no-op", async (
   );
   const start = await dragStart(
     page,
-    chips(root).nth(0).locator(".group-by-chip-label"),
+    chips(root).nth(0).locator(".gridkit-group-by-chip-label"),
   );
   // Stays inside the first chip's own bounds — never crosses into the second.
   await page.mouse.move(start.x + 4, start.y, { steps: 3 });
@@ -466,7 +472,7 @@ test("chips and their remove buttons are independent tab stops in plain DOM orde
   await first.focus();
   await expect(first).toBeFocused();
   await first.press("Tab");
-  await expect(first.locator(".group-by-chip-remove")).toBeFocused();
-  await first.locator(".group-by-chip-remove").press("Tab");
+  await expect(first.locator(".gridkit-group-by-chip-remove")).toBeFocused();
+  await first.locator(".gridkit-group-by-chip-remove").press("Tab");
   await expect(chips(root).nth(1)).toBeFocused();
 });

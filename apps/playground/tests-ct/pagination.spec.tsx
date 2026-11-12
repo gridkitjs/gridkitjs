@@ -54,7 +54,7 @@ async function rowIds(root: MountResult): Promise<string[]> {
 }
 
 function pagerStatus(root: MountResult) {
-  return root.locator(".grid-pager-status");
+  return root.locator(".gridkit-grid-pager-status");
 }
 
 interface Status {
@@ -297,7 +297,7 @@ test("sorting resets to the first page", async ({ mount }) => {
   await root
     .locator("thead th")
     .filter({ hasText: "amount" })
-    .locator(".header-sort-toggle")
+    .locator(".gridkit-header-sort-toggle")
     .click();
   await root.getByRole("button", { name: "report" }).click();
   status = await readStatus(root);
@@ -388,7 +388,7 @@ function buildManyRows(count: number): Row[] {
 }
 
 function ellipses(root: MountResult) {
-  return root.locator(".grid-pager-ellipsis");
+  return root.locator(".gridkit-grid-pager-ellipsis");
 }
 
 test.describe("numbered pager variant", () => {
@@ -533,7 +533,7 @@ function pagerButton(root: MountResult, name: string) {
 /** The page-number and ellipsis slots between the arrows, in order. */
 function windowSlots(root: MountResult) {
   return root.locator(
-    ".grid-pager-bar > .grid-pager-page, .grid-pager-bar > .grid-pager-ellipsis",
+    ".gridkit-grid-pager-bar > .gridkit-grid-pager-page, .gridkit-grid-pager-bar > .gridkit-grid-pager-ellipsis",
   );
 }
 
@@ -616,7 +616,7 @@ test.describe("pager bar", () => {
         variant === "compact"
           ? expect(pagerStatus(root)).toHaveText(`Page ${String(page)} of 3`)
           : expect(
-              root.locator('.grid-pager-page[aria-current="page"]'),
+              root.locator('.gridkit-grid-pager-page[aria-current="page"]'),
             ).toHaveText(String(page));
 
       const next = pagerButton(root, "Next");
@@ -688,7 +688,7 @@ test.describe("pager bar", () => {
     // A middle page: an ellipsis either side.
     await pageButton(root, 5).click();
     await expect(pageButton(root, 5)).toHaveAttribute("aria-current", "page");
-    await expect(root.locator(".grid-pager-ellipsis")).toHaveCount(2);
+    await expect(root.locator(".gridkit-grid-pager-ellipsis")).toHaveCount(2);
     await expect(windowSlots(root)).toHaveCount(7);
     expect(await leftEdge(next)).toBe(nextX);
     expect(await leftEdge(last)).toBe(lastX);
@@ -942,7 +942,7 @@ test("a controlled pagination is left where it is by a sort change, which only a
   await root
     .locator("thead th")
     .filter({ hasText: "amount" })
-    .locator(".header-sort-toggle")
+    .locator(".gridkit-header-sort-toggle")
     .click();
 
   await expect(root.locator("thead th").nth(2)).toHaveAttribute(

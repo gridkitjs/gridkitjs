@@ -40,7 +40,7 @@ function groupSummaryRows(root: MountResult) {
 }
 
 function footer(root: MountResult) {
-  return root.locator(".grid-footer");
+  return root.locator(".gridkit-grid-footer");
 }
 
 test("a grand-total footer renders each active aggregate's value over the whole dataset", async ({
@@ -96,8 +96,12 @@ test("a group header shows its own subtotal, computed over its own leaf rows onl
 
   const east = groupHeaders(root).filter({ hasText: "East" });
   const west = groupHeaders(root).filter({ hasText: "West" });
-  await expect(east.locator(".group-aggregate")).toHaveText("amount: 60");
-  await expect(west.locator(".group-aggregate")).toHaveText("amount: 90");
+  await expect(east.locator(".gridkit-group-aggregate")).toHaveText(
+    "amount: 60",
+  );
+  await expect(west.locator(".gridkit-group-aggregate")).toHaveText(
+    "amount: 90",
+  );
 });
 
 test("a collapsed group still shows its correct subtotal", async ({
@@ -118,7 +122,9 @@ test("a collapsed group still shows its correct subtotal", async ({
 
   const east = groupHeaders(root).filter({ hasText: "East" });
   await expect(east).toHaveAttribute("aria-expanded", "false");
-  await expect(east.locator(".group-aggregate")).toHaveText("amount: 60");
+  await expect(east.locator(".gridkit-group-aggregate")).toHaveText(
+    "amount: 60",
+  );
 });
 
 test("a custom aggregate function computes the right value from the full leaf-row set of its own group", async ({
@@ -135,8 +141,12 @@ test("a custom aggregate function computes the right value from the full leaf-ro
 
   const east = groupHeaders(root).filter({ hasText: "East" });
   const west = groupHeaders(root).filter({ hasText: "West" });
-  await expect(east.locator(".group-aggregate")).toHaveText("amount: 2");
-  await expect(west.locator(".group-aggregate")).toHaveText("amount: 3");
+  await expect(east.locator(".gridkit-group-aggregate")).toHaveText(
+    "amount: 2",
+  );
+  await expect(west.locator(".gridkit-group-aggregate")).toHaveText(
+    "amount: 3",
+  );
 });
 
 test("min over a column with no values in scope renders the blank fallback, not a crash", async ({
@@ -180,13 +190,17 @@ test("a subtotal's value stays identical across pages once a group spans multipl
 
   // Page 1: East (region sorts East before West).
   const eastHeader = groupHeaders(root).filter({ hasText: "East" });
-  await expect(eastHeader.locator(".group-aggregate")).toHaveText("amount: 60");
+  await expect(eastHeader.locator(".gridkit-group-aggregate")).toHaveText(
+    "amount: 60",
+  );
 
   await root.getByRole("button", { name: "Next" }).click();
 
   // Page 2: West — its own subtotal is unaffected by which page shows it.
   const westHeader = groupHeaders(root).filter({ hasText: "West" });
-  await expect(westHeader.locator(".group-aggregate")).toHaveText("amount: 90");
+  await expect(westHeader.locator(".gridkit-group-aggregate")).toHaveText(
+    "amount: 90",
+  );
 });
 
 test.describe('groupAggregateDisplay: "row"', () => {
@@ -207,7 +221,7 @@ test.describe('groupAggregateDisplay: "row"', () => {
     );
 
     const east = groupHeaders(root).filter({ hasText: "East" });
-    await expect(east.locator(".group-aggregate")).toHaveCount(0);
+    await expect(east.locator(".gridkit-group-aggregate")).toHaveCount(0);
 
     await expect(groupSummaryRows(root)).toHaveCount(2);
     const eastSummary = groupSummaryRows(root).first();
@@ -352,7 +366,9 @@ test.describe('groupAggregateDisplay: "row"', () => {
 
     await expect(groupSummaryRows(root)).toHaveCount(0);
     const east = groupHeaders(root).filter({ hasText: "East" });
-    await expect(east.locator(".group-aggregate")).toHaveText("amount: 60");
+    await expect(east.locator(".gridkit-group-aggregate")).toHaveText(
+      "amount: 60",
+    );
   });
 });
 

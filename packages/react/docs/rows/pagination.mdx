@@ -40,7 +40,7 @@ Turning `paginated` on renders a compact pager below the grid: one connected bar
 
 The bar holds still as the user pages: the status keeps the width of its widest text, "Page 30 of 30", from the first page on, and under the numbered variant every page-number slot is the same width, so the Next and Last buttons never move.
 
-It's semantically classed (`gridkit-grid-pager`, `grid-pager-bar`, `grid-pager-button`, `grid-pager-page`, `grid-pager-status`, `grid-pager-page-size` and a few more, listed in the [theme's pager classes](/docs/theme-tailwind#pager)) rather than carrying its own layout, the same as the rest of `@gridkitjs/react`; style it via `@gridkitjs/theme-tailwind` or your own CSS targeting those classes.
+It's semantically classed (`gridkit-grid-pager`, `gridkit-grid-pager-bar`, `gridkit-grid-pager-button`, `gridkit-grid-pager-page`, `gridkit-grid-pager-status`, `gridkit-grid-pager-page-size` and a few more, listed in the [theme's pager classes](/docs/theme-tailwind/class-names#pager)) rather than carrying its own layout, the same as the rest of `@gridkitjs/react`; style it via `@gridkitjs/theme-tailwind` or your own CSS targeting those classes.
 
 A button that leads nowhere, First and Previous on the first page or Next and Last on the last, is disabled with `aria-disabled="true"` rather than the `disabled` attribute, so it stays focusable. Pressing Next with <Kbd>Enter</Kbd> until the last page leaves focus on Next, announced as unavailable, rather than dropping it to the page, and pressing it again does nothing. First, Previous and Last behave the same way at their own end.
 
@@ -50,9 +50,9 @@ To suppress the built-in pager while keeping row-windowing and the imperative AP
 
 `pager={{ variant: "numbered" }}` swaps the "Page X of Y" display for page-number buttons, `[«][‹][1][2][3][4][5][…][n][›][»]`, instead of the default `"compact"` display. The example at the top of this page uses it, with `sizeOptions` for the page-size control.
 
-`pager.boundaryCount` (default `1`) sets how many pages are always shown at each end; `pager.siblingCount` (default `1`) sets how many pages are shown on each side of the current page. Once there are more pages than fit, each run of skipped pages collapses into a single `…` (`.grid-pager-ellipsis`), never two adjacent ones, and the window keeps the same number of slots on every page: `2 * boundaryCount + 2 * siblingCount + 3`, 7 with the defaults. Near either end the pages around the current one slide inwards rather than the window shrinking, so page 1 of 30 shows `1 2 3 4 5 … 30` and page 30 shows `1 … 26 27 28 29 30`. [`paginationWindow`](/docs/core/paging) works the window out. Both options are ignored under the default `"compact"` variant.
+`pager.boundaryCount` (default `1`) sets how many pages are always shown at each end; `pager.siblingCount` (default `1`) sets how many pages are shown on each side of the current page. Once there are more pages than fit, each run of skipped pages collapses into a single `…` (`.gridkit-grid-pager-ellipsis`), never two adjacent ones, and the window keeps the same number of slots on every page: `2 * boundaryCount + 2 * siblingCount + 3`, 7 with the defaults. Near either end the pages around the current one slide inwards rather than the window shrinking, so page 1 of 30 shows `1 2 3 4 5 … 30` and page 30 shows `1 … 26 27 28 29 30`. [`paginationWindow`](/docs/core/paging) works the window out. Both options are ignored under the default `"compact"` variant.
 
-Each page button is named by the `pageButtonLabel` message — "Page 3" in English — and the active page's button carries `aria-current="page"` rather than a dedicated CSS class — style it with `.grid-pager-button[aria-current="page"]`.
+Each page button is named by the `pageButtonLabel` message — "Page 3" in English — and the active page's button carries `aria-current="page"` rather than a dedicated CSS class — style it with `.gridkit-grid-pager-button[aria-current="page"]`.
 
 ### Custom pager template
 

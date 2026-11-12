@@ -231,7 +231,7 @@ export default function GridBody<Row>({
   return (
     <tbody
       role="rowgroup"
-      className="grid-body"
+      className="gridkit-grid-body"
       onFocus={(event) => {
         const group = groupRowFrom(event.target);
         if (group !== null) {
@@ -438,8 +438,11 @@ export default function GridBody<Row>({
       {infiniteScroll?.hasMore && (
         <>
           {infiniteScroll.isLoadingMore === true && (
-            <tr aria-hidden="true" className="grid-loading-row">
-              <td colSpan={columns.length} className="grid-loading-cell">
+            <tr aria-hidden="true" className="gridkit-grid-loading-row">
+              <td
+                colSpan={columns.length}
+                className="gridkit-grid-loading-cell"
+              >
                 {infiniteScroll.loadingTemplate
                   ? infiniteScroll.loadingTemplate()
                   : messages.loadingMore}
@@ -449,7 +452,7 @@ export default function GridBody<Row>({
           <tr
             aria-hidden="true"
             ref={sentinelRef}
-            className="grid-sentinel-row"
+            className="gridkit-grid-sentinel-row"
           >
             <td
               colSpan={columns.length}

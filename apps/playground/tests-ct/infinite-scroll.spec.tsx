@@ -120,7 +120,7 @@ test.describe("infinite scroll", () => {
     // hasMore is now false (60 of 60 loaded) — the sentinel is gone, so
     // nothing further can fire even though the guard would otherwise allow
     // another attempt once loading settles.
-    await expect(root.locator(".grid-sentinel-row")).toHaveCount(0);
+    await expect(root.locator(".gridkit-grid-sentinel-row")).toHaveCount(0);
     await page.waitForTimeout(100);
     await expect(loadCount).toHaveText("2");
   });
@@ -178,7 +178,7 @@ test.describe("infinite scroll", () => {
 
     const loadCount = root.getByTestId("load-count");
     await expect(loadCount).toHaveText("2");
-    await expect(root.locator(".grid-sentinel-row")).toHaveCount(0);
+    await expect(root.locator(".gridkit-grid-sentinel-row")).toHaveCount(0);
     await afterNextFrames(page);
     await expect(loadCount).toHaveText("2");
   });
@@ -202,7 +202,7 @@ test.describe("infinite scroll", () => {
     const loadCount = root.getByTestId("load-count");
     await scrollToBottom(gridBody(root));
     await expect(loadCount).toHaveText("1");
-    await expect(root.locator(".grid-sentinel-row")).toHaveCount(0);
+    await expect(root.locator(".gridkit-grid-sentinel-row")).toHaveCount(0);
 
     // Back to 20 rows: the body's scroll clamps to its new bottom, where the
     // sentinel sits in view.
@@ -225,7 +225,7 @@ test.describe("infinite scroll", () => {
       />,
     );
 
-    await expect(root.locator(".grid-sentinel-row")).toHaveCount(0);
+    await expect(root.locator(".gridkit-grid-sentinel-row")).toHaveCount(0);
 
     const body = gridBody(root);
     await scrollToBottom(body);
@@ -260,7 +260,7 @@ test.describe("infinite scroll", () => {
     await scrollToBottom(gridBody(root));
 
     // The loading row is mounted while that scroll's load is in flight...
-    await expect(root.locator(".grid-loading-row")).toBeVisible();
+    await expect(root.locator(".gridkit-grid-loading-row")).toBeVisible();
     // ...yet aria-rowcount still reports only the five real data rows.
     await expect(root.getByRole("grid")).toHaveAttribute("aria-rowcount", "6");
 
@@ -364,7 +364,7 @@ test.describe("infinite scroll", () => {
       await expect
         .poll(() => loadCount.textContent(), { timeout: 5000 })
         .toBe("2");
-      await expect(root.locator(".grid-sentinel-row")).toHaveCount(0);
+      await expect(root.locator(".gridkit-grid-sentinel-row")).toHaveCount(0);
       await page.waitForTimeout(100);
       await expect(loadCount).toHaveText("2");
 

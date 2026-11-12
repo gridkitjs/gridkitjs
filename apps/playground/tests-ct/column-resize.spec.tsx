@@ -32,7 +32,10 @@ const columns: readonly ColumnDefinition<Row>[] = [
 ];
 
 function headerHandle(root: MountResult, index: number) {
-  return root.locator("thead th").nth(index).locator(".header-resize-handle");
+  return root
+    .locator("thead th")
+    .nth(index)
+    .locator(".gridkit-header-resize-handle");
 }
 
 async function colWidth(root: MountResult, index: number): Promise<number> {
@@ -487,7 +490,7 @@ test("resizableColumns={false} renders no resize handle, and Alt+Arrow does noth
     mount,
     <DataGrid columns={columns} dataSource={buildRows(2)} label="No resize" />,
   );
-  await expect(root.locator(".header-resize-handle")).toHaveCount(0);
+  await expect(root.locator(".gridkit-header-resize-handle")).toHaveCount(0);
 
   const header = root.locator("thead th").first();
   await header.focus();

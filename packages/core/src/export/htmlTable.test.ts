@@ -64,9 +64,9 @@ describe("toHtmlTable", () => {
       '<table class="gridkit-export-table">' +
         '<thead><tr><th>Name</th><th style="text-align:center">Code</th><th style="text-align:right">Amount</th></tr></thead>' +
         "<tbody>" +
-        '<tr class="export-group" data-level="1"><td colspan="3">Region: West</td></tr>' +
+        '<tr class="gridkit-export-group" data-level="1"><td colspan="3">Region: West</td></tr>' +
         '<tr><td>Ana</td><td style="text-align:center">A</td><td style="text-align:right">5</td></tr>' +
-        '<tr class="export-group-summary" data-level="1"><td></td><td style="text-align:center"></td><td style="text-align:right">5</td></tr>' +
+        '<tr class="gridkit-export-group-summary" data-level="1"><td></td><td style="text-align:center"></td><td style="text-align:right">5</td></tr>' +
         "</tbody>" +
         '<tfoot><tr><td></td><td style="text-align:center"></td><td style="text-align:right">5</td></tr></tfoot>' +
         "</table>",
@@ -106,7 +106,7 @@ describe("toHtmlTable", () => {
     });
 
     expect(toHtmlTable(table)).toContain(
-      '<tr class="export-group" data-level="1"><td colspan="2">Region: West</td><td style="text-align:right">10</td></tr>',
+      '<tr class="gridkit-export-group" data-level="1"><td colspan="2">Region: West</td><td style="text-align:right">10</td></tr>',
     );
   });
 
@@ -117,7 +117,7 @@ describe("toHtmlTable", () => {
     });
 
     expect(toHtmlTable(table)).toContain(
-      '<tr class="export-group" data-level="1"><td>Region: West</td><td style="text-align:center"></td><td style="text-align:right">10</td></tr>',
+      '<tr class="gridkit-export-group" data-level="1"><td>Region: West</td><td style="text-align:center"></td><td style="text-align:right">10</td></tr>',
     );
   });
 

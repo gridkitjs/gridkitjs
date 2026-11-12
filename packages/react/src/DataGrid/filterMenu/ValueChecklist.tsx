@@ -114,7 +114,7 @@ export default function ValueChecklist({
       role="listbox"
       aria-multiselectable="true"
       aria-label={label}
-      className="filter-menu-checklist"
+      className="gridkit-filter-menu-checklist"
     >
       <div role="presentation" style={{ height: range.offsetBefore }} />
       {shown.map((item, offset) => {
@@ -129,17 +129,22 @@ export default function ValueChecklist({
             aria-checked={item.checked}
             aria-setsize={items.length}
             aria-posinset={index + 1}
-            className="filter-menu-option"
+            className="gridkit-filter-menu-option"
           >
-            <span className="filter-menu-option-check" aria-hidden="true">
+            <span
+              className="gridkit-filter-menu-option-check"
+              aria-hidden="true"
+            >
               <CheckIcon />
             </span>
-            <span className="filter-menu-option-label">{item.label}</span>
+            <span className="gridkit-filter-menu-option-label">
+              {item.label}
+            </span>
             {/* Spaced, so the option's name reads "Alice 3", not "Alice3". */}
             {showCounts && (
               <>
                 {" "}
-                <span className="filter-menu-option-count">
+                <span className="gridkit-filter-menu-option-count">
                   {String(item.count)}
                 </span>
               </>

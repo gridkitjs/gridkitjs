@@ -50,7 +50,7 @@ describe("DataGrid on the server", () => {
         toolbar
       />,
     );
-    expect(html).toContain("grid-group-row");
+    expect(html).toContain("gridkit-grid-group-row");
     expect(error).not.toHaveBeenCalled();
   });
 });

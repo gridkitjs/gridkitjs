@@ -52,7 +52,7 @@ test.describe("printDocument", () => {
     );
     expect(print?.styles).toContain(".app-extra { color: red; }");
     expect(print?.bodyHtml).toContain(
-      '<h1 class="print-title">Orders &lt;Q1&gt;</h1>',
+      '<h1 class="gridkit-print-title">Orders &lt;Q1&gt;</h1>',
     );
     expect(print?.bodyHtml.match(/<tr>/g)).toHaveLength(3);
     expect(print?.bodyHtml).toContain("<td>&lt;Bravo&gt;</td>");
@@ -225,7 +225,9 @@ test.describe("printing the grid", () => {
     const [print] = await waitForPrints(root, 1);
     const rows = bodyRows(print);
     expect(rows).toHaveLength(8);
-    expect(rows.filter((row) => row.includes("export-group"))).toHaveLength(2);
+    expect(
+      rows.filter((row) => row.includes("gridkit-export-group")),
+    ).toHaveLength(2);
   });
 
   test("titles the print with the grid's label when it has no title", async ({
@@ -240,7 +242,7 @@ test.describe("printing the grid", () => {
     const [print] = await waitForPrints(root, 1);
     expect(print?.title).toBe("Print grid");
     expect(print?.bodyHtml).toContain(
-      '<h1 class="print-title">Print grid</h1>',
+      '<h1 class="gridkit-print-title">Print grid</h1>',
     );
   });
 
@@ -255,7 +257,7 @@ test.describe("printing the grid", () => {
           title: "Orders",
           subtitle: "All regions",
           footer: "Confidential",
-          styles: ".print-title { color: navy; }",
+          styles: ".gridkit-print-title { color: navy; }",
         }}
         printOptions={{ subtitle: "West only" }}
       />,
@@ -267,18 +269,20 @@ test.describe("printing the grid", () => {
     const [fromToolbar, fromRef] = await waitForPrints(root, 2);
     expect(fromToolbar?.title).toBe("Orders");
     expect(fromToolbar?.bodyHtml).toContain(
-      '<p class="print-subtitle">All regions</p>',
+      '<p class="gridkit-print-subtitle">All regions</p>',
     );
     expect(fromToolbar?.bodyHtml).toContain(
       '<footer class="gridkit-print-footer">Confidential</footer>',
     );
     expect(fromToolbar?.styles).toContain("@page { size: A4 portrait;");
-    expect(fromToolbar?.styles).toContain(".print-title { color: navy; }");
+    expect(fromToolbar?.styles).toContain(
+      ".gridkit-print-title { color: navy; }",
+    );
     expect(fromRef?.title).toBe("Orders");
     expect(fromRef?.bodyHtml).toContain(
-      '<p class="print-subtitle">West only</p>',
+      '<p class="gridkit-print-subtitle">West only</p>',
     );
-    expect(fromRef?.styles).toContain(".print-title { color: navy; }");
+    expect(fromRef?.styles).toContain(".gridkit-print-title { color: navy; }");
   });
 
   test("turns a table of more than six columns landscape", async ({

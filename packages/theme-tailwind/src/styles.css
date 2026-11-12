@@ -311,10 +311,12 @@
    * draw the same in an app without Preflight, and in theme-css's plain
    * CSS. `:where()` keeps each at no specificity, as Preflight's are.
    */
-  :where(.gridkit-data-grid-viewport, .drag-ghost, .gridkit-overlay),
-  :where(.gridkit-data-grid-viewport, .drag-ghost, .gridkit-overlay) *,
-  :where(.gridkit-data-grid-viewport, .drag-ghost, .gridkit-overlay) ::before,
-  :where(.gridkit-data-grid-viewport, .drag-ghost, .gridkit-overlay) ::after {
+  :where(.gridkit-data-grid-viewport, .gridkit-drag-ghost, .gridkit-overlay),
+  :where(.gridkit-data-grid-viewport, .gridkit-drag-ghost, .gridkit-overlay) *,
+  :where(.gridkit-data-grid-viewport, .gridkit-drag-ghost, .gridkit-overlay)
+    ::before,
+  :where(.gridkit-data-grid-viewport, .gridkit-drag-ghost, .gridkit-overlay)
+    ::after {
     box-sizing: border-box;
   }
 
@@ -347,8 +349,8 @@
    * `document.body`, which sits outside that root.
    */
   .gridkit-data-grid-viewport,
-  .gridkit-data-grid.drag-ghost,
-  .group-by-chip.drag-ghost,
+  .gridkit-data-grid.gridkit-drag-ghost,
+  .gridkit-group-by-chip.gridkit-drag-ghost,
   .gridkit-overlay {
     font-family: var(--gridkit-font-family);
     font-variant-numeric: var(--gridkit-font-variant-numeric);
@@ -385,8 +387,8 @@
   .gridkit-data-grid-viewport,
   .gridkit-data-grid-body,
   .gridkit-menu,
-  .column-chooser-list,
-  .filter-menu-checklist {
+  .gridkit-column-chooser-list,
+  .gridkit-filter-menu-checklist {
     scrollbar-width: thin;
     scrollbar-color: var(--gridkit-scrollbar-thumb) transparent;
   }
@@ -395,8 +397,8 @@
     .gridkit-data-grid-viewport::-webkit-scrollbar,
     .gridkit-data-grid-body::-webkit-scrollbar,
     .gridkit-menu::-webkit-scrollbar,
-    .column-chooser-list::-webkit-scrollbar,
-    .filter-menu-checklist::-webkit-scrollbar {
+    .gridkit-column-chooser-list::-webkit-scrollbar,
+    .gridkit-filter-menu-checklist::-webkit-scrollbar {
       width: 8px;
       height: 8px;
     }
@@ -404,16 +406,16 @@
     .gridkit-data-grid-viewport::-webkit-scrollbar-track,
     .gridkit-data-grid-body::-webkit-scrollbar-track,
     .gridkit-menu::-webkit-scrollbar-track,
-    .column-chooser-list::-webkit-scrollbar-track,
-    .filter-menu-checklist::-webkit-scrollbar-track {
+    .gridkit-column-chooser-list::-webkit-scrollbar-track,
+    .gridkit-filter-menu-checklist::-webkit-scrollbar-track {
       background: transparent;
     }
 
     .gridkit-data-grid-viewport::-webkit-scrollbar-thumb,
     .gridkit-data-grid-body::-webkit-scrollbar-thumb,
     .gridkit-menu::-webkit-scrollbar-thumb,
-    .column-chooser-list::-webkit-scrollbar-thumb,
-    .filter-menu-checklist::-webkit-scrollbar-thumb {
+    .gridkit-column-chooser-list::-webkit-scrollbar-thumb,
+    .gridkit-filter-menu-checklist::-webkit-scrollbar-thumb {
       background-color: var(--gridkit-scrollbar-thumb);
       border-radius: 4px;
     }
@@ -454,8 +456,8 @@
    * do when it does not. Keeping it on one line is also what lets a column be
    * measured against its content.
    */
-  .gridkit-data-grid .header-cell,
-  .gridkit-data-grid .grid-cell {
+  .gridkit-data-grid .gridkit-header-cell,
+  .gridkit-data-grid .gridkit-grid-cell {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -474,20 +476,20 @@
    * clips it. `overflow-wrap: anywhere` lets it break mid-word as a last
    * resort, after normal word breaks are exhausted.
    */
-  .gridkit-data-grid .header-cell.is-wrapped,
-  .gridkit-data-grid .grid-cell.is-wrapped {
+  .gridkit-data-grid .gridkit-header-cell.is-wrapped,
+  .gridkit-data-grid .gridkit-grid-cell.is-wrapped {
     overflow: visible;
     text-overflow: clip;
     white-space: normal;
     overflow-wrap: anywhere;
   }
 
-  .gridkit-data-grid .grid-header {
+  .gridkit-data-grid .gridkit-grid-header {
     color: var(--gridkit-header-fg);
     background-color: var(--gridkit-header-bg);
   }
 
-  .gridkit-data-grid .grid-header .header-cell {
+  .gridkit-data-grid .gridkit-grid-header .gridkit-header-cell {
     padding: var(--gridkit-header-padding-y) var(--gridkit-header-padding-x);
     position: relative;
     font-weight: var(--gridkit-header-font-weight);
@@ -495,7 +497,7 @@
     text-transform: var(--gridkit-header-text-transform);
   }
 
-  .gridkit-data-grid .header-resize-handle {
+  .gridkit-data-grid .gridkit-header-resize-handle {
     position: absolute;
     top: 0;
     right: 0;
@@ -514,8 +516,8 @@
    * border to recolour, and adding one would shift the cell's content by a
    * pixel mid-drag.
    */
-  .gridkit-data-grid .header-cell.is-resizing,
-  .gridkit-data-grid .grid-cell.is-resizing {
+  .gridkit-data-grid .gridkit-header-cell.is-resizing,
+  .gridkit-data-grid .gridkit-grid-cell.is-resizing {
     box-shadow: inset calc(var(--gridkit-indicator-width) * -1) 0 0 0
       var(--gridkit-hover-line);
   }
@@ -528,8 +530,8 @@
    * Inset because the viewport clips its overflow: an outline drawn outwards
    * would be cut off on the first and last columns.
    */
-  .gridkit-data-grid .header-cell:focus-visible,
-  .gridkit-data-grid .grid-cell:focus-visible {
+  .gridkit-data-grid .gridkit-header-cell:focus-visible,
+  .gridkit-data-grid .gridkit-grid-cell:focus-visible {
     outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: calc(var(--gridkit-focus-ring-width) * -1);
   }
@@ -540,13 +542,13 @@
    * focusable now that the grid roves one tab stop, so a `tabindex` no longer
    * distinguishes the ones that drag.
    */
-  .gridkit-data-grid .header-cell.is-reorderable {
+  .gridkit-data-grid .gridkit-header-cell.is-reorderable {
     cursor: grab;
     touch-action: none;
     user-select: none;
   }
 
-  .gridkit-data-grid .header-cell.is-dragging {
+  .gridkit-data-grid .gridkit-header-cell.is-dragging {
     cursor: grabbing;
     opacity: 0.5;
   }
@@ -576,7 +578,7 @@
    * otherwise mask every header it passes over and there would be no drop
    * target at all.
    */
-  .gridkit-data-grid.drag-ghost {
+  .gridkit-data-grid.gridkit-drag-ghost {
     position: fixed;
     top: 0;
     left: 0;
@@ -594,7 +596,7 @@
     pointer-events: none;
     /*
      * Restated because the rule that clips a header's text is scoped to a
-     * `.header-cell` inside the grid, and the ghost carries that class while
+     * `.gridkit-header-cell` inside the grid, and the ghost carries that class while
      * being the grid element itself.
      */
     overflow: hidden;
@@ -609,14 +611,14 @@
    * between two columns reads as one line.
    *
    * `box-shadow` for the reason the resize line uses it, and because a
-   * recoloured `borders-vertical` border would land on the neighbour and read
+   * recoloured `gridkit-borders-vertical` border would land on the neighbour and read
    * as a column out.
    */
-  .gridkit-data-grid .header-cell.is-drop-before {
+  .gridkit-data-grid .gridkit-header-cell.is-drop-before {
     box-shadow: inset var(--gridkit-indicator-width) 0 0 0 var(--gridkit-accent);
   }
 
-  .gridkit-data-grid .header-cell.is-drop-after {
+  .gridkit-data-grid .gridkit-header-cell.is-drop-after {
     box-shadow: inset calc(var(--gridkit-indicator-width) * -1) 0 0 0
       var(--gridkit-accent);
   }
@@ -632,7 +634,7 @@
    * column keeps two independent hit targets rather than one shadowing the
    * other.
    */
-  .gridkit-data-grid .header-sort-toggle {
+  .gridkit-data-grid .gridkit-header-sort-toggle {
     display: inline-flex;
     position: absolute;
     top: 50%;
@@ -644,7 +646,7 @@
     color: var(--gridkit-fg-muted);
   }
 
-  .gridkit-data-grid .header-sort-toggle svg {
+  .gridkit-data-grid .gridkit-header-sort-toggle svg {
     width: var(--gridkit-header-icon-size);
     height: var(--gridkit-header-icon-size);
     flex-shrink: 0;
@@ -655,32 +657,39 @@
    * focused — an unsorted, un-hovered header stays quiet.
    */
   .gridkit-data-grid
-    .header-sort-toggle:not(.is-sorted-asc):not(.is-sorted-desc) {
+    .gridkit-header-sort-toggle:not(.is-sorted-asc):not(.is-sorted-desc) {
     opacity: 0;
   }
 
-  .gridkit-data-grid .grid-header .header-cell:hover .header-sort-toggle,
-  .gridkit-data-grid .header-cell:focus-visible .header-sort-toggle {
+  .gridkit-data-grid
+    .gridkit-grid-header
+    .gridkit-header-cell:hover
+    .gridkit-header-sort-toggle,
+  .gridkit-data-grid
+    .gridkit-header-cell:focus-visible
+    .gridkit-header-sort-toggle {
     opacity: 1;
   }
 
-  .gridkit-data-grid .header-sort-toggle.is-sorted-asc,
-  .gridkit-data-grid .header-sort-toggle.is-sorted-desc {
+  .gridkit-data-grid .gridkit-header-sort-toggle.is-sorted-asc,
+  .gridkit-data-grid .gridkit-header-sort-toggle.is-sorted-desc {
     opacity: 1;
     color: var(--gridkit-accent);
   }
 
   /* One chevron covers both directions; `desc` is `asc` turned upside down. */
-  .gridkit-data-grid .header-sort-toggle.is-sorted-desc svg {
+  .gridkit-data-grid .gridkit-header-sort-toggle.is-sorted-desc svg {
     transform: rotate(180deg);
   }
 
-  .gridkit-data-grid .header-sort-priority {
+  .gridkit-data-grid .gridkit-header-sort-priority {
     font-size: calc(var(--gridkit-hint-font-size) * 5 / 6);
     line-height: 1;
   }
 
-  .gridkit-data-grid:not(.no-hover-columns) .grid-header .header-cell:hover {
+  .gridkit-data-grid:not(.gridkit-no-hover-columns)
+    .gridkit-grid-header
+    .gridkit-header-cell:hover {
     background-color: var(--gridkit-surface-muted);
   }
 
@@ -688,9 +697,9 @@
    * Docked before the label, in normal flow rather than absolutely
    * positioned like the sort toggle and resize handle — see the component's
    * own note on why. Faint until grouped, hovered, or focused, the same
-   * restraint `.header-sort-toggle` uses for an unsorted header.
+   * restraint `.gridkit-header-sort-toggle` uses for an unsorted header.
    */
-  .gridkit-data-grid .header-group-toggle {
+  .gridkit-data-grid .gridkit-header-group-toggle {
     display: inline-flex;
     align-items: center;
     vertical-align: middle;
@@ -699,22 +708,27 @@
     color: var(--gridkit-fg-muted);
   }
 
-  .gridkit-data-grid .header-group-toggle svg {
+  .gridkit-data-grid .gridkit-header-group-toggle svg {
     width: var(--gridkit-header-icon-size);
     height: var(--gridkit-header-icon-size);
     flex-shrink: 0;
   }
 
-  .gridkit-data-grid .header-group-toggle:not(.is-grouped) {
+  .gridkit-data-grid .gridkit-header-group-toggle:not(.is-grouped) {
     opacity: 0.35;
   }
 
-  .gridkit-data-grid .grid-header .header-cell:hover .header-group-toggle,
-  .gridkit-data-grid .header-cell:focus-visible .header-group-toggle {
+  .gridkit-data-grid
+    .gridkit-grid-header
+    .gridkit-header-cell:hover
+    .gridkit-header-group-toggle,
+  .gridkit-data-grid
+    .gridkit-header-cell:focus-visible
+    .gridkit-header-group-toggle {
     opacity: 1;
   }
 
-  .gridkit-data-grid .header-group-toggle.is-grouped {
+  .gridkit-data-grid .gridkit-header-group-toggle.is-grouped {
     opacity: 1;
     color: var(--gridkit-accent);
   }
@@ -727,7 +741,7 @@
    * filled in accent, while the column is filtered: the one sign of it on
    * screen.
    */
-  .gridkit-data-grid .header-filter-toggle {
+  .gridkit-data-grid .gridkit-header-filter-toggle {
     display: inline-flex;
     position: absolute;
     top: 50%;
@@ -738,41 +752,46 @@
     color: var(--gridkit-fg-muted);
   }
 
-  .gridkit-data-grid .header-filter-toggle svg {
+  .gridkit-data-grid .gridkit-header-filter-toggle svg {
     width: var(--gridkit-header-icon-size);
     height: var(--gridkit-header-icon-size);
     flex-shrink: 0;
   }
 
-  .gridkit-data-grid .header-filter-toggle:not(.is-filtered) {
+  .gridkit-data-grid .gridkit-header-filter-toggle:not(.is-filtered) {
     opacity: 0;
   }
 
-  .gridkit-data-grid .grid-header .header-cell:hover .header-filter-toggle,
-  .gridkit-data-grid .header-cell:focus-visible .header-filter-toggle {
+  .gridkit-data-grid
+    .gridkit-grid-header
+    .gridkit-header-cell:hover
+    .gridkit-header-filter-toggle,
+  .gridkit-data-grid
+    .gridkit-header-cell:focus-visible
+    .gridkit-header-filter-toggle {
     opacity: 1;
   }
 
-  .gridkit-data-grid .header-filter-toggle.is-filtered {
+  .gridkit-data-grid .gridkit-header-filter-toggle.is-filtered {
     color: var(--gridkit-accent);
   }
 
-  .gridkit-data-grid .header-filter-toggle.is-filtered svg {
+  .gridkit-data-grid .gridkit-header-filter-toggle.is-filtered svg {
     fill: currentColor;
   }
 
   .gridkit-data-grid
-    .header-cell:has(> .header-filter-toggle)
-    .header-sort-toggle {
+    .gridkit-header-cell:has(> .gridkit-header-filter-toggle)
+    .gridkit-header-sort-toggle {
     /* The filter button's offset and width, then a gap. */
     right: calc(var(--gridkit-spacing) * 4.5 + var(--gridkit-header-icon-size));
   }
 
-  .gridkit-data-grid .grid-cell {
+  .gridkit-data-grid .gridkit-grid-cell {
     padding: var(--gridkit-cell-padding-y) var(--gridkit-cell-padding-x);
   }
 
-  .gridkit-data-grid:not(.no-hover-cells) .grid-cell:hover {
+  .gridkit-data-grid:not(.gridkit-no-hover-cells) .gridkit-grid-cell:hover {
     outline: var(--gridkit-border-width) solid var(--gridkit-hover-line);
     background-color: var(--gridkit-surface-muted);
   }
@@ -785,7 +804,7 @@
    * selection rules, which win over it.
    */
   .gridkit-data-grid
-    .grid-row:where(
+    .gridkit-grid-row:where(
       [data-gridkit-row-index$="1"],
       [data-gridkit-row-index$="3"],
       [data-gridkit-row-index$="5"],
@@ -795,38 +814,38 @@
     background-color: var(--gridkit-row-stripe-bg);
   }
 
-  .gridkit-data-grid:not(.no-hover-rows) .grid-row:hover {
+  .gridkit-data-grid:not(.gridkit-no-hover-rows) .gridkit-grid-row:hover {
     background-color: var(--gridkit-row-hover-bg);
   }
 
   /*
-   * A group header — one cell spanning every column, not a `.grid-cell` — so
+   * A group header — one cell spanning every column, not a `.gridkit-grid-cell` — so
    * it gets its own rules rather than sharing the data-cell ones above.
    */
-  .gridkit-data-grid .grid-group-row {
+  .gridkit-data-grid .gridkit-grid-group-row {
     cursor: pointer;
     background-color: var(--gridkit-group-row-bg);
   }
 
-  .gridkit-data-grid .grid-group-row:hover {
+  .gridkit-data-grid .gridkit-grid-group-row:hover {
     background-color: var(--gridkit-selected);
   }
 
   /*
-   * Padding lives on `.grid-group-cell-content` (the inner `div`), not here:
+   * Padding lives on `.gridkit-grid-group-cell-content` (the inner `div`), not here:
    * see that component's own note on why the flex layout is one level in
    * rather than on the `<td>` itself.
    */
-  .gridkit-data-grid .grid-group-cell {
+  .gridkit-data-grid .gridkit-grid-group-cell {
     padding: 0;
   }
 
-  .gridkit-data-grid .grid-group-cell:focus-visible {
+  .gridkit-data-grid .gridkit-grid-group-cell:focus-visible {
     outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: calc(var(--gridkit-focus-ring-width) * -1);
   }
 
-  .gridkit-data-grid .grid-group-cell-content {
+  .gridkit-data-grid .gridkit-grid-group-cell-content {
     display: flex;
     align-items: center;
     gap: calc(var(--gridkit-spacing) * 2);
@@ -835,7 +854,7 @@
   }
 
   /* A right-pointing triangle that rotates open on expand. */
-  .gridkit-data-grid .grid-group-row .group-toggle {
+  .gridkit-data-grid .gridkit-grid-group-row .gridkit-group-toggle {
     display: inline-block;
     flex-shrink: 0;
     width: 0;
@@ -847,7 +866,7 @@
     transition: transform var(--gridkit-transition-duration) ease;
   }
 
-  .gridkit-data-grid .grid-group-row .group-toggle.is-expanded {
+  .gridkit-data-grid .gridkit-grid-group-row .gridkit-group-toggle.is-expanded {
     transform: rotate(90deg);
   }
 
@@ -856,29 +875,29 @@
    * theme's own duration can't bring the motion back.
    */
   @media (prefers-reduced-motion: reduce) {
-    .gridkit-data-grid .grid-group-row .group-toggle {
+    .gridkit-data-grid .gridkit-grid-group-row .gridkit-group-toggle {
       transition: none;
     }
   }
 
-  .gridkit-data-grid .grid-group-row .group-count {
+  .gridkit-data-grid .gridkit-grid-group-row .gridkit-group-count {
     font-weight: 400;
     color: var(--gridkit-fg-muted);
   }
 
   /*
    * A group's own subtotals, inline after its count — `gap` on the parent
-   * `.grid-group-cell-content` already spaces every child, this just keeps
+   * `.gridkit-grid-group-cell-content` already spaces every child, this just keeps
    * multiple aggregates readable as a list rather than running together.
    */
-  .gridkit-data-grid .grid-group-row .group-aggregates {
+  .gridkit-data-grid .gridkit-grid-group-row .gridkit-group-aggregates {
     display: flex;
     gap: calc(var(--gridkit-spacing) * 3);
     margin-inline-start: calc(var(--gridkit-spacing) * 2);
     font-weight: 400;
   }
 
-  .gridkit-data-grid .grid-group-row .group-aggregate {
+  .gridkit-data-grid .gridkit-grid-group-row .gridkit-group-aggregate {
     color: var(--gridkit-fg-muted);
   }
 
@@ -886,30 +905,30 @@
    * The grand-total footer, styled as the header's counterpart: the
    * surface the header has by default, the same cell padding, and the weight
    * of the group rows' totals. No border by default, matching the
-   * header's own `.header-cell` — see the `borders-*` variants below for
+   * header's own `.gridkit-header-cell` — see the `gridkit-borders-*` variants below for
    * the opt-in top border that echoes the header's bottom one.
    */
-  .gridkit-data-grid .grid-footer {
+  .gridkit-data-grid .gridkit-grid-footer {
     background-color: var(--gridkit-surface);
   }
 
-  .gridkit-data-grid .grid-footer-cell {
+  .gridkit-data-grid .gridkit-grid-footer-cell {
     padding: var(--gridkit-cell-padding-y) var(--gridkit-cell-padding-x);
     font-weight: var(--gridkit-group-font-weight);
   }
 
   /*
    * A group's own summary row (`groupAggregateDisplay: "row"`) — the
-   * per-column-cell alternative to `.group-aggregates`' inline text.
+   * per-column-cell alternative to `.gridkit-group-aggregates`' inline text.
    * Shares the group header's background so the pair read as one unit,
    * but is presentational: no hover state, no pointer cursor, matching
    * `GridGroupSummaryRow`'s own lack of any click/focus handling.
    */
-  .gridkit-data-grid .grid-group-summary-row {
+  .gridkit-data-grid .gridkit-grid-group-summary-row {
     background-color: var(--gridkit-group-row-bg);
   }
 
-  .gridkit-data-grid .grid-group-summary-cell {
+  .gridkit-data-grid .gridkit-grid-group-summary-cell {
     padding: var(--gridkit-cell-padding-y) var(--gridkit-cell-padding-x);
     font-weight: var(--gridkit-group-font-weight);
   }
@@ -919,7 +938,7 @@
    * `aria-rowcount` (see `GridBody`), so this is a purely visual cue, not an
    * announced one.
    */
-  .gridkit-data-grid .grid-loading-cell {
+  .gridkit-data-grid .gridkit-grid-loading-cell {
     padding: var(--gridkit-cell-padding-y) var(--gridkit-cell-padding-x);
     color: var(--gridkit-fg-muted);
     text-align: center;
@@ -932,7 +951,7 @@
    * itself, so the cell's own content still aligns flush with the column
    * above and below it once the indent's width is accounted for.
    */
-  .gridkit-data-grid .grid-group-summary-indent {
+  .gridkit-data-grid .gridkit-grid-group-summary-indent {
     display: inline-block;
   }
 
@@ -944,17 +963,19 @@
    * A selected cell wins over its row and its column: it is the more specific
    * thing the user pointed at, and the rule below it says so by ordering.
    */
-  .gridkit-data-grid .grid-row.is-selected,
-  .gridkit-data-grid .header-cell.is-selected,
-  .gridkit-data-grid .grid-cell.is-selected {
+  .gridkit-data-grid .gridkit-grid-row.is-selected,
+  .gridkit-data-grid .gridkit-header-cell.is-selected,
+  .gridkit-data-grid .gridkit-grid-cell.is-selected {
     background-color: var(--gridkit-selected);
   }
 
-  .gridkit-data-grid:not(.no-hover-rows) .grid-row.is-selected:hover,
-  .gridkit-data-grid:not(.no-hover-cells) .grid-cell.is-selected:hover,
-  .gridkit-data-grid:not(.no-hover-columns)
-    .grid-header
-    .header-cell.is-selected:hover {
+  .gridkit-data-grid:not(.gridkit-no-hover-rows)
+    .gridkit-grid-row.is-selected:hover,
+  .gridkit-data-grid:not(.gridkit-no-hover-cells)
+    .gridkit-grid-cell.is-selected:hover,
+  .gridkit-data-grid:not(.gridkit-no-hover-columns)
+    .gridkit-grid-header
+    .gridkit-header-cell.is-selected:hover {
     background-color: var(--gridkit-selected-strong);
   }
 
@@ -965,11 +986,11 @@
    * A reorderable header keeps its `grab`: it is the rarer affordance and the
    * one a user would not otherwise guess, and its header still selects.
    */
-  .gridkit-data-grid.selectable-rows .grid-row,
-  .gridkit-data-grid.selectable-cells .grid-cell,
-  .gridkit-data-grid.selectable-columns
-    .grid-header
-    .header-cell:not(.is-reorderable) {
+  .gridkit-data-grid.gridkit-selectable-rows .gridkit-grid-row,
+  .gridkit-data-grid.gridkit-selectable-cells .gridkit-grid-cell,
+  .gridkit-data-grid.gridkit-selectable-columns
+    .gridkit-grid-header
+    .gridkit-header-cell:not(.is-reorderable) {
     cursor: pointer;
   }
 
@@ -982,8 +1003,8 @@
    * this is scoped to a grid that asked for selection rather than applied to
    * all of them.
    */
-  .gridkit-data-grid.selectable-rows .grid-row,
-  .gridkit-data-grid.selectable-cells .grid-cell {
+  .gridkit-data-grid.gridkit-selectable-rows .gridkit-grid-row,
+  .gridkit-data-grid.gridkit-selectable-cells .gridkit-grid-cell {
     user-select: none;
   }
 
@@ -1000,14 +1021,17 @@
    *   - header/body seam: the header's own `border-bottom` here. The body's
    *     first row never sets a `border-top` of its own.
    *   - body/footer seam: the footer's own `border-top` (below, alongside
-   *     `.grid-footer-cell`). The body's last row has its `border-bottom`
-   *     stripped (below, `.grid-row:last-child`) specifically so it never
+   *     `.gridkit-grid-footer-cell`). The body's last row has its `border-bottom`
+   *     stripped (below, `.gridkit-grid-row:last-child`) specifically so it never
    *     supplies the other half of this seam.
    */
-  .gridkit-data-grid.borders-horizontal .grid-header .header-cell,
-  .gridkit-data-grid.borders-horizontal .grid-cell,
-  .gridkit-data-grid.borders-horizontal .grid-group-cell,
-  .gridkit-data-grid.borders-horizontal .grid-group-summary-cell {
+  .gridkit-data-grid.gridkit-borders-horizontal
+    .gridkit-grid-header
+    .gridkit-header-cell,
+  .gridkit-data-grid.gridkit-borders-horizontal .gridkit-grid-cell,
+  .gridkit-data-grid.gridkit-borders-horizontal .gridkit-grid-group-cell,
+  .gridkit-data-grid.gridkit-borders-horizontal
+    .gridkit-grid-group-summary-cell {
     border-bottom: var(--gridkit-row-line-width) var(--gridkit-border-style)
       var(--gridkit-line);
   }
@@ -1017,8 +1041,8 @@
    * a `border-top` rather than a `border-bottom` on the last body row, since
    * the footer sits in its own `<table>` entirely, sibling to the body's.
    */
-  .gridkit-data-grid.borders-horizontal .grid-footer-cell,
-  .gridkit-data-grid.borders-all .grid-footer-cell {
+  .gridkit-data-grid.gridkit-borders-horizontal .gridkit-grid-footer-cell,
+  .gridkit-data-grid.gridkit-borders-all .gridkit-grid-footer-cell {
     border-top: var(--gridkit-row-line-width) var(--gridkit-border-style)
       var(--gridkit-line);
   }
@@ -1026,48 +1050,58 @@
   /*
    * The last row's bottom edge has no row below it to collapse with, so
    * unlike every internal boundary it is a genuinely extra line — the same
-   * reason `borders-vertical` drops its `:last-child` border-right below.
+   * reason `gridkit-borders-vertical` drops its `:last-child` border-right below.
    * Matched against both row kinds: the last rendered row can just as well
    * be a collapsed group header as a data row.
    */
-  .gridkit-data-grid.borders-horizontal .grid-row:last-child .grid-cell,
-  .gridkit-data-grid.borders-horizontal
-    .grid-group-row:last-child
-    .grid-group-cell,
-  .gridkit-data-grid.borders-horizontal
-    .grid-group-summary-row:last-child
-    .grid-group-summary-cell {
+  .gridkit-data-grid.gridkit-borders-horizontal
+    .gridkit-grid-row:last-child
+    .gridkit-grid-cell,
+  .gridkit-data-grid.gridkit-borders-horizontal
+    .gridkit-grid-group-row:last-child
+    .gridkit-grid-group-cell,
+  .gridkit-data-grid.gridkit-borders-horizontal
+    .gridkit-grid-group-summary-row:last-child
+    .gridkit-grid-group-summary-cell {
     border-bottom: none;
   }
 
   /* Vertical borders */
-  .gridkit-data-grid.borders-vertical .grid-header .header-cell,
-  .gridkit-data-grid.borders-vertical .grid-cell,
-  .gridkit-data-grid.borders-vertical .grid-footer-cell,
-  .gridkit-data-grid.borders-vertical .grid-group-summary-cell {
+  .gridkit-data-grid.gridkit-borders-vertical
+    .gridkit-grid-header
+    .gridkit-header-cell,
+  .gridkit-data-grid.gridkit-borders-vertical .gridkit-grid-cell,
+  .gridkit-data-grid.gridkit-borders-vertical .gridkit-grid-footer-cell,
+  .gridkit-data-grid.gridkit-borders-vertical .gridkit-grid-group-summary-cell {
     border-right: var(--gridkit-column-line-width) var(--gridkit-border-style)
       var(--gridkit-line);
   }
 
-  .gridkit-data-grid.borders-vertical .grid-header .header-cell:last-child,
-  .gridkit-data-grid.borders-vertical .grid-cell:last-child,
-  .gridkit-data-grid.borders-vertical .grid-footer-cell:last-child,
-  .gridkit-data-grid.borders-vertical .grid-group-summary-cell:last-child {
+  .gridkit-data-grid.gridkit-borders-vertical
+    .gridkit-grid-header
+    .gridkit-header-cell:last-child,
+  .gridkit-data-grid.gridkit-borders-vertical .gridkit-grid-cell:last-child,
+  .gridkit-data-grid.gridkit-borders-vertical
+    .gridkit-grid-footer-cell:last-child,
+  .gridkit-data-grid.gridkit-borders-vertical
+    .gridkit-grid-group-summary-cell:last-child {
     border-right: none;
   }
 
   /* Borders on all sides */
-  .gridkit-data-grid.borders-all .grid-header .header-cell,
-  .gridkit-data-grid.borders-all .grid-cell,
-  .gridkit-data-grid.borders-all .grid-group-cell,
-  .gridkit-data-grid.borders-all .grid-group-summary-cell {
+  .gridkit-data-grid.gridkit-borders-all
+    .gridkit-grid-header
+    .gridkit-header-cell,
+  .gridkit-data-grid.gridkit-borders-all .gridkit-grid-cell,
+  .gridkit-data-grid.gridkit-borders-all .gridkit-grid-group-cell,
+  .gridkit-data-grid.gridkit-borders-all .gridkit-grid-group-summary-cell {
     border-bottom: var(--gridkit-row-line-width) var(--gridkit-border-style)
       var(--gridkit-line);
     border-right: var(--gridkit-column-line-width) var(--gridkit-border-style)
       var(--gridkit-line);
   }
 
-  .gridkit-data-grid.borders-all .grid-footer-cell {
+  .gridkit-data-grid.gridkit-borders-all .gridkit-grid-footer-cell {
     border-right: var(--gridkit-column-line-width) var(--gridkit-border-style)
       var(--gridkit-line);
   }
@@ -1079,27 +1113,37 @@
    * group cell is both its row's first and last child at once (it is the
    * only cell), so it takes both exceptions.
    */
-  .gridkit-data-grid.borders-all .grid-header .header-cell:first-child,
-  .gridkit-data-grid.borders-all .grid-cell:first-child,
-  .gridkit-data-grid.borders-all .grid-group-cell,
-  .gridkit-data-grid.borders-all .grid-footer-cell:first-child,
-  .gridkit-data-grid.borders-all .grid-group-summary-cell:first-child {
+  .gridkit-data-grid.gridkit-borders-all
+    .gridkit-grid-header
+    .gridkit-header-cell:first-child,
+  .gridkit-data-grid.gridkit-borders-all .gridkit-grid-cell:first-child,
+  .gridkit-data-grid.gridkit-borders-all .gridkit-grid-group-cell,
+  .gridkit-data-grid.gridkit-borders-all .gridkit-grid-footer-cell:first-child,
+  .gridkit-data-grid.gridkit-borders-all
+    .gridkit-grid-group-summary-cell:first-child {
     border-left: none;
   }
 
-  .gridkit-data-grid.borders-all .grid-header .header-cell:last-child,
-  .gridkit-data-grid.borders-all .grid-cell:last-child,
-  .gridkit-data-grid.borders-all .grid-group-cell,
-  .gridkit-data-grid.borders-all .grid-footer-cell:last-child,
-  .gridkit-data-grid.borders-all .grid-group-summary-cell:last-child {
+  .gridkit-data-grid.gridkit-borders-all
+    .gridkit-grid-header
+    .gridkit-header-cell:last-child,
+  .gridkit-data-grid.gridkit-borders-all .gridkit-grid-cell:last-child,
+  .gridkit-data-grid.gridkit-borders-all .gridkit-grid-group-cell,
+  .gridkit-data-grid.gridkit-borders-all .gridkit-grid-footer-cell:last-child,
+  .gridkit-data-grid.gridkit-borders-all
+    .gridkit-grid-group-summary-cell:last-child {
     border-right: none;
   }
 
-  .gridkit-data-grid.borders-all .grid-row:last-child .grid-cell,
-  .gridkit-data-grid.borders-all .grid-group-row:last-child .grid-group-cell,
-  .gridkit-data-grid.borders-all
-    .grid-group-summary-row:last-child
-    .grid-group-summary-cell {
+  .gridkit-data-grid.gridkit-borders-all
+    .gridkit-grid-row:last-child
+    .gridkit-grid-cell,
+  .gridkit-data-grid.gridkit-borders-all
+    .gridkit-grid-group-row:last-child
+    .gridkit-grid-group-cell,
+  .gridkit-data-grid.gridkit-borders-all
+    .gridkit-grid-group-summary-row:last-child
+    .gridkit-grid-group-summary-cell {
     border-bottom: none;
   }
 
@@ -1137,14 +1181,14 @@
    * they can be wider than the toolbar. "More" then sticks to its end edge,
    * over what is clipped there, rather than being clipped itself.
    */
-  .gridkit-toolbar > .toolbar-more {
+  .gridkit-toolbar > .gridkit-toolbar-more {
     position: sticky;
     /* Counted from the toolbar's padding edge, so its padding again. */
     inset-inline-end: var(--gridkit-toolbar-padding);
   }
 
   /* A command, a dropdown, or "More". */
-  .toolbar-button {
+  .gridkit-toolbar-button {
     display: inline-flex;
     align-items: center;
     gap: calc(var(--gridkit-spacing) * 1.5);
@@ -1158,48 +1202,48 @@
     border-radius: var(--gridkit-control-radius);
   }
 
-  .toolbar-button:hover:not([aria-disabled="true"]),
-  .toolbar-button[aria-expanded="true"] {
+  .gridkit-toolbar-button:hover:not([aria-disabled="true"]),
+  .gridkit-toolbar-button[aria-expanded="true"] {
     background-color: var(--gridkit-surface-muted);
   }
 
-  .toolbar-button:focus-visible {
+  .gridkit-toolbar-button:focus-visible {
     outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
   /* Still focusable, as a menu's disabled item is, so a screen reader finds it. */
-  .toolbar-button[aria-disabled="true"] {
+  .gridkit-toolbar-button[aria-disabled="true"] {
     color: var(--gridkit-fg-muted);
     cursor: default;
     opacity: 0.5;
   }
 
   /* A toggle that is on. */
-  .toolbar-button[aria-pressed="true"],
-  .toolbar-button[aria-pressed="true"]:hover {
+  .gridkit-toolbar-button[aria-pressed="true"],
+  .gridkit-toolbar-button[aria-pressed="true"]:hover {
     background-color: var(--gridkit-selected-strong);
     border-color: var(--gridkit-accent);
   }
 
-  .toolbar-button-icon,
-  .toolbar-button-indicator {
+  .gridkit-toolbar-button-icon,
+  .gridkit-toolbar-button-indicator {
     display: inline-flex;
     color: var(--gridkit-fg-muted);
   }
 
   /* An icon key the grid has no glyph for draws nothing, and takes no room. */
-  .toolbar-button-icon:empty {
+  .gridkit-toolbar-button-icon:empty {
     display: none;
   }
 
-  .toolbar-button-icon svg,
-  .toolbar-button-indicator svg {
+  .gridkit-toolbar-button-icon svg,
+  .gridkit-toolbar-button-indicator svg {
     width: var(--gridkit-icon-size);
     height: var(--gridkit-icon-size);
   }
 
-  .toolbar-button-indicator {
+  .gridkit-toolbar-button-indicator {
     margin-inline-end: calc(var(--gridkit-spacing) * -1);
   }
 
@@ -1208,7 +1252,7 @@
    * what else is in it, which the overflow would measure as a width of its
    * own — so it leaves room for "More" beside it.
    */
-  .toolbar-search {
+  .gridkit-toolbar-search {
     width: 12rem;
     max-width: 50%;
     padding: var(--gridkit-spacing) calc(var(--gridkit-spacing) * 2);
@@ -1219,16 +1263,16 @@
     border-radius: var(--gridkit-control-radius);
   }
 
-  .toolbar-search::placeholder {
+  .gridkit-toolbar-search::placeholder {
     color: var(--gridkit-fg-muted);
   }
 
-  .toolbar-search:focus-visible {
+  .gridkit-toolbar-search:focus-visible {
     outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
-  .toolbar-separator {
+  .gridkit-toolbar-separator {
     align-self: stretch;
     width: var(--gridkit-border-width);
     margin: calc(var(--gridkit-spacing) * 0.5) 0;
@@ -1236,12 +1280,12 @@
   }
 
   /* Takes the free space, pushing what follows it to the far end. */
-  .gridkit-toolbar > .toolbar-spacer {
+  .gridkit-toolbar > .gridkit-toolbar-spacer {
     flex: 1 1 0;
   }
 
   /* Holds what `renderToolbarItem` drew. */
-  .toolbar-custom {
+  .gridkit-toolbar-custom {
     display: inline-flex;
     align-items: center;
   }
@@ -1287,12 +1331,12 @@
     outline-offset: calc(var(--gridkit-indicator-width) * -1);
   }
 
-  .group-by-bar-placeholder {
+  .gridkit-group-by-bar-placeholder {
     font-size: var(--gridkit-bar-font-size);
     color: var(--gridkit-fg-muted);
   }
 
-  .group-by-chip {
+  .gridkit-group-by-chip {
     position: relative;
     display: inline-flex;
     align-items: center;
@@ -1307,18 +1351,18 @@
     user-select: none;
   }
 
-  .group-by-chip:focus-visible {
+  .gridkit-group-by-chip:focus-visible {
     outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
-  .group-by-chip.is-dragging {
+  .gridkit-group-by-chip.is-dragging {
     cursor: grabbing;
     opacity: 0.5;
   }
 
   /*
-   * Where the chip would land. `.header-cell.is-drop-before`/`.is-drop-after`
+   * Where the chip would land. `.gridkit-header-cell.is-drop-before`/`.is-drop-after`
    * draw this as an inset line, but an inset line on a pill this round would
    * be clipped by the chip's own `border-radius` into a curved sliver rather
    * than a clean mark — so this is a `::before`/`::after` mark of its own
@@ -1326,8 +1370,8 @@
    * so out of flow, it never shifts the chip or its neighbors the way a
    * change to border or padding would.
    */
-  .group-by-chip.is-drop-before::before,
-  .group-by-chip.is-drop-after::after {
+  .gridkit-group-by-chip.is-drop-before::before,
+  .gridkit-group-by-chip.is-drop-after::after {
     content: "";
     position: absolute;
     top: 0;
@@ -1337,13 +1381,13 @@
     background-color: var(--gridkit-accent);
   }
 
-  .group-by-chip.is-drop-before::before {
+  .gridkit-group-by-chip.is-drop-before::before {
     left: calc(
       var(--gridkit-spacing) * -1 - var(--gridkit-indicator-width) / 2
     );
   }
 
-  .group-by-chip.is-drop-after::after {
+  .gridkit-group-by-chip.is-drop-after::after {
     right: calc(
       var(--gridkit-spacing) * -1 - var(--gridkit-indicator-width) / 2
     );
@@ -1351,11 +1395,11 @@
 
   /*
    * The chip trailing the pointer mid-drag. Unlike the header's own
-   * `.gridkit-data-grid.drag-ghost` this can't share that compound selector
+   * `.gridkit-data-grid.gridkit-drag-ghost` this can't share that compound selector
    * — a chip ghost isn't part of the grid's own table — so it restates the
    * positioning in full rather than only the parts that differ.
    */
-  .group-by-chip.drag-ghost {
+  .gridkit-group-by-chip.gridkit-drag-ghost {
     position: fixed;
     top: 0;
     left: 0;
@@ -1366,7 +1410,7 @@
     will-change: transform;
   }
 
-  .group-by-chip-remove {
+  .gridkit-group-by-chip-remove {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1380,11 +1424,11 @@
     border: none;
   }
 
-  .group-by-chip-remove:hover {
+  .gridkit-group-by-chip-remove:hover {
     color: var(--gridkit-accent);
   }
 
-  .group-by-chip-remove:focus-visible {
+  .gridkit-group-by-chip-remove:focus-visible {
     outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
@@ -1415,7 +1459,7 @@
    * page count's digits, which the pager sets) in tabular numerals, so with
    * `paginationWindow`'s constant slot count the arrows never move.
    */
-  .grid-pager-bar {
+  .gridkit-grid-pager-bar {
     --gridkit-pager-segment: calc(var(--gridkit-spacing) * 8);
     display: inline-flex;
     align-items: stretch;
@@ -1426,9 +1470,9 @@
     border-radius: var(--gridkit-radius);
   }
 
-  .grid-pager-button,
-  .grid-pager-ellipsis,
-  .grid-pager-status-slot {
+  .gridkit-grid-pager-button,
+  .gridkit-grid-pager-ellipsis,
+  .gridkit-grid-pager-status-slot {
     position: relative;
     box-sizing: border-box;
     display: inline-flex;
@@ -1446,7 +1490,7 @@
     border-radius: 0;
   }
 
-  .grid-pager-bar > :first-child {
+  .gridkit-grid-pager-bar > :first-child {
     border-inline-start: 0;
     border-start-start-radius: calc(
       var(--gridkit-radius) - var(--gridkit-border-width)
@@ -1456,7 +1500,7 @@
     );
   }
 
-  .grid-pager-bar > :last-child {
+  .gridkit-grid-pager-bar > :last-child {
     border-start-end-radius: calc(
       var(--gridkit-radius) - var(--gridkit-border-width)
     );
@@ -1465,38 +1509,38 @@
     );
   }
 
-  .grid-pager-button {
+  .gridkit-grid-pager-button {
     cursor: pointer;
   }
 
-  .grid-pager-page,
-  .grid-pager-ellipsis {
+  .gridkit-grid-pager-page,
+  .gridkit-grid-pager-ellipsis {
     width: max(
       var(--gridkit-pager-segment),
       calc(var(--gridkit-pager-digits, 1) * 1ch + var(--gridkit-spacing) * 4)
     );
   }
 
-  .grid-pager-nav svg {
+  .gridkit-grid-pager-nav svg {
     width: var(--gridkit-icon-size);
     height: var(--gridkit-icon-size);
   }
 
-  .grid-pager-nav:dir(rtl) svg {
+  .gridkit-grid-pager-nav:dir(rtl) svg {
     transform: scaleX(-1);
   }
 
-  .grid-pager-button:hover:not([aria-disabled="true"]) {
+  .gridkit-grid-pager-button:hover:not([aria-disabled="true"]) {
     background-color: var(--gridkit-surface-muted);
   }
 
-  .grid-pager-button:focus-visible {
+  .gridkit-grid-pager-button:focus-visible {
     z-index: 2;
     outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: calc(var(--gridkit-focus-ring-width) * -1);
   }
 
-  .grid-pager-button[aria-disabled="true"] {
+  .gridkit-grid-pager-button[aria-disabled="true"] {
     color: var(--gridkit-fg-muted);
     cursor: default;
   }
@@ -1506,19 +1550,19 @@
    * focus once it has paged to the end, and its focus ring should not fade
    * with it.
    */
-  .grid-pager-button[aria-disabled="true"] svg {
+  .gridkit-grid-pager-button[aria-disabled="true"] svg {
     opacity: 0.45;
   }
 
-  .grid-pager-button[aria-current="page"],
-  .grid-pager-button[aria-current="page"]:hover {
+  .gridkit-grid-pager-button[aria-current="page"],
+  .gridkit-grid-pager-button[aria-current="page"]:hover {
     z-index: 1;
     color: var(--gridkit-accent);
     background-color: var(--gridkit-selected);
     box-shadow: inset 0 0 0 var(--gridkit-border-width) var(--gridkit-accent);
   }
 
-  .grid-pager-ellipsis {
+  .gridkit-grid-pager-ellipsis {
     color: var(--gridkit-fg-muted);
     cursor: default;
     user-select: none;
@@ -1528,34 +1572,34 @@
    * The compact status, stacked on an invisible copy of its widest text so
    * its segment keeps one width from the first page to the last.
    */
-  .grid-pager-status-slot {
+  .gridkit-grid-pager-status-slot {
     display: inline-grid;
     padding: 0 calc(var(--gridkit-spacing) * 3);
     white-space: nowrap;
   }
 
-  .grid-pager-status,
-  .grid-pager-status-sizer {
+  .gridkit-grid-pager-status,
+  .gridkit-grid-pager-status-sizer {
     grid-area: 1 / 1;
     text-align: center;
   }
 
-  .grid-pager-status {
+  .gridkit-grid-pager-status {
     color: var(--gridkit-fg-muted);
   }
 
-  .grid-pager-status-sizer {
+  .gridkit-grid-pager-status-sizer {
     visibility: hidden;
   }
 
-  .grid-pager-page-size {
+  .gridkit-grid-pager-page-size {
     display: inline-flex;
     align-items: center;
     gap: calc(var(--gridkit-spacing) * 2);
     color: var(--gridkit-fg-muted);
   }
 
-  .grid-pager-page-size select {
+  .gridkit-grid-pager-page-size select {
     box-sizing: border-box;
     /* As tall as the pager bar beside it. */
     height: calc(var(--gridkit-spacing) * 8);
@@ -1568,7 +1612,7 @@
     border-radius: var(--gridkit-control-radius);
   }
 
-  .grid-pager-page-size select:focus-visible {
+  .gridkit-grid-pager-page-size select:focus-visible {
     outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
@@ -1608,7 +1652,7 @@
       var(--gridkit-overlay-shadow-color);
   }
 
-  .menu-item {
+  .gridkit-menu-item {
     display: flex;
     align-items: center;
     gap: calc(var(--gridkit-spacing) * 2);
@@ -1624,7 +1668,7 @@
    * item under it, so focus is the hover state too, and has to show
    * whichever moved it.
    */
-  .menu-item:focus {
+  .gridkit-menu-item:focus {
     outline: none;
     background-color: var(--gridkit-selected);
   }
@@ -1633,7 +1677,7 @@
    * The item whose submenu is open, while focus is in that submenu — the
    * trail back to it.
    */
-  .menu-item[aria-expanded="true"]:not(:focus) {
+  .gridkit-menu-item[aria-expanded="true"]:not(:focus) {
     background-color: var(--gridkit-surface-muted);
   }
 
@@ -1641,12 +1685,12 @@
    * Still focusable, so a screen reader finds it: muted, and marked only
    * faintly when focused, since choosing it does nothing.
    */
-  .menu-item[aria-disabled="true"] {
+  .gridkit-menu-item[aria-disabled="true"] {
     color: var(--gridkit-fg-muted);
     cursor: default;
   }
 
-  .menu-item[aria-disabled="true"]:focus {
+  .gridkit-menu-item[aria-disabled="true"]:focus {
     background-color: var(--gridkit-surface-muted);
   }
 
@@ -1654,7 +1698,7 @@
    * Always there, empty for an item without an icon, so every label in a
    * menu starts at the same place. A checked item shows its check here.
    */
-  .menu-item-icon {
+  .gridkit-menu-item-icon {
     display: inline-flex;
     flex-shrink: 0;
     align-items: center;
@@ -1664,33 +1708,33 @@
     color: var(--gridkit-fg-muted);
   }
 
-  .menu-item-icon svg,
-  .menu-submenu-indicator svg {
+  .gridkit-menu-item-icon svg,
+  .gridkit-menu-submenu-indicator svg {
     width: var(--gridkit-icon-size);
     height: var(--gridkit-icon-size);
   }
 
-  .menu-item[aria-checked="true"] .menu-item-icon {
+  .gridkit-menu-item[aria-checked="true"] .gridkit-menu-item-icon {
     color: var(--gridkit-accent);
   }
 
-  .menu-item-label {
+  .gridkit-menu-item-label {
     flex: 1;
   }
 
-  .menu-item-shortcut {
+  .gridkit-menu-item-shortcut {
     margin-inline-start: calc(var(--gridkit-spacing) * 6);
     font-size: var(--gridkit-hint-font-size);
     color: var(--gridkit-fg-muted);
   }
 
-  .menu-submenu-indicator {
+  .gridkit-menu-submenu-indicator {
     display: inline-flex;
     margin-inline-end: calc(var(--gridkit-spacing) * -1);
     color: var(--gridkit-fg-muted);
   }
 
-  .menu-separator {
+  .gridkit-menu-separator {
     height: var(--gridkit-border-width);
     margin: var(--gridkit-spacing) 0;
     background-color: var(--gridkit-line);
@@ -1715,7 +1759,7 @@
       var(--gridkit-overlay-shadow-color);
   }
 
-  .column-chooser-search {
+  .gridkit-column-chooser-search {
     box-sizing: border-box;
     width: 100%;
     padding: var(--gridkit-spacing) calc(var(--gridkit-spacing) * 2);
@@ -1726,11 +1770,11 @@
     border-radius: var(--gridkit-control-radius);
   }
 
-  .column-chooser-search::placeholder {
+  .gridkit-column-chooser-search::placeholder {
     color: var(--gridkit-fg-muted);
   }
 
-  .column-chooser-search:focus-visible {
+  .gridkit-column-chooser-search:focus-visible {
     outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
@@ -1740,7 +1784,7 @@
    * does not dismiss the chooser, as one outside would — while the search
    * box and "Show all" stay put above it.
    */
-  .column-chooser-list {
+  .gridkit-column-chooser-list {
     max-height: var(--gridkit-column-chooser-max-height);
     margin: 0;
     padding: 0;
@@ -1749,7 +1793,7 @@
   }
 
   /* One checkbox and its label: "Show all", or a column. */
-  .column-chooser-option {
+  .gridkit-column-chooser-option {
     display: flex;
     align-items: center;
     gap: calc(var(--gridkit-spacing) * 2);
@@ -1759,39 +1803,39 @@
     user-select: none;
   }
 
-  .column-chooser-option:hover {
+  .gridkit-column-chooser-option:hover {
     background-color: var(--gridkit-surface-muted);
   }
 
   /* "Show all", set apart from the columns it acts on. */
-  .column-chooser-all {
+  .gridkit-column-chooser-all {
     padding-bottom: calc(var(--gridkit-spacing) * 1.5);
     border-bottom: var(--gridkit-border-width) solid var(--gridkit-line);
     border-radius: 0;
   }
 
-  .column-chooser-option input {
+  .gridkit-column-chooser-option input {
     flex-shrink: 0;
     margin: 0;
     accent-color: var(--gridkit-accent);
   }
 
-  .column-chooser-option input:focus-visible {
+  .gridkit-column-chooser-option input:focus-visible {
     outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
   /* A column that cannot be hidden, or the last one shown. */
-  .column-chooser-option:has(> input:disabled) {
+  .gridkit-column-chooser-option:has(> input:disabled) {
     color: var(--gridkit-fg-muted);
     cursor: default;
   }
 
-  .column-chooser-option:has(> input:disabled):hover {
+  .gridkit-column-chooser-option:has(> input:disabled):hover {
     background-color: transparent;
   }
 
-  .column-chooser-empty {
+  .gridkit-column-chooser-empty {
     margin: 0;
     padding: var(--gridkit-spacing);
     color: var(--gridkit-fg-muted);
@@ -1814,7 +1858,7 @@
       var(--gridkit-overlay-shadow-color);
   }
 
-  .filter-menu-form {
+  .gridkit-filter-menu-form {
     display: flex;
     flex-direction: column;
     gap: calc(var(--gridkit-spacing) * 2);
@@ -1822,14 +1866,14 @@
   }
 
   /* The sort entries, drawn as a menu's items and set apart from the editor. */
-  .filter-menu-sort {
+  .gridkit-filter-menu-sort {
     display: flex;
     flex-direction: column;
     padding-bottom: calc(var(--gridkit-spacing) * 1.5);
     border-bottom: var(--gridkit-border-width) solid var(--gridkit-line);
   }
 
-  .filter-menu-sort-item {
+  .gridkit-filter-menu-sort-item {
     display: flex;
     align-items: center;
     gap: calc(var(--gridkit-spacing) * 2);
@@ -1843,23 +1887,23 @@
     cursor: pointer;
   }
 
-  .filter-menu-sort-item:hover {
+  .gridkit-filter-menu-sort-item:hover {
     background-color: var(--gridkit-surface-muted);
   }
 
-  .filter-menu-sort-item:focus-visible {
+  .gridkit-filter-menu-sort-item:focus-visible {
     outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: calc(var(--gridkit-focus-ring-width) * -1);
   }
 
-  .filter-menu-sort-item:disabled {
+  .gridkit-filter-menu-sort-item:disabled {
     color: var(--gridkit-fg-muted);
     background: none;
     cursor: default;
   }
 
   /* Always there, empty for "Clear sort", so every label starts in line. */
-  .filter-menu-sort-icon {
+  .gridkit-filter-menu-sort-icon {
     display: inline-flex;
     flex-shrink: 0;
     align-items: center;
@@ -1869,13 +1913,14 @@
     color: var(--gridkit-fg-muted);
   }
 
-  .filter-menu-sort-icon svg {
+  .gridkit-filter-menu-sort-icon svg {
     width: var(--gridkit-icon-size);
     height: var(--gridkit-icon-size);
   }
 
   /* The direction the column sorts in now. */
-  .filter-menu-sort-item[aria-pressed="true"] .filter-menu-sort-icon {
+  .gridkit-filter-menu-sort-item[aria-pressed="true"]
+    .gridkit-filter-menu-sort-icon {
     color: var(--gridkit-accent);
   }
 
@@ -1883,7 +1928,7 @@
    * The simple editor: its conditions in a column, And/Or between them, and
    * the message under them while one is marked invalid.
    */
-  .filter-menu-conditions {
+  .gridkit-filter-menu-conditions {
     display: flex;
     flex-direction: column;
     gap: calc(var(--gridkit-spacing) * 2);
@@ -1893,7 +1938,7 @@
    * "Custom filter", or "Filtered by condition" above a checklist: a filter
    * the editor can't show, until it applies one in its place.
    */
-  .filter-menu-custom {
+  .gridkit-filter-menu-custom {
     margin: 0;
     padding: var(--gridkit-spacing) calc(var(--gridkit-spacing) * 2);
     color: var(--gridkit-fg-muted);
@@ -1905,14 +1950,14 @@
    * The operator picker on a line of its own, the value boxes sharing the
    * next: one fills it, and a "Between"'s two halve it.
    */
-  .filter-menu-condition {
+  .gridkit-filter-menu-condition {
     display: flex;
     flex-wrap: wrap;
     gap: calc(var(--gridkit-spacing) * 1.5);
   }
 
-  .filter-menu-operator,
-  .filter-menu-value {
+  .gridkit-filter-menu-operator,
+  .gridkit-filter-menu-value {
     box-sizing: border-box;
     min-width: 0;
     padding: var(--gridkit-spacing) calc(var(--gridkit-spacing) * 2);
@@ -1923,36 +1968,36 @@
     border-radius: var(--gridkit-control-radius);
   }
 
-  .filter-menu-operator {
+  .gridkit-filter-menu-operator {
     flex-basis: 100%;
   }
 
-  .filter-menu-value {
+  .gridkit-filter-menu-value {
     flex: 1 1 0;
   }
 
-  .filter-menu-operator:focus-visible,
-  .filter-menu-value:focus-visible {
+  .gridkit-filter-menu-operator:focus-visible,
+  .gridkit-filter-menu-value:focus-visible {
     outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
-  .filter-menu-value[aria-invalid="true"] {
+  .gridkit-filter-menu-value[aria-invalid="true"] {
     border-color: var(--gridkit-error);
   }
 
-  .filter-menu-invalid {
+  .gridkit-filter-menu-invalid {
     margin: 0;
     color: var(--gridkit-error);
   }
 
   /* And/Or, native radio buttons between the two conditions. */
-  .filter-menu-combinator {
+  .gridkit-filter-menu-combinator {
     display: flex;
     gap: calc(var(--gridkit-spacing) * 4);
   }
 
-  .filter-menu-combinator-option {
+  .gridkit-filter-menu-combinator-option {
     display: inline-flex;
     align-items: center;
     gap: calc(var(--gridkit-spacing) * 1.5);
@@ -1960,12 +2005,12 @@
     user-select: none;
   }
 
-  .filter-menu-combinator-option input {
+  .gridkit-filter-menu-combinator-option input {
     margin: 0;
     accent-color: var(--gridkit-accent);
   }
 
-  .filter-menu-combinator-option input:focus-visible {
+  .gridkit-filter-menu-combinator-option input:focus-visible {
     outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
@@ -1974,7 +2019,7 @@
    * The excel editor: a search box, "Select all", then the checklist of the
    * column's values, with a note above or below it when one applies.
    */
-  .filter-menu-values {
+  .gridkit-filter-menu-values {
     display: flex;
     flex-direction: column;
     gap: calc(var(--gridkit-spacing) * 1.5);
@@ -1986,8 +2031,8 @@
    * chose: the sort entries' look, an icon before the label in line with
    * theirs.
    */
-  .filter-menu-submenu,
-  .filter-menu-back {
+  .gridkit-filter-menu-submenu,
+  .gridkit-filter-menu-back {
     display: flex;
     align-items: center;
     gap: calc(var(--gridkit-spacing) * 2);
@@ -2001,21 +2046,21 @@
     cursor: pointer;
   }
 
-  .filter-menu-submenu:hover,
-  .filter-menu-submenu[aria-expanded="true"],
-  .filter-menu-back:hover {
+  .gridkit-filter-menu-submenu:hover,
+  .gridkit-filter-menu-submenu[aria-expanded="true"],
+  .gridkit-filter-menu-back:hover {
     background-color: var(--gridkit-surface-muted);
   }
 
-  .filter-menu-submenu:focus-visible,
-  .filter-menu-back:focus-visible {
+  .gridkit-filter-menu-submenu:focus-visible,
+  .gridkit-filter-menu-back:focus-visible {
     outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: calc(var(--gridkit-focus-ring-width) * -1);
   }
 
-  .filter-menu-submenu-icon,
-  .filter-menu-submenu-indicator,
-  .filter-menu-back-icon {
+  .gridkit-filter-menu-submenu-icon,
+  .gridkit-filter-menu-submenu-indicator,
+  .gridkit-filter-menu-back-icon {
     display: inline-flex;
     flex-shrink: 0;
     align-items: center;
@@ -2025,23 +2070,23 @@
     color: var(--gridkit-fg-muted);
   }
 
-  .filter-menu-submenu svg,
-  .filter-menu-back svg {
+  .gridkit-filter-menu-submenu svg,
+  .gridkit-filter-menu-back svg {
     width: var(--gridkit-icon-size);
     height: var(--gridkit-icon-size);
   }
 
   /* Ticked while the column is filtered by conditions, as Excel's is. */
-  .filter-menu-submenu-icon {
+  .gridkit-filter-menu-submenu-icon {
     color: var(--gridkit-accent);
   }
 
   /* The submenu's chevron, at the end of the line. */
-  .filter-menu-submenu-indicator {
+  .gridkit-filter-menu-submenu-indicator {
     margin-inline-start: auto;
   }
 
-  .filter-menu-search {
+  .gridkit-filter-menu-search {
     box-sizing: border-box;
     width: 100%;
     padding: var(--gridkit-spacing) calc(var(--gridkit-spacing) * 2);
@@ -2052,17 +2097,17 @@
     border-radius: var(--gridkit-control-radius);
   }
 
-  .filter-menu-search::placeholder {
+  .gridkit-filter-menu-search::placeholder {
     color: var(--gridkit-fg-muted);
   }
 
-  .filter-menu-search:focus-visible {
+  .gridkit-filter-menu-search:focus-visible {
     outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
   /* A native checkbox, in line with the drawn ones in the list below. */
-  .filter-menu-select-all {
+  .gridkit-filter-menu-select-all {
     display: flex;
     align-items: center;
     gap: calc(var(--gridkit-spacing) * 2);
@@ -2072,7 +2117,7 @@
     user-select: none;
   }
 
-  .filter-menu-select-all input {
+  .gridkit-filter-menu-select-all input {
     flex-shrink: 0;
     width: var(--gridkit-icon-size);
     height: var(--gridkit-icon-size);
@@ -2080,13 +2125,13 @@
     accent-color: var(--gridkit-accent);
   }
 
-  .filter-menu-select-all input:focus-visible {
+  .gridkit-filter-menu-select-all input:focus-visible {
     outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
   /* Nothing to select: the search matches no value. */
-  .filter-menu-select-all:has(> input:disabled) {
+  .gridkit-filter-menu-select-all:has(> input:disabled) {
     color: var(--gridkit-fg-muted);
     cursor: default;
   }
@@ -2097,8 +2142,8 @@
    * knows from the start how many values it shows. "Type to search …"
    * takes the same box while the list waits for a search.
    */
-  .filter-menu-checklist,
-  .filter-menu-search-first {
+  .gridkit-filter-menu-checklist,
+  .gridkit-filter-menu-search-first {
     box-sizing: border-box;
     height: var(--gridkit-filter-checklist-height);
     margin: 0;
@@ -2106,17 +2151,17 @@
     border-radius: var(--gridkit-control-radius);
   }
 
-  .filter-menu-checklist {
+  .gridkit-filter-menu-checklist {
     overflow-y: auto;
   }
 
-  .filter-menu-search-first {
+  .gridkit-filter-menu-search-first {
     padding: calc(var(--gridkit-spacing) * 2);
     color: var(--gridkit-fg-muted);
   }
 
   /* One value: a drawn checkbox, its label, and its count when shown. */
-  .filter-menu-option {
+  .gridkit-filter-menu-option {
     display: flex;
     align-items: center;
     gap: calc(var(--gridkit-spacing) * 2);
@@ -2126,11 +2171,11 @@
     user-select: none;
   }
 
-  .filter-menu-option:hover {
+  .gridkit-filter-menu-option:hover {
     background-color: var(--gridkit-surface-muted);
   }
 
-  .filter-menu-option:focus-visible {
+  .gridkit-filter-menu-option:focus-visible {
     outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: calc(var(--gridkit-focus-ring-width) * -1);
   }
@@ -2139,7 +2184,7 @@
    * An outline, filled with the accent and ticked in `--gridkit-accent-fg`
    * while the option is checked, as the native "Select all" above it is.
    */
-  .filter-menu-option-check {
+  .gridkit-filter-menu-option-check {
     display: inline-flex;
     flex-shrink: 0;
     align-items: center;
@@ -2152,23 +2197,26 @@
     border-radius: calc(var(--gridkit-control-radius) * 0.75);
   }
 
-  .filter-menu-option-check svg {
+  .gridkit-filter-menu-option-check svg {
     width: calc(var(--gridkit-icon-size) * 0.75);
     height: calc(var(--gridkit-icon-size) * 0.75);
     visibility: hidden;
   }
 
-  .filter-menu-option[aria-checked="true"] .filter-menu-option-check {
+  .gridkit-filter-menu-option[aria-checked="true"]
+    .gridkit-filter-menu-option-check {
     background-color: var(--gridkit-accent);
     border-color: var(--gridkit-accent);
   }
 
-  .filter-menu-option[aria-checked="true"] .filter-menu-option-check svg {
+  .gridkit-filter-menu-option[aria-checked="true"]
+    .gridkit-filter-menu-option-check
+    svg {
     visibility: visible;
   }
 
   /* A label too long for the menu ends in an ellipsis. */
-  .filter-menu-option-label {
+  .gridkit-filter-menu-option-label {
     flex: 1;
     min-width: 0;
     overflow: hidden;
@@ -2177,7 +2225,7 @@
   }
 
   /* How many rows hold the value, muted at the end of its line. */
-  .filter-menu-option-count {
+  .gridkit-filter-menu-option-count {
     flex-shrink: 0;
     font-size: var(--gridkit-hint-font-size);
     font-variant-numeric: tabular-nums;
@@ -2185,20 +2233,20 @@
   }
 
   /* "250 more, refine the search", under a list the value limit cut short. */
-  .filter-menu-more {
+  .gridkit-filter-menu-more {
     margin: 0;
     padding: 0 calc(var(--gridkit-spacing) * 2);
     color: var(--gridkit-fg-muted);
   }
 
   /* "Clear filter" at the start; Cancel and OK at the end. */
-  .filter-menu-actions {
+  .gridkit-filter-menu-actions {
     display: flex;
     align-items: center;
     gap: calc(var(--gridkit-spacing) * 2);
   }
 
-  .filter-menu-actions button {
+  .gridkit-filter-menu-actions button {
     padding: var(--gridkit-spacing) calc(var(--gridkit-spacing) * 3);
     font: inherit;
     color: var(--gridkit-fg);
@@ -2208,22 +2256,22 @@
     cursor: pointer;
   }
 
-  .filter-menu-actions button:hover {
+  .gridkit-filter-menu-actions button:hover {
     background-color: var(--gridkit-surface-muted);
   }
 
-  .filter-menu-actions button:focus-visible {
+  .gridkit-filter-menu-actions button:focus-visible {
     outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
     outline-offset: 1px;
   }
 
-  .filter-menu-actions button:disabled {
+  .gridkit-filter-menu-actions button:disabled {
     color: var(--gridkit-fg-muted);
     background-color: var(--gridkit-surface);
     cursor: default;
   }
 
-  .filter-menu-actions .filter-menu-clear {
+  .gridkit-filter-menu-actions .gridkit-filter-menu-clear {
     margin-inline-end: auto;
   }
 
@@ -2231,12 +2279,12 @@
    * OK, the button Enter presses: tinted rather than filled with the accent,
    * which the text on it would not stand out from in the light palette.
    */
-  .filter-menu-actions .filter-menu-apply {
+  .gridkit-filter-menu-actions .gridkit-filter-menu-apply {
     background-color: var(--gridkit-selected);
     border-color: var(--gridkit-accent);
   }
 
-  .filter-menu-actions .filter-menu-apply:hover {
+  .gridkit-filter-menu-actions .gridkit-filter-menu-apply:hover {
     background-color: var(--gridkit-selected-strong);
   }
 }
@@ -2254,7 +2302,7 @@
     .gridkit-data-grid-viewport .gridkit-toolbar,
     .gridkit-data-grid-viewport .gridkit-group-by-bar,
     .gridkit-data-grid-viewport .gridkit-grid-pager,
-    .gridkit-data-grid-viewport .header-resize-handle {
+    .gridkit-data-grid-viewport .gridkit-header-resize-handle {
       display: none;
     }
 

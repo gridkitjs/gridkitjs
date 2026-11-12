@@ -17,10 +17,15 @@ consumer needs alongside `DataGrid`.
 ## Styling
 
 Styling lives in `theme-tailwind`, not in the components. `packages/react`
-renders semantic class names — `gridkit-data-grid`, `header-cell`, `grid-row` —
+renders semantic class names — `gridkit-data-grid`, `gridkit-header-cell`, `gridkit-grid-row` —
 and the theme's stylesheet targets them. Keep it that way: a Tailwind utility
 written in a component would oblige every consumer to scan our source for it,
 which is what `@source` used to paper over.
+
+Every rendered class starts with `gridkit-`; a state is an `is-*` class on an
+element that also has one. Class names and `data-gridkit-*` attributes are
+public API, listed on `packages/theme-tailwind/docs/class-names.mdx`, whose
+test fails until a new or renamed one is listed there.
 
 ## State
 

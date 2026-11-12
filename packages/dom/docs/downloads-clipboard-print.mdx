@@ -66,7 +66,7 @@ const { title, bodyHtml, page } = buildPrintDocument(
 await printDocument({
   title,
   bodyHtml,
-  styles: printStyles(page) + ".print-title { color: navy; }",
+  styles: printStyles(page) + ".gridkit-print-title { color: navy; }",
 });
 ```
 
@@ -84,7 +84,7 @@ The promise rejects if the frame is taken out of the page before it loads (by co
 | `tfoot { display: table-row-group }`                                   | The grand total once, after the last row, rather than repeated at the foot of every page.         |
 | `tr { break-inside: avoid }`                                           | No row split across a page break.                                                                 |
 | `table { width: 100%; border-collapse: collapse }`, 1px `#bbb` borders | The table across the page, with neutral borders.                                                  |
-| `.export-group[data-level]`                                            | Group headers shaded and bold, each level stepped in under its parent, as far as six levels deep. |
+| `.gridkit-export-group[data-level]`                                    | Group headers shaded and bold, each level stepped in under its parent, as far as six levels deep. |
 | `print-color-adjust: exact`                                            | Header and group shading printed as it is, not dropped to save ink.                               |
 | `table-layout: fixed`, 8pt, `overflow-wrap: anywhere`                  | For `fitToWidth`: a wide table squeezed onto the page, its columns wrapping their text.           |
 
