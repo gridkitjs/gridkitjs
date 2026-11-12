@@ -7,6 +7,8 @@ description: "The sizing logic underneath resizableColumns."
 
 ## Functions
 
+`resolveColumnWidths` and `DEFAULT_COLUMN_SIZES` come from `@gridkitjs/core`. The rest drive a resize or lay columns out, so they come from `@gridkitjs/core/renderer`.
+
 | Function                                                             | Type                             | Description                                                                                                                         |
 | -------------------------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `resolveColumnWidths(columns, sizing, options)`                      | `readonly ResolvedColumn<Row>[]` | Resolves each column's rendered width from its definition, the sizing state, and the grid's defaults.                               |

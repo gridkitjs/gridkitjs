@@ -33,6 +33,8 @@ A `DisplayRow<Row>` is a data row (`ResolvedRow<Row>`, `kind: "data"`), a group 
 
 ## The group-by stack
 
+`movesGroupBy` comes from `@gridkitjs/core/renderer`, for a drop indicator; `moveGroupByBefore` from `@gridkitjs/core`.
+
 | Function                                               | Type           | Description                                                                                                                                                                                                                                                          |
 | ------------------------------------------------------ | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `moveGroupByBefore(groupBy, columnId, beforeColumnId)` | `GroupByState` | `columnId` placed in front of `beforeColumnId`, or at the end for `null` — inserted when it is not grouped yet, moved when it is, so a header dropped on the bar and a chip dragged within it both use it. Returns `groupBy` itself for a move that changes nothing. |

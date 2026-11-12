@@ -161,7 +161,7 @@ A panel is a small dialog a renderer opens beside where it was asked for — the
 `column.choose` opens the column chooser: a checkbox for every data column in column order, hidden ones included, a search box narrowing the list, and a "Show all" checkbox over what the search shows. `resolveColumnChooser({ columns, visibility, search })` — a `ColumnChooserInput` — works out what it draws, and what "Show all" does:
 
 ```ts
-import { resolveColumnChooser } from "@gridkitjs/core";
+import { resolveColumnChooser } from "@gridkitjs/core/renderer";
 
 const { dataColumns } = controller.getView();
 const { columnVisibility } = controller.getState();
@@ -382,7 +382,7 @@ contextMenu={{
 }}
 ```
 
-For a renderer of your own, two functions read the option:
+For a renderer of your own, two functions read the option: `contextMenuEntries` from `@gridkitjs/core`, and `hasContextMenu` from `@gridkitjs/core/renderer`.
 
 | Function                                   | Type                        | Description                                                                                                                                                                                             |
 | ------------------------------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -435,7 +435,7 @@ Grid menus follow the [WAI-ARIA menu pattern](https://www.w3.org/WAI/ARIA/apg/pa
 
 Hovering over an item moves focus to it, and hovering over a submenu item opens it after a short delay.
 
-The two decisions those keys need are pure, and live here; the behaviour that holds a menu's focus — @gridkitjs/dom's [`attachMenu`](/docs/dom/menus-and-toolbar#menu) — calls them:
+The two decisions those keys need are pure, and live in `@gridkitjs/core/renderer`; the behaviour that holds a menu's focus — @gridkitjs/dom's [`attachMenu`](/docs/dom/menus-and-toolbar#menu) — calls them:
 
 | Function                              | Type     | Description                                                                                                                                                                                                                                                                                                              |
 | ------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

@@ -10,6 +10,8 @@ A grid's filter is one `FilterState` — entries ANDed together, described with 
 3. `initialFilterEditorDraft` and `filterEditorReducer` hold the user's edits as a draft.
 4. `draftToFilter` turns the draft into the next `FilterState` when the user applies it.
 
+The editor model, the condition rows, the value cache and checklist, `resolveColumnFilterMenu`, the operand helpers (`filterOperatorFamily`, `filterOperandArity`, `parseFilterOperand`, `formatFilterOperand`) and the search-box helpers come from `@gridkitjs/core/renderer`. The filter menu's option types, `DEFAULT_FILTER_VALUE_LIMIT`, `defaultFilterOperators`, `isColumnFiltered`, `excelFilter` and the [filter state helpers](#filter-state-helpers) come from `@gridkitjs/core`.
+
 ```ts
 import {
   columnValueOptions,
@@ -17,7 +19,7 @@ import {
   draftToFilter,
   filterEditorReducer,
   initialFilterEditorDraft,
-} from "@gridkitjs/core";
+} from "@gridkitjs/core/renderer";
 
 const { filter } = controller.getState();
 const { dataColumns } = controller.getView();
@@ -68,7 +70,7 @@ An editor shows a custom filter as such; applying its draft replaces it.
 `createColumnValueOptionsCache()` remembers each column's list, so reopening a column's checklist doesn't count its values again. Hold one per grid and ask it in place of `columnValueOptions`:
 
 ```ts
-import { createColumnValueOptionsCache } from "@gridkitjs/core";
+import { createColumnValueOptionsCache } from "@gridkitjs/core/renderer";
 
 const valueCache = createColumnValueOptionsCache<Order>();
 
@@ -124,7 +126,7 @@ A value or blanks action puts the draft on its checklist, and `setConditions` pu
 `toValuesDraft(draft)` and `toConditionsDraft(draft)` return the draft on that arm the same way, or the draft itself when it is already there: a checklist drawn beside a draft on its conditions reads it through `toValuesDraft`. `visibleFilterOptions(draft)` returns the values the search shows, on either arm, and `selectAllState(valuesDraft)` the select-all checkbox's `"checked"`, `"unchecked"` or `"mixed"` over them.
 
 ```ts
-import { selectAllState, toValuesDraft } from "@gridkitjs/core";
+import { selectAllState, toValuesDraft } from "@gridkitjs/core/renderer";
 
 const selectAll = selectAllState(toValuesDraft(draft));
 ```
@@ -134,7 +136,7 @@ const selectAll = selectAllState(toValuesDraft(draft));
 `filterChecklist(draft, options)`, with `FilterChecklistOptions` — `{ valueLimit, blanksLabel }` — is the list a checklist editor draws under its search box and select-all — what each row says and whether it is checked. It takes a `ValuesDraft`; pass `toValuesDraft(draft)` for a draft that may be on its conditions:
 
 ```ts
-import { filterChecklist } from "@gridkitjs/core";
+import { filterChecklist } from "@gridkitjs/core/renderer";
 
 // With `menu` from resolveColumnFilterMenu and the grid's resolved messages:
 const { items, needsSearch, hiddenCount, total } = filterChecklist(draft, {
@@ -171,7 +173,7 @@ What `draftToFilter` writes, `describeColumnFilter` reads back as the same shape
 A draft over a custom filter opens with every value checked, which `draftToFilter` would write as no filter, so applying an untouched editor would remove a filter the user never touched. `filterDraftChanged(opened, draft)` tells whether the user changed anything since the editor opened, so OK can close the editor without applying:
 
 ```ts
-import { draftToFilter, filterDraftChanged } from "@gridkitjs/core";
+import { draftToFilter, filterDraftChanged } from "@gridkitjs/core/renderer";
 
 // `opened` is the draft the editor opened with; keep it beside the working one.
 if (filterDraftChanged(opened, draft)) {
@@ -207,7 +209,7 @@ A renderer draws a filter menu in each filterable column's header; these options
 `resolveColumnFilterMenu(options, column)` settles all of this for one column — what a renderer draws from:
 
 ```ts
-import { resolveColumnFilterMenu } from "@gridkitjs/core";
+import { resolveColumnFilterMenu } from "@gridkitjs/core/renderer";
 
 const menu = resolveColumnFilterMenu(
   { filterableColumns: true, filterMenu: { ui: "excel", showCounts: true } },
@@ -232,7 +234,8 @@ It returns `null` for a column with no filter menu, else a `ResolvedColumnFilter
 `excelFilter` is the options for the Excel-style popup as one plain value — `{ filterableColumns: true, filterMenu: { ui: "excel", showCounts: true } }`. A preset is data, not a component or a hook, so any renderer takes it the way it takes its other options, and an option given after it wins. `filterMenu` is replaced whole, not merged: `{ ...excelFilter, filterMenu: { ui: "simple" } }` also drops `showCounts`.
 
 ```ts
-import { excelFilter, resolveColumnFilterMenu } from "@gridkitjs/core";
+import { excelFilter } from "@gridkitjs/core";
+import { resolveColumnFilterMenu } from "@gridkitjs/core/renderer";
 
 resolveColumnFilterMenu(excelFilter, { field: "Region" });
 // { ui: "excel", operators: [...], family: "text", showCounts: true, ... }
@@ -296,7 +299,7 @@ import {
   describeColumnFilter,
   draftToFilter,
   filterEditorReducer,
-} from "@gridkitjs/core";
+} from "@gridkitjs/core/renderer";
 
 // When the editor opens, with `menu` from resolveColumnFilterMenu:
 let rows = conditionRowsFrom(
@@ -332,7 +335,7 @@ A search box over every column is a UI over the filter's global text entry — t
 | `setSearchText(filter, text)` | `FilterState<Row>` | `filter` with the global text entry set to `%text%` — contains `text` — or removed for `""`. Entries naming a column stay as they are; `filter` itself comes back when nothing changes. |
 
 ```ts
-import { searchTextOf, setSearchText } from "@gridkitjs/core";
+import { searchTextOf, setSearchText } from "@gridkitjs/core/renderer";
 
 input.value = searchTextOf(controller.getState().filter);
 

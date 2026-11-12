@@ -131,7 +131,7 @@ Every item has a `key`, unique among the toolbar's: an item's id, `"search"`, or
 
 ## Overflow
 
-When the toolbar is narrower than its items, the ones that do not fit go into a "More" menu button at its end. The search box and custom entries stay however narrow it gets — they have no menu item to become; `isPinnedToolbarItem(item)` says which entries those are.
+When the toolbar is narrower than its items, the ones that do not fit go into a "More" menu button at its end. The search box and custom entries stay however narrow it gets — they have no menu item to become; `isPinnedToolbarItem(item)` says which entries those are. The overflow functions and types come from `@gridkitjs/core/renderer`.
 
 `fitToolbarItems({ widths, available, moreWidth, pinned })` — a `ToolbarFitInput` — decides how many fit, given each entry's width and whether it is pinned, the width they share and the More button's. It returns a count: the first `count` entries stay, with every pinned entry after them, and the rest overflow.
 
@@ -146,7 +146,7 @@ import {
   fitToolbarItems,
   isPinnedToolbarItem,
   splitToolbarItems,
-} from "@gridkitjs/core";
+} from "@gridkitjs/core/renderer";
 
 const count = fitToolbarItems({
   widths: items.map((item) => (item.type === "spacer" ? 0 : widthOf(item.key))),

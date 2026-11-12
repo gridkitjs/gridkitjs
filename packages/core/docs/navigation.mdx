@@ -3,7 +3,7 @@ title: "Focus and virtualization"
 description: "The arithmetic behind the grid's single tab stop and its virtualized rows."
 ---
 
-`nextFocusForKey` works out where a navigation key moves the grid's tab stop, and `visibleRange` which rows a virtualized body draws. Both are plain arithmetic over numbers; @gridkitjs/dom's [`createGridFocus`](/docs/dom/gestures-and-focus#focus-movement) and [`createRowVirtualizer`](/docs/dom/observers-and-virtualizer#row-virtualizer) do the DOM side and call them for you. Reach for them directly in a renderer that keeps its own focus or scroll.
+`nextFocusForKey` works out where a navigation key moves the grid's tab stop, and `visibleRange` which rows a virtualized body draws. Both are plain arithmetic over numbers; @gridkitjs/dom's [`createGridFocus`](/docs/dom/gestures-and-focus#focus-movement) and [`createRowVirtualizer`](/docs/dom/observers-and-virtualizer#row-virtualizer) do the DOM side and call them for you. Reach for them directly in a renderer that keeps its own focus or scroll. Everything on this page comes from `@gridkitjs/core/renderer`, except `GridFocus`, `headerFocus` and `bodyFocus`, which are in `@gridkitjs/core`.
 
 ## Focus
 
@@ -21,7 +21,7 @@ A `GridFocus` names the cell the tab stop is on by its area: `{ area: "header", 
 `isSkippableRow(rowIndex)` names rows the vertical moves step over — a group's summary row under `groupAggregateDisplay: "row"`, which holds a row's place but is no tab stop. A move with nowhere to land stays where it was. The left and right moves can run past the grid's edges, so pass the result through `clampFocus`:
 
 ```ts
-import { clampFocus, nextFocusForKey } from "@gridkitjs/core";
+import { clampFocus, nextFocusForKey } from "@gridkitjs/core/renderer";
 
 const next = nextFocusForKey(
   event.key,

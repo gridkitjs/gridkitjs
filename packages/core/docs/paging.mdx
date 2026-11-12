@@ -3,7 +3,7 @@ title: "Pagination"
 description: "The pagination logic underneath paginated and the numbered pager."
 ---
 
-`paginateRows` slices the grid's rows into pages, and `paginationWindow` works out which page numbers a numbered pager shows. The [view pipeline](/docs/core/view) pages for you under `paginated`; reach for these directly in a custom adapter or a pager of your own.
+`paginateRows` slices the grid's rows into pages, and `paginationWindow` works out which page numbers a numbered pager shows. The [view pipeline](/docs/core/view) pages for you under `paginated`; reach for these directly in a custom adapter or a pager of your own. `paginateRows` comes from `@gridkitjs/core`, and `paginationWindow`, which serves a pager's drawing, from `@gridkitjs/core/renderer`.
 
 A `PaginationState` is `{ pageIndex, pageSize }`, with `pageIndex` 0-based.
 
@@ -25,7 +25,8 @@ A page counts **units**: a top-level group with everything under it by default, 
 | `pageIndex` | `number`                     | The page returned: `pagination.pageIndex`, clamped. Read this back rather than trusting the one passed in.                           |
 
 ```ts
-import { paginateRows, paginationWindow } from "@gridkitjs/core";
+import { paginateRows } from "@gridkitjs/core";
+import { paginationWindow } from "@gridkitjs/core/renderer";
 
 const page = paginateRows(displayRows, { pageIndex: 6, pageSize: 25 });
 page.pageIndex; // 6, or the last page if there are fewer than 7

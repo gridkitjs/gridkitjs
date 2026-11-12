@@ -7,6 +7,8 @@ description: "The reordering logic underneath reorderableColumns."
 
 ## Functions
 
+`movesColumn`, `resolveDropBefore` and `resolveKeyboardDropTarget` place a drop, so they come from `@gridkitjs/core/renderer`; the rest from `@gridkitjs/core`.
+
 | Function                                                     | Type                               | Description                                                                                                                                       |
 | ------------------------------------------------------------ | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `applyColumnOrder(columns, order)`                           | `readonly ColumnDefinition<Row>[]` | Puts columns in the order order gives. Ids it omits keep their position among the definitions and follow those listed.                            |
