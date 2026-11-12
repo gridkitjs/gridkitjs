@@ -16,6 +16,10 @@ import type { FormatLocale } from "./util/format";
  * the app's to choose. Nor is formatting — dates and numbers follow
  * `locale`, and so do the counts the defaults print: "1,204 of 10,000 rows"
  * under `"en"`, "1.204 of 10.000 rows" under `"de-DE"`.
+ *
+ * A minor release may add keys. The `messages` option takes a partial set
+ * laid over the defaults, so a translation without a new key shows its
+ * English default until it gains one.
  */
 export interface GridMessages {
   /** The pager's accessible name. */

@@ -33,6 +33,7 @@ export type GridCommandTarget =
 /**
  * Where a command was run from: a context menu, the toolbar, a renderer's
  * API, or a column's filter menu — its sort entries and its "Clear filter".
+ * A minor release may add a source, so a `switch` over it needs a `default`.
  */
 export type GridCommandSource =
   "contextMenu" | "toolbar" | "api" | "filterMenu";
@@ -48,14 +49,16 @@ export interface GridCommandEvent {
 
 /**
  * The panels a command can ask a renderer to open: the column chooser, and
- * a column's filter menu, which opens on a header target only.
+ * a column's filter menu, which opens on a header target only. A minor
+ * release may add a panel, so a `switch` over it needs a `default`.
  */
 export type GridPanelKind = "columnChooser" | "filter";
 
 /**
  * What a command needs that only a renderer has: a DOM to measure, panels to
  * open, a live region to speak through. A caller with none of these — a test,
- * a script in Node — passes members that do nothing.
+ * a script in Node — passes members that do nothing. A member added in a
+ * minor release is optional, so a host built by hand keeps compiling.
  */
 export interface GridCommandHost {
   /** Sizes each column to fit its content, as double-clicking its resize handle does. */

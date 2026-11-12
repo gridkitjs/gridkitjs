@@ -1,0 +1,71 @@
+---
+title: "Stability"
+description: "What GridKit promises from 1.0: which parts follow semantic versioning, which do not, and which changes a minor release may make."
+---
+
+GridKit follows [semantic versioning](https://semver.org) from 1.0: a patch fixes bugs, a minor release adds, and only a major release breaks. This page says which parts of GridKit that promise covers, so you know what an upgrade can and cannot change under your app.
+
+## Until 1.0
+
+Until 1.0, a minor release may break: read the changelog before upgrading across one. Every break is listed in the changelog with the code to change, before and after.
+
+## Covered from 1.0
+
+A change to any of these that breaks a correct app waits for a major release:
+
+- Everything exported from `@gridkitjs/core`, `@gridkitjs/react` and `@gridkitjs/export-xlsx`: functions, components, hooks, types and constants.
+- `DataGrid`'s [props](/docs/react/data-grid#props) and its [`DataGridApi`](/docs/react/imperative-handle), the `ref` handle.
+- The [class names](/docs/theme-tailwind/class-names) the grid renders, its `is-*` state classes and its `data-gridkit-*` attributes, as that page lists them.
+- The ARIA roles and attributes on the [accessibility](/docs/react/accessibility) page.
+- The `--gridkit-*` [theme tokens](/docs/theme-tailwind/tokens) and the [preset](/docs/theme-tailwind/presets) file names, in both themes.
+- The [saved-state format](/docs/react/state#saving-and-restoring-a-layout). It carries a `version`, so a layout saved by one release restores in every later one.
+
+## Renderer tier
+
+These are for writing a renderer of your own, and may change in a minor release. Every such change is called out in the changelog.
+
+- `@gridkitjs/core/renderer`, the [second entry point](/docs/core#entry-points) of `@gridkitjs/core`.
+- `@gridkitjs/dom`, which stays at 0.x after the other packages reach 1.0.
+
+If you build a renderer on them, pin their exact versions and read the changelog before each upgrade. An app that renders with `DataGrid` does not import them, and is not affected.
+
+## Not covered
+
+These may change in any release, including a patch:
+
+- The DOM structure beyond the documented classes, attributes and ARIA roles: how many wrapper elements or tables the grid draws, and in what order. Target a class or an attribute, never a child selector or a position.
+- The default English text of [messages](/docs/react/localization). A test that matches it may need updating; pass your own `messages` to fix the text.
+- The exact sizes and colours behind a token's default value. Set the token yourself to fix one.
+- Anything not documented, even if it is reachable.
+- Anything published under the `dev` dist-tag. Those snapshots are for trying a change before its release.
+
+## Changes that are not breaking
+
+A minor release may make these changes. Write your code so it keeps working when one lands:
+
+- New optional props and options.
+- New exports.
+- New members in a union you may `switch` over: `GridCommandSource`, `GridPanelKind`, `GridCommandTarget` (by `area`), `FilterOperator`, `DisplayRow` (by `kind`) and `GridFocus` (by `area`). Give such a `switch` a `default` branch.
+- New keys in `GridMessages`. `messages` takes a partial set, so a translation without a new key shows its English default.
+- New optional members on `GridCommandHost`, for a host built by hand. Its existing members stay required.
+
+```ts
+import type { GridFocus } from "@gridkitjs/react";
+
+export function describeFocus(focus: GridFocus): string {
+  switch (focus.area) {
+    case "header":
+      return `header of column ${String(focus.columnIndex)}`;
+    case "body":
+      return `row ${String(focus.rowIndex)}, column ${String(focus.columnIndex)}`;
+    default:
+      return "elsewhere in the grid";
+  }
+}
+```
+
+## See also
+
+- [Choosing packages](/docs/react/choosing-packages) for what each package holds.
+- [Core overview](/docs/core#entry-points) for the two entry points of `@gridkitjs/core`.
+- [Class names](/docs/theme-tailwind/class-names) for every class and attribute your CSS and tests can rely on.

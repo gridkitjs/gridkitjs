@@ -38,6 +38,27 @@ at `0.0.1` is correct — a package with no pending changeset does not move.
 | `minor` | New API, changed behaviour, or anything breaking. Say so in the summary.    |
 | `major` | Not until 1.0.                                                              |
 
+**What counts as breaking.** A change that makes a correct consumer change
+their code, CSS or tests, to any of these:
+
+- anything exported from `@gridkitjs/core`, `@gridkitjs/react` or
+  `@gridkitjs/export-xlsx`, including `DataGrid`'s props and `DataGridApi`;
+- the class names, `is-*` state classes and `data-gridkit-*` attributes
+  listed in `packages/theme-tailwind/docs/class-names.mdx`;
+- the ARIA roles and attributes the grid renders;
+- the `--gridkit-*` theme tokens and the preset file names;
+- the saved-state format;
+- the documented behaviour of any of the above.
+
+A change to any of them is never a `patch`, even when it fixes a bug: a
+markup or attribute change that breaks a consumer's selectors is breaking.
+`@gridkitjs/core/renderer` and `@gridkitjs/dom` are the renderer tier,
+which may break in a minor; the summary still says so. Adding is not
+breaking: a new optional prop or option, a new export, a new member of a
+union a consumer `switch`es over, a new `GridMessages` key, a new optional
+`GridCommandHost` member. The consumer-facing version of this list is
+`packages/react/docs/stability.mdx`; keep the two in step.
+
 **What does not need one:** the playground and anything that leaves shipped
 output untouched — tests, CI, README and doc edits, tooling config. When in
 doubt, ask whether an installed consumer could tell. If not, skip it.
