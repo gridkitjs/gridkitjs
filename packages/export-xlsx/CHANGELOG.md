@@ -1,5 +1,21 @@
 # @gridkitjs/export-xlsx
 
+## 0.1.6
+
+### Patch Changes
+
+- f4b7ff4: The packages declare `"sideEffects": false`, so a bundler drops the modules an app imports nothing from. None of them does work at import.
+- Updated dependencies [5450e0c]
+- Updated dependencies [f4b7ff4]
+- Updated dependencies [6302ace]
+- Updated dependencies [e4196d1]
+- Updated dependencies [f7250e8]
+- Updated dependencies [f4b7ff4]
+- Updated dependencies [5450e0c]
+- Updated dependencies [9499370]
+- Updated dependencies [f4b7ff4]
+  - @gridkitjs/core@0.18.0
+
 ## 0.1.5
 
 ### Patch Changes

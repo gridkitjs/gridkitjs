@@ -1,5 +1,142 @@
 # @gridkitjs/react
 
+## 0.18.0
+
+### Minor Changes
+
+- 5450e0c: Breaking: `CellSelectionState` is told apart by its `kind`, `{ kind: "none" }` or `{ kind: "cell", rowId, columnId }`, in place of `{ rowId, columnId }` or `null`. Every place that takes or gives one changes with it: `defaultCellSelection`, `cellSelection`, `setCellSelection`, `getCellSelection()`, the `selection` of `CellSelectEvent` and `CellSelectionChangeEvent`, `useSelectionState`'s `cellSelection` (`{ kind: "none" }` before the grid mounts), and `isSameCell`, `selectCell` and `toggleCellSelection` from `@gridkitjs/core`:
+
+  ```tsx
+  // Before
+  <DataGrid defaultCellSelection={{ rowId: "7", columnId: "amount" }} />;
+  api.setCellSelection(null);
+
+  // After
+  <DataGrid
+    defaultCellSelection={{ kind: "cell", rowId: "7", columnId: "amount" }}
+  />;
+  api.setCellSelection({ kind: "none" });
+  ```
+
+  Reading the selection checks the `kind` first:
+
+  ```ts
+  // Before
+  const cell = api.getCellSelection();
+  if (cell !== null) {
+    show(cell.rowId, cell.columnId);
+  }
+
+  // After
+  const selection = api.getCellSelection();
+  if (selection.kind === "cell") {
+    show(selection.rowId, selection.columnId);
+  }
+  ```
+
+  A later release may add a kind, such as a range of cells, so a `switch` over it needs a `default` branch. Passing the state to `resolveCell`, which still takes a `{ rowId, columnId }` address or `null`, needs the same check.
+
+  `selectCell` and `toggleCellSelection` still take the cell to select as a `SelectedCellRef` (`{ rowId, columnId }`), and so does the controller's `selectCell`. Saved state keeps `version: 1`: a `cellSelection` saved without a `version`, as `null` or `{ rowId, columnId }`, restores as `{ kind: "none" }` or that cell.
+
+- f4b7ff4: Breaking: the column-width callback is `onColumnSizingChange`, so every state slice reports through `on<Slice>Change`. It is the same callback under a new name: it still receives a `ColumnResizeEvent`, continuously with `phase: "move"` during a drag and once with `"end"`. Rename the prop on `DataGrid` and the option passed to `createGridController`:
+
+  ```tsx
+  // Before
+  <DataGrid
+    columnSizing={sizing}
+    onColumnResize={(event) => setSizing(event.sizing)}
+  />
+
+  // After
+  <DataGrid
+    columnSizing={sizing}
+    onColumnSizingChange={(event) => setSizing(event.sizing)}
+  />
+  ```
+
+- f98c193: Breaking: `DataGridApi.focusCell` takes the cell as one `GridFocus`, and `getFocusedCell()` returns one, in place of a row and a column index where row `-1` meant the header. `GridFocus` is the header-or-body type from `@gridkitjs/core`, now re-exported by `@gridkitjs/react` too:
+
+  ```ts
+  // Before
+  api.focusCell(2, 1);
+  api.focusCell(-1, 0); // the header's first cell
+
+  // After
+  api.focusCell({ area: "body", rowIndex: 2, columnIndex: 1 });
+  api.focusCell({ area: "header", columnIndex: 0 });
+  ```
+
+  `getFocusedCell()` tells the header apart by `area` rather than by a row of `-1`, and a header focus has no `rowIndex`:
+
+  ```ts
+  // Before
+  const { rowIndex, columnIndex } = api.getFocusedCell();
+  if (rowIndex === -1) {
+    // the header
+  }
+
+  // After
+  const focus = api.getFocusedCell();
+  if (focus.area === "header") {
+    // the header: { area: "header", columnIndex }
+  } else {
+    // a body cell: { area: "body", rowIndex, columnIndex }
+  }
+  ```
+
+  Either index is still held inside the grid, and `getFocusedCell()` still returns the same object until the focus moves.
+
+- f7250e8: Breaking: every class name the grid renders starts with `gridkit-`, so the theme's rules can no longer match a host page's own elements and a host's rules no longer reach into the grid. The rest of each name is unchanged (`grid-row` is `gridkit-grid-row`, `header-cell` is `gridkit-header-cell`, `borders-all` is `gridkit-borders-all`), and the `is-*` state classes keep their names. Names that already started with `gridkit-` are unchanged too. Custom CSS and test selectors that name a grid class add the prefix:
+
+  ```css
+  /* Before */
+  .grid-row.is-overdue {
+    color: red;
+  }
+
+  /* After */
+  .gridkit-grid-row.is-overdue {
+    color: red;
+  }
+  ```
+
+  ```ts
+  // Before
+  page.locator(".header-cell.is-selected");
+
+  // After
+  page.locator(".gridkit-header-cell.is-selected");
+  ```
+
+  The print document and the HTML table `@gridkitjs/core` writes for copy and print follow the same rule: `export-group`, `export-group-summary`, `print-title`, `print-subtitle` and `print-timestamp` are `gridkit-export-group`, `gridkit-export-group-summary`, `gridkit-print-title`, `gridkit-print-subtitle` and `gridkit-print-timestamp`, and `printStyles` from `@gridkitjs/dom` targets them.
+
+- f4b7ff4: `@gridkitjs/react` exports every core type its props, column definitions, callbacks and `DataGridApi` methods name, so a React app types a grid without importing from `@gridkitjs/core`. Added: `AggregateFn`, `AggregateResults`, `AggregateSpec`, `AggregateState`, `BuiltInAggregate`, `ColumnAlignment`, `ColumnFilterMenuOptions`, `ColumnOrderEvent`, `ColumnOrderState`, `ColumnSortEntry`, `ColumnSortEvent`, `ColumnSortState`, `ColumnType`, `ColumnWrapConfig`, `DisplayRow`, `ExportScalar`, `FieldPath`, `FooterTemplateContext`, `FormatLocale`, `GridFilterMenuOptions`, `GroupAggregateDisplay`, `GroupByEntry`, `GroupByEvent`, `GroupByState`, `GroupExpansionEvent`, `GroupExpansionState`, `PaginationChangeEvent`, `PaginationState`, `ResolvedGroupRow`, `ResolvedGroupSummaryRow` and `SortDirection`.
+
+  ```ts
+  // Before
+  import type { ColumnSortState, PaginationState } from "@gridkitjs/core";
+
+  // After
+  import type { ColumnSortState, PaginationState } from "@gridkitjs/react";
+  ```
+
+  The import from `@gridkitjs/core` still works.
+
+### Patch Changes
+
+- f4b7ff4: The packages declare `"sideEffects": false`, so a bundler drops the modules an app imports nothing from. None of them does work at import.
+- Updated dependencies [5450e0c]
+- Updated dependencies [f4b7ff4]
+- Updated dependencies [6302ace]
+- Updated dependencies [e4196d1]
+- Updated dependencies [f7250e8]
+- Updated dependencies [f4b7ff4]
+- Updated dependencies [5450e0c]
+- Updated dependencies [9499370]
+- Updated dependencies [f4b7ff4]
+  - @gridkitjs/core@0.18.0
+  - @gridkitjs/dom@0.7.0
+
 ## 0.17.1
 
 ### Patch Changes
