@@ -80,7 +80,7 @@ const saved: GridState<SampleRow> = {
   pagination: { pageIndex: 1, pageSize: 1 },
   rowSelection: ["3", "1"],
   columnSelection: ["Amount"],
-  cellSelection: { rowId: "3", columnId: "Amount" },
+  cellSelection: { kind: "cell", rowId: "3", columnId: "Amount" },
 };
 
 afterEach(() => {
@@ -464,9 +464,9 @@ describe("saved state version", () => {
 
   test("an unversioned save in an earlier shape, one in today's shape and a version 1 save restore alike", () => {
     const saves = [
-      `{ ${layout}, "groupExpansion": ["[\\"West\\"]"] }`,
-      `{ ${layout}, "groupExpansion": { "mode": "allExpanded", "except": ["[\\"West\\"]"] } }`,
-      `{ "version": 1, ${layout}, "groupExpansion": { "mode": "allExpanded", "except": ["[\\"West\\"]"] } }`,
+      `{ ${layout}, "groupExpansion": ["[\\"West\\"]"], "cellSelection": { "rowId": "3", "columnId": "Amount" } }`,
+      `{ ${layout}, "groupExpansion": { "mode": "allExpanded", "except": ["[\\"West\\"]"] }, "cellSelection": { "kind": "cell", "rowId": "3", "columnId": "Amount" } }`,
+      `{ "version": 1, ${layout}, "groupExpansion": { "mode": "allExpanded", "except": ["[\\"West\\"]"] }, "cellSelection": { "kind": "cell", "rowId": "3", "columnId": "Amount" } }`,
     ];
 
     const restored = saves.map((json) => {
@@ -479,6 +479,7 @@ describe("saved state version", () => {
       columnOrder: ["Amount", "Id"],
       groupBy: [{ columnId: "Region" }],
       groupExpansion: { mode: "allExpanded", except: ['["West"]'] },
+      cellSelection: { kind: "cell", rowId: "3", columnId: "Amount" },
     });
     expect(restored[1]).toEqual(restored[0]);
     expect(restored[2]).toEqual(restored[0]);
@@ -582,5 +583,36 @@ describe("group expansion", () => {
       );
     }).toThrow(TypeError);
     expect(controller.getState().groupExpansion).toEqual(ALL_EXPANDED);
+  });
+});
+
+describe("cell selection", () => {
+  /** A layout read back from storage, whatever shape it was saved in. */
+  function parseSaved(json: string): Partial<SerializedGridState<SampleRow>> {
+    return JSON.parse(json) as Partial<SerializedGridState<SampleRow>>;
+  }
+
+  test("a cell saved before the slice had a kind restores as that cell", () => {
+    const controller = create();
+
+    controller.restoreState(
+      parseSaved(`{ "cellSelection": { "rowId": "3", "columnId": "Amount" } }`),
+    );
+
+    expect(controller.getState().cellSelection).toEqual({
+      kind: "cell",
+      rowId: "3",
+      columnId: "Amount",
+    });
+  });
+
+  test("null, saved before the slice had a kind, restores as no cell", () => {
+    const controller = create({
+      defaultCellSelection: { kind: "cell", rowId: "1", columnId: "Id" },
+    });
+
+    controller.restoreState(parseSaved(`{ "cellSelection": null }`));
+
+    expect(controller.getState().cellSelection).toEqual({ kind: "none" });
   });
 });

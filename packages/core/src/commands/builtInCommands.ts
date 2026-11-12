@@ -515,7 +515,7 @@ export function builtInCommands<Row>(): readonly GridCommand<Row>[] {
       isEnabled: ({ state }) =>
         state.rowSelection.length > 0 ||
         state.columnSelection.length > 0 ||
-        state.cellSelection !== null,
+        state.cellSelection.kind !== "none",
       execute: ({ actions }) => {
         actions.clearSelection();
       },

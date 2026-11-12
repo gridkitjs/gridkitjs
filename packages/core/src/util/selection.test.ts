@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import type { SelectionState } from "../types";
 import {
   applySelectionIntent,
+  clearCellSelection,
   clearSelection,
   diffSelection,
   intentOf,
@@ -226,11 +227,11 @@ describe("diffSelection", () => {
 });
 
 describe("isSameCell", () => {
-  test("is true for the same address in two objects", () => {
+  test("is true for the same cell in two objects", () => {
     expect(
       isSameCell(
-        { rowId: "1", columnId: "Id" },
-        { rowId: "1", columnId: "Id" },
+        { kind: "cell", rowId: "1", columnId: "Id" },
+        { kind: "cell", rowId: "1", columnId: "Id" },
       ),
     ).toBe(true);
   });
@@ -238,22 +239,24 @@ describe("isSameCell", () => {
   test("is false when either half differs", () => {
     expect(
       isSameCell(
-        { rowId: "1", columnId: "Id" },
-        { rowId: "2", columnId: "Id" },
+        { kind: "cell", rowId: "1", columnId: "Id" },
+        { kind: "cell", rowId: "2", columnId: "Id" },
       ),
     ).toBe(false);
     expect(
       isSameCell(
-        { rowId: "1", columnId: "Id" },
-        { rowId: "1", columnId: "Name" },
+        { kind: "cell", rowId: "1", columnId: "Id" },
+        { kind: "cell", rowId: "1", columnId: "Name" },
       ),
     ).toBe(false);
   });
 
-  test("is true only when both are null", () => {
-    expect(isSameCell(null, null)).toBe(true);
-    expect(isSameCell(null, { rowId: "1", columnId: "Id" })).toBe(false);
-    expect(isSameCell({ rowId: "1", columnId: "Id" }, null)).toBe(false);
+  test("is true only when both select nothing", () => {
+    const cell = { kind: "cell", rowId: "1", columnId: "Id" } as const;
+
+    expect(isSameCell({ kind: "none" }, { kind: "none" })).toBe(true);
+    expect(isSameCell({ kind: "none" }, cell)).toBe(false);
+    expect(isSameCell(cell, { kind: "none" })).toBe(false);
   });
 });
 
@@ -261,18 +264,24 @@ describe("selectCell", () => {
   const cell = { rowId: "1", columnId: "Id" };
 
   test("moves the selection to the cell", () => {
-    expect(selectCell(null, cell, "single")).toBe(cell);
+    expect(selectCell({ kind: "none" }, cell, "single")).toEqual({
+      kind: "cell",
+      rowId: "1",
+      columnId: "Id",
+    });
   });
 
   /** A plain click on the selected cell leaves it selected, as `selectOnly` does. */
   test("returns the same selection for the cell already selected", () => {
-    const selection = { rowId: "1", columnId: "Id" };
+    const selection = { kind: "cell", rowId: "1", columnId: "Id" } as const;
 
     expect(selectCell(selection, cell, "single")).toBe(selection);
   });
 
   test("returns the same selection when the mode is false", () => {
-    expect(selectCell(null, cell, false)).toBeNull();
+    const selection = { kind: "none" } as const;
+
+    expect(selectCell(selection, cell, false)).toBe(selection);
   });
 });
 
@@ -280,19 +289,41 @@ describe("toggleCellSelection", () => {
   const cell = { rowId: "1", columnId: "Id" };
 
   test("moves the selection to the cell", () => {
-    expect(toggleCellSelection(null, cell, "single")).toBe(cell);
+    expect(toggleCellSelection({ kind: "none" }, cell, "single")).toEqual({
+      kind: "cell",
+      rowId: "1",
+      columnId: "Id",
+    });
   });
 
   test("clears the cell already selected", () => {
     expect(
-      toggleCellSelection({ rowId: "1", columnId: "Id" }, cell, "single"),
-    ).toBeNull();
+      toggleCellSelection(
+        { kind: "cell", rowId: "1", columnId: "Id" },
+        cell,
+        "single",
+      ),
+    ).toEqual({ kind: "none" });
   });
 
   test("returns the same selection when the mode is false", () => {
-    const selection = { rowId: "2", columnId: "Name" };
+    const selection = { kind: "cell", rowId: "2", columnId: "Name" } as const;
 
     expect(toggleCellSelection(selection, cell, false)).toBe(selection);
+  });
+});
+
+describe("clearCellSelection", () => {
+  test("lets go of the selected cell", () => {
+    expect(
+      clearCellSelection({ kind: "cell", rowId: "1", columnId: "Id" }),
+    ).toEqual({ kind: "none" });
+  });
+
+  test("returns the same selection when nothing is selected", () => {
+    const selection = { kind: "none" } as const;
+
+    expect(clearCellSelection(selection)).toBe(selection);
   });
 });
 

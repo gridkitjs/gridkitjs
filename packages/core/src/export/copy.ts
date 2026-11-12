@@ -98,7 +98,7 @@ function selectionCopy<Row>(source: CopySource<Row>): SelectionCopy | null {
   }
   const cell = state.cellSelection;
   if (
-    cell !== null &&
+    cell.kind === "cell" &&
     hasRow(source, cell.rowId) &&
     hasColumn(source, cell.columnId)
   ) {

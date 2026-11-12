@@ -22,6 +22,7 @@ import { memoizeLast } from "../util/memoize";
 import { moveColumnBefore } from "../util/ordering";
 import { paginateRows, type PaginatedRows } from "../util/paging";
 import { reportError } from "../util/report";
+import { NO_CELL_SELECTED } from "../util/selection";
 import {
   type CurrentGridState,
   migrateSavedState,
@@ -119,7 +120,7 @@ function startingState<Row>(options: GridOptions<Row>): OwnState<Row> {
     },
     rowSelection: options.defaultRowSelection ?? [],
     columnSelection: options.defaultColumnSelection ?? [],
-    cellSelection: options.defaultCellSelection ?? null,
+    cellSelection: options.defaultCellSelection ?? NO_CELL_SELECTED,
   };
 }
 

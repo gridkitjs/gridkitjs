@@ -3,6 +3,7 @@ import type {
   CellSelectionState,
   ResolvedColumn,
   ResolvedRow,
+  SelectedCellRef,
   SelectionDiff,
   SelectionState,
 } from "../types";
@@ -78,6 +79,11 @@ export function reportColumnSelection<Row, Node>(
   return diff;
 }
 
+/** The one cell `selection` holds, or `null` when it holds none. */
+function selectedCellOf(selection: CellSelectionState): SelectedCellRef | null {
+  return selection.kind === "cell" ? selection : null;
+}
+
 /**
  * Fires the cell selection callbacks for one change. The cell left and the
  * cell arrived at are resolved together, so moving between two cells reports
@@ -90,8 +96,8 @@ export function reportCellSelection<Row, Node>(
   columns: readonly ResolvedColumn<Row, Node>[],
   callbacks: SelectionCallbacks<Row, Node>,
 ): void {
-  const selected = resolveCell(rowsById, columns, next);
-  const deselected = resolveCell(rowsById, columns, previous);
+  const selected = resolveCell(rowsById, columns, selectedCellOf(next));
+  const deselected = resolveCell(rowsById, columns, selectedCellOf(previous));
 
   if (deselected !== null) {
     callbacks.onCellDeselect?.({ cell: deselected, selection: next });

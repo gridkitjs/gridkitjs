@@ -296,22 +296,34 @@ describe("createGridController: column and cell selection", () => {
     const events = onCellSelectionChange.mock.calls.map(([event]) => ({
       selected: event.selected?.value ?? null,
       deselected: event.deselected?.value ?? null,
+      selection: event.selection,
     }));
     expect(events).toEqual([
-      { selected: 1, deselected: null },
-      { selected: "East", deselected: 1 },
-      { selected: null, deselected: "East" },
+      {
+        selected: 1,
+        deselected: null,
+        selection: { kind: "cell", rowId: "1", columnId: "Id" },
+      },
+      {
+        selected: "East",
+        deselected: 1,
+        selection: { kind: "cell", rowId: "2", columnId: "Region" },
+      },
+      { selected: null, deselected: "East", selection: { kind: "none" } },
     ]);
   });
 
-  test("a controlled null cell selection stays null", () => {
+  test("a controlled empty cell selection stays empty", () => {
     const onCellSelectionChange = vi.fn();
-    const controller = create({ cellSelection: null, onCellSelectionChange });
+    const controller = create({
+      cellSelection: { kind: "none" },
+      onCellSelectionChange,
+    });
 
     controller.selectCell({ rowId: "1", columnId: "Id" }, "replace");
 
     expect(onCellSelectionChange).toHaveBeenCalledTimes(1);
-    expect(controller.getState().cellSelection).toBeNull();
+    expect(controller.getState().cellSelection).toEqual({ kind: "none" });
   });
 
   test("clearSelection lets go of rows, columns and the cell, and setCellSelection skips an equal cell", () => {
@@ -321,16 +333,28 @@ describe("createGridController: column and cell selection", () => {
       defaultColumnSelection: ["Id"],
       onCellSelectionChange,
     });
-    controller.setCellSelection({ rowId: "1", columnId: "Id" });
-    controller.setCellSelection({ rowId: "1", columnId: "Id" });
+    controller.setCellSelection({ kind: "cell", rowId: "1", columnId: "Id" });
+    controller.setCellSelection({ kind: "cell", rowId: "1", columnId: "Id" });
 
     controller.clearSelection();
 
     expect(controller.getState()).toMatchObject({
       rowSelection: [],
       columnSelection: [],
-      cellSelection: null,
+      cellSelection: { kind: "none" },
     });
     expect(onCellSelectionChange).toHaveBeenCalledTimes(2);
+  });
+
+  test("clearSelection with no cell selected reports no cell change", () => {
+    const onCellSelectionChange = vi.fn();
+    const controller = create({
+      defaultCellSelection: { kind: "none" },
+      onCellSelectionChange,
+    });
+
+    controller.clearSelection();
+
+    expect(onCellSelectionChange).not.toHaveBeenCalled();
   });
 });

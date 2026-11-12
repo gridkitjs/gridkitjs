@@ -831,9 +831,9 @@ describe("selection.clear", () => {
     );
     expect(builtIn("selection.clear", create(), GRID).visible()).toBe(false);
 
-    controller.setCellSelection({ rowId: "1", columnId: "Id" });
+    controller.setCellSelection({ kind: "cell", rowId: "1", columnId: "Id" });
     expect(command.enabled()).toBe(true);
-    controller.setCellSelection(null);
+    controller.setCellSelection({ kind: "none" });
     controller.setColumnSelection(["Id"]);
     expect(command.enabled()).toBe(true);
     controller.setColumnSelection([]);
@@ -852,7 +852,7 @@ describe("selection.clear", () => {
     expect(controller.getState()).toMatchObject({
       rowSelection: [],
       columnSelection: [],
-      cellSelection: null,
+      cellSelection: { kind: "none" },
     });
   });
 });
@@ -1213,7 +1213,11 @@ describe("copy.selection", () => {
       );
     }
 
-    controller.setCellSelection({ rowId: "2", columnId: "Amount" });
+    controller.setCellSelection({
+      kind: "cell",
+      rowId: "2",
+      columnId: "Amount",
+    });
     expect(command.enabled()).toBe(true);
   });
 

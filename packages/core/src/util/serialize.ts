@@ -1,4 +1,5 @@
 import type {
+  CellSelectionState,
   ColumnType,
   DataColumn,
   FilterEntry,
@@ -118,25 +119,65 @@ export type CurrentGridState<Row> =
   Partial<GridState<Row>> | Partial<Omit<SerializedGridState<Row>, "version">>;
 
 /**
+ * A `cellSelection` as saved before the slice carried a `kind`, in the
+ * current shape: `null` for no cell, or the cell's `{ rowId, columnId }`.
+ * `undefined` for anything else, which is left as it is.
+ */
+function untaggedCellSelection(saved: unknown): CellSelectionState | undefined {
+  if (saved === null) {
+    return { kind: "none" };
+  }
+  if (
+    typeof saved === "object" &&
+    !("kind" in saved) &&
+    "rowId" in saved &&
+    typeof saved.rowId === "string" &&
+    "columnId" in saved &&
+    typeof saved.columnId === "string"
+  ) {
+    return { kind: "cell", rowId: saved.rowId, columnId: saved.columnId };
+  }
+  return undefined;
+}
+
+/**
+ * `state`, saved with no version, in the shape this release writes. Its
+ * slices may be in the shapes from before they were tagged: a
+ * `groupExpansion` as a bare list of group ids names the collapsed groups,
+ * and so reads as `allExpanded` with them as the exceptions; a
+ * `cellSelection` of `null` or `{ rowId, columnId }` reads as
+ * `{ kind: "none" }` or that cell.
+ */
+function migrateUnversioned<Row>(
+  state: CurrentGridState<Row>,
+): CurrentGridState<Row> {
+  let migrated = state;
+  if (isStringList(state.groupExpansion)) {
+    migrated = {
+      ...migrated,
+      groupExpansion: { mode: "allExpanded", except: state.groupExpansion },
+    };
+  }
+  const cellSelection = untaggedCellSelection(state.cellSelection);
+  if (cellSelection !== undefined) {
+    migrated = { ...migrated, cellSelection };
+  }
+  return migrated;
+}
+
+/**
  * `saved` in the shape this release writes, read by the `version` it was
  * saved with. One with no version was saved before the field existed, or is
- * live state from `getState()`; it may hold a `groupExpansion` as a bare
- * list of group ids, the shape before the slice carried a mode, which names
- * the collapsed groups and so reads as `allExpanded` with them as the
- * exceptions. A version newer than this release reads throws, rather than
- * restoring half of a shape it does not know.
+ * live state from `getState()`, and may hold slices in their untagged
+ * shapes (see `migrateUnversioned`). A version newer than this release
+ * reads throws, rather than restoring half of a shape it does not know.
  */
 export function migrateSavedState<Row>(
   saved: SavedGridState<Row> & { readonly version?: unknown },
 ): CurrentGridState<Row> {
   const { version, ...state } = saved;
   if (version === undefined) {
-    return isStringList(state.groupExpansion)
-      ? {
-          ...state,
-          groupExpansion: { mode: "allExpanded", except: state.groupExpansion },
-        }
-      : state;
+    return migrateUnversioned(state);
   }
   if (version === SAVED_STATE_VERSION) {
     return state;

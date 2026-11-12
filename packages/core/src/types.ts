@@ -853,8 +853,18 @@ export interface SelectedCellRef {
   readonly columnId: string;
 }
 
-/** The one selected cell, or `null` for none. */
-export type CellSelectionState = SelectedCellRef | null;
+/**
+ * Which cells are selected: none, or one cell by its address. A minor
+ * release may add a member, such as a range of cells, so a `switch` over
+ * `kind` needs a `default`.
+ */
+export type CellSelectionState =
+  | { readonly kind: "none" }
+  | {
+      readonly kind: "cell";
+      readonly rowId: string;
+      readonly columnId: string;
+    };
 
 /**
  * What changed between two selections. Ids rather than resolved members, so
@@ -981,9 +991,9 @@ export interface CellSelectEvent<Row, Node = string> {
 }
 
 /**
- * Reports a cell selection change whole. Both fields are nullable and one
- * interaction can fill both — moving between cells deselects and selects at
- * once.
+ * Reports a cell selection change whole. `selected` and `deselected` are
+ * nullable and one interaction can fill both — moving between cells
+ * deselects and selects at once.
  */
 export interface CellSelectionChangeEvent<Row, Node = string> {
   readonly selected: SelectedCell<Row, Node> | null;

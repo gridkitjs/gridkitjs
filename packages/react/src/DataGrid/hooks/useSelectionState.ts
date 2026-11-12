@@ -4,7 +4,7 @@ import type { DataGridApi } from "../DataGrid";
 import useGridSnapshot from "./useGridSnapshot";
 
 const FALLBACK_SELECTION: SelectionState = [];
-const FALLBACK_CELL_SELECTION: CellSelectionState = null;
+const FALLBACK_CELL_SELECTION: CellSelectionState = { kind: "none" };
 
 export interface SelectionStateApi {
   rowSelection: SelectionState;
@@ -22,7 +22,7 @@ export interface SelectionStateApi {
  * internally.
  *
  * Before the grid mounts, the row/column fields read as empty arrays and
- * the cell field reads `null`; the actions are no-ops.
+ * the cell field reads `{ kind: "none" }`; the actions are no-ops.
  */
 export default function useSelectionState<Row>(
   gridRef: RefObject<DataGridApi<Row> | null>,

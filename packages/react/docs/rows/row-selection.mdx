@@ -223,7 +223,7 @@ It returns a `SelectionStateApi`:
 | `clearSelection`  | `() => void`         | Clears row, column, and cell selection together.                              |
 | `selectAllRows`   | `() => void`         | Selects every data row on the current page, under `"multiple"` only.          |
 
-Before the grid mounts, the row/column fields read as empty arrays and the cell field reads `null`. See [imperative handle](/docs/react/imperative-handle) for `subscribe`, the primitive this hook is built on.
+Before the grid mounts, the row/column fields read as empty arrays and the cell field reads `{ kind: "none" }`. See [imperative handle](/docs/react/imperative-handle) for `subscribe`, the primitive this hook is built on.
 
 ## Keyboard
 

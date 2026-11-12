@@ -158,9 +158,9 @@ export interface GridOptions<Row> {
   /** The cell selected to start with. Uncontrolled. */
   defaultCellSelection?: CellSelectionState | undefined;
   /**
-   * The selected cell, controlled — `null` for none, changed only through
-   * the cell selection callbacks. Leave it `undefined` for the grid to keep
-   * it.
+   * The selected cell, controlled — `{ kind: "none" }` for none, changed
+   * only through the cell selection callbacks. Leave it `undefined` for the
+   * grid to keep it.
    */
   cellSelection?: CellSelectionState | undefined;
   /** Whether columns can be dragged wider, unless a column says otherwise. */

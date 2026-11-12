@@ -226,7 +226,7 @@ export interface GridController<Row, Node = string> {
   readonly setColumnSelection: (selection: SelectionState) => void;
   /** `selectRow`, for a column among the columns as rendered. */
   readonly selectColumn: (columnId: string, intent: SelectIntent) => void;
-  /** Replaces the selected cell as given, `null` for none. */
+  /** Replaces the cell selection as given, `{ kind: "none" }` for none. */
   readonly setCellSelection: (selection: CellSelectionState) => void;
   /**
    * Applies one click or key press to a cell: `"toggle"` lets go of it when

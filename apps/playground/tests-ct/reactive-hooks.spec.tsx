@@ -309,6 +309,30 @@ test("useSelectionState updates from Ctrl+click row selection with no onRowSelec
   expect(status.rowSelection).toEqual(["r1"]);
 });
 
+test("useSelectionState reads the cell selection by its kind, before and after a click", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ReactiveHooksGrid
+      columns={columns}
+      dataSource={buildRows()}
+      selectable={{ cells: "single" }}
+    />,
+  );
+
+  let status = await readReactiveStatus(root);
+  expect(status.cellSelection).toEqual({ kind: "none" });
+
+  await root.locator("tbody tr").nth(1).locator("td").nth(1).click();
+  status = await readReactiveStatus(root);
+  expect(status.cellSelection).toEqual({
+    kind: "cell",
+    rowId: "r2",
+    columnId: "region",
+  });
+});
+
 test("useAggregateState updates when a sort/filter-adjacent change alters the grand total, with no dedicated on*Change prop for aggregates", async ({
   mount,
 }) => {

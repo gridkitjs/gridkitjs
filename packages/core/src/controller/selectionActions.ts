@@ -10,6 +10,7 @@ import type {
 import { memoizeLast } from "../util/memoize";
 import {
   applySelectionIntent,
+  clearCellSelection,
   clearSelection,
   isSameCell,
   selectAll,
@@ -231,7 +232,7 @@ export function createSelectionActions<Row, Node>(
       grid.transaction(() => {
         commitRows(clearSelection(grid.getState().rowSelection));
         commitColumns(clearSelection(grid.getState().columnSelection));
-        commitCell(null);
+        commitCell(clearCellSelection(grid.getState().cellSelection));
       });
     },
 

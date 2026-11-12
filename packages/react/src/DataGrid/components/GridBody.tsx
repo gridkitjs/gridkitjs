@@ -339,7 +339,8 @@ export default function GridBody<Row>({
                  * moved between rather than all of them.
                  */
                 selectedColumnId={
-                  selectedCell?.rowId === entry.rowId
+                  selectedCell.kind === "cell" &&
+                  selectedCell.rowId === entry.rowId
                     ? selectedCell.columnId
                     : null
                 }

@@ -186,7 +186,11 @@ describe("copyContent", () => {
       expect(
         copyContent(
           sourceFor({
-            defaultCellSelection: { rowId: "3", columnId: "Region" },
+            defaultCellSelection: {
+              kind: "cell",
+              rowId: "3",
+              columnId: "Region",
+            },
           }),
           { kind: "selection" },
         ),
@@ -194,7 +198,7 @@ describe("copyContent", () => {
     });
 
     test("prefers rows to columns, and columns to the cell", () => {
-      const cell = { rowId: "3", columnId: "Region" };
+      const cell = { kind: "cell", rowId: "3", columnId: "Region" } as const;
 
       expect(
         copyContent(
@@ -223,7 +227,7 @@ describe("copyContent", () => {
           sourceFor({
             defaultRowSelection: ["2"],
             defaultFilter: WEST,
-            defaultCellSelection: { rowId: "1", columnId: "Id" },
+            defaultCellSelection: { kind: "cell", rowId: "1", columnId: "Id" },
           }),
           { kind: "selection" },
         ),
@@ -238,9 +242,15 @@ describe("copyContent", () => {
           defaultColumnSelection: ["Id"],
           defaultFilter: [{ kind: "text", query: "%x%" }],
         },
-        { defaultCellSelection: { rowId: "1", columnId: "Secret" } },
         {
-          defaultCellSelection: { rowId: "2", columnId: "Id" },
+          defaultCellSelection: {
+            kind: "cell",
+            rowId: "1",
+            columnId: "Secret",
+          },
+        },
+        {
+          defaultCellSelection: { kind: "cell", rowId: "2", columnId: "Id" },
           defaultFilter: WEST,
         },
       ] satisfies GridControllerOptions<Order>[]) {
@@ -258,7 +268,7 @@ describe("canCopySelection", () => {
     for (const options of [
       { defaultRowSelection: ["1"] },
       { defaultColumnSelection: ["Region"] },
-      { defaultCellSelection: { rowId: "1", columnId: "Id" } },
+      { defaultCellSelection: { kind: "cell", rowId: "1", columnId: "Id" } },
     ] satisfies GridControllerOptions<Order>[]) {
       expect(canCopySelection(sourceFor(options))).toBe(true);
     }
