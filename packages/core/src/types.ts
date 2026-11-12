@@ -1079,7 +1079,15 @@ export interface GridViewInput<Row, Node = string> {
   readonly rows: readonly Row[];
   readonly getRowId?: ((row: Row, index: number) => string) | undefined;
   readonly columns: readonly ColumnDefinition<Row, Node>[];
-  readonly state: GridViewState<Row>;
+  /**
+   * The slices to show, any of them: one left out reads as the grid's
+   * starting default — no sizes, order, hidden columns, sort, filter or
+   * grouping, every group expanded, and the first page of 25.
+   */
+  readonly state: {
+    readonly [K in keyof GridViewState<Row>]?:
+      GridViewState<Row>[K] | undefined;
+  };
   readonly options: GridViewOptions<Row>;
 }
 

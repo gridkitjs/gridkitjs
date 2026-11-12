@@ -25,7 +25,6 @@ The examples on this page call `fetchOrders`, which stands in for your API. It a
 
 ```ts title="api.ts"
 import {
-  ALL_EXPANDED,
   resolveGridView,
   type ColumnDefinition,
   type ColumnSortState,
@@ -78,13 +77,8 @@ export async function fetchOrders(
     getRowId: (row) => String(row.id),
     columns: orderColumns,
     state: {
-      columnSizing: {},
-      columnOrder: [],
-      columnVisibility: {},
       columnSort: query.sort,
       filter: query.filter,
-      groupBy: [],
-      groupExpansion: ALL_EXPANDED,
       pagination: query.page,
     },
     options: { paginated: true },

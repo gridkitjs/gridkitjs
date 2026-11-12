@@ -7,6 +7,7 @@ import type {
   DisplayRow,
   GridView,
   GridViewInput,
+  GridViewState,
   PaginationState,
   PaginationUnit,
   ResizeMode,
@@ -15,7 +16,7 @@ import type {
 } from "../types";
 import { computeAggregates, withGroupAggregates } from "./aggregation";
 import { resolveRowId } from "./grid";
-import { groupRows } from "./grouping";
+import { ALL_EXPANDED, groupRows } from "./grouping";
 import { memoizeLast } from "./memoize";
 import { resolveDataColumns } from "./ordering";
 import { paginateRows, type PaginatedRows } from "./paging";
@@ -28,6 +29,42 @@ import { applyColumnVisibility } from "./visibility";
  * would change identity each time and defeat every stage memoised on it.
  */
 const NO_AGGREGATES: AggregateState<never> = [];
+
+/** `pagination.pageSize` a grid starts at when nothing sets one — a reasonable default for an ERP-grade dataset. */
+const DEFAULT_PAGE_SIZE = 25;
+
+/**
+ * Each view slice as a grid starts with it when nothing sets it. Shared, so
+ * a slice taken from here keeps one identity from call to call and every
+ * stage memoised on it holds.
+ */
+export const STARTING_VIEW_STATE = {
+  columnSizing: {},
+  columnOrder: [],
+  columnVisibility: {},
+  columnSort: [],
+  filter: [],
+  groupBy: [],
+  groupExpansion: ALL_EXPANDED,
+  pagination: { pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE },
+} as const satisfies GridViewState<never>;
+
+/** `state` with every slice it leaves out at its starting default. */
+function fillViewState<Row>(
+  state: GridViewInput<Row>["state"],
+): GridViewState<Row> {
+  return {
+    columnSizing: state.columnSizing ?? STARTING_VIEW_STATE.columnSizing,
+    columnOrder: state.columnOrder ?? STARTING_VIEW_STATE.columnOrder,
+    columnVisibility:
+      state.columnVisibility ?? STARTING_VIEW_STATE.columnVisibility,
+    columnSort: state.columnSort ?? STARTING_VIEW_STATE.columnSort,
+    filter: state.filter ?? STARTING_VIEW_STATE.filter,
+    groupBy: state.groupBy ?? STARTING_VIEW_STATE.groupBy,
+    groupExpansion: state.groupExpansion ?? STARTING_VIEW_STATE.groupExpansion,
+    pagination: state.pagination ?? STARTING_VIEW_STATE.pagination,
+  };
+}
 
 /**
  * The rows, each carrying the id everything downstream keys it by. Resolved
@@ -193,7 +230,14 @@ export function createGridViewResolver<Row, Node = string>(): (
     }),
   );
 
-  return ({ rows: data, getRowId, columns: definitions, state, options }) => {
+  return ({
+    rows: data,
+    getRowId,
+    columns: definitions,
+    state: given,
+    options,
+  }) => {
+    const state = fillViewState(given);
     const paginated = options.paginated ?? false;
     const aggregates =
       options.aggregates ?? (NO_AGGREGATES as AggregateState<Row>);
