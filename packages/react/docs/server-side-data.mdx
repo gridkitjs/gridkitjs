@@ -144,8 +144,12 @@ export function useOrders(query: OrderQuery) {
 
 ```tsx title="App.tsx"
 import { useMemo, useState } from "react";
-import type { ColumnSortState, PaginationState } from "@gridkitjs/core";
-import { DataGrid, type FilterState } from "@gridkitjs/react";
+import {
+  DataGrid,
+  type ColumnSortState,
+  type FilterState,
+  type PaginationState,
+} from "@gridkitjs/react";
 import { orderColumns, type Order } from "./api";
 import { useOrders } from "./useOrders";
 
@@ -228,8 +232,11 @@ For one long list instead of pages, give `infiniteScroll` an `onLoadMore` that f
 
 ```tsx title="App.tsx"
 import { useEffect, useMemo, useState } from "react";
-import type { ColumnSortState } from "@gridkitjs/core";
-import { DataGrid, type FilterState } from "@gridkitjs/react";
+import {
+  DataGrid,
+  type ColumnSortState,
+  type FilterState,
+} from "@gridkitjs/react";
 import { fetchOrders, orderColumns, type Order } from "./api";
 
 const pageSize = 50;
@@ -330,8 +337,12 @@ import {
   QueryClientProvider,
   useQuery,
 } from "@tanstack/react-query";
-import type { ColumnSortState, PaginationState } from "@gridkitjs/core";
-import { DataGrid, type FilterState } from "@gridkitjs/react";
+import {
+  DataGrid,
+  type ColumnSortState,
+  type FilterState,
+  type PaginationState,
+} from "@gridkitjs/react";
 import { fetchOrders, orderColumns, type Order } from "./api";
 
 const queryClient = new QueryClient();
@@ -395,7 +406,7 @@ For infinite scroll, `useInfiniteQuery` fits the same way: its `fetchNextPage` i
 | `onFilterChange`     | `(event: FilterChangeEvent<Row>) => void` | Called when the user changes the filter, with the whole new `filter` to fetch with.                        |
 | `infiniteScroll`     | `InfiniteScrollConfig`                    | `{ hasMore, onLoadMore, isLoadingMore }` to fetch the next page as the user scrolls. Not with `paginated`. |
 
-`ColumnSortState` and `PaginationState` come from `@gridkitjs/core`; `FilterState` is re-exported by `@gridkitjs/react` as well.
+`ColumnSortState`, `PaginationState` and `FilterState` are defined in `@gridkitjs/core` and exported from `@gridkitjs/react` as well, so the component imports them from `react` alone.
 
 ## Messages
 

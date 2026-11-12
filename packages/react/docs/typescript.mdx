@@ -134,10 +134,11 @@ The `(string & {})` half lets any string compile, so the union drives autocomple
 
 ```tsx title="App.tsx"
 import { useState } from "react";
-import type { ColumnSortState, FieldPath } from "@gridkitjs/core";
 import {
   DataGrid,
   type ColumnDefinition,
+  type ColumnSortState,
+  type FieldPath,
   type FilterState,
 } from "@gridkitjs/react";
 
@@ -205,7 +206,7 @@ export default function App() {
 }
 ```
 
-`FieldPath`, `ColumnSortState` and `PaginationState` come from `@gridkitjs/core`, which `@gridkitjs/react` installs for you; see [importing from core](/docs/react/choosing-packages#importing-from-core) if your package manager wants it listed. The same sample shows the controlled state types: `ColumnSortState` for `columnSort`, and `FilterState<Row>` for `filter`.
+The same sample shows the controlled state types: `ColumnSortState` for `columnSort`, and `FilterState<Row>` for `filter`. Like every type a prop, a column, a callback or the `ref` names, they are defined in `@gridkitjs/core` and exported from `@gridkitjs/react` too, so a React app imports them from `react` alone.
 
 ## Templates and formatters
 
@@ -219,22 +220,22 @@ Each callback's event carries `ResolvedRow<Row>` entries, `{ kind: "data", rowId
 
 ## Types
 
-| Type                           | Package            | Description                                                                                    |
-| ------------------------------ | ------------------ | ---------------------------------------------------------------------------------------------- |
-| `DataGridProps<Row>`           | `@gridkitjs/react` | Every prop of `DataGrid`.                                                                      |
-| `ColumnDefinition<Row>`        | `@gridkitjs/react` | One entry of `columns`; its templates return React nodes.                                      |
-| `FieldPath<Row>`               | `@gridkitjs/core`  | Every path `field` autocompletes.                                                              |
-| `CellTemplateContext<Row>`     | `@gridkitjs/react` | What `cellTemplate` receives: `value`, `row`, `rowIndex`, `datasetIndex`, `rowId`, `selected`. |
-| `ResolvedRow<Row>`             | `@gridkitjs/react` | A row with its id and position: `{ kind: "data", rowId, row, rowIndex, datasetIndex }`.        |
-| `DataGridApi<Row>`             | `@gridkitjs/react` | The `ref`'s handle. See [imperative handle](/docs/react/imperative-handle).                    |
-| `RowPointerEvent<Row>`         | `@gridkitjs/react` | What `onRowClick` and `onRowDoubleClick` receive.                                              |
-| `RowSelectionChangeEvent<Row>` | `@gridkitjs/react` | What `onRowSelectionChange` receives: `added`, `removed`, `selected` and `selection`.          |
-| `FilterState<Row>`             | `@gridkitjs/react` | The value of `filter`.                                                                         |
-| `SelectionState`               | `@gridkitjs/react` | Selected ids, the value of `rowSelection` and `columnSelection`.                               |
-| `ColumnSortState`              | `@gridkitjs/core`  | The value of `columnSort`.                                                                     |
-| `PaginationState`              | `@gridkitjs/core`  | The value of `pagination`: `{ pageIndex, pageSize }`.                                          |
+| Type                           | Description                                                                                    |
+| ------------------------------ | ---------------------------------------------------------------------------------------------- |
+| `DataGridProps<Row>`           | Every prop of `DataGrid`.                                                                      |
+| `ColumnDefinition<Row>`        | One entry of `columns`; its templates return React nodes.                                      |
+| `FieldPath<Row>`               | Every path `field` autocompletes.                                                              |
+| `CellTemplateContext<Row>`     | What `cellTemplate` receives: `value`, `row`, `rowIndex`, `datasetIndex`, `rowId`, `selected`. |
+| `ResolvedRow<Row>`             | A row with its id and position: `{ kind: "data", rowId, row, rowIndex, datasetIndex }`.        |
+| `DataGridApi<Row>`             | The `ref`'s handle. See [imperative handle](/docs/react/imperative-handle).                    |
+| `RowPointerEvent<Row>`         | What `onRowClick` and `onRowDoubleClick` receive.                                              |
+| `RowSelectionChangeEvent<Row>` | What `onRowSelectionChange` receives: `added`, `removed`, `selected` and `selection`.          |
+| `FilterState<Row>`             | The value of `filter`.                                                                         |
+| `SelectionState`               | Selected ids, the value of `rowSelection` and `columnSelection`.                               |
+| `ColumnSortState`              | The value of `columnSort`.                                                                     |
+| `PaginationState`              | The value of `pagination`: `{ pageIndex, pageSize }`.                                          |
 
-The packages ship their own declarations; there is no `@types` package to install.
+Each of these, and the event and state types the other pages name, imports from `@gridkitjs/react`. The packages ship their own declarations; there is no `@types` package to install.
 
 ## See also
 
