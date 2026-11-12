@@ -210,7 +210,9 @@ export interface DataGridApi<Row>
    * Puts back state saved earlier, whole or in part — from `getState()`, or
    * from `serializeGridState` and back through JSON. Each slice given is set
    * as its setter would set it, firing its callback when it changes; the
-   * grid re-renders once.
+   * grid re-renders once. Saved state is read by its `version`; one without
+   * a version, saved by an earlier release, still restores, and one newer
+   * than this release reads throws.
    */
   restoreState(
     saved: Partial<GridState<Row>> | Partial<SerializedGridState<Row>>,
