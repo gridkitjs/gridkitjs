@@ -2,7 +2,10 @@ import type { BuiltInCommandId } from "../commands/builtInCommands";
 import type { GridCommandContext, GridCommandTarget } from "../commands/types";
 import type { MenuEntry } from "./types";
 
-/** The parts of a grid that open a context menu of their own. */
+/**
+ * The parts of a grid that open a context menu of their own. A minor
+ * release may add an area, so a `switch` over it needs a `default`.
+ */
 export type GridContextMenuArea = "header" | "cell" | "group" | "body";
 
 /**

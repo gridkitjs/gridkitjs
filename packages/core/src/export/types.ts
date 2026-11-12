@@ -76,7 +76,8 @@ export interface ExportGroupSummaryRow {
 
 /**
  * A body row of an export, in the order the grid shows them. Discriminate on
- * `kind`.
+ * `kind`; a minor release may add a kind, so a writer's `switch` over it
+ * needs a `default`.
  */
 export type ExportRow = ExportDataRow | ExportGroupRow | ExportGroupSummaryRow;
 

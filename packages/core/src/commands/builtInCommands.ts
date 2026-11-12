@@ -18,7 +18,10 @@ import type {
   GridCommandTarget,
 } from "./types";
 
-/** The id of every command `builtInCommands` returns. */
+/**
+ * The id of every command `builtInCommands` returns. A minor release may
+ * add a command, so a `switch` over it needs a `default`.
+ */
 export type BuiltInCommandId =
   | "sort.ascending"
   | "sort.descending"
@@ -52,7 +55,8 @@ export type BuiltInCommandId =
 
 /**
  * The icon keys the built-ins carry, which a renderer draws as icons of its
- * own. An app command may use them too, to look like the built-ins.
+ * own. An app command may use them too, to look like the built-ins. A minor
+ * release may add a key, so a renderer's map of them needs a fallback.
  */
 export type BuiltInCommandIcon =
   | "sortAscending"
