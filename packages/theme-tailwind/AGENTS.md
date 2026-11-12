@@ -7,12 +7,12 @@ styles. Published. `tailwindcss` is a peer dependency.
 
 The package ships `src/` as source, with no build step.
 
-| Path              | What it holds                                                                                                                                                                                                                                                             |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/styles.css`  | The stylesheet, exported as `@gridkitjs/theme-tailwind/styles.css`.                                                                                                                                                                                                       |
-| `src/tokens.json` | The token manifest, exported as `@gridkitjs/theme-tailwind/tokens.json`: every theme token's group, tier, type and default.                                                                                                                                               |
-| `src/presets/`    | The presets, exported as `@gridkitjs/theme-tailwind/presets/*`: one token-only `<id>.css` each, and `index.json` listing them in display order.                                                                                                                           |
-| `scripts/`        | Not shipped. The token and preset tests, and the helpers they read the files with: `css.mjs` parses a stylesheet, `manifest.mjs` the manifest, `presets.mjs` the preset index. `token-docs.mjs` generates the docs' token tables, and `write-token-docs.mjs` writes them. |
+| Path              | What it holds                                                                                                                                                                                                                                                                       |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/styles.css`  | The stylesheet, exported as `@gridkitjs/theme-tailwind/styles.css`.                                                                                                                                                                                                                 |
+| `src/tokens.json` | The token manifest, exported as `@gridkitjs/theme-tailwind/tokens.json`: every theme token's group, tier, type and default.                                                                                                                                                         |
+| `src/presets/`    | The presets, exported as `@gridkitjs/theme-tailwind/presets/*`: one token-only `<id>.css` each, and `index.json` listing them in display order.                                                                                                                                     |
+| `scripts/`        | Not shipped. The token, preset and selector tests, and the helpers they read the files with: `css.mjs` parses a stylesheet, `manifest.mjs` the manifest, `presets.mjs` the preset index. `token-docs.mjs` generates the docs' token tables, and `write-token-docs.mjs` writes them. |
 
 There is no `typecheck` or `lint` script: `scripts/` is plain ESM `.mjs`
 with JSDoc types, like the repo's own [scripts](../../scripts/AGENTS.md).
@@ -116,14 +116,14 @@ it stops working.
 
 ## Tests
 
-`scripts/tokens.test.mjs` runs on Node's built-in test runner, with no
+The tests in `scripts/` run on Node's built-in test runner, with no
 dependencies, as part of the root `pnpm test`:
 
 ```bash
 pnpm --filter @gridkitjs/theme-tailwind test
 ```
 
-It fails when a manifest entry is malformed or out of group order, when the
+`scripts/tokens.test.mjs` fails when a manifest entry is malformed or out of group order, when the
 manifest and `:root` disagree on which tokens exist or on a default, when a
 default reads a value the palette swaps, when a colour is missing from a palette block or
 `@theme inline`, when no rule reads a token, or when the token tables on
@@ -136,6 +136,10 @@ block of tokens or sets a colour by its live name, or when a preset's
 `fg` on `surface`, or `fg-muted` on `surface`, `surface-muted` or
 `selected`, falls under WCAG AA's 4.5:1 in either mode (7:1 for High
 contrast).
+
+`scripts/selectors.test.mjs` fails when a selector in `styles.css`, other
+than `:root`, names no `gridkit-` class, so every rule stays inside the
+grid and none restyles a host page's own elements.
 
 The Playwright suite mounts `DataGrid` against this stylesheet, so measured
 widths and paddings come from it; see
