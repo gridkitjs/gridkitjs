@@ -2,6 +2,7 @@
   "order": [
     "overview",
     "choosing-packages",
+    "stability",
     "data-grid",
     "typescript",
     "accessibility",
