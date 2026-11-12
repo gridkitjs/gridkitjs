@@ -125,7 +125,7 @@ if (stored !== null) {
 
 A saved state may be partial — `{ columnSizing, columnOrder, columnVisibility }` restores a column layout and leaves the sort, filter and selection alone.
 
-A `groupExpansion` saved as a bare list of group ids, as releases before the slice had a mode wrote it, still restores: it lists the collapsed groups, so it reads as `{ mode: "allExpanded", except: ids }`. A value of any other shape throws, like other unreadable state.
+`serializeGridState` writes `version: 1`, the shape the state was saved in, and `restoreState` reads a saved state by it. A version newer than the release reads makes `restoreState` throw a `TypeError` naming both versions, before any slice is set. A saved state without a `version`, written before the field existed, still restores in the older shape: a `groupExpansion` saved as a bare list of group ids, as releases before the slice had a mode wrote it, lists the collapsed groups, so it reads as `{ mode: "allExpanded", except: ids }`. A `groupExpansion` of any other shape throws, like other unreadable state.
 
 ## See also
 

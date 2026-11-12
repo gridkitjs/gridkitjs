@@ -22,7 +22,12 @@ import { memoizeLast } from "../util/memoize";
 import { moveColumnBefore } from "../util/ordering";
 import { paginateRows, type PaginatedRows } from "../util/paging";
 import { reportError } from "../util/report";
-import { reviveFilter, reviveGroupExpansion } from "../util/serialize";
+import {
+  type CurrentGridState,
+  migrateSavedState,
+  reviveFilter,
+  reviveGroupExpansion,
+} from "../util/serialize";
 import { resolveColumnWidths, revertColumnSize } from "../util/sizing";
 import { toggleColumnSort as toggledColumnSort } from "../util/sorting";
 import { createGridViewResolver } from "../util/view";
@@ -572,8 +577,9 @@ export function createGridController<Row, Node = string>(
     getState: () => state,
     getView,
     restoreState(saved) {
+      const current = migrateSavedState(saved);
       transaction(() => {
-        restoreSlices(saved);
+        restoreSlices(current);
       });
     },
     subscribe(listener) {
@@ -744,9 +750,7 @@ export function createGridController<Row, Node = string>(
   };
 
   /** Each slice `saved` holds, through the action that sets it. */
-  function restoreSlices(
-    saved: Parameters<GridController<Row, Node>["restoreState"]>[0],
-  ): void {
+  function restoreSlices(saved: CurrentGridState<Row>): void {
     if (saved.columnSizing !== undefined) {
       controller.setColumnSizing(saved.columnSizing);
     }

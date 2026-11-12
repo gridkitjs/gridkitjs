@@ -88,9 +88,10 @@ afterEach(() => {
 });
 
 describe("serializeGridState", () => {
-  test("survives JSON unchanged", () => {
+  test("writes version 1 and survives JSON unchanged", () => {
     const serialized = serializeGridState(saved);
 
+    expect(serialized.version).toBe(1);
     expect(JSON.parse(JSON.stringify(serialized))).toEqual(serialized);
   });
 
@@ -451,6 +452,83 @@ describe("createGridController: restoreState", () => {
   });
 });
 
+describe("saved state version", () => {
+  /** A layout read back from storage, whatever version it was saved in. */
+  function parseSaved(json: string): Partial<SerializedGridState<SampleRow>> {
+    return JSON.parse(json) as Partial<SerializedGridState<SampleRow>>;
+  }
+
+  const layout = `
+    "columnOrder": ["Amount", "Id"],
+    "groupBy": [{ "columnId": "Region" }]`;
+
+  test("an unversioned save in an earlier shape, one in today's shape and a version 1 save restore alike", () => {
+    const saves = [
+      `{ ${layout}, "groupExpansion": ["[\\"West\\"]"] }`,
+      `{ ${layout}, "groupExpansion": { "mode": "allExpanded", "except": ["[\\"West\\"]"] } }`,
+      `{ "version": 1, ${layout}, "groupExpansion": { "mode": "allExpanded", "except": ["[\\"West\\"]"] } }`,
+    ];
+
+    const restored = saves.map((json) => {
+      const controller = create();
+      controller.restoreState(parseSaved(json));
+      return controller.getState();
+    });
+
+    expect(restored[0]).toMatchObject({
+      columnOrder: ["Amount", "Id"],
+      groupBy: [{ columnId: "Region" }],
+      groupExpansion: { mode: "allExpanded", except: ['["West"]'] },
+    });
+    expect(restored[1]).toEqual(restored[0]);
+    expect(restored[2]).toEqual(restored[0]);
+  });
+
+  test("a version newer than this release reads throws, naming both, and sets nothing", () => {
+    const listener = vi.fn();
+    const controller = create();
+    controller.subscribe(listener);
+
+    expect(() => {
+      controller.restoreState(
+        parseSaved(`{ "version": 2, "columnOrder": ["Amount", "Id"] }`),
+      );
+    }).toThrow(
+      new TypeError(
+        "GridKit: a saved state has `version` 2, and this release reads saved state up to version 1.",
+      ),
+    );
+    expect(controller.getState().columnOrder).toEqual([]);
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  test("a partial live state, with no version, restores", () => {
+    const controller = create();
+
+    controller.restoreState({ columnOrder: ["Amount", "Id"] });
+
+    expect(controller.getState().columnOrder).toEqual(["Amount", "Id"]);
+  });
+
+  test("a partial saved state restores, and its version stays out of the state", () => {
+    const controller = create();
+
+    controller.restoreState({ version: 1, columnOrder: ["Amount", "Id"] });
+
+    expect(controller.getState().columnOrder).toEqual(["Amount", "Id"]);
+    expect(controller.getState()).not.toHaveProperty("version");
+  });
+
+  test("a whole saved state's version stays out of the state", () => {
+    const controller = create();
+
+    controller.restoreState(throughJson(saved));
+
+    expect(controller.getState()).toEqual(saved);
+    expect(controller.getState()).not.toHaveProperty("version");
+  });
+});
+
 describe("group expansion", () => {
   /** A layout read back from storage, whatever shape it was saved in. */
   function parseSaved(json: string): Partial<SerializedGridState<SampleRow>> {
@@ -482,6 +560,17 @@ describe("group expansion", () => {
     expect(
       controller.getView().displayDataRows.map((entry) => entry.rowId),
     ).toEqual(["2", "5", "4"]);
+  });
+
+  test("a bare list saved with a version throws", () => {
+    const controller = create();
+
+    expect(() => {
+      controller.restoreState(
+        parseSaved(`{ "version": 1, "groupExpansion": ["[\\"West\\"]"] }`),
+      );
+    }).toThrow(TypeError);
+    expect(controller.getState().groupExpansion).toEqual(ALL_EXPANDED);
   });
 
   test("a saved groupExpansion of any other shape throws", () => {
