@@ -25,7 +25,8 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./renderer": "./src/renderer.ts"
   },
   "publishConfig": {
     "main": "./dist/index.js",
@@ -34,6 +35,10 @@
       ".": {
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js"
+      },
+      "./renderer": {
+        "types": "./dist/renderer.d.ts",
+        "import": "./dist/renderer.js"
       }
     }
   },

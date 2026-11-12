@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { resolveColumnChooser } from "@gridkitjs/core";
+import { resolveColumnChooser } from "@gridkitjs/core/renderer";
 import type { GridPanelProps } from "../panels/GridPanels";
 
 /**

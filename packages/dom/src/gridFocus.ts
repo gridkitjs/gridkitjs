@@ -1,10 +1,9 @@
+import { headerFocus, type GridFocus } from "@gridkitjs/core";
 import {
   clampFocus,
-  headerFocus,
   nextFocusForKey,
-  type GridFocus,
   type NavigationModifiers,
-} from "@gridkitjs/core";
+} from "@gridkitjs/core/renderer";
 
 /** Rows a page key moves when the viewport cannot be measured. */
 const FALLBACK_PAGE = 10;

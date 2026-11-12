@@ -1,9 +1,9 @@
 import { useState } from "react";
+import type { GridMessages } from "@gridkitjs/core";
 import {
   createColumnValueOptionsCache,
   type ColumnValueOptions,
-  type GridMessages,
-} from "@gridkitjs/core";
+} from "@gridkitjs/core/renderer";
 import type { DataGridController } from "../useGridController";
 
 /** Rows to count before the grid has any: one array, so the cache keeps its lists. */

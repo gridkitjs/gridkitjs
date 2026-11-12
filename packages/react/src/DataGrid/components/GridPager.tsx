@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
-import { paginationWindow, type GridMessages } from "@gridkitjs/core";
+import type { GridMessages } from "@gridkitjs/core";
+import { paginationWindow } from "@gridkitjs/core/renderer";
 import type { PagerConfig, PagerTemplateContext } from "../DataGrid";
 import { ariaAttr } from "../ariaAttr";
 import {

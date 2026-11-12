@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import type { VisibleRange } from "@gridkitjs/core";
+import type { VisibleRange } from "@gridkitjs/core/renderer";
 import {
   attachChecklist,
   createRowVirtualizer,

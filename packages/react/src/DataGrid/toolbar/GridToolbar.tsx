@@ -1,7 +1,6 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import {
   resolveToolbar,
-  splitToolbarItems,
   toolbarEntries,
   type GridMessages,
   type GridOptions,
@@ -10,6 +9,7 @@ import {
   type ResolvedToolbarItem,
   type ToolbarEntry,
 } from "@gridkitjs/core";
+import { splitToolbarItems } from "@gridkitjs/core/renderer";
 import { attachToolbar } from "@gridkitjs/dom";
 import { ariaAttr } from "../ariaAttr";
 import type { GridCommandsApi } from "../commands/useGridCommands";

@@ -3,13 +3,13 @@ import {
   type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from "react";
+import type { ColumnSizeDefaults } from "@gridkitjs/core";
 import {
   beginColumnResize,
   clampColumnWidth,
   resolveColumnConstraints,
   sizeColumnToContent,
-  type ColumnSizeDefaults,
-} from "@gridkitjs/core";
+} from "@gridkitjs/core/renderer";
 import { measureColumnContent, startColumnResizeGesture } from "@gridkitjs/dom";
 import type { ResolvedColumn } from "./DataGrid";
 import type { DataGridController } from "./useGridController";

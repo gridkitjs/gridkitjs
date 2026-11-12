@@ -1,11 +1,11 @@
 import { useRef, type ReactNode, type RefCallback } from "react";
 import type {
-  ColumnValueOptions,
   FilterState,
   GridCommandTarget,
   GridMessages,
   GridPanelKind,
 } from "@gridkitjs/core";
+import type { ColumnValueOptions } from "@gridkitjs/core/renderer";
 import ColumnChooser from "../columnChooser/ColumnChooser";
 import type { GridCommandsApi } from "../commands/useGridCommands";
 import FilterMenu from "../filterMenu/FilterMenu";

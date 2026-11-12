@@ -1,16 +1,14 @@
+import type { ColumnType, FilterOperator, FilterState } from "@gridkitjs/core";
 import {
   conditionRowsFrom,
   conditionsFromRows,
   describeColumnFilter,
   initialFilterEditorDraft,
   type ColumnFilterShape,
-  type ColumnType,
   type ColumnValueOptions,
   type ConditionRowDraft,
   type FilterEditorDraft,
-  type FilterOperator,
-  type FilterState,
-} from "@gridkitjs/core";
+} from "@gridkitjs/core/renderer";
 
 export type Combinator = "and" | "or";
 

@@ -1,5 +1,5 @@
 import { useRef, useState, type PointerEvent } from "react";
-import { beginColumnResize } from "@gridkitjs/core";
+import { beginColumnResize } from "@gridkitjs/core/renderer";
 import { startColumnResizeGesture, startDragReorder } from "@gridkitjs/dom";
 
 interface PointerGestureHarnessProps {

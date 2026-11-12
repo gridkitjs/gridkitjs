@@ -1,10 +1,10 @@
 import { createPortal } from "react-dom";
 import {
   resolveColumnLabel,
-  resolveKeyboardDropTarget,
   type GridMessages,
   type GroupByState,
 } from "@gridkitjs/core";
+import { resolveKeyboardDropTarget } from "@gridkitjs/core/renderer";
 import type { GroupByDropTarget } from "@gridkitjs/dom";
 import type { ColumnDefinition, ResolvedColumn } from "../DataGrid";
 import { classNames } from "../classNames";

@@ -1,3 +1,4 @@
+import type { FilterState } from "@gridkitjs/core";
 import {
   describeColumnFilter,
   filterDraftChanged,
@@ -8,9 +9,8 @@ import {
   type ColumnValueOptions,
   type FilterEditorAction,
   type FilterEditorDraft,
-  type FilterState,
   type ValuesDraft,
-} from "@gridkitjs/core";
+} from "@gridkitjs/core/renderer";
 
 /** What an excel editor opened with, read from the column's filter. */
 export interface OpenedValues<Row> {

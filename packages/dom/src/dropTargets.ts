@@ -1,11 +1,10 @@
+import type { ColumnOrderState, GroupByState } from "@gridkitjs/core";
 import {
   movesColumn,
   movesGroupBy,
   resolveDropBefore,
-  type ColumnOrderState,
   type DropSide,
-  type GroupByState,
-} from "@gridkitjs/core";
+} from "@gridkitjs/core/renderer";
 
 /** A drop into the group-by bar, in front of `beforeColumnId` — `null` to append. */
 export interface GroupByDropTarget {

@@ -1,4 +1,4 @@
-import { resolveColumnFilterMenu } from "@gridkitjs/core";
+import { resolveColumnFilterMenu } from "@gridkitjs/core/renderer";
 import type { DataGridController } from "../useGridController";
 import type { GridPanelsApi } from "./useGridPanels";
 

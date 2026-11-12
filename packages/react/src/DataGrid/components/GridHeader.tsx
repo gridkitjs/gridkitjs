@@ -1,16 +1,18 @@
 import { createPortal } from "react-dom";
 import {
-  buildKeyShortcuts,
   headerFocus,
-  intentOf,
   isColumnFiltered,
-  KEYBOARD_STEP,
-  resolveColumnFilterMenu,
   sortDirectionFor,
   sortPriorityFor,
   type GridMessages,
   type GridState,
 } from "@gridkitjs/core";
+import {
+  buildKeyShortcuts,
+  intentOf,
+  KEYBOARD_STEP,
+  resolveColumnFilterMenu,
+} from "@gridkitjs/core/renderer";
 import type { ResolvedColumn } from "../DataGrid";
 import { ariaAttr } from "../ariaAttr";
 import { classNames } from "../classNames";

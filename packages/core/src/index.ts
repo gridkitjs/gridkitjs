@@ -1,9 +1,10 @@
 // Framework-agnostic grid logic: the grid's options and controller, column
 // inference, sizing, ordering, selection, sorting, the filtering engine,
-// grouping, aggregates, paging, the composed view, value formatting,
-// virtualization math, keyboard navigation, and the commands and menu model
-// every menu and toolbar is drawn from. Kept free of React and the DOM so it
-// is testable in Node and reusable from any renderer.
+// grouping, aggregates, paging, the composed view, value formatting, export,
+// and the commands and menu model every menu and toolbar is drawn from. Kept
+// free of React and the DOM so it is testable in Node and reusable from any
+// renderer. What only a renderer needs is in `./renderer`, the package's
+// second entry.
 export type {
   AggregateFn,
   AggregateResults,
@@ -22,7 +23,6 @@ export type {
   ColumnOrderEvent,
   ColumnOrderState,
   ColumnResizeEvent,
-  ColumnResizeSession,
   ColumnResolveOptions,
   ColumnSelectEvent,
   ColumnSelectionChangeEvent,
@@ -38,7 +38,6 @@ export type {
   ColumnWrapConfig,
   DataColumn,
   DisplayRow,
-  DropSide,
   FilterChangeEvent,
   FilterEntry,
   FilterOperator,
@@ -142,13 +141,7 @@ export type {
   GridContextMenuRequest,
   GridContextMenuTarget,
 } from "./menu/contextMenu";
-export {
-  contextMenuEntries,
-  defaultContextMenu,
-  hasContextMenu,
-} from "./menu/contextMenu";
-export type { MenuMove } from "./menu/navigation";
-export { nextMenuIndex, typeaheadIndex } from "./menu/navigation";
+export { contextMenuEntries, defaultContextMenu } from "./menu/contextMenu";
 export type {
   GridToolbarTarget,
   ResolvedToolbarButton,
@@ -165,44 +158,25 @@ export type { GridToolbarOptions } from "./toolbar/options";
 export { defaultToolbar, toolbarEntries } from "./toolbar/options";
 export type { ToolbarResolveOptions } from "./toolbar/resolveToolbar";
 export { resolveToolbar } from "./toolbar/resolveToolbar";
-export type { ToolbarFitInput, ToolbarSplit } from "./toolbar/overflow";
-export {
-  fitToolbarItems,
-  isPinnedToolbarItem,
-  splitToolbarItems,
-} from "./toolbar/overflow";
-export { searchTextOf, setSearchText } from "./toolbar/search";
-export type { KeyShortcutCapabilities } from "./util/grid";
 export {
   accessDotted,
   alignmentForType,
-  buildKeyShortcuts,
   defineColumnsFromRows,
   getColumnId,
   resolveColumnHeaderText,
   resolveColumnLabel,
   resolveRowId,
 } from "./util/grid";
-export type { GridFocus, NavigationModifiers } from "./util/navigation";
-export {
-  bodyFocus,
-  clampFocus,
-  headerFocus,
-  nextFocusForKey,
-} from "./util/navigation";
+export type { GridFocus } from "./util/navigation";
+export { bodyFocus, headerFocus } from "./util/navigation";
 export {
   applyColumnOrder,
   moveColumnBefore,
-  movesColumn,
   resolveDataColumns,
-  resolveDropBefore,
-  resolveKeyboardDropTarget,
 } from "./util/ordering";
 export {
   applySelectionIntent,
   clearSelection,
-  diffSelection,
-  intentOf,
   isSameCell,
   selectAll,
   selectCell,
@@ -211,19 +185,7 @@ export {
   toggleCellSelection,
   toggleSelection,
 } from "./util/selection";
-export {
-  DEFAULT_COLUMN_SIZES,
-  KEYBOARD_STEP,
-  applyColumnResize,
-  beginColumnResize,
-  clampColumnWidth,
-  fitColumnsToWidth,
-  resolveColumnConstraints,
-  resolveColumnWidths,
-  revertColumnSize,
-  sizeColumnToContent,
-  totalColumnWidth,
-} from "./util/sizing";
+export { DEFAULT_COLUMN_SIZES, resolveColumnWidths } from "./util/sizing";
 export {
   compareValues,
   sortDirectionFor,
@@ -247,7 +209,6 @@ export {
   groupRows,
   isGroupExpanded,
   moveGroupByBefore,
-  movesGroupBy,
   toggleGroupExpansion,
 } from "./util/grouping";
 export {
@@ -258,82 +219,23 @@ export {
 } from "./util/rows";
 export type { PaginatedRows, PaginateRowsOptions } from "./util/paging";
 export { paginateRows } from "./util/paging";
-export type { PaginationWindowEntry } from "./util/paginationWindow";
-export { paginationWindow } from "./util/paginationWindow";
 export { computeAggregates, withGroupAggregates } from "./util/aggregation";
 export {
   applyColumnVisibility,
   isColumnVisible,
   setColumnVisibility,
 } from "./util/visibility";
-export type {
-  ColumnChooserEntry,
-  ColumnChooserInput,
-  ColumnChooserModel,
-  ColumnChooserToggle,
-} from "./util/columnChooser";
-export { resolveColumnChooser } from "./util/columnChooser";
 export { createGridViewResolver, resolveGridView } from "./util/view";
 export { serializeGridState } from "./util/serialize";
-export type {
-  ColumnFilterShape,
-  ColumnValueOption,
-  ColumnValueOptions,
-  ColumnValueQuery,
-  ConditionsDraft,
-  FilterEditorAction,
-  FilterEditorDraft,
-  FilterEditorDraftBase,
-  SelectAllState,
-  ValuesDraft,
-} from "./util/filterEditor";
-export {
-  columnValueOptions,
-  describeColumnFilter,
-  draftToFilter,
-  filterDraftChanged,
-  filterEditorReducer,
-  initialFilterEditorDraft,
-  isColumnFiltered,
-  selectAllState,
-  toConditionsDraft,
-  toValuesDraft,
-  visibleFilterOptions,
-} from "./util/filterEditor";
+export { isColumnFiltered } from "./util/filterEditor";
 export type {
   ColumnFilterMenuOptions,
   FilterMenuUi,
   GridFilterMenuOptions,
-  ResolvedColumnFilterMenu,
 } from "./filterMenu/options";
-export {
-  DEFAULT_FILTER_VALUE_LIMIT,
-  resolveColumnFilterMenu,
-} from "./filterMenu/options";
+export { DEFAULT_FILTER_VALUE_LIMIT } from "./filterMenu/options";
 export type { FilterOperatorFamily } from "./filterMenu/operators";
-export {
-  defaultFilterOperators,
-  filterOperandArity,
-  filterOperatorFamily,
-  formatFilterOperand,
-  parseFilterOperand,
-} from "./filterMenu/operators";
-export type {
-  ConditionRowDraft,
-  ParsedConditionRows,
-} from "./filterMenu/conditions";
-export { conditionRowsFrom, conditionsFromRows } from "./filterMenu/conditions";
-export type {
-  ColumnValueCacheQuery,
-  ColumnValueOptionsCache,
-} from "./filterMenu/valueCache";
-export { createColumnValueOptionsCache } from "./filterMenu/valueCache";
-export type {
-  FilterChecklist,
-  FilterChecklistItem,
-  FilterChecklistOptions,
-} from "./filterMenu/checklist";
-export { filterChecklist } from "./filterMenu/checklist";
+export { defaultFilterOperators } from "./filterMenu/operators";
 export type { GridMessages } from "./messages";
 export {
   createDefaultMessages,
@@ -346,8 +248,6 @@ export {
   formatCellValue,
   formatGroupValue,
 } from "./util/format";
-export type { RowHeights, VisibleRange } from "./util/virtualization";
-export { visibleRange } from "./util/virtualization";
 export type {
   ExportCell,
   ExportColumn,
@@ -379,8 +279,7 @@ export type {
 export { csvWriter, jsonWriter, resolveExportWriters } from "./export/writer";
 export type { ExportFileSource } from "./export/exportFile";
 export { exportFile } from "./export/exportFile";
-export type { CopyContent, CopyRequest, CopySource } from "./export/copy";
-export { copyContent } from "./export/copy";
+export type { CopyContent } from "./export/copy";
 export type {
   PrintDocument,
   PrintOptions,
@@ -388,5 +287,5 @@ export type {
   PrintPage,
   PrintSource,
 } from "./export/print";
-export { buildPrintDocument, exportPrintDocument } from "./export/print";
+export { exportPrintDocument } from "./export/print";
 export { excelFilter } from "./presets";

@@ -7,7 +7,6 @@ import {
 import {
   bodyFocus,
   groupRowId,
-  intentOf,
   type AggregateState,
   type DisplayRow,
   type FormatLocale,
@@ -17,6 +16,7 @@ import {
   type ResolvedRow,
   type RowPointerEvent,
 } from "@gridkitjs/core";
+import { intentOf } from "@gridkitjs/core/renderer";
 import {
   bodyCellFrom,
   bodyRowFrom,

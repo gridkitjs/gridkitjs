@@ -1,4 +1,8 @@
-import { nextMenuIndex, typeaheadIndex, type MenuMove } from "@gridkitjs/core";
+import {
+  nextMenuIndex,
+  typeaheadIndex,
+  type MenuMove,
+} from "@gridkitjs/core/renderer";
 
 /**
  * Where focus goes when a submenu opens: its first item, or nowhere — it

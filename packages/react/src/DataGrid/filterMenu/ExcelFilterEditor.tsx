@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import type { FilterOperator } from "@gridkitjs/core";
 import {
   draftToFilter,
   filterChecklist,
@@ -13,8 +14,7 @@ import {
   selectAllState,
   type ColumnValueOptions,
   type FilterChecklistItem,
-  type FilterOperator,
-} from "@gridkitjs/core";
+} from "@gridkitjs/core/renderer";
 import { ChevronLeftIcon } from "../menu/menuIcons";
 import {
   excelEditorReducer,
