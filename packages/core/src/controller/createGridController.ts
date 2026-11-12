@@ -12,7 +12,6 @@ import type {
 } from "../types";
 import { defineColumnsFromRows } from "../util/grid";
 import {
-  ALL_EXPANDED,
   collapseAllGroups as collapsedGroups,
   expandAllGroups as expandedGroups,
   moveGroupByBefore,
@@ -22,6 +21,7 @@ import { memoizeLast } from "../util/memoize";
 import { moveColumnBefore } from "../util/ordering";
 import { paginateRows, type PaginatedRows } from "../util/paging";
 import { reportError } from "../util/report";
+import { NO_CELL_SELECTED } from "../util/selection";
 import {
   type CurrentGridState,
   migrateSavedState,
@@ -30,7 +30,7 @@ import {
 } from "../util/serialize";
 import { resolveColumnWidths, revertColumnSize } from "../util/sizing";
 import { toggleColumnSort as toggledColumnSort } from "../util/sorting";
-import { createGridViewResolver } from "../util/view";
+import { createGridViewResolver, STARTING_VIEW_STATE } from "../util/view";
 import { setColumnVisibility as withColumnVisibility } from "../util/visibility";
 import {
   changedEntryColumnId,
@@ -42,9 +42,6 @@ import {
 } from "./changes";
 import type { GridController, GridControllerOptions } from "./gridController";
 import { createSelectionActions } from "./selectionActions";
-
-/** `pagination.pageSize` an uncontrolled grid starts at when `defaultPagination` omits one — a reasonable default for an ERP-grade dataset. */
-const DEFAULT_PAGE_SIZE = 25;
 
 /**
  * Stable empty fallbacks: a fresh `[]` per call would change identity each
@@ -106,20 +103,20 @@ interface PagingInputs<Row> extends Pick<
 
 function startingState<Row>(options: GridOptions<Row>): OwnState<Row> {
   return {
-    columnSizing: options.defaultColumnSizing ?? {},
-    columnOrder: options.defaultColumnOrder ?? [],
-    columnVisibility: options.defaultColumnVisibility ?? {},
-    columnSort: options.defaultColumnSort ?? [],
-    filter: options.defaultFilter ?? [],
-    groupBy: options.defaultGroupBy ?? [],
-    groupExpansion: options.defaultGroupExpansion ?? ALL_EXPANDED,
-    pagination: options.defaultPagination ?? {
-      pageIndex: 0,
-      pageSize: DEFAULT_PAGE_SIZE,
-    },
+    columnSizing:
+      options.defaultColumnSizing ?? STARTING_VIEW_STATE.columnSizing,
+    columnOrder: options.defaultColumnOrder ?? STARTING_VIEW_STATE.columnOrder,
+    columnVisibility:
+      options.defaultColumnVisibility ?? STARTING_VIEW_STATE.columnVisibility,
+    columnSort: options.defaultColumnSort ?? STARTING_VIEW_STATE.columnSort,
+    filter: options.defaultFilter ?? STARTING_VIEW_STATE.filter,
+    groupBy: options.defaultGroupBy ?? STARTING_VIEW_STATE.groupBy,
+    groupExpansion:
+      options.defaultGroupExpansion ?? STARTING_VIEW_STATE.groupExpansion,
+    pagination: options.defaultPagination ?? STARTING_VIEW_STATE.pagination,
     rowSelection: options.defaultRowSelection ?? [],
     columnSelection: options.defaultColumnSelection ?? [],
-    cellSelection: options.defaultCellSelection ?? null,
+    cellSelection: options.defaultCellSelection ?? NO_CELL_SELECTED,
   };
 }
 

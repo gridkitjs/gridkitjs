@@ -79,6 +79,49 @@ describe("resolveGridView", () => {
     ]);
   });
 
+  test("reads a slice left out as its starting default", () => {
+    const given = {
+      rows: data,
+      getRowId: (row: SampleRow) => String(row.Id),
+      columns,
+      options: { paginated: true, aggregates: amountTotal },
+    };
+    const sorted = {
+      columnSort: [{ columnId: "Amount", direction: "desc" }],
+    } satisfies Partial<GridViewState<SampleRow>>;
+
+    expect(resolveGridView({ ...given, state: {} })).toEqual(
+      resolveGridView({ ...given, state: emptyState }),
+    );
+    expect(resolveGridView({ ...given, state: sorted })).toEqual(
+      resolveGridView({ ...given, state: { ...emptyState, ...sorted } }),
+    );
+    expect(
+      resolveGridView({ ...given, state: { ...sorted, filter: undefined } }),
+    ).toEqual(
+      resolveGridView({ ...given, state: { ...emptyState, ...sorted } }),
+    );
+  });
+
+  test("starts on the first page of 25 when pagination is left out", () => {
+    const rows = Array.from({ length: 30 }, (_, index) => ({
+      Id: index + 1,
+      Region: "West",
+      Amount: index,
+    }));
+
+    const view = resolveGridView({
+      rows,
+      columns,
+      state: {},
+      options: { paginated: true },
+    });
+
+    expect(view.pageIndex).toBe(0);
+    expect(view.pageCount).toBe(2);
+    expect(view.pageRows).toHaveLength(25);
+  });
+
   test("tags every resolved row as a data row", () => {
     const view = resolveGridView(input());
 
@@ -441,6 +484,15 @@ describe("createGridViewResolver", () => {
     expect(after.displayRows).toBe(before.displayRows);
     expect(after.grandTotal).toBe(before.grandTotal);
     expect(after.columns.map((entry) => entry.id)).toEqual(["Id", "Region"]);
+  });
+
+  test("returns the same view from call to call when slices are left out", () => {
+    const resolve = createGridViewResolver<SampleRow>();
+    const base = { rows: data, columns, options };
+
+    expect(resolve({ ...base, state: {} })).toBe(
+      resolve({ ...base, state: {} }),
+    );
   });
 
   test("returns the same view for an unchanged input", () => {

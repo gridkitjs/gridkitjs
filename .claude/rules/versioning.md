@@ -39,7 +39,7 @@ at `0.0.1` is correct — a package with no pending changeset does not move.
 | `major` | Not until 1.0.                                                              |
 
 **What counts as breaking.** A change that makes a correct consumer change
-their code, CSS or tests, to any of these:
+their code, CSS or tests, to any of these, apart from the additions below:
 
 - anything exported from `@gridkitjs/core`, `@gridkitjs/react` or
   `@gridkitjs/export-xlsx`, including `DataGrid`'s props and `DataGridApi`;
@@ -53,10 +53,23 @@ their code, CSS or tests, to any of these:
 A change to any of them is never a `patch`, even when it fixes a bug: a
 markup or attribute change that breaks a consumer's selectors is breaking.
 `@gridkitjs/core/renderer` and `@gridkitjs/dom` are the renderer tier,
-which may break in a minor; the summary still says so. Adding is not
-breaking: a new optional prop or option, a new export, a new member of a
-union a consumer `switch`es over, a new `GridMessages` key, a new optional
-`GridCommandHost` member. The consumer-facing version of this list is
+which may break in a minor; the summary still says so.
+
+Additions ship in a minor and are not breaking: a new optional prop or
+option, a new export, a new field on an object GridKit hands a consumer
+(events, template contexts, `GridState`, `GridView`, resolved rows and
+columns, the command context, hook results), a new `DataGridApi` or
+`GridController` method, a new built-in command or `defaultContextMenu` /
+`defaultToolbar` entry, a new class name or attribute, a new member of a
+union the stability page lists as growable, a new `GridMessages` key, a new
+optional `GridCommandHost` member. Code that reads what the grid gives it or
+calls its API keeps working; code that builds these objects by hand (test
+mocks, fakes) or handles every member of a growable union without a
+`default` may need a small update, which is accepted in a minor. Still
+breaking, and waiting for a major from 1.0: renaming or removing anything,
+changing an existing type or documented behaviour, and adding anything a
+consumer must now provide (a new required option, prop, input field or
+callback parameter). The consumer-facing version of this list is
 `packages/react/docs/stability.mdx`; keep the two in step.
 
 **What does not need one:** the playground and anything that leaves shipped

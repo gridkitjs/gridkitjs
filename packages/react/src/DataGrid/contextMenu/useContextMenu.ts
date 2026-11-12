@@ -9,6 +9,7 @@ import {
   contextMenuEntries,
   isSameCell,
   resolveMenu,
+  type CellSelectionState,
   type GridContextMenuArea,
   type GridContextMenuTarget,
   type GridMessages,
@@ -167,7 +168,11 @@ export default function useContextMenu<Row>({
     if (target.area !== "cell") {
       return false;
     }
-    const cell = { rowId: target.rowId, columnId: target.columnId };
+    const cell = {
+      kind: "cell",
+      rowId: target.rowId,
+      columnId: target.columnId,
+    } satisfies CellSelectionState;
     const selectRow =
       selection.rowMode !== false && !state.rowSelection.includes(target.rowId);
     const selectCell =

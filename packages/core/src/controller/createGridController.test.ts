@@ -926,7 +926,7 @@ describe("createGridController: subscribers", () => {
     const controller = create({
       defaultRowSelection: ["1"],
       defaultColumnSelection: ["Id"],
-      defaultCellSelection: { rowId: "2", columnId: "Region" },
+      defaultCellSelection: { kind: "cell", rowId: "2", columnId: "Region" },
       onRowSelectionChange,
       onColumnSelectionChange,
       onCellSelectionChange,
@@ -942,7 +942,7 @@ describe("createGridController: subscribers", () => {
       expect.objectContaining({
         rowSelection: [],
         columnSelection: [],
-        cellSelection: null,
+        cellSelection: { kind: "none" },
       }),
     ]);
     expect(onRowSelectionChange).toHaveBeenCalledTimes(1);
@@ -971,7 +971,7 @@ describe("createGridController: subscribers", () => {
     const controller = create({
       rowSelection: ["1"],
       columnSelection: ["Id"],
-      cellSelection: { rowId: "2", columnId: "Region" },
+      cellSelection: { kind: "cell", rowId: "2", columnId: "Region" },
       onRowSelectionChange,
       onColumnSelectionChange,
       onCellSelectionChange,

@@ -285,7 +285,7 @@ export interface DataGridApi<Row>
   setRowSelection(selection: SelectionState): void;
   /** Replaces the selected column ids as given. Fires the column selection callbacks. */
   setColumnSelection(selection: SelectionState): void;
-  /** Replaces the selected cell as given, `null` for none. Fires the cell selection callbacks. */
+  /** Replaces the cell selection as given, `{ kind: "none" }` for none. Fires the cell selection callbacks. */
   setCellSelection(selection: CellSelectionState): void;
   /**
    * Sizes a shown column to fit its content, as double-clicking its resize

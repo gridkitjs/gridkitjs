@@ -712,7 +712,7 @@ test("a controlled rowSelection ignores a click until the parent applies the sel
   await expect(rows.nth(2)).toHaveAttribute("aria-selected", "true");
 });
 
-test("a controlled cellSelection of null keeps every cell unselected until the parent applies one", async ({
+test("a controlled empty cellSelection keeps every cell unselected until the parent applies one", async ({
   mount,
 }) => {
   const root = await mountGrid(
@@ -722,7 +722,7 @@ test("a controlled cellSelection of null keeps every cell unselected until the p
       dataSource={buildRows(2)}
       label="Controlled cell"
       selectable={{ cells: "single" }}
-      controlled={{ cellSelection: null }}
+      controlled={{ cellSelection: { kind: "none" } }}
     />,
   );
   const cell = root.locator("tbody tr").nth(1).locator("td").nth(1);

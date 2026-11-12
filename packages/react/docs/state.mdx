@@ -122,7 +122,7 @@ The saved JSON starts with a `version`, the shape it was written in, so a layout
 }
 ```
 
-State saved by a release without the field still loads: `restoreState` reads it in the older shape, so a `groupExpansion` saved as a bare list of collapsed group ids becomes `{ mode: "allExpanded", except: list }`. A `version` newer than the grid reads makes `restoreState` throw before it sets anything, naming both versions. If you check the saved JSON by its exact keys, allow `version`.
+State saved by a release without the field still loads: `restoreState` reads it in the older shape, so a `groupExpansion` saved as a bare list of collapsed group ids becomes `{ mode: "allExpanded", except: list }`, and a `cellSelection` saved as `null` or `{ rowId, columnId }` becomes `{ kind: "none" }` or `{ kind: "cell", rowId, columnId }`. A `version` newer than the grid reads makes `restoreState` throw before it sets anything, naming both versions. If you check the saved JSON by its exact keys, allow `version`.
 
 For a slice you hold with a controlled prop, keep it in your own state as you already do — `restoreState` only asks for it, through the slice's callback.
 

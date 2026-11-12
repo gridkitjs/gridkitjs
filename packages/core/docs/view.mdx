@@ -13,14 +13,8 @@ const view = resolveGridView({
   getRowId: (row) => String(row.Id),
   columns,
   state: {
-    columnSizing: {},
-    columnOrder: [],
-    columnVisibility: {},
     columnSort: [{ columnId: "Amount", direction: "desc" }],
-    filter: [],
     groupBy: [{ columnId: "Region" }],
-    groupExpansion: { mode: "allExpanded", except: [] },
-    pagination: { pageIndex: 0, pageSize: 25 },
   },
   options: { paginated: true, aggregates: [{ columnId: "Amount", fn: "sum" }] },
 });
@@ -53,7 +47,20 @@ view.grandTotal.get("Amount"); // the sum over every filtered row, on every page
 
 ## Input
 
-`state` is a `GridViewState<Row>`: `columnSizing`, `columnOrder`, `columnVisibility`, `columnSort`, `filter`, `groupBy`, `groupExpansion` and `pagination`, each the same type as the matching `default*` prop on DataGrid — every slice of `GridState` but the three selections, which change what is highlighted and never what is shown, so a whole `GridState` serves too. `options` is a `GridViewOptions<Row>`; every field is optional and defaults the way DataGrid's prop of the same name does:
+`state` holds any of the slices of a `GridViewState<Row>`: `columnSizing`, `columnOrder`, `columnVisibility`, `columnSort`, `filter`, `groupBy`, `groupExpansion` and `pagination`, each the same type as the matching `default*` prop on DataGrid. They are every slice of `GridState` but the three selections, which change what is highlighted and never what is shown, so a whole `GridState` serves too. A slice left out, or `undefined`, reads as the grid's starting default:
+
+| Field              | Default                               |
+| ------------------ | ------------------------------------- |
+| `columnSizing`     | `{}`: each column at its own width    |
+| `columnOrder`      | `[]`: the order of `columns`          |
+| `columnVisibility` | `{}`: hidden only where `hidden` says |
+| `columnSort`       | `[]`                                  |
+| `filter`           | `[]`                                  |
+| `groupBy`          | `[]`                                  |
+| `groupExpansion`   | `{ mode: "allExpanded", except: [] }` |
+| `pagination`       | `{ pageIndex: 0, pageSize: 25 }`      |
+
+`options` is a `GridViewOptions<Row>`; every field is optional and defaults the way DataGrid's prop of the same name does:
 
 | Option                                                              | Default    | Description                                                                                                                                               |
 | ------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -72,7 +79,7 @@ A column hidden by its definition's `hidden` or by `columnVisibility` leaves `co
 
 ## Memoisation
 
-Hold one `createGridViewResolver()` per grid and call it with the current input whenever the view is needed. Stages compare their inputs by identity, so pass state slices as the same objects until they change. The data stages read `dataColumns`, which carry no width, so a resize or a viewport change re-sizes `columns` and leaves `rows`, `displayRows`, `pageRows`, `displayDataRows` and `grandTotal` exactly as they were — the same references. The returned view object itself is reused when nothing in it changed.
+Hold one `createGridViewResolver()` per grid and call it with the current input whenever the view is needed. Stages compare their inputs by identity, so pass state slices as the same objects until they change. A slice left out reads as the same default object on every call. The data stages read `dataColumns`, which carry no width, so a resize or a viewport change re-sizes `columns` and leaves `rows`, `displayRows`, `pageRows`, `displayDataRows` and `grandTotal` exactly as they were — the same references. The returned view object itself is reused when nothing in it changed.
 
 ```ts
 const resolve = createGridViewResolver<Row>();

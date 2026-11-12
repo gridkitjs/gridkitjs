@@ -139,14 +139,30 @@ export function diffSelection(
   };
 }
 
+/** No cell selected, shared so the state keeps one identity while empty. */
+export const NO_CELL_SELECTED: CellSelectionState = { kind: "none" };
+
+/** Whether two cell selections hold the same cells. */
 export function isSameCell(
   a: CellSelectionState,
   b: CellSelectionState,
 ): boolean {
-  if (a === null || b === null) {
-    return a === b;
+  if (a.kind === "none" || b.kind === "none") {
+    return a.kind === b.kind;
   }
   return a.rowId === b.rowId && a.columnId === b.columnId;
+}
+
+/** Whether `selection` is the one cell `cell`. */
+function holdsCell(
+  selection: CellSelectionState,
+  cell: SelectedCellRef,
+): boolean {
+  return (
+    selection.kind === "cell" &&
+    selection.rowId === cell.rowId &&
+    selection.columnId === cell.columnId
+  );
 }
 
 /**
@@ -158,10 +174,10 @@ export function selectCell(
   cell: SelectedCellRef,
   mode: CellSelectionMode,
 ): CellSelectionState {
-  if (mode === false || isSameCell(selection, cell)) {
+  if (mode === false || holdsCell(selection, cell)) {
     return selection;
   }
-  return cell;
+  return { kind: "cell", rowId: cell.rowId, columnId: cell.columnId };
 }
 
 /**
@@ -176,7 +192,16 @@ export function toggleCellSelection(
   if (mode === false) {
     return selection;
   }
-  return isSameCell(selection, cell) ? null : cell;
+  return holdsCell(selection, cell)
+    ? NO_CELL_SELECTED
+    : { kind: "cell", rowId: cell.rowId, columnId: cell.columnId };
+}
+
+/** No cell selected, keeping `selection` itself when it is already empty. */
+export function clearCellSelection(
+  selection: CellSelectionState,
+): CellSelectionState {
+  return selection.kind === "none" ? selection : NO_CELL_SELECTED;
 }
 
 /**

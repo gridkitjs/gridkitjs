@@ -14,22 +14,88 @@ description: "Letting the user select one cell at a time with selectable.cells."
 | Prop                            | Type                                        | Default | Description                                                                                                                                               |
 | ------------------------------- | ------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `selectable.cells`              | `false \| "single"`                         | `false` | How many cells the user may select at once — no "multiple": a cell addresses one value, so there is no range to take.                                     |
-| `defaultCellSelection`          | `CellSelectionState`                        |         | The cell selected to start with — a `SelectedCellRef` (`{ rowId, columnId }`), or `null` for none. Uncontrolled.                                          |
-| `cellSelection`                 | `CellSelectionState`                        |         | The selected cell, controlled — `null` for none, changed only through the cell callbacks. See [controlled state](/docs/react/state).                      |
+| `defaultCellSelection`          | `CellSelectionState`                        |         | The cell selected to start with: `{ kind: "cell", rowId, columnId }`, or `{ kind: "none" }`. Uncontrolled.                                                |
+| `cellSelection`                 | `CellSelectionState`                        |         | The selected cell, controlled: `{ kind: "none" }` for none, changed only through the cell callbacks. See [controlled state](/docs/react/state).           |
 | `onCellSelect / onCellDeselect` | `(event: CellSelectEvent) => void`          |         | Once for the cell selected, once for the cell deselected.                                                                                                 |
 | `onCellSelectionChange`         | `(event: CellSelectionChangeEvent) => void` |         | Once per change with what was selected and what was deselected — one interaction can fill both, since moving between cells deselects and selects at once. |
+
+## The selection state
+
+A `CellSelectionState` says what is selected by its `kind`: `{ kind: "none" }` when no cell is, `{ kind: "cell", rowId, columnId }` for one cell. Read the cell after checking the `kind`. A minor release may add a kind, such as a range of cells, so give a `switch` over it a `default` branch:
+
+```tsx title="App.tsx"
+import { useState } from "react";
+import {
+  DataGrid,
+  type CellSelectionState,
+  type ColumnDefinition,
+} from "@gridkitjs/react";
+
+interface Contact {
+  id: number;
+  name: string;
+  team: string;
+}
+
+const contacts: Contact[] = [
+  { id: 1, name: "Ana Petrova", team: "Design" },
+  { id: 2, name: "Marko Ilic", team: "Support" },
+  { id: 3, name: "Ivana Novak", team: "Design" },
+];
+
+const columns: readonly ColumnDefinition<Contact>[] = [
+  { field: "name", header: "Name" },
+  { field: "team", header: "Team" },
+];
+
+function describeSelection(selection: CellSelectionState): string {
+  switch (selection.kind) {
+    case "none":
+      return "No cell selected";
+    case "cell":
+      return `Row ${selection.rowId}, column ${selection.columnId}`;
+    default:
+      return "Several cells selected";
+  }
+}
+
+export default function App() {
+  const [cellSelection, setCellSelection] = useState<CellSelectionState>({
+    kind: "none",
+  });
+
+  return (
+    <>
+      <DataGrid
+        columns={columns}
+        dataSource={contacts}
+        getRowId={(row) => String(row.id)}
+        label="Contacts"
+        selectable={{ cells: "single" }}
+        cellSelection={cellSelection}
+        onCellSelectionChange={(event) => {
+          setCellSelection(event.selection);
+        }}
+      />
+      <p>{describeSelection(cellSelection)}</p>
+    </>
+  );
+}
+```
+
+A cell selection saved by a release whose state had no `kind`, as `null` or `{ rowId, columnId }`, still restores: see [saving and restoring a layout](/docs/react/state#saving-and-restoring-a-layout).
 
 ## Payload shapes
 
 `onCellSelect`/`onCellDeselect` fire a `CellSelectEvent<Row>`, `onCellSelectionChange` a `CellSelectionChangeEvent<Row>`:
 
-| Type                            | Field        | Type                        | Description                                                                 |
-| ------------------------------- | ------------ | --------------------------- | --------------------------------------------------------------------------- |
-| `CellSelectEvent<Row>`          | `cell`       | `SelectedCell<Row>`         | The cell selected or deselected.                                            |
-|                                 | `selection`  | `CellSelectionState`        | The selected cell's address, at that point.                                 |
-| `CellSelectionChangeEvent<Row>` | `selected`   | `SelectedCell<Row> \| null` | The cell now selected, or `null` if this change only cleared one.           |
-|                                 | `deselected` | `SelectedCell<Row> \| null` | The cell that was selected before, or `null` if there wasn't one.           |
-|                                 | `selection`  | `CellSelectionState`        | The same as `selected`, reduced to its address — `SelectedCellRef \| null`. |
+| Type                            | Field        | Type                        | Description                                                            |
+| ------------------------------- | ------------ | --------------------------- | ---------------------------------------------------------------------- |
+| `CellSelectEvent<Row>`          | `cell`       | `SelectedCell<Row>`         | The cell selected or deselected.                                       |
+|                                 | `selection`  | `CellSelectionState`        | The cell selection at that point.                                      |
+| `CellSelectionChangeEvent<Row>` | `selected`   | `SelectedCell<Row> \| null` | The cell now selected, or `null` if this change only cleared one.      |
+|                                 | `deselected` | `SelectedCell<Row> \| null` | The cell that was selected before, or `null` if there wasn't one.      |
+|                                 | `selection`  | `CellSelectionState`        | The same as `selected`, reduced to its address, or `{ kind: "none" }`. |
 
 Each carries the cell as a `SelectedCell<Row>`, resolved down to the value it shows:
 

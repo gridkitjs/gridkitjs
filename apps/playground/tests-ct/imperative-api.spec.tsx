@@ -3,6 +3,7 @@
 // file for why.
 import type { MountResult } from "@playwright/experimental-ct-react";
 import type {
+  CellSelectionState,
   ColumnDefinition,
   ColumnResizeEvent,
   ColumnSortEvent,
@@ -51,7 +52,7 @@ interface Status {
   columnSort: ColumnSortState;
   rowSelection: readonly string[];
   columnSelection: readonly string[];
-  cellSelection: { rowId: string; columnId: string } | null;
+  cellSelection: CellSelectionState;
   focusedCell: GridFocus;
   focusedCellUnchanged: boolean;
   pagination: PaginationState;
