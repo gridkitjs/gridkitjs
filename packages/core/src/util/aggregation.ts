@@ -262,7 +262,6 @@ function appendAggregatedSpan<Row>(
     }
     if (
       levelFloor !== null &&
-      "kind" in entry &&
       entry.kind === "group" &&
       entry.level <= levelFloor
     ) {
@@ -271,7 +270,7 @@ function appendAggregatedSpan<Row>(
       break;
     }
     index++;
-    if (!("kind" in entry) || entry.kind !== "group") {
+    if (entry.kind !== "group") {
       out.push(entry);
       continue;
     }

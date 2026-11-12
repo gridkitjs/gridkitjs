@@ -79,6 +79,14 @@ describe("resolveGridView", () => {
     ]);
   });
 
+  test("tags every resolved row as a data row", () => {
+    const view = resolveGridView(input());
+
+    expect(view.rows.map((entry) => entry.kind)).toEqual(
+      data.map(() => "data"),
+    );
+  });
+
   test("filters then sorts the rows", () => {
     const view = resolveGridView(
       input({
@@ -106,6 +114,7 @@ describe("resolveGridView", () => {
 
     const dataColumns = resolveDataColumns(columns, []);
     const identified = data.map((row, index) => ({
+      kind: "data" as const,
       rowId: String(row.Id),
       row,
       rowIndex: index,

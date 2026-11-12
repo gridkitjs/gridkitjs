@@ -33,6 +33,17 @@ export function resolveShownRows<Row>(
 }
 
 /**
+ * The `default` of a switch over every `DisplayRow` kind: a switch that
+ * leaves a kind out doesn't compile.
+ */
+export function unknownDisplayRow(entry: never): never {
+  const { kind } = entry as { readonly kind: unknown };
+  throw new TypeError(
+    `GridKit: \`${String(kind)}\` is not a display row kind.`,
+  );
+}
+
+/**
  * `ids` resolved back to the rows behind them, keyed by `rowsById`.
  *
  * An id with no row behind it is dropped rather than left `undefined`: a

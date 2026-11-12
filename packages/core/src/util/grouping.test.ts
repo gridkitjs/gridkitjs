@@ -61,7 +61,13 @@ const columns: readonly ResolvedColumn<SampleRow, unknown>[] = [
 ];
 
 function resolvedRow(rowIndex: number, row: SampleRow): ResolvedRow<SampleRow> {
-  return { rowId: String(row.Id), row, rowIndex, datasetIndex: rowIndex };
+  return {
+    kind: "data",
+    rowId: String(row.Id),
+    row,
+    rowIndex,
+    datasetIndex: rowIndex,
+  };
 }
 
 const rows: readonly ResolvedRow<SampleRow>[] = [
@@ -75,7 +81,7 @@ const rows: readonly ResolvedRow<SampleRow>[] = [
 function isGroup<Row>(
   entry: DisplayRow<Row>,
 ): entry is Extract<DisplayRow<Row>, { kind: "group" }> {
-  return "kind" in entry;
+  return entry.kind === "group";
 }
 
 describe("groupRows", () => {

@@ -559,11 +559,10 @@ export interface ResolvedGroupSummaryRow {
 }
 
 /**
- * One entry of a grouped result: an ordinary data row (no `kind` field at
- * all — ResolvedRow is unchanged, so every existing consumer of plain
- * ResolvedRow[] keeps compiling), a group header, or — only when
- * `groupAggregateDisplay: "row"` is active — that group's own summary row.
- * Discriminate with `"kind" in entry`, then `entry.kind`.
+ * One entry of a grouped result: a data row (`kind: "data"`), a group header
+ * (`kind: "group"`), or — only when `groupAggregateDisplay: "row"` is
+ * active — that group's own summary row (`kind: "group-summary"`).
+ * Discriminate with `entry.kind`.
  */
 export type DisplayRow<Row> =
   ResolvedRow<Row> | ResolvedGroupRow | ResolvedGroupSummaryRow;
@@ -875,6 +874,7 @@ export interface SelectionDiff {
  * itself rather than an id it has to look up.
  */
 export interface ResolvedRow<Row> {
+  readonly kind: "data";
   readonly rowId: string;
   readonly row: Row;
   /** Position among the rows as rendered, matching `CellTemplateContext`. */

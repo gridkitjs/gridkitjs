@@ -174,7 +174,6 @@ function bodyPlaceAt<Row>(
     const entry = pageRows[group.rowIndex];
     const cell = bodyCell(parts, group.rowIndex, 0);
     return entry !== undefined &&
-      "kind" in entry &&
       entry.kind === "group" &&
       cell?.element.contains(element) === true
       ? onCell(
@@ -189,7 +188,7 @@ function bodyPlaceAt<Row>(
     const entry = pageRows[position.rowIndex];
     const cell = bodyCell(parts, position.rowIndex, position.columnIndex);
     return entry !== undefined &&
-      !("kind" in entry) &&
+      entry.kind === "data" &&
       cell?.element.contains(element) === true
       ? onCell(
           { area: "cell", rowId: entry.rowId, columnId: position.columnId },
@@ -233,7 +232,7 @@ export function placeOf<Row>(
       );
     case "cell": {
       const rowIndex = parts.pageRows.findIndex(
-        (entry) => !("kind" in entry) && entry.rowId === target.rowId,
+        (entry) => entry.kind === "data" && entry.rowId === target.rowId,
       );
       return onCell(
         target,
@@ -243,10 +242,7 @@ export function placeOf<Row>(
     }
     case "group": {
       const rowIndex = parts.pageRows.findIndex(
-        (entry) =>
-          "kind" in entry &&
-          entry.kind === "group" &&
-          entry.groupId === target.groupId,
+        (entry) => entry.kind === "group" && entry.groupId === target.groupId,
       );
       return onCell(target, bodyCell(parts, rowIndex, 0), parts);
     }

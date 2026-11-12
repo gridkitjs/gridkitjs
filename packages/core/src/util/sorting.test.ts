@@ -223,7 +223,13 @@ const columns: readonly ResolvedColumn<SampleRow, unknown>[] = [
 ];
 
 function resolvedRow(rowIndex: number, row: SampleRow): ResolvedRow<SampleRow> {
-  return { rowId: String(row.Id), row, rowIndex, datasetIndex: rowIndex };
+  return {
+    kind: "data",
+    rowId: String(row.Id),
+    row,
+    rowIndex,
+    datasetIndex: rowIndex,
+  };
 }
 
 const rows: readonly ResolvedRow<SampleRow>[] = [

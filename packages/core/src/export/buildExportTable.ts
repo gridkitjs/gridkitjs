@@ -22,6 +22,7 @@ import {
 } from "../util/format";
 import { accessDotted, resolveColumnHeaderText } from "../util/grid";
 import { ALL_EXPANDED, groupRows } from "../util/grouping";
+import { unknownDisplayRow } from "../util/rows";
 import { resolveColumnWidths } from "../util/sizing";
 import type {
   ExportCell,
@@ -70,7 +71,7 @@ interface CellContext<Row> {
 const EMPTY_CELL: ExportCell = { value: null, text: "" };
 
 function isDataRow<Row>(entry: DisplayRow<Row>): entry is ResolvedRow<Row> {
-  return !("kind" in entry);
+  return entry.kind === "data";
 }
 
 /**
@@ -247,33 +248,36 @@ function toExportRow<Row>(
   source: ExportSource<Row>,
   context: CellContext<Row>,
 ): ExportRow {
-  if (isDataRow(entry)) {
-    return {
-      kind: "data",
-      rowId: entry.rowId,
-      cells: context.columns.map((column) =>
-        dataCell(entry.row, column.column, context),
-      ),
-    };
+  switch (entry.kind) {
+    case "data":
+      return {
+        kind: "data",
+        rowId: entry.rowId,
+        cells: context.columns.map((column) =>
+          dataCell(entry.row, column.column, context),
+        ),
+      };
+    case "group":
+      return {
+        kind: "group",
+        level: entry.level,
+        groupId: entry.groupId,
+        label: groupLabel(entry, source),
+        count: entry.count,
+        cells:
+          context.display === "inline"
+            ? aggregateCells(entry.aggregates, context)
+            : context.columns.map(() => EMPTY_CELL),
+      };
+    case "group-summary":
+      return {
+        kind: "groupSummary",
+        level: entry.level,
+        cells: aggregateCells(entry.aggregates, context),
+      };
+    default:
+      return unknownDisplayRow(entry);
   }
-  if (entry.kind === "group") {
-    return {
-      kind: "group",
-      level: entry.level,
-      groupId: entry.groupId,
-      label: groupLabel(entry, source),
-      count: entry.count,
-      cells:
-        context.display === "inline"
-          ? aggregateCells(entry.aggregates, context)
-          : context.columns.map(() => EMPTY_CELL),
-    };
-  }
-  return {
-    kind: "groupSummary",
-    level: entry.level,
-    cells: aggregateCells(entry.aggregates, context),
-  };
 }
 
 function specsByColumnOf<Row>(

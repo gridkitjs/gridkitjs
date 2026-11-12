@@ -687,9 +687,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     // vertical movement steps over it rather than landing there.
     isSkippableRow: (rowIndex) => {
       const entry = view.pageRows[rowIndex];
-      return (
-        entry !== undefined && "kind" in entry && entry.kind === "group-summary"
-      );
+      return entry?.kind === "group-summary";
     },
   });
 
@@ -963,7 +961,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
       const index = controller
         .getView()
         .pageRows.findIndex(
-          (entry) => !("kind" in entry) && entry.rowId === rowId,
+          (entry) => entry.kind === "data" && entry.rowId === rowId,
         );
       if (index === -1) return;
       // Under virtualization the target row may not be mounted at all —

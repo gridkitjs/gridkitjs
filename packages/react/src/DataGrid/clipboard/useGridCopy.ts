@@ -52,7 +52,7 @@ export default function useGridCopy<Row>({
     const { pageRows, columns } = controller.getView();
     const entry = pageRows[focus.rowIndex];
     const column = columns[focus.columnIndex];
-    return entry === undefined || "kind" in entry || column === undefined
+    return entry?.kind !== "data" || column === undefined
       ? null
       : { area: "cell", rowId: entry.rowId, columnId: column.id };
   }

@@ -135,7 +135,9 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         displayRowCount: api.getDisplayRows().length,
         pageRowIds: api
           .getPageRows()
-          .map((entry) => ("kind" in entry ? entry.groupId : entry.rowId)),
+          .map((entry) =>
+            entry.kind === "data" ? entry.rowId : entry.groupId,
+          ),
         pagination: api.getPagination(),
         pageCount: api.getPageCount(),
         rowSelection: api.getRowSelection(),

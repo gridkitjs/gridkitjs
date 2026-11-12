@@ -93,7 +93,7 @@ function groupAriaMeta<Row>(
 ): ReadonlyMap<string, GroupAriaMeta> {
   const totals = new Map<string, number>();
   for (const entry of rows) {
-    if (!("kind" in entry) || entry.kind !== "group") continue;
+    if (entry.kind !== "group") continue;
     const parentKey = groupRowId(entry.path.slice(0, -1));
     totals.set(parentKey, (totals.get(parentKey) ?? 0) + 1);
   }
@@ -101,7 +101,7 @@ function groupAriaMeta<Row>(
   const seen = new Map<string, number>();
   const meta = new Map<string, GroupAriaMeta>();
   for (const entry of rows) {
-    if (!("kind" in entry) || entry.kind !== "group") continue;
+    if (entry.kind !== "group") continue;
     const parentKey = groupRowId(entry.path.slice(0, -1));
     const posinset = (seen.get(parentKey) ?? 0) + 1;
     seen.set(parentKey, posinset);
@@ -159,7 +159,7 @@ export default function GridBody<Row>({
   const [resolveRowProps] = useState(() => createRowPropsResolver<Row>());
   const rowPropsOf = resolveRowProps(
     visibleRows.filter(
-      (entry): entry is ResolvedRow<Row> => !("kind" in entry),
+      (entry): entry is ResolvedRow<Row> => entry.kind === "data",
     ),
     getRowProps,
   );
@@ -170,7 +170,7 @@ export default function GridBody<Row>({
   ): { position: BodyCellTarget; rowId: string } | null {
     const position = bodyCellFrom(target);
     const entry = position === null ? undefined : rows[position.rowIndex];
-    if (position === null || entry === undefined || "kind" in entry) {
+    if (position === null || entry?.kind !== "data") {
       return null;
     }
     return { position, rowId: entry.rowId };
@@ -201,7 +201,7 @@ export default function GridBody<Row>({
   ): RowPointerEvent<Row> | null {
     const target = bodyRowFrom(event.target);
     const entry = target === null ? undefined : rows[target.rowIndex];
-    if (target === null || entry === undefined || "kind" in entry) {
+    if (target === null || entry?.kind !== "data") {
       return null;
     }
     return {
@@ -318,93 +318,103 @@ export default function GridBody<Row>({
         </tr>
       )}
       {visibleRows.map((entry) => {
-        if (!("kind" in entry)) {
-          const rowProps = rowPropsOf(entry.rowId);
-          return (
-            <GridRow<Row>
-              key={entry.rowId}
-              ref={virtualRange?.measureRow(entry.rowIndex)}
-              columns={columns}
-              rowId={entry.rowId}
-              row={entry.row}
-              rowIndex={entry.rowIndex}
-              datasetIndex={entry.datasetIndex}
-              activeColumnId={activeColumnId}
-              selectedColumnIds={selection.selectedColumnIds}
-              selected={selection.selectedRowIds.has(entry.rowId)}
-              /*
-               * Narrowed to this row before it crosses the boundary, so
-               * that moving the selected cell re-renders the two rows it
-               * moved between rather than all of them.
-               */
-              selectedColumnId={
-                selectedCell?.rowId === entry.rowId
-                  ? selectedCell.columnId
-                  : null
-              }
-              focusedColumnIndex={focusedColumnInRow(nav.focus, entry.rowIndex)}
-              rowsSelectable={rowMode !== false}
-              cellsSelectable={cellMode !== false}
-              contextMenu={cellMenu}
-              locale={locale}
-              cellMessages={cellMessages}
-              rowClassName={rowProps.className}
-              rowAttributes={rowProps.attributes}
-            />
-          );
-        }
+        switch (entry.kind) {
+          case "data": {
+            const rowProps = rowPropsOf(entry.rowId);
+            return (
+              <GridRow<Row>
+                key={entry.rowId}
+                ref={virtualRange?.measureRow(entry.rowIndex)}
+                columns={columns}
+                rowId={entry.rowId}
+                row={entry.row}
+                rowIndex={entry.rowIndex}
+                datasetIndex={entry.datasetIndex}
+                activeColumnId={activeColumnId}
+                selectedColumnIds={selection.selectedColumnIds}
+                selected={selection.selectedRowIds.has(entry.rowId)}
+                /*
+                 * Narrowed to this row before it crosses the boundary, so
+                 * that moving the selected cell re-renders the two rows it
+                 * moved between rather than all of them.
+                 */
+                selectedColumnId={
+                  selectedCell?.rowId === entry.rowId
+                    ? selectedCell.columnId
+                    : null
+                }
+                focusedColumnIndex={focusedColumnInRow(
+                  nav.focus,
+                  entry.rowIndex,
+                )}
+                rowsSelectable={rowMode !== false}
+                cellsSelectable={cellMode !== false}
+                contextMenu={cellMenu}
+                locale={locale}
+                cellMessages={cellMessages}
+                rowClassName={rowProps.className}
+                rowAttributes={rowProps.attributes}
+              />
+            );
+          }
 
-        if (entry.kind === "group-summary") {
-          return (
-            <GridGroupSummaryRow<Row>
-              key={`${entry.groupId}-summary`}
-              ref={virtualRange?.measureRow(entry.rowIndex)}
-              groupId={entry.groupId}
-              level={entry.level}
-              rowIndex={entry.rowIndex}
-              datasetIndex={entry.datasetIndex}
-              results={entry.aggregates}
-              aggregates={aggregates}
-              columns={columns}
-              locale={locale}
-            />
-          );
-        }
+          case "group-summary":
+            return (
+              <GridGroupSummaryRow<Row>
+                key={`${entry.groupId}-summary`}
+                ref={virtualRange?.measureRow(entry.rowIndex)}
+                groupId={entry.groupId}
+                level={entry.level}
+                rowIndex={entry.rowIndex}
+                datasetIndex={entry.datasetIndex}
+                results={entry.aggregates}
+                aggregates={aggregates}
+                columns={columns}
+                locale={locale}
+              />
+            );
 
-        return (
-          <GridGroupRow
-            key={entry.groupId}
-            ref={virtualRange?.measureRow(entry.rowIndex)}
-            columnCount={columns.length}
-            groupId={entry.groupId}
-            level={entry.level}
-            // A grouping by a column the grid does not have reads its value
-            // by its kind alone.
-            groupColumn={
-              definitions.get(entry.columnId) ?? { field: entry.columnId }
-            }
-            value={entry.value}
-            expanded={entry.expanded}
-            count={entry.count}
-            rowIndex={entry.rowIndex}
-            datasetIndex={entry.datasetIndex}
-            posinset={ariaMeta.get(entry.groupId)?.posinset ?? 1}
-            setsize={ariaMeta.get(entry.groupId)?.setsize ?? 1}
-            // Inline rendering only under "inline" display — under "row",
-            // the group's own summary row (above) already shows these, and
-            // showing them twice would be redundant.
-            aggregates={groupAggregateDisplay === "inline" ? aggregates : []}
-            results={entry.aggregates}
-            definitions={definitions}
-            locale={locale}
-            cellMessages={cellMessages}
-            // Ignores `nav.focus.columnIndex`: with only one cell in this
-            // row, whether it holds the tab stop depends on `rowIndex`
-            // alone.
-            focused={focusedColumnInRow(nav.focus, entry.rowIndex) !== null}
-            contextMenu={groupMenu}
-          />
-        );
+          case "group":
+            return (
+              <GridGroupRow
+                key={entry.groupId}
+                ref={virtualRange?.measureRow(entry.rowIndex)}
+                columnCount={columns.length}
+                groupId={entry.groupId}
+                level={entry.level}
+                // A grouping by a column the grid does not have reads its value
+                // by its kind alone.
+                groupColumn={
+                  definitions.get(entry.columnId) ?? { field: entry.columnId }
+                }
+                value={entry.value}
+                expanded={entry.expanded}
+                count={entry.count}
+                rowIndex={entry.rowIndex}
+                datasetIndex={entry.datasetIndex}
+                posinset={ariaMeta.get(entry.groupId)?.posinset ?? 1}
+                setsize={ariaMeta.get(entry.groupId)?.setsize ?? 1}
+                // Inline rendering only under "inline" display — under "row",
+                // the group's own summary row (above) already shows these, and
+                // showing them twice would be redundant.
+                aggregates={
+                  groupAggregateDisplay === "inline" ? aggregates : []
+                }
+                results={entry.aggregates}
+                definitions={definitions}
+                locale={locale}
+                cellMessages={cellMessages}
+                // Ignores `nav.focus.columnIndex`: with only one cell in this
+                // row, whether it holds the tab stop depends on `rowIndex`
+                // alone.
+                focused={focusedColumnInRow(nav.focus, entry.rowIndex) !== null}
+                contextMenu={groupMenu}
+              />
+            );
+
+          default:
+            return entry satisfies never;
+        }
       })}
       {virtualRange !== null && virtualRange.offsetAfter > 0 && (
         <tr aria-hidden="true">

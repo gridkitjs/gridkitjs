@@ -4,6 +4,7 @@ import type {
   PaginationUnit,
   ResolvedGroupRow,
 } from "../types";
+import { unknownDisplayRow } from "./rows";
 
 export interface PaginatedRows<Row> {
   readonly rows: readonly DisplayRow<Row>[];
@@ -70,8 +71,7 @@ function groupUnitsOf<Row>(rows: readonly DisplayRow<Row>[]): readonly Unit[] {
     if (entry === undefined) {
       continue;
     }
-    const isTopLevelHeader =
-      "kind" in entry && entry.kind === "group" && entry.level === 0;
+    const isTopLevelHeader = entry.kind === "group" && entry.level === 0;
     const isBoundary = index !== start && (isTopLevelHeader || !openedByGroup);
     if (isBoundary) {
       units.push({ start, end: index, headers: NO_HEADERS });
@@ -113,19 +113,27 @@ function rowUnitsOf<Row>(rows: readonly DisplayRow<Row>[]): readonly Unit[] {
     if (entry === undefined) {
       continue;
     }
-    if (!("kind" in entry)) {
-      units.push({ start: index, end: index + 1, headers: open });
-    } else if (entry.kind === "group") {
-      const ancestors = open.slice(0, entry.level);
-      open = entry.expanded ? [...ancestors, entry] : ancestors;
-      if (!entry.expanded) {
-        units.push({ start: index, end: index + 1, headers: ancestors });
+    switch (entry.kind) {
+      case "data":
+        units.push({ start: index, end: index + 1, headers: open });
+        break;
+      case "group": {
+        const ancestors = open.slice(0, entry.level);
+        open = entry.expanded ? [...ancestors, entry] : ancestors;
+        if (!entry.expanded) {
+          units.push({ start: index, end: index + 1, headers: ancestors });
+        }
+        break;
       }
-    } else {
-      const last = units.at(-1);
-      if (last !== undefined) {
-        units[units.length - 1] = { ...last, end: index + 1 };
+      case "group-summary": {
+        const last = units.at(-1);
+        if (last !== undefined) {
+          units[units.length - 1] = { ...last, end: index + 1 };
+        }
+        break;
       }
+      default:
+        unknownDisplayRow(entry);
     }
   }
   return units;

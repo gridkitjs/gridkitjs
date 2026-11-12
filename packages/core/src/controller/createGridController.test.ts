@@ -337,7 +337,7 @@ describe("createGridController: grouping", () => {
     const groupIds = controller
       .getView()
       .displayRows.flatMap((entry) =>
-        "kind" in entry && entry.kind === "group" ? [entry.groupId] : [],
+        entry.kind === "group" ? [entry.groupId] : [],
       );
     const [first = ""] = groupIds;
 
@@ -371,7 +371,7 @@ describe("createGridController: grouping", () => {
     const view = controller.getView();
     expect(
       view.displayRows.flatMap((entry) =>
-        "kind" in entry && entry.kind === "group"
+        entry.kind === "group"
           ? [`${String(entry.value)}:${String(entry.expanded)}`]
           : [],
       ),
