@@ -7,12 +7,12 @@ styles. Published. `tailwindcss` is a peer dependency.
 
 The package ships `src/` as source, with no build step.
 
-| Path              | What it holds                                                                                                                                                                                                                                                                       |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/styles.css`  | The stylesheet, exported as `@gridkitjs/theme-tailwind/styles.css`.                                                                                                                                                                                                                 |
-| `src/tokens.json` | The token manifest, exported as `@gridkitjs/theme-tailwind/tokens.json`: every theme token's group, tier, type and default.                                                                                                                                                         |
-| `src/presets/`    | The presets, exported as `@gridkitjs/theme-tailwind/presets/*`: one token-only `<id>.css` each, and `index.json` listing them in display order.                                                                                                                                     |
-| `scripts/`        | Not shipped. The token, preset and selector tests, and the helpers they read the files with: `css.mjs` parses a stylesheet, `manifest.mjs` the manifest, `presets.mjs` the preset index. `token-docs.mjs` generates the docs' token tables, and `write-token-docs.mjs` writes them. |
+| Path              | What it holds                                                                                                                                                                                                                                                                                   |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/styles.css`  | The stylesheet, exported as `@gridkitjs/theme-tailwind/styles.css`.                                                                                                                                                                                                                             |
+| `src/tokens.json` | The token manifest, exported as `@gridkitjs/theme-tailwind/tokens.json`: every theme token's group, tier, type and default.                                                                                                                                                                     |
+| `src/presets/`    | The presets, exported as `@gridkitjs/theme-tailwind/presets/*`: one token-only `<id>.css` each, and `index.json` listing them in display order.                                                                                                                                                 |
+| `scripts/`        | Not shipped. The token, preset, selector and class-name tests, and the helpers they read the files with: `css.mjs` parses a stylesheet, `manifest.mjs` the manifest, `presets.mjs` the preset index. `token-docs.mjs` generates the docs' token tables, and `write-token-docs.mjs` writes them. |
 
 There is no `typecheck` or `lint` script: `scripts/` is plain ESM `.mjs`
 with JSDoc types, like the repo's own [scripts](../../scripts/AGENTS.md).
@@ -141,6 +141,13 @@ contrast).
 than `:root`, names no `gridkit-` class, so every rule stays inside the
 grid and none restyles a host page's own elements.
 
+`scripts/class-names.test.mjs` fails when a class or `data-gridkit-*`
+attribute written in `core`, `dom` or `react` source is missing from the
+tables on `docs/class-names.mdx`, or the page lists one no source writes. A
+name built at run time (`is-sorted-${direction}`) is covered by any listed
+name that starts with its prefix. Rename or add a class, and its row on that
+page changes in the same commit.
+
 The Playwright suite mounts `DataGrid` against this stylesheet, so measured
 widths and paddings come from it; see
 [apps/playground/AGENTS.md](../../apps/playground/AGENTS.md), including the
@@ -151,7 +158,9 @@ stale-cache gotcha after editing `styles.css`.
 `packages/theme-tailwind/docs/`. The writing rules are in
 [.claude/rules/docs.md](../../.claude/rules/docs.md). The token tables on
 `tokens.mdx` are generated from `tokens.json`, as
-[adding a token](#theme-tokens) describes.
+[adding a token](#theme-tokens) describes. `class-names.mdx` is the reference
+for every class and data attribute the grid renders, held to the source by
+its test.
 
 ## Releasing
 

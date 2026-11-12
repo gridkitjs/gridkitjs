@@ -267,7 +267,7 @@ Each is safe to call from an effect: opening a menu renders nothing synchronousl
 - **Placement** is at the pointer for a right-click or a long-press, and 4 pixels below the header, cell or group row for a key — the same gap a toolbar dropdown's menu and the column chooser leave below what they open from.
 - **Changes** report and announce exactly as the user's own gesture would: "Sort ascending" fires `onColumnSortChange` and says "Name sorted ascending", "Hide column" fires `onColumnVisibilityChange` and says "Name, column hidden", "Collapse all groups" says "All groups collapsed".
 
-The menu renders into `document.body`, so no scrolling ancestor clips it, and takes the grid's `.gridkit-light`/`.gridkit-dark` palette with it — see the [theme](/docs/theme-tailwind#overlays-and-menus) for its classes.
+The menu renders into `document.body`, so no scrolling ancestor clips it, and takes the grid's `.gridkit-light`/`.gridkit-dark` palette with it — see the [class names](/docs/theme-tailwind/class-names#overlays-and-menus) for its classes.
 
 A cell or header template with a menu of its own keeps it: a `contextmenu` event the template's `onContextMenu` already prevented is left to it.
 
