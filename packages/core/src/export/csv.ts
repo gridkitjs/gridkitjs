@@ -12,7 +12,7 @@ export interface CsvOptions {
    */
   readonly delimiter?: string | undefined;
   /** The locale `delimiter: "auto"` reads; the runtime's own when absent. */
-  readonly locale?: FormatLocale;
+  readonly locale?: FormatLocale | undefined;
   /** What ends each record. Defaults to `"\r\n"`, as RFC 4180 writes it. */
   readonly eol?: string | undefined;
   /**

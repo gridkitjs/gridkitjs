@@ -11,16 +11,16 @@ description: "Dragging a column wider with resizableColumns, resizeMode, and col
 
 ## Props
 
-| Prop                                 | Type                                 | Default | Description                                                                                                                                                                  |
-| ------------------------------------ | ------------------------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `resizableColumns`                   | `boolean`                            | `false` | Whether columns can be dragged wider, unless a column says otherwise.                                                                                                        |
-| `resizeMode`                         | `"fit" \| "fixed"`                   | `"fit"` | Whether columns fill the grid's width or sit at their own.                                                                                                                   |
-| `columnSizeDefaults`                 | `Partial<ColumnSizeDefaults>`        |         | Width, minWidth, maxWidth applied to a column that sets none of its own.                                                                                                     |
-| `defaultColumnSizing`                | `ColumnSizingState`                  |         | Column widths to start from, keyed by column id. Uncontrolled.                                                                                                               |
-| `columnSizing`                       | `ColumnSizingState`                  |         | Column widths, controlled — a drag or nudge asks through `onColumnResize` (every `"move"` too), whose `sizing` is the next state. See [controlled state](/docs/react/state). |
-| `onColumnResize`                     | `(event: ColumnResizeEvent) => void` |         | Called as the user resizes a column: continuously with phase "move", once with "end".                                                                                        |
-| `column.resizable`                   | `boolean`                            |         | Per-column override of resizableColumns — a column can opt out of an otherwise resizable grid, or in on one that is not.                                                     |
-| `column.width / minWidth / maxWidth` | `number`                             |         | This column's own starting width and resize bounds.                                                                                                                          |
+| Prop                                 | Type                                 | Default | Description                                                                                                                                                                        |
+| ------------------------------------ | ------------------------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resizableColumns`                   | `boolean`                            | `false` | Whether columns can be dragged wider, unless a column says otherwise.                                                                                                              |
+| `resizeMode`                         | `"fit" \| "fixed"`                   | `"fit"` | Whether columns fill the grid's width or sit at their own.                                                                                                                         |
+| `columnSizeDefaults`                 | `Partial<ColumnSizeDefaults>`        |         | Width, minWidth, maxWidth applied to a column that sets none of its own.                                                                                                           |
+| `defaultColumnSizing`                | `ColumnSizingState`                  |         | Column widths to start from, keyed by column id. Uncontrolled.                                                                                                                     |
+| `columnSizing`                       | `ColumnSizingState`                  |         | Column widths, controlled — a drag or nudge asks through `onColumnSizingChange` (every `"move"` too), whose `sizing` is the next state. See [controlled state](/docs/react/state). |
+| `onColumnSizingChange`               | `(event: ColumnResizeEvent) => void` |         | Called as the user resizes a column: continuously with phase "move", once with "end".                                                                                              |
+| `column.resizable`                   | `boolean`                            |         | Per-column override of resizableColumns — a column can opt out of an otherwise resizable grid, or in on one that is not.                                                           |
+| `column.width / minWidth / maxWidth` | `number`                             |         | This column's own starting width and resize bounds.                                                                                                                                |
 
 ## Keyboard & pointer interactions
 
@@ -29,7 +29,7 @@ description: "Dragging a column wider with resizableColumns, resizeMode, and col
 
 ## Autofit
 
-Sizing a column to its content — a double-click on its edge, <Kbd>Alt</Kbd>+<Kbd>Enter</Kbd> on its header — measures the column's content in the rows on screen and fits the column to it, within its `minWidth`/`maxWidth`, firing `onColumnResize` once with `"end"`. On a paginated or virtualized grid, rows not drawn are not measured. The same fit is available from code: the ref's [`autoFitColumn(columnId)`](/docs/react/imperative-handle#actions) and `autoFitColumns(columnIds?)`, which fits every column shown when given none, and the `column.autoFit` and `column.autoFitAll` commands, which a [context menu](/docs/react/context-menu#default-items) or [toolbar](/docs/react/toolbar) can carry or `runCommand` can run.
+Sizing a column to its content — a double-click on its edge, <Kbd>Alt</Kbd>+<Kbd>Enter</Kbd> on its header — measures the column's content in the rows on screen and fits the column to it, within its `minWidth`/`maxWidth`, firing `onColumnSizingChange` once with `"end"`. On a paginated or virtualized grid, rows not drawn are not measured. The same fit is available from code: the ref's [`autoFitColumn(columnId)`](/docs/react/imperative-handle#actions) and `autoFitColumns(columnIds?)`, which fits every column shown when given none, and the `column.autoFit` and `column.autoFitAll` commands, which a [context menu](/docs/react/context-menu#default-items) or [toolbar](/docs/react/toolbar) can carry or `runCommand` can run.
 
 ## Reading column widths outside the grid's own tree
 
@@ -87,7 +87,7 @@ export default function App() {
 }
 ```
 
-`useColumnSizingState` only reads. To change column widths from code, call the ref's `setColumnSizing(sizing)`, which fires `onColumnResize`, or hold it yourself with the controlled `columnSizing` prop. Before the grid mounts, the hook reads as an empty object. See [imperative handle](/docs/react/imperative-handle) for `getColumnSizing` and `subscribe`.
+`useColumnSizingState` only reads. To change column widths from code, call the ref's `setColumnSizing(sizing)`, which fires `onColumnSizingChange`, or hold it yourself with the controlled `columnSizing` prop. Before the grid mounts, the hook reads as an empty object. See [imperative handle](/docs/react/imperative-handle) for `getColumnSizing` and `subscribe`.
 
 ## See also
 

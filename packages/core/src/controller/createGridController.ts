@@ -430,7 +430,7 @@ export function createGridController<Row, Node = string>(
     phase: "move" | "end",
   ): void {
     commit("columnSizing", next, () => {
-      options.onColumnResize?.({ columnId, width, sizing: next, phase });
+      options.onColumnSizingChange?.({ columnId, width, sizing: next, phase });
     });
   }
 

@@ -51,9 +51,9 @@ export type Borders = "horizontal" | "vertical" | "all" | "none";
 
 /** Which hover highlighting a grid shows. Every member defaults to on. */
 export interface HoverableConfig {
-  rows?: boolean;
-  columns?: boolean;
-  cells?: boolean;
+  rows?: boolean | undefined;
+  columns?: boolean | undefined;
+  cells?: boolean | undefined;
 }
 
 /**
@@ -180,7 +180,7 @@ export interface GridOptions<Row> {
   defaultColumnSizing?: ColumnSizingState | undefined;
   /**
    * Column widths, controlled — applied as given, changed only through
-   * `onColumnResize`, whose `sizing` is the next state. Leave it
+   * `onColumnSizingChange`, whose `sizing` is the next state. Leave it
    * `undefined` for the grid to keep the widths itself, starting from
    * `defaultColumnSizing`.
    */
@@ -224,7 +224,7 @@ export interface GridOptions<Row> {
    * `phase: "move"` and once on release with `phase: "end"` — the latter being
    * the one to persist. Auto-fitting a column calls it once, with "end".
    */
-  onColumnResize?: ((event: ColumnResizeEvent) => void) | undefined;
+  onColumnSizingChange?: ((event: ColumnResizeEvent) => void) | undefined;
   /**
    * Called once when the user drops a column somewhere new. A drop that leaves
    * the order as it was does not call it.
@@ -432,7 +432,7 @@ export interface GridOptions<Row> {
    * without it, only a column with its own `format` is formatted, in the
    * runtime's locale, and the rest print as they always have.
    */
-  locale?: FormatLocale;
+  locale?: FormatLocale | undefined;
   /**
    * The grid's own strings, replacing its English key by key — the pager's
    * buttons, the group-by bar, the loading row, boolean and blank values,

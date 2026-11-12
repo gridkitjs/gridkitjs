@@ -72,7 +72,7 @@ export default function ControlledStateGrid<Row extends RowWithId>({
         {...props}
         {...values}
         getRowId={(row) => row.id}
-        onColumnResize={(event) => {
+        onColumnSizingChange={(event) => {
           request("columnSizing", event.sizing);
         }}
         onColumnOrderChange={(event) => {

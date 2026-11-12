@@ -734,14 +734,14 @@ describe("createGridController: filter", () => {
 
 describe("createGridController: sizing", () => {
   test("resizeColumn reports every move, even at an unchanged width", () => {
-    const onColumnResize = vi.fn<(event: ColumnResizeEvent) => void>();
-    const controller = create({ onColumnResize });
+    const onColumnSizingChange = vi.fn<(event: ColumnResizeEvent) => void>();
+    const controller = create({ onColumnSizingChange });
 
     controller.resizeColumn("Amount", 180, "move");
     controller.resizeColumn("Amount", 180, "move");
     controller.resizeColumn("Amount", 200, "end");
 
-    expect(onColumnResize.mock.calls.map(([event]) => event)).toEqual([
+    expect(onColumnSizingChange.mock.calls.map(([event]) => event)).toEqual([
       {
         columnId: "Amount",
         width: 180,
@@ -759,8 +759,8 @@ describe("createGridController: sizing", () => {
   });
 
   test("cancelColumnResize puts back the column's starting entry and keeps the others", () => {
-    const onColumnResize = vi.fn<(event: ColumnResizeEvent) => void>();
-    const controller = create({ onColumnResize });
+    const onColumnSizingChange = vi.fn<(event: ColumnResizeEvent) => void>();
+    const controller = create({ onColumnSizingChange });
     const startSizing = controller.getState().columnSizing;
 
     controller.resizeColumn("Amount", 180, "move");
@@ -768,7 +768,7 @@ describe("createGridController: sizing", () => {
     controller.cancelColumnResize("Amount", startSizing, 150);
 
     expect(controller.getState().columnSizing).toEqual({ Region: 90 });
-    expect(onColumnResize.mock.calls.at(-1)?.[0]).toEqual({
+    expect(onColumnSizingChange.mock.calls.at(-1)?.[0]).toEqual({
       columnId: "Amount",
       width: 150,
       sizing: { Region: 90 },
@@ -777,18 +777,18 @@ describe("createGridController: sizing", () => {
   });
 
   test("setColumnSizing names the first changed column, at its definition's width once removed", () => {
-    const onColumnResize = vi.fn<(event: ColumnResizeEvent) => void>();
+    const onColumnSizingChange = vi.fn<(event: ColumnResizeEvent) => void>();
     const controller = create({
       columns: [{ field: "Id", width: 70 }, { field: "Region" }],
       defaultColumnSizing: { Id: 120 },
-      onColumnResize,
+      onColumnSizingChange,
     });
 
     controller.setColumnSizing({ Id: 120, Region: 90 });
     controller.setColumnSizing({ Region: 90 });
     controller.setColumnSizing({ Region: 90 });
 
-    expect(onColumnResize.mock.calls.map(([event]) => event)).toEqual([
+    expect(onColumnSizingChange.mock.calls.map(([event]) => event)).toEqual([
       {
         columnId: "Region",
         width: 90,

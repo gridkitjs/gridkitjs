@@ -35,7 +35,7 @@ Each slice of `GridState` is controlled or not on its own, the way a form input 
 
 | Slice              | Controlled option  | Default                   | Callback                                                  |
 | ------------------ | ------------------ | ------------------------- | --------------------------------------------------------- |
-| `columnSizing`     | `columnSizing`     | `defaultColumnSizing`     | `onColumnResize`                                          |
+| `columnSizing`     | `columnSizing`     | `defaultColumnSizing`     | `onColumnSizingChange`                                    |
 | `columnOrder`      | `columnOrder`      | `defaultColumnOrder`      | `onColumnOrderChange`                                     |
 | `columnVisibility` | `columnVisibility` | `defaultColumnVisibility` | `onColumnVisibilityChange`                                |
 | `filter`           | `filter`           | `defaultFilter`           | `onFilterChange`                                          |
@@ -70,9 +70,9 @@ Every action works out the next value, stops if it is the value the slice alread
 
 | Action                                                             | Callback                   | Description                                                                                                                                    |
 | ------------------------------------------------------------------ | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `resizeColumn(columnId, width, phase)`                             | `onColumnResize`           | Sets one column's width, as a drag does: `"move"` while it lasts, `"end"` once. Never skipped for an unchanged width.                          |
-| `cancelColumnResize(columnId, startSizing, startWidth)`            | `onColumnResize`           | Puts a column back as it was when a resize began, keeping other columns' changes, reported as the `"end"` at `startWidth`.                     |
-| `setColumnSizing(sizing)`                                          | `onColumnResize`           | Replaces the widths, reported as the `"end"` of a resize of the first column that changed.                                                     |
+| `resizeColumn(columnId, width, phase)`                             | `onColumnSizingChange`     | Sets one column's width, as a drag does: `"move"` while it lasts, `"end"` once. Never skipped for an unchanged width.                          |
+| `cancelColumnResize(columnId, startSizing, startWidth)`            | `onColumnSizingChange`     | Puts a column back as it was when a resize began, keeping other columns' changes, reported as the `"end"` at `startWidth`.                     |
+| `setColumnSizing(sizing)`                                          | `onColumnSizingChange`     | Replaces the widths, reported as the `"end"` of a resize of the first column that changed.                                                     |
 | `moveColumn(columnId, beforeId)`                                   | `onColumnOrderChange`      | Moves a column in front of another, or to the end for `null`. Hidden columns keep their place.                                                 |
 | `setColumnOrder(order)`                                            | `onColumnOrderChange`      | Replaces the order, naming the first column whose position changed.                                                                            |
 | `showColumns(ids)` / `hideColumns(ids)`                            | `onColumnVisibilityChange` | One report per call, naming every column it touched in display order.                                                                          |

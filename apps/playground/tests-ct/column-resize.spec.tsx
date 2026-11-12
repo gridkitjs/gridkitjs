@@ -77,7 +77,7 @@ test("dragging a resize handle updates width continuously, with no minimum-dista
       label="Resize"
       resizableColumns
       resizeMode="fixed"
-      onColumnResize={(event) => {
+      onColumnSizingChange={(event) => {
         events.push(event);
       }}
     />,
@@ -90,7 +90,7 @@ test("dragging a resize handle updates width continuously, with no minimum-dista
   await page.mouse.up();
 });
 
-test('releasing the pointer fires one final onColumnResize with phase "end"', async ({
+test('releasing the pointer fires one final onColumnSizingChange with phase "end"', async ({
   mount,
   page,
 }) => {
@@ -103,7 +103,7 @@ test('releasing the pointer fires one final onColumnResize with phase "end"', as
       label="Resize end"
       resizableColumns
       resizeMode="fixed"
-      onColumnResize={(event) => {
+      onColumnSizingChange={(event) => {
         events.push(event);
       }}
     />,
@@ -111,7 +111,7 @@ test('releasing the pointer fires one final onColumnResize with phase "end"', as
   const start = await pointerDragStart(page, headerHandle(root, 0));
   await page.mouse.move(start.x + 30, start.y);
   await page.mouse.up();
-  // `onColumnResize` runs in the browser and reaches this spec over the CT
+  // `onColumnSizingChange` runs in the browser and reaches this spec over the CT
   // bridge, so the "end" event can land after `mouse.up()` has resolved.
   await expect.poll(() => events.at(-1)?.phase).toBe("end");
 });
@@ -129,7 +129,7 @@ test("a drag back to the start width still ends, while a click on the handle rep
       label="Resize out and back"
       resizableColumns
       resizeMode="fixed"
-      onColumnResize={(event) => {
+      onColumnSizingChange={(event) => {
         events.push(event);
       }}
     />,
@@ -169,7 +169,7 @@ test("a right-button drag on a resize handle does not resize the column", async 
       resizableColumns
       reorderableColumns
       resizeMode="fixed"
-      onColumnResize={(event) => {
+      onColumnSizingChange={(event) => {
         events.push(event);
       }}
     />,
@@ -215,7 +215,7 @@ test("Escape mid-resize restores the width captured at drag-start", async ({
       label="Resize cancel"
       resizableColumns
       resizeMode="fixed"
-      onColumnResize={(event) => {
+      onColumnSizingChange={(event) => {
         events.push(event);
       }}
     />,
@@ -246,7 +246,7 @@ test("a second pointer neither moves nor ends a resize", async ({
       label="Resize second pointer"
       resizableColumns
       resizeMode="fixed"
-      onColumnResize={(event) => {
+      onColumnSizingChange={(event) => {
         events.push(event);
       }}
     />,
@@ -380,7 +380,7 @@ test("double-click on a column with no rows is a no-op", async ({ mount }) => {
       label="Empty fit"
       resizableColumns
       resizeMode="fixed"
-      onColumnResize={(event) => {
+      onColumnSizingChange={(event) => {
         events.push(event);
       }}
     />,
@@ -499,7 +499,7 @@ test("resizableColumns={false} renders no resize handle, and Alt+Arrow does noth
   await expect(header).toHaveAttribute("tabindex", "0");
 });
 
-test('resizing the container under resizeMode="fit" changes widths without ever calling onColumnResize', async ({
+test('resizing the container under resizeMode="fit" changes widths without ever calling onColumnSizingChange', async ({
   mount,
 }) => {
   const events: ColumnResizeEvent[] = [];
@@ -509,7 +509,7 @@ test('resizing the container under resizeMode="fit" changes widths without ever 
         columns={columns}
         dataSource={buildRows(2)}
         label="Auto-fit"
-        onColumnResize={(event) => {
+        onColumnSizingChange={(event) => {
           events.push(event);
         }}
       />
@@ -670,7 +670,7 @@ test("unmounting the grid mid-resize cancels it, leaving nothing listening", asy
       label="Unmounted mid-resize"
       resizableColumns
       resizeMode="fixed"
-      onColumnResize={(event) => {
+      onColumnSizingChange={(event) => {
         events.push(event);
       }}
     />,

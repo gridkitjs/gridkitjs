@@ -104,7 +104,7 @@ export interface ColumnDefinition<Row, Node = string> {
    * is unique in the common case but need not be — two columns may render the
    * same field differently.
    */
-  id?: string;
+  id?: string | undefined;
   /**
    * The column's name as plain text. The header shows it when there is no
    * `headerTemplate`, and anything that needs the name as text rather than
@@ -132,7 +132,7 @@ export interface ColumnDefinition<Row, Node = string> {
    * sorts as `compareValues` does without a type, two numbers or two `Date`s
    * by value and any other pair as text.
    */
-  type?: ColumnType;
+  type?: ColumnType | undefined;
   /**
    * `Intl` options for how this column's values read as text: number options
    * for a numeric `type`, date options for a date or time one. Passed to
@@ -154,25 +154,25 @@ export interface ColumnDefinition<Row, Node = string> {
    * Alignment of this column's cells. This package is framework-agnostic so it
    * defaults to `left` (`right` for numbers);
    */
-  alignment?: ColumnAlignment;
+  alignment?: ColumnAlignment | undefined;
   /**
    * Width in px this column starts at. A user resize overrides it for as long
    * as that resize lives in the sizing state.
    */
-  width?: number;
+  width?: number | undefined;
   /** Lower bound a resize may not drag below. */
-  minWidth?: number;
+  minWidth?: number | undefined;
   /** Upper bound a resize may not drag above. */
-  maxWidth?: number;
+  maxWidth?: number | undefined;
   /** Whether this column can be resized, overriding the grid-level default. */
-  resizable?: boolean;
+  resizable?: boolean | undefined;
   /**
    * Whether this column can be dragged to a new position, overriding the
    * grid-level default. A column that cannot move can still be moved past.
    */
-  reorderable?: boolean;
+  reorderable?: boolean | undefined;
   /** Whether this column can be sorted, overriding the grid-level default. */
-  sortable?: boolean;
+  sortable?: boolean | undefined;
   /**
    * Whether this column has a filter menu, overriding the grid-level
    * `filterableColumns`. Like `sortable`, it gates the user's way in and
@@ -185,7 +185,7 @@ export interface ColumnDefinition<Row, Node = string> {
    */
   filterMenu?: ColumnFilterMenuOptions | undefined;
   /** Whether this column can be grouped by, overriding the grid-level default. */
-  groupable?: boolean;
+  groupable?: boolean | undefined;
   /**
    * Whether this column's header shows its group-toggle icon, overriding
    * the grid-level default. Purely a rendering choice — it does not affect
@@ -194,14 +194,14 @@ export interface ColumnDefinition<Row, Node = string> {
    * same way the resize handle stays `aria-hidden` while `Alt+ArrowLeft`/
    * `ArrowRight` still resize.
    */
-  groupToggleIcon?: boolean;
+  groupToggleIcon?: boolean | undefined;
   /**
    * Whether this column's header may be dragged into the group-by bar to
    * add it to the active grouping, overriding the grid-level default.
    * Distinct from `groupable`: a column can be groupable via its header's
    * click/`Alt+ArrowDown` toggle, via this drag, both, or neither.
    */
-  groupByDraggable?: boolean;
+  groupByDraggable?: boolean | undefined;
   /**
    * Lets this column's header and/or cell text wrap onto multiple lines
    * instead of the grid's default single line with an ellipsis. Off by
@@ -209,20 +209,20 @@ export interface ColumnDefinition<Row, Node = string> {
    * rather than something a minor release could turn on under an existing
    * grid.
    */
-  wrap?: ColumnWrapConfig;
+  wrap?: ColumnWrapConfig | undefined;
   /**
    * Extra class names appended to this column's `th`. An escape hatch for a
    * consumer's own CSS — nothing in this package reads them — for anything
    * `wrap` and the rest of this type don't cover.
    */
-  headerClassName?: string;
+  headerClassName?: string | undefined;
   /**
    * Extra class names appended to this column's `td`, on every row. Static
    * per column: a per-row condition is already `cellTemplate`'s job (a
    * template returning its own markup with a conditional class), so this
    * stays a plain string rather than taking the row.
    */
-  cellClassName?: string;
+  cellClassName?: string | undefined;
   /**
    * Whether this column starts out hidden. A hidden column is not rendered
    * but is still a column of the grid: a sort, filter or grouping on it
@@ -257,8 +257,8 @@ export interface ColumnDefinition<Row, Node = string> {
 
 /** Which parts of a column opt out of the grid's default single-line text. */
 export interface ColumnWrapConfig {
-  header?: boolean;
-  cells?: boolean;
+  header?: boolean | undefined;
+  cells?: boolean | undefined;
 }
 
 /**
