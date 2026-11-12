@@ -23,7 +23,7 @@ export {
   type SelectedCell,
   type SelectedColumn,
 } from "./DataGrid/DataGrid";
-// Re-exported so a consumer wiring up resize or selection, or typing a
+// Re-exported so a consumer wiring up resize, selection or focus, or typing a
 // standalone cellTemplate, needs one import and not two. The row payloads name
 // no node type of their own, so they come straight from core.
 export type {
@@ -45,6 +45,7 @@ export type {
   GridContextMenuOptions,
   GridContextMenuRequest,
   GridContextMenuTarget,
+  GridFocus,
   GridMessages,
   GridOptions,
   GridState,

@@ -28,29 +28,29 @@ Every getter reads the grid's state at the moment it is called, so a read straig
 
 ## Reading state
 
-| Member                  | Returns                                     | Description                                                                                                                                                                                                                                                                                                                                                                                               |
-| ----------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `getRows()`             | `readonly ResolvedRow<Row>[]`               | Rows as currently filtered and sorted — what's rendered, ungrouped.                                                                                                                                                                                                                                                                                                                                       |
-| `getDisplayRows()`      | `readonly DisplayRow<Row>[]`                | `getRows()` regrouped into the active `groupBy` — group headers interleaved with data rows, in render order. Identical to `getRows()` when `groupBy` is empty. Each group header's `aggregates` field carries that group's own computed results; under `groupAggregateDisplay: "row"`, a group's own summary row (`kind: "group-summary"`) is interleaved right after it, carrying the same `aggregates`. |
-| `getPageRows()`         | `readonly DisplayRow<Row>[]`                | The current page of `getDisplayRows()` — exactly the rows the body renders. All of `getDisplayRows()` when `paginated` is off. See [pagination](/docs/react/pagination).                                                                                                                                                                                                                                  |
-| `getDataColumns()`      | `readonly DataColumn<Row>[]`                | Every column in its current order as `{ id, column }`, hidden ones included — what sorting, filtering and grouping read. See [column visibility](/docs/react/column-definition#column-visibility).                                                                                                                                                                                                        |
-| `getColumns()`          | `readonly ResolvedColumn<Row>[]`            | Columns as currently sized and ordered — what's rendered, so hidden columns are left out.                                                                                                                                                                                                                                                                                                                 |
-| `getColumnSizing()`     | `ColumnSizingState`                         | Column widths, keyed by column id.                                                                                                                                                                                                                                                                                                                                                                        |
-| `getColumnOrder()`      | `ColumnOrderState`                          | Column ids in their current render order.                                                                                                                                                                                                                                                                                                                                                                 |
-| `getColumnVisibility()` | `ColumnVisibilityState`                     | Columns shown (`true`) or hidden (`false`) since the grid mounted, keyed by id. A column absent from it follows its definition's `hidden`.                                                                                                                                                                                                                                                                |
-| `getColumnSort()`       | `ColumnSortState`                           | The active sort, in priority order.                                                                                                                                                                                                                                                                                                                                                                       |
-| `getFilter()`           | `FilterState<Row>`                          | The active filter. See [column filtering](/docs/react/column-filtering).                                                                                                                                                                                                                                                                                                                                  |
-| `getGroupBy()`          | `GroupByState`                              | The active group-by stack, outer to inner. See [row grouping](/docs/react/row-grouping).                                                                                                                                                                                                                                                                                                                  |
-| `getGroupExpansion()`   | `GroupExpansionState`                       | Which groups are open: a mode, `"allExpanded"` or `"allCollapsed"`, and the group ids toggled against it in `except`.                                                                                                                                                                                                                                                                                     |
-| `getPagination()`       | `PaginationState`                           | The active page and page size. See [pagination](/docs/react/pagination).                                                                                                                                                                                                                                                                                                                                  |
-| `getPageCount()`        | `number`                                    | How many pages the current page size splits the rows into — `1` whenever `paginated` is off.                                                                                                                                                                                                                                                                                                              |
-| `getAggregates()`       | `AggregateResults`                          | The grand-total aggregate results. See [aggregate functions](/docs/react/aggregate-functions).                                                                                                                                                                                                                                                                                                            |
-| `getRowSelection()`     | `SelectionState`                            | Selected row ids.                                                                                                                                                                                                                                                                                                                                                                                         |
-| `getSelectedRows()`     | `readonly ResolvedRow<Row>[]`               | The selected rows, in selection order, among every row the filter lets through. See [row selection](/docs/react/row-selection#selecting-from-code).                                                                                                                                                                                                                                                       |
-| `getColumnSelection()`  | `SelectionState`                            | Selected column ids.                                                                                                                                                                                                                                                                                                                                                                                      |
-| `getCellSelection()`    | `CellSelectionState`                        | The selected cell, if any.                                                                                                                                                                                                                                                                                                                                                                                |
-| `getFocusedCell()`      | `{ rowIndex: number; columnIndex: number }` | The cell currently holding the grid's single tab stop, numbered as `focusCell` takes it: `rowIndex` is `-1` on the header.                                                                                                                                                                                                                                                                                |
-| `getState()`            | `GridState<Row>`                            | Every slice of state in one object — what `restoreState` takes back. See [saving and restoring a layout](/docs/react/state#saving-and-restoring-a-layout).                                                                                                                                                                                                                                                |
+| Member                  | Returns                          | Description                                                                                                                                                                                                                                                                                                                                                                                               |
+| ----------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getRows()`             | `readonly ResolvedRow<Row>[]`    | Rows as currently filtered and sorted — what's rendered, ungrouped.                                                                                                                                                                                                                                                                                                                                       |
+| `getDisplayRows()`      | `readonly DisplayRow<Row>[]`     | `getRows()` regrouped into the active `groupBy` — group headers interleaved with data rows, in render order. Identical to `getRows()` when `groupBy` is empty. Each group header's `aggregates` field carries that group's own computed results; under `groupAggregateDisplay: "row"`, a group's own summary row (`kind: "group-summary"`) is interleaved right after it, carrying the same `aggregates`. |
+| `getPageRows()`         | `readonly DisplayRow<Row>[]`     | The current page of `getDisplayRows()` — exactly the rows the body renders. All of `getDisplayRows()` when `paginated` is off. See [pagination](/docs/react/pagination).                                                                                                                                                                                                                                  |
+| `getDataColumns()`      | `readonly DataColumn<Row>[]`     | Every column in its current order as `{ id, column }`, hidden ones included — what sorting, filtering and grouping read. See [column visibility](/docs/react/column-definition#column-visibility).                                                                                                                                                                                                        |
+| `getColumns()`          | `readonly ResolvedColumn<Row>[]` | Columns as currently sized and ordered — what's rendered, so hidden columns are left out.                                                                                                                                                                                                                                                                                                                 |
+| `getColumnSizing()`     | `ColumnSizingState`              | Column widths, keyed by column id.                                                                                                                                                                                                                                                                                                                                                                        |
+| `getColumnOrder()`      | `ColumnOrderState`               | Column ids in their current render order.                                                                                                                                                                                                                                                                                                                                                                 |
+| `getColumnVisibility()` | `ColumnVisibilityState`          | Columns shown (`true`) or hidden (`false`) since the grid mounted, keyed by id. A column absent from it follows its definition's `hidden`.                                                                                                                                                                                                                                                                |
+| `getColumnSort()`       | `ColumnSortState`                | The active sort, in priority order.                                                                                                                                                                                                                                                                                                                                                                       |
+| `getFilter()`           | `FilterState<Row>`               | The active filter. See [column filtering](/docs/react/column-filtering).                                                                                                                                                                                                                                                                                                                                  |
+| `getGroupBy()`          | `GroupByState`                   | The active group-by stack, outer to inner. See [row grouping](/docs/react/row-grouping).                                                                                                                                                                                                                                                                                                                  |
+| `getGroupExpansion()`   | `GroupExpansionState`            | Which groups are open: a mode, `"allExpanded"` or `"allCollapsed"`, and the group ids toggled against it in `except`.                                                                                                                                                                                                                                                                                     |
+| `getPagination()`       | `PaginationState`                | The active page and page size. See [pagination](/docs/react/pagination).                                                                                                                                                                                                                                                                                                                                  |
+| `getPageCount()`        | `number`                         | How many pages the current page size splits the rows into — `1` whenever `paginated` is off.                                                                                                                                                                                                                                                                                                              |
+| `getAggregates()`       | `AggregateResults`               | The grand-total aggregate results. See [aggregate functions](/docs/react/aggregate-functions).                                                                                                                                                                                                                                                                                                            |
+| `getRowSelection()`     | `SelectionState`                 | Selected row ids.                                                                                                                                                                                                                                                                                                                                                                                         |
+| `getSelectedRows()`     | `readonly ResolvedRow<Row>[]`    | The selected rows, in selection order, among every row the filter lets through. See [row selection](/docs/react/row-selection#selecting-from-code).                                                                                                                                                                                                                                                       |
+| `getColumnSelection()`  | `SelectionState`                 | Selected column ids.                                                                                                                                                                                                                                                                                                                                                                                      |
+| `getCellSelection()`    | `CellSelectionState`             | The selected cell, if any.                                                                                                                                                                                                                                                                                                                                                                                |
+| `getFocusedCell()`      | `GridFocus`                      | The cell currently holding the grid's single tab stop, in the shape `focusCell` takes: `{ area: "header", columnIndex }` or `{ area: "body", rowIndex, columnIndex }`. The same object until the focus moves. See [moving focus](#moving-focus).                                                                                                                                                          |
+| `getState()`            | `GridState<Row>`                 | Every slice of state in one object — what `restoreState` takes back. See [saving and restoring a layout](/docs/react/state#saving-and-restoring-a-layout).                                                                                                                                                                                                                                                |
 
 ## Resolved row and column
 
@@ -84,7 +84,7 @@ Every getter reads the grid's state at the moment it is called, so a read straig
 
 | Member                               | Description                                                                                                                                                                                         |
 | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `focusCell(rowIndex, columnIndex)`   | Moves the grid's tab stop, and the browser's focus, to a cell. A negative `rowIndex` targets the header's cell at `columnIndex`; either index is held inside the grid.                              |
+| `focusCell(focus)`                   | Moves the grid's tab stop, and the browser's focus, to a cell given as a `GridFocus`; either index is held inside the grid. See [moving focus](#moving-focus).                                      |
 | `clearSelection()`                   | Clears row, column, and cell selection together — the same as pressing <Kbd>Escape</Kbd>.                                                                                                           |
 | `selectAllRows()`                    | Selects every data row on the current page, under `selectable.rows: "multiple"` only — the same as <Kbd>Ctrl</Kbd>+<Kbd>A</Kbd>.                                                                    |
 | `selectRows(rowIds, intent?)`        | Selects rows by id within `selectable.rows`: `"replace"` (the default) or `"toggle"`. Fires the row callbacks once, or not at all when nothing changed.                                             |
@@ -114,6 +114,92 @@ Every getter reads the grid's state at the moment it is called, so a read straig
 passed straight through. Under [`virtualized`](/docs/react/row-virtualization#turning-virtualized-on-and-off),
 `scrollToRow` reaches a row that is not mounted, and works from the commit
 that turns `virtualized` on.
+
+### Moving focus
+
+`focusCell` takes, and `getFocusedCell` returns, a `GridFocus` (exported by `@gridkitjs/react` and `@gridkitjs/core`), which names the cell's area: `{ area: "body", rowIndex, columnIndex }` for a cell among the rows as rendered, `{ area: "header", columnIndex }` for a header cell. A cell past the last row or column moves to the last one, so the grid always keeps a tab stop. A `switch` on `area` reads one back, and TypeScript checks that it covers both:
+
+```tsx title="App.tsx"
+import { useRef, useState } from "react";
+import {
+  DataGrid,
+  type ColumnDefinition,
+  type DataGridApi,
+  type GridFocus,
+} from "@gridkitjs/react";
+
+interface Person {
+  id: number;
+  name: string;
+  city: string;
+}
+
+const people: Person[] = [
+  { id: 1, name: "Ada", city: "London" },
+  { id: 2, name: "Grace", city: "New York" },
+  { id: 3, name: "Linus", city: "Helsinki" },
+];
+
+const columns: readonly ColumnDefinition<Person>[] = [
+  { field: "name", header: "Name" },
+  { field: "city", header: "City" },
+];
+
+function describeFocus(focus: GridFocus): string {
+  switch (focus.area) {
+    case "header":
+      return `Header, column ${String(focus.columnIndex)}`;
+    case "body":
+      return `Row ${String(focus.rowIndex)}, column ${String(focus.columnIndex)}`;
+  }
+}
+
+export default function App() {
+  const gridRef = useRef<DataGridApi<Person>>(null);
+  const [focused, setFocused] = useState("");
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          gridRef.current?.focusCell({
+            area: "body",
+            rowIndex: 2,
+            columnIndex: 1,
+          });
+        }}
+      >
+        Focus Linus's city
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          gridRef.current?.focusCell({ area: "header", columnIndex: 0 });
+        }}
+      >
+        Focus the Name header
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          const api = gridRef.current;
+          if (api !== null) setFocused(describeFocus(api.getFocusedCell()));
+        }}
+      >
+        Which cell has focus?
+      </button>
+      <output>{focused}</output>
+      <DataGrid
+        ref={gridRef}
+        columns={columns}
+        dataSource={people}
+        getRowId={(person) => String(person.id)}
+      />
+    </>
+  );
+}
+```
 
 ## Setting and restoring state
 

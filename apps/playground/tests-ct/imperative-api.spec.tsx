@@ -10,6 +10,7 @@ import type {
   ColumnVisibilityEvent,
   ContextMenuOpenChangeEvent,
   GridCommandEvent,
+  GridFocus,
   PaginationState,
 } from "@gridkitjs/core";
 import { expect, test } from "./support/coverage";
@@ -51,7 +52,8 @@ interface Status {
   rowSelection: readonly string[];
   columnSelection: readonly string[];
   cellSelection: { rowId: string; columnId: string } | null;
-  focusedCell: { rowIndex: number; columnIndex: number };
+  focusedCell: GridFocus;
+  focusedCellUnchanged: boolean;
   pagination: PaginationState;
   columnWidths: [string, number][];
 }
@@ -125,20 +127,88 @@ test("focusCell moves the grid's DOM tab stop", async ({ mount }) => {
       columns={columns}
       dataSource={buildRows(3)}
       label="Api"
-      focusRowIndex={1}
-      focusColumnIndex={1}
+      focusTarget={{ area: "body", rowIndex: 1, columnIndex: 1 }}
     />,
   );
   await root.getByRole("button", { name: "focus-cell" }).click();
   await root.getByRole("button", { name: "report" }).click();
   const status = await readStatus(root);
-  expect(status.focusedCell).toEqual({ rowIndex: 1, columnIndex: 1 });
+  expect(status.focusedCell).toEqual({
+    area: "body",
+    rowIndex: 1,
+    columnIndex: 1,
+  });
   const secondRowSecondCell = root
     .locator("tbody tr")
     .nth(1)
     .locator("td")
     .nth(1);
   await expect(secondRowSecondCell).toHaveAttribute("tabindex", "0");
+});
+
+test("focusCell moves the tab stop to a header cell", async ({ mount }) => {
+  const root = await mountGrid(
+    mount,
+    <ImperativeApiGrid
+      columns={columns}
+      dataSource={buildRows(3)}
+      label="Api"
+      focusTarget={{ area: "header", columnIndex: 1 }}
+    />,
+  );
+  await root.getByRole("button", { name: "focus-cell" }).click();
+  await root.getByRole("button", { name: "report" }).click();
+  const status = await readStatus(root);
+  expect(status.focusedCell).toEqual({ area: "header", columnIndex: 1 });
+  await expect(root.locator("thead th").nth(1)).toHaveAttribute(
+    "tabindex",
+    "0",
+  );
+});
+
+test("focusCell holds a cell past the last row and column inside the grid", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ImperativeApiGrid
+      columns={columns}
+      dataSource={buildRows(3)}
+      label="Api"
+      focusTarget={{ area: "body", rowIndex: 10, columnIndex: 5 }}
+    />,
+  );
+  await root.getByRole("button", { name: "focus-cell" }).click();
+  await root.getByRole("button", { name: "report" }).click();
+  const status = await readStatus(root);
+  expect(status.focusedCell).toEqual({
+    area: "body",
+    rowIndex: 2,
+    columnIndex: 1,
+  });
+});
+
+test("getFocusedCell returns the same object until the focus moves", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ImperativeApiGrid
+      columns={columns}
+      dataSource={buildRows(3)}
+      label="Api"
+      focusTarget={{ area: "body", rowIndex: 1, columnIndex: 0 }}
+    />,
+  );
+  const report = root.getByRole("button", { name: "report" });
+  await report.click();
+  await report.click();
+  expect((await readStatus(root)).focusedCellUnchanged).toBe(true);
+  await root.getByRole("button", { name: "focus-cell" }).click();
+  await report.click();
+  expect((await readStatus(root)).focusedCellUnchanged).toBe(false);
+  await report.click();
+  expect((await readStatus(root)).focusedCellUnchanged).toBe(true);
 });
 
 test("selectAllRows and clearSelection drive both state and rendered classes", async ({
@@ -680,7 +750,11 @@ test.describe("context menu", () => {
     await root.getByRole("button", { name: "report" }).click();
     const status = await readStatus(root);
     expect(status.rowSelection).toEqual(["row-1"]);
-    expect(status.focusedCell).toEqual({ rowIndex: 1, columnIndex: 1 });
+    expect(status.focusedCell).toEqual({
+      area: "body",
+      rowIndex: 1,
+      columnIndex: 1,
+    });
   });
 
   test("openContextMenu on a group row opens its menu below it", async ({
