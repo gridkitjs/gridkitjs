@@ -1,5 +1,212 @@
 # @gridkitjs/core
 
+## 0.18.0
+
+### Minor Changes
+
+- 5450e0c: Breaking: `CellSelectionState` is told apart by its `kind`, `{ kind: "none" }` or `{ kind: "cell", rowId, columnId }`, in place of `{ rowId, columnId }` or `null`. Every place that takes or gives one changes with it: `defaultCellSelection`, `cellSelection`, `setCellSelection`, `getCellSelection()`, the `selection` of `CellSelectEvent` and `CellSelectionChangeEvent`, `useSelectionState`'s `cellSelection` (`{ kind: "none" }` before the grid mounts), and `isSameCell`, `selectCell` and `toggleCellSelection` from `@gridkitjs/core`:
+
+  ```tsx
+  // Before
+  <DataGrid defaultCellSelection={{ rowId: "7", columnId: "amount" }} />;
+  api.setCellSelection(null);
+
+  // After
+  <DataGrid
+    defaultCellSelection={{ kind: "cell", rowId: "7", columnId: "amount" }}
+  />;
+  api.setCellSelection({ kind: "none" });
+  ```
+
+  Reading the selection checks the `kind` first:
+
+  ```ts
+  // Before
+  const cell = api.getCellSelection();
+  if (cell !== null) {
+    show(cell.rowId, cell.columnId);
+  }
+
+  // After
+  const selection = api.getCellSelection();
+  if (selection.kind === "cell") {
+    show(selection.rowId, selection.columnId);
+  }
+  ```
+
+  A later release may add a kind, such as a range of cells, so a `switch` over it needs a `default` branch. Passing the state to `resolveCell`, which still takes a `{ rowId, columnId }` address or `null`, needs the same check.
+
+  `selectCell` and `toggleCellSelection` still take the cell to select as a `SelectedCellRef` (`{ rowId, columnId }`), and so does the controller's `selectCell`. Saved state keeps `version: 1`: a `cellSelection` saved without a `version`, as `null` or `{ rowId, columnId }`, restores as `{ kind: "none" }` or that cell.
+
+- f4b7ff4: Breaking: the column-width callback is `onColumnSizingChange`, so every state slice reports through `on<Slice>Change`. It is the same callback under a new name: it still receives a `ColumnResizeEvent`, continuously with `phase: "move"` during a drag and once with `"end"`. Rename the prop on `DataGrid` and the option passed to `createGridController`:
+
+  ```tsx
+  // Before
+  <DataGrid
+    columnSizing={sizing}
+    onColumnResize={(event) => setSizing(event.sizing)}
+  />
+
+  // After
+  <DataGrid
+    columnSizing={sizing}
+    onColumnSizingChange={(event) => setSizing(event.sizing)}
+  />
+  ```
+
+- 6302ace: Breaking: `@gridkitjs/core` has a second entry point, `@gridkitjs/core/renderer`, for the building blocks only someone writing a renderer needs, and the names below are exported from it instead of the root. The root keeps the grid's data, options and state, its controller, commands, menus and toolbar options, data functions, messages, formatting and export. The renderer entry may change in a minor release. An app using `DataGrid` from `@gridkitjs/react` changes nothing; code importing a moved name changes its import:
+
+  ```ts
+  // Before
+  import { createGridController, paginationWindow } from "@gridkitjs/core";
+
+  // After
+  import { createGridController } from "@gridkitjs/core";
+  import { paginationWindow } from "@gridkitjs/core/renderer";
+  ```
+
+  Moved to `@gridkitjs/core/renderer`:
+
+  - Menus and context menus: `hasContextMenu`, `nextMenuIndex`, `typeaheadIndex`, `MenuMove`.
+  - Toolbar: `fitToolbarItems`, `isPinnedToolbarItem`, `splitToolbarItems`, `ToolbarFitInput`, `ToolbarSplit`, `searchTextOf`, `setSearchText`.
+  - Keyboard and focus: `buildKeyShortcuts`, `KeyShortcutCapabilities`, `clampFocus`, `nextFocusForKey`, `NavigationModifiers`. `GridFocus`, `headerFocus` and `bodyFocus` stay in the root.
+  - Column resizing: `beginColumnResize`, `applyColumnResize`, `revertColumnSize`, `sizeColumnToContent`, `clampColumnWidth`, `resolveColumnConstraints`, `fitColumnsToWidth`, `totalColumnWidth`, `KEYBOARD_STEP`, `ColumnResizeSession`. `resolveColumnWidths` and `DEFAULT_COLUMN_SIZES` stay in the root.
+  - Column and group-by drops: `resolveDropBefore`, `resolveKeyboardDropTarget`, `movesColumn`, `movesGroupBy`, `DropSide`.
+  - Selection: `intentOf`, `diffSelection`.
+  - Column chooser: `resolveColumnChooser`, `ColumnChooserEntry`, `ColumnChooserInput`, `ColumnChooserModel`, `ColumnChooserToggle`.
+  - Filter editor: `describeColumnFilter`, `columnValueOptions`, `initialFilterEditorDraft`, `filterEditorReducer`, `toValuesDraft`, `toConditionsDraft`, `selectAllState`, `visibleFilterOptions`, `draftToFilter`, `filterDraftChanged`, `ColumnFilterShape`, `ColumnValueOption`, `ColumnValueOptions`, `ColumnValueQuery`, `FilterEditorDraft`, `FilterEditorDraftBase`, `ValuesDraft`, `ConditionsDraft`, `FilterEditorAction`, `SelectAllState`; `resolveColumnFilterMenu`, `ResolvedColumnFilterMenu`; `filterOperatorFamily`, `filterOperandArity`, `parseFilterOperand`, `formatFilterOperand`; `conditionRowsFrom`, `conditionsFromRows`, `ConditionRowDraft`, `ParsedConditionRows`; `createColumnValueOptionsCache`, `ColumnValueOptionsCache`, `ColumnValueCacheQuery`; `filterChecklist`, `FilterChecklist`, `FilterChecklistItem`, `FilterChecklistOptions`. `isColumnFiltered`, `defaultFilterOperators`, `FilterOperatorFamily`, `DEFAULT_FILTER_VALUE_LIMIT` and the filter menu's option types stay in the root.
+  - Paging and virtualization: `paginationWindow`, `PaginationWindowEntry`, `visibleRange`, `VisibleRange`, `RowHeights`.
+  - Copy and print: `copyContent`, `CopyRequest`, `CopySource`, `buildPrintDocument`. `CopyContent`, `exportPrintDocument` and the print types stay in the root.
+
+- e4196d1: Breaking: `ResolvedRow` carries `kind: "data"`, so every member of `DisplayRow` is told apart by its `kind`. A check for a data row that tested whether the entry has a `kind` at all is now always true and has to read the `kind` instead:
+
+  ```ts
+  // Before
+  if ("kind" in row) {
+    // a group header or a summary row
+  }
+
+  // After
+  if (row.kind !== "data") {
+    // a group header or a summary row
+  }
+  ```
+
+  A `switch (row.kind)` can now cover `"data"`, `"group"` and `"group-summary"` together. A `ResolvedRow` built by hand, such as test data passed to `groupRows` or `paginateRows`, needs `kind: "data"`:
+
+  ```ts
+  // Before
+  const entry: ResolvedRow<Order> = {
+    rowId: "1",
+    row,
+    rowIndex: 0,
+    datasetIndex: 0,
+  };
+
+  // After
+  const entry: ResolvedRow<Order> = {
+    kind: "data",
+    rowId: "1",
+    row,
+    rowIndex: 0,
+    datasetIndex: 0,
+  };
+  ```
+
+  The rows `DataGrid`'s `getRows()`, `getDisplayRows()`, `getPageRows()` and `getSelectedRows()` return, and the rows the selection and row events carry, all have the field.
+
+- f7250e8: Breaking: every class name the grid renders starts with `gridkit-`, so the theme's rules can no longer match a host page's own elements and a host's rules no longer reach into the grid. The rest of each name is unchanged (`grid-row` is `gridkit-grid-row`, `header-cell` is `gridkit-header-cell`, `borders-all` is `gridkit-borders-all`), and the `is-*` state classes keep their names. Names that already started with `gridkit-` are unchanged too. Custom CSS and test selectors that name a grid class add the prefix:
+
+  ```css
+  /* Before */
+  .grid-row.is-overdue {
+    color: red;
+  }
+
+  /* After */
+  .gridkit-grid-row.is-overdue {
+    color: red;
+  }
+  ```
+
+  ```ts
+  // Before
+  page.locator(".header-cell.is-selected");
+
+  // After
+  page.locator(".gridkit-header-cell.is-selected");
+  ```
+
+  The print document and the HTML table `@gridkitjs/core` writes for copy and print follow the same rule: `export-group`, `export-group-summary`, `print-title`, `print-subtitle` and `print-timestamp` are `gridkit-export-group`, `gridkit-export-group-summary`, `gridkit-print-title`, `gridkit-print-subtitle` and `gridkit-print-timestamp`, and `printStyles` from `@gridkitjs/dom` targets them.
+
+- 5450e0c: `resolveGridView` and `createGridViewResolver` take any part of a `GridViewState` as `state`. A slice left out, or `undefined`, reads as the grid's starting default: no sizes, order, hidden columns, sort, filter or grouping, every group expanded, and the first page of 25. A call that passes every slice works as before:
+
+  ```ts
+  // Before
+  resolveGridView({
+    rows,
+    columns,
+    state: {
+      columnSizing: {},
+      columnOrder: [],
+      columnVisibility: {},
+      columnSort: query.sort,
+      filter: query.filter,
+      groupBy: [],
+      groupExpansion: ALL_EXPANDED,
+      pagination: query.page,
+    },
+    options: { paginated: true },
+  });
+
+  // After
+  resolveGridView({
+    rows,
+    columns,
+    state: {
+      columnSort: query.sort,
+      filter: query.filter,
+      pagination: query.page,
+    },
+    options: { paginated: true },
+  });
+  ```
+
+  Breaking for code that reads the input rather than building it: `GridViewInput["state"]` is the partial shape, so a function that takes a `GridViewInput` and reads `input.state.columnOrder` must allow for a slice left out.
+
+- 9499370: Breaking: saved state carries a version. `serializeGridState` writes `version: 1` on the object it returns, and `SerializedGridState` has the field, so `restoreState` can read a layout saved by an earlier release by the shape it was saved in:
+
+  ```jsonc
+  // Before
+  { "columnOrder": ["amount", "id"], "filter": [] }
+
+  // After
+  { "version": 1, "columnOrder": ["amount", "id"], "filter": [] }
+  ```
+
+  State saved by earlier releases, without a `version`, still restores, including a `groupExpansion` saved as a bare list of collapsed group ids. A `version` newer than the release reads makes `restoreState` throw a `TypeError` naming both versions, before any slice is set. A live state from `getState()` has no version and needs none.
+
+  Code that compares or validates the saved JSON by its exact keys, or builds a `SerializedGridState` by hand, must allow the new key:
+
+  ```ts
+  // Before
+  const saved: SerializedGridState<Order> = { ...layout, filter: [] };
+
+  // After
+  const saved: SerializedGridState<Order> = {
+    version: 1,
+    ...layout,
+    filter: [],
+  };
+  ```
+
+  A `groupExpansion` bare list is read only from a save with no `version`; under `version: 1` it throws like any other unreadable slice.
+
+### Patch Changes
+
+- f4b7ff4: Every optional member of the grid's options and column definitions accepts `undefined`, as most already did, so a value that may be missing can be passed through under `exactOptionalPropertyTypes`. `locale={maybeLocale}` type-checks on `DataGrid`, as do `locale` in `CsvOptions` and `PrintOptions`, the members of `hoverable`, a column's `id`, `type`, `alignment`, `width`, `minWidth`, `maxWidth`, `resizable`, `reorderable`, `sortable`, `groupable`, `groupToggleIcon`, `groupByDraggable`, `wrap`, `headerClassName` and `cellClassName`, and the members of `wrap`.
+- f4b7ff4: The packages declare `"sideEffects": false`, so a bundler drops the modules an app imports nothing from. None of them does work at import.
+
 ## 0.17.0
 
 ### Minor Changes
