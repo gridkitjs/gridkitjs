@@ -119,9 +119,11 @@ export interface GridController<Row, Node = string> {
    * A slice that throws stops the restore there, after the slices before it
    * are shown, reported and announced as above.
    *
-   * A `groupExpansion` saved as a bare list of group ids, as GridKit saved
-   * it before the slice carried a mode, restores as `allExpanded` with those
-   * ids as the exceptions.
+   * Saved state is read by its `version`. One without a version, saved
+   * before the field existed, still restores: a `groupExpansion` saved as a
+   * bare list of group ids, as GridKit saved it before the slice carried a
+   * mode, restores as `allExpanded` with those ids as the exceptions. A
+   * version newer than this release reads throws before any slice is set.
    */
   readonly restoreState: (
     saved: Partial<GridState<Row>> | Partial<SerializedGridState<Row>>,

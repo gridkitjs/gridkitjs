@@ -85,17 +85,65 @@ function serializeFilter<Row>(
 }
 
 /**
+ * The `version` `serializeGridState` writes: the highest one `restoreState`
+ * reads.
+ */
+const SAVED_STATE_VERSION = 1;
+
+/**
  * `state` in a form that survives `JSON.stringify` and back unchanged, for
  * saving a layout — to local storage, a URL, a user's profile — and handing
  * it to `restoreState` later. Every slice is plain data already except the
  * filter: a `Date` value or operand is written as its ISO string, and a
  * predicate entry, being a function, cannot be written at all and is left
- * out with a `console.error` naming its column.
+ * out with a `console.error` naming its column. The result carries the
+ * `version` of its shape, which `restoreState` reads it by.
  */
 export function serializeGridState<Row>(
   state: GridState<Row>,
 ): SerializedGridState<Row> {
-  return { ...state, filter: serializeFilter(state.filter) };
+  return {
+    version: SAVED_STATE_VERSION,
+    ...state,
+    filter: serializeFilter(state.filter),
+  };
+}
+
+/** What `restoreState` takes: live or saved state, whole or in part. */
+export type SavedGridState<Row> =
+  Partial<GridState<Row>> | Partial<SerializedGridState<Row>>;
+
+/** A `SavedGridState` in the shape this release writes, without a version. */
+export type CurrentGridState<Row> =
+  Partial<GridState<Row>> | Partial<Omit<SerializedGridState<Row>, "version">>;
+
+/**
+ * `saved` in the shape this release writes, read by the `version` it was
+ * saved with. One with no version was saved before the field existed, or is
+ * live state from `getState()`; it may hold a `groupExpansion` as a bare
+ * list of group ids, the shape before the slice carried a mode, which names
+ * the collapsed groups and so reads as `allExpanded` with them as the
+ * exceptions. A version newer than this release reads throws, rather than
+ * restoring half of a shape it does not know.
+ */
+export function migrateSavedState<Row>(
+  saved: SavedGridState<Row> & { readonly version?: unknown },
+): CurrentGridState<Row> {
+  const { version, ...state } = saved;
+  if (version === undefined) {
+    return isStringList(state.groupExpansion)
+      ? {
+          ...state,
+          groupExpansion: { mode: "allExpanded", except: state.groupExpansion },
+        }
+      : state;
+  }
+  if (version === SAVED_STATE_VERSION) {
+    return state;
+  }
+  throw new TypeError(
+    `GridKit: a saved state has \`version\` ${JSON.stringify(version)}, and this release reads saved state up to version ${String(SAVED_STATE_VERSION)}.`,
+  );
 }
 
 /** A saved scalar back as a `Date` when a date column's string reads as one. */
@@ -236,19 +284,15 @@ function isGroupExpansion(value: unknown): value is GroupExpansionState {
 }
 
 /**
- * A saved `groupExpansion` back as a `GroupExpansionState`. A bare list of
- * group ids, as GridKit saved the slice before it carried a mode, names the
- * collapsed groups, so it reads as `allExpanded` with them as the
- * exceptions. Anything else throws.
+ * A saved `groupExpansion`, checked to be a `GroupExpansionState`; anything
+ * else throws. `migrateSavedState` has already read an older shape as this
+ * one.
  */
 export function reviveGroupExpansion(saved: unknown): GroupExpansionState {
-  if (isStringList(saved)) {
-    return { mode: "allExpanded", except: saved };
-  }
   if (isGroupExpansion(saved)) {
     return saved;
   }
   throw new TypeError(
-    "GridKit: a saved `groupExpansion` is neither `{ mode, except }` nor a list of group ids.",
+    "GridKit: a saved `groupExpansion` is not `{ mode, except }`.",
   );
 }

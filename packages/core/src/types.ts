@@ -1018,6 +1018,11 @@ export interface SerializedGridState<Row> extends Omit<
   GridState<Row>,
   "filter"
 > {
+  /**
+   * The shape the state was saved in, so `restoreState` can read a layout
+   * saved by an earlier release. A saved state without one predates it.
+   */
+  readonly version: 1;
   readonly filter: SerializedFilterState<Row>;
 }
 
