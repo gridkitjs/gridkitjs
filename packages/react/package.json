@@ -19,6 +19,7 @@
     "typescript"
   ],
   "type": "module",
+  "sideEffects": false,
   "engines": {
     "node": ">=22"
   },
