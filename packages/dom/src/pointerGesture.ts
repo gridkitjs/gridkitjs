@@ -26,6 +26,15 @@ export function mayStartGesture(
   return press.button === 0 && press.isPrimary && signal?.aborted !== true;
 }
 
+/**
+ * The gesture's hold on its pointer: captured, or released by the browser
+ * and waiting for the task that takes it again.
+ */
+type Capture =
+  { readonly kind: "held" } | { readonly kind: "lost"; readonly timer: number };
+
+const HELD: Capture = { kind: "held" };
+
 interface PointerGestureHandlers {
   onMove: (event: PointerEvent) => void;
   onEnd: () => void;
@@ -46,7 +55,9 @@ interface PointerGestureHandlers {
  * document mid-gesture, as a keyed list re-inserting it does, makes the
  * browser release the capture, and events heard only on `element` would then
  * go to whatever lies under the pointer, leaving the gesture with no move and
- * no release. Capture is taken again while `element` is still connected.
+ * no release. Capture is taken again while `element` is still connected,
+ * in a task of its own: WebKit hangs the page on the next pointer move when
+ * `setPointerCapture` is called from inside `lostpointercapture`.
  */
 export function startPointerGesture(
   element: HTMLElement,
@@ -56,8 +67,13 @@ export function startPointerGesture(
 ): void {
   const { ownerDocument } = element;
   element.setPointerCapture(pointerId);
+  let capture: Capture = HELD;
 
   function stop(): void {
+    if (capture.kind === "lost") {
+      window.clearTimeout(capture.timer);
+      capture = HELD;
+    }
     ownerDocument.removeEventListener("pointermove", move, true);
     ownerDocument.removeEventListener("pointerup", end, true);
     ownerDocument.removeEventListener("pointercancel", cancel, true);
@@ -89,9 +105,18 @@ export function startPointerGesture(
   }
 
   function recapture(event: PointerEvent): void {
-    if (event.pointerId === pointerId && element.isConnected) {
-      element.setPointerCapture(pointerId);
+    if (event.pointerId !== pointerId || capture.kind === "lost") {
+      return;
     }
+    capture = {
+      kind: "lost",
+      timer: window.setTimeout(() => {
+        capture = HELD;
+        if (element.isConnected) {
+          element.setPointerCapture(pointerId);
+        }
+      }, 0),
+    };
   }
 
   function abandon(): void {
