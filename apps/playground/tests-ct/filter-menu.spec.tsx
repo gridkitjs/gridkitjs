@@ -17,6 +17,10 @@ import { mountGrid, updateGrid } from "./support/mountGrid";
 /** DataGrid's space between a menu or panel and what it opens below. */
 const ANCHOR_GAP = 4;
 
+/** Why a test that types into a date field skips in WebKit on Linux. */
+const DATE_FIELD_TAKES_NO_TYPING =
+  "WebKit on Linux sets a date field only from its picker, ignoring typed digits";
+
 function header(root: MountResult, name: string): Locator {
   return root.getByRole("columnheader", { name, exact: true });
 }
@@ -869,7 +873,12 @@ test.describe("the simple editor", () => {
   test("a date missing its year marks its condition, though nothing else was changed", async ({
     mount,
     page,
+    browserName,
   }) => {
+    test.skip(
+      browserName === "webkit" && process.platform === "linux",
+      DATE_FIELD_TAKES_NO_TYPING,
+    );
     const root = await mountGrid(mount, <FilterMenuGrid />);
     const filterMenu = await openFromHeaderMenu(root, page, "Joined");
 
