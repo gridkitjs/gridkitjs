@@ -2,9 +2,9 @@
 // ./support/coverage rather than directly from the CT package — see that
 // file for why.
 import { groupRowId, type ColumnDefinition } from "@gridkitjs/core";
-import AxeBuilder from "@axe-core/playwright";
 import type { MountResult } from "@playwright/experimental-ct-react";
 import { DataGrid } from "@gridkitjs/react";
+import { expectNoAxeViolations } from "./support/axe";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
 import HeaderTextGrid from "./support/HeaderTextGrid";
@@ -529,15 +529,7 @@ for (const palette of ["gridkit-light", "gridkit-dark"]) {
           {groupedGrid(display)}
         </div>,
       );
-      const results = await new AxeBuilder({ page })
-        .include(".gridkit-data-grid-viewport")
-        .analyze();
-      expect(
-        results.violations.map((violation) => ({
-          id: violation.id,
-          targets: violation.nodes.map((node) => node.target.join(" ")),
-        })),
-      ).toEqual([]);
+      await expectNoAxeViolations(page);
     });
   }
 }
