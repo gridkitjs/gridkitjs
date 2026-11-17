@@ -9,6 +9,7 @@ import { expect, test } from "./support/coverage";
 import ControlledStateGrid from "./support/ControlledStateGrid";
 import PointerGestureHarness from "./support/PointerGestureHarness";
 import { mountGrid, updateGrid } from "./support/mountGrid";
+import { pressMouse } from "./support/pressMouse";
 import { trackWindowListeners } from "./support/windowListeners";
 
 interface Row {
@@ -45,14 +46,14 @@ async function colWidth(root: MountResult, index: number): Promise<number> {
     .evaluate((element) => parseFloat((element as HTMLElement).style.width));
 }
 
-/** The `pointerId` Chromium gives the mouse that `page.mouse` drives. */
-const MOUSE_POINTER_ID = 1;
-
-/** Presses the pointer down on `handle`'s center, without releasing it. */
+/**
+ * Presses the pointer down on `handle`'s center, without releasing it, and
+ * returns where, with the press's `pointerId`.
+ */
 async function pointerDragStart(
   page: Page,
   handle: ReturnType<typeof headerHandle>,
-): Promise<{ x: number; y: number }> {
+): Promise<{ x: number; y: number; pointerId: number }> {
   const box = await handle.boundingBox();
   if (box === null) {
     throw new Error("resize handle is not visible");
@@ -60,8 +61,8 @@ async function pointerDragStart(
   const x = box.x + box.width / 2;
   const y = box.y + box.height / 2;
   await page.mouse.move(x, y);
-  await page.mouse.down();
-  return { x, y };
+  const pointerId = await pressMouse(page);
+  return { x, y, pointerId };
 }
 
 test("dragging a resize handle updates width continuously, with no minimum-distance threshold", async ({
@@ -596,7 +597,7 @@ test("aborting a resize's signal cancels it and leaves nothing listening", async
   expect(
     await handle.evaluate(
       (element, pointerId) => element.hasPointerCapture(pointerId),
-      MOUSE_POINTER_ID,
+      start.pointerId,
     ),
   ).toBe(false);
 
