@@ -330,6 +330,9 @@ export default function GridBody<Row>({
                 row={entry.row}
                 rowIndex={entry.rowIndex}
                 datasetIndex={entry.datasetIndex}
+                groupLevel={entry.groupPosition?.level}
+                groupPosition={entry.groupPosition?.position}
+                groupSetSize={entry.groupPosition?.setSize}
                 activeColumnId={activeColumnId}
                 selectedColumnIds={selection.selectedColumnIds}
                 selected={selection.selectedRowIds.has(entry.rowId)}

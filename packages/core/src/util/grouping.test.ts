@@ -196,6 +196,46 @@ describe("groupRows", () => {
       result.map((_entry, index) => index),
     );
   });
+
+  test("each data row carries its depth and its place among its group's rows", () => {
+    const groupBy: GroupByState = [{ columnId: "Region" }];
+    const result = groupRows(rows, groupBy, ALL_EXPANDED, columns);
+
+    expect(
+      result
+        .filter((entry): entry is ResolvedRow<SampleRow> => !isGroup(entry))
+        .map((entry) => [entry.row.Id, entry.groupPosition]),
+    ).toEqual([
+      [2, { level: 1, position: 1, setSize: 2 }],
+      [4, { level: 1, position: 2, setSize: 2 }],
+      [1, { level: 1, position: 1, setSize: 3 }],
+      [3, { level: 1, position: 2, setSize: 3 }],
+      [5, { level: 1, position: 3, setSize: 3 }],
+    ]);
+  });
+
+  test("a data row two levels deep is placed within its innermost group, beside a collapsed sibling", () => {
+    const groupBy: GroupByState = [
+      { columnId: "Region" },
+      { columnId: "Status" },
+    ];
+    const expansion: GroupExpansionState = {
+      mode: "allExpanded",
+      except: [groupRowId(["West", "Closed"])],
+    };
+    const result = groupRows(rows, groupBy, expansion, columns);
+
+    expect(
+      result
+        .filter((entry): entry is ResolvedRow<SampleRow> => !isGroup(entry))
+        .map((entry) => [entry.row.Id, entry.groupPosition]),
+    ).toEqual([
+      [4, { level: 2, position: 1, setSize: 1 }],
+      [2, { level: 2, position: 1, setSize: 1 }],
+      [1, { level: 2, position: 1, setSize: 2 }],
+      [5, { level: 2, position: 2, setSize: 2 }],
+    ]);
+  });
 });
 
 describe("isGroupExpanded", () => {

@@ -95,12 +95,27 @@ function partitionByValue<Row>(
 }
 
 /**
+ * The data rows of one innermost group, `depth` grouping levels deep, each
+ * told its place in that group. The size is the whole group's, so a group
+ * split across pages reads the same on each.
+ */
+function withGroupPosition<Row>(
+  rows: readonly ResolvedRow<Row>[],
+  depth: number,
+): ResolvedRow<Row>[] {
+  return rows.map((row, index) => ({
+    ...row,
+    groupPosition: { level: depth, position: index + 1, setSize: rows.length },
+  }));
+}
+
+/**
  * Depth-first builder behind `groupRows`: partitions `rows` by `levels[0]`,
  * appends a header per resulting group, and recurses into `levels.slice(1)`
  * for each — unless that group is collapsed, in which case only its header
- * is appended. `rows` with no levels left (either `levels` started empty, or
- * recursion exhausted it) are appended as plain data rows, keeping the
- * relative order filter/sort already gave them.
+ * is appended. `rows` with no levels left are the innermost group's data
+ * rows, appended with their `groupPosition` in the relative order
+ * filter/sort already gave them.
  */
 function buildLevel<Row>(
   rows: readonly ResolvedRow<Row>[],
@@ -112,7 +127,7 @@ function buildLevel<Row>(
 ): void {
   const level = levels[0];
   if (level === undefined) {
-    out.push(...rows);
+    out.push(...withGroupPosition(rows, parentPath.length));
     return;
   }
 
@@ -160,7 +175,8 @@ function buildLevel<Row>(
  * own `direction`, followed depth-first by its nested groups and/or data
  * rows. A group `expansion` collapses contributes only its own header,
  * nothing beneath it — but its `count` still reports the group's full
- * leaf-row count either way.
+ * leaf-row count either way. Each data row carries its `groupPosition`:
+ * its depth, and its place among and the count of its group's rows.
  *
  * Filter and sort are expected to have already run (see `resolveShownRows`):
  * this only reshapes their output, and never changes which rows appear or

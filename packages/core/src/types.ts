@@ -891,6 +891,21 @@ export interface ResolvedRow<Row> {
   readonly rowIndex: number;
   /** This row's absolute position in the whole filtered/sorted/grouped dataset, matching `CellTemplateContext`. */
   readonly datasetIndex: number;
+  /** Where the row sits in its group. Set by `groupRows`; absent from an ungrouped result. */
+  readonly groupPosition?: RowGroupPosition;
+}
+
+/**
+ * A data row's place inside its group: what a renderer draws as the row's
+ * `aria-level`, `aria-posinset` and `aria-setsize` in a treegrid.
+ */
+export interface RowGroupPosition {
+  /** Nesting depth on `ResolvedGroupRow.level`'s scale: one deeper than the group holding the row, so `1` under a top-level group. */
+  readonly level: number;
+  /** 1-based place among the data rows of its group. */
+  readonly position: number;
+  /** How many data rows its group holds, its `count`: the same on every page the group spans. */
+  readonly setSize: number;
 }
 
 /**

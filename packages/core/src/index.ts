@@ -67,6 +67,7 @@ export type {
   ResolvedGroupRow,
   ResolvedGroupSummaryRow,
   ResolvedRow,
+  RowGroupPosition,
   RowPointerEvent,
   RowSelectEvent,
   RowSelectionChangeEvent,

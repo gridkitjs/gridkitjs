@@ -31,6 +31,14 @@ A `DisplayRow<Row>` is a data row (`ResolvedRow<Row>`, `kind: "data"`), a group 
 | `datasetIndex` | `number`             | Its position in the whole grouped result, on any page.                          |
 | `aggregates`   | `AggregateResults`   | Its own aggregate results, once `withGroupAggregates` has run; empty otherwise. |
 
+Each data row in the output carries a `groupPosition`, a `RowGroupPosition`, for drawing the row's `aria-level`, `aria-posinset` and `aria-setsize` in a treegrid. An ungrouped row has none.
+
+| Field      | Type     | Description                                                                                                     |
+| ---------- | -------- | --------------------------------------------------------------------------------------------------------------- |
+| `level`    | `number` | Nesting depth on a group header's scale: `1` under a top-level group, one more for each level below it.         |
+| `position` | `number` | Its 1-based place among the data rows of its group.                                                             |
+| `setSize`  | `number` | How many data rows its group holds, its header's `count`. A group split across pages has the same size on each. |
+
 ## The group-by stack
 
 `movesGroupBy` comes from `@gridkitjs/core/renderer`, for a drop indicator; `moveGroupByBefore` from `@gridkitjs/core`.

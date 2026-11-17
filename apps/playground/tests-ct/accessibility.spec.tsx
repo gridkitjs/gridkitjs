@@ -1,8 +1,9 @@
 // Coverage is only collected when tests import `test`/`expect` from
 // ./support/coverage rather than directly from the CT package — see that
 // file for why.
-import type { ColumnDefinition } from "@gridkitjs/core";
+import { groupRowId, type ColumnDefinition } from "@gridkitjs/core";
 import AxeBuilder from "@axe-core/playwright";
+import type { MountResult } from "@playwright/experimental-ct-react";
 import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
@@ -372,6 +373,121 @@ test("the treegrid owns its rows directly, with a group row's level, expansion a
   await expect(group).toHaveAttribute("aria-posinset", "1");
   await expect(group).toHaveAttribute("aria-setsize", "2");
   await expect(group.getByRole("gridcell")).toHaveCount(1);
+});
+
+/** Each data row's name cell with its `aria-level`, `aria-posinset` and `aria-setsize`, `null` for one it lacks. */
+async function dataRowPositions(
+  root: MountResult,
+): Promise<(string | null)[][]> {
+  return root
+    .locator("tbody tr[data-gridkit-row-id]")
+    .evaluateAll((rows) =>
+      rows.map((row) => [
+        row.querySelector("td")?.textContent ?? null,
+        row.getAttribute("aria-level"),
+        row.getAttribute("aria-posinset"),
+        row.getAttribute("aria-setsize"),
+      ]),
+    );
+}
+
+interface TeamRow extends GroupedRow {
+  team: string;
+}
+
+const teamRows: TeamRow[] = [
+  { id: "a", name: "Alpha", region: "North", team: "Red", amount: 3 },
+  { id: "b", name: "Bravo", region: "South", team: "Red", amount: 5 },
+  { id: "c", name: "Charlie", region: "North", team: "Blue", amount: 2 },
+  { id: "d", name: "Delta", region: "North", team: "Red", amount: 4 },
+  { id: "e", name: "Echo", region: "South", team: "Blue", amount: 1 },
+];
+
+const teamColumns: readonly ColumnDefinition<TeamRow>[] = [
+  { field: "name", width: 120 },
+  { field: "region", width: 120 },
+  { field: "team", width: 120 },
+];
+
+test("a data row under one grouping column is level 2, placed among its group's rows", async ({
+  mount,
+}) => {
+  const root = await mountGrid(mount, groupedGrid());
+  expect(await dataRowPositions(root)).toEqual([
+    ["Alpha", "2", "1", "2"],
+    ["Charlie", "2", "2", "2"],
+    ["Bravo", "2", "1", "1"],
+  ]);
+});
+
+test("a data row under two grouping columns is level 3, placed within its innermost group beside a collapsed sibling", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={teamColumns}
+      dataSource={teamRows}
+      label="Two levels"
+      defaultGroupBy={[{ columnId: "region" }, { columnId: "team" }]}
+      defaultGroupExpansion={{
+        mode: "allExpanded",
+        except: [groupRowId(["North", "Blue"])],
+      }}
+    />,
+  );
+  const collapsed = root.getByRole("row", { name: /^team: Blue/ }).first();
+  await expect(collapsed).toHaveAttribute("aria-expanded", "false");
+  expect(await dataRowPositions(root)).toEqual([
+    ["Alpha", "3", "1", "2"],
+    ["Delta", "3", "2", "2"],
+    ["Echo", "3", "1", "1"],
+    ["Bravo", "3", "1", "1"],
+  ]);
+});
+
+test("a group split by row pagination gives its rows the same set size on its second page", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={teamColumns}
+      dataSource={teamRows}
+      label="Split group"
+      defaultGroupBy={[{ columnId: "region" }]}
+      paginated
+      paginationUnit="row"
+      defaultPagination={{ pageIndex: 0, pageSize: 2 }}
+    />,
+  );
+  expect(await dataRowPositions(root)).toEqual([
+    ["Alpha", "2", "1", "3"],
+    ["Charlie", "2", "2", "3"],
+  ]);
+
+  await root.getByRole("button", { name: "Next" }).click();
+  await expect(root.getByRole("row", { name: /^region: North/ })).toBeVisible();
+  await expect(
+    root.locator("tbody tr[data-gridkit-row-id]").first(),
+  ).toHaveText(/Delta/);
+  expect(await dataRowPositions(root)).toEqual([
+    ["Delta", "2", "3", "3"],
+    ["Bravo", "2", "1", "2"],
+  ]);
+});
+
+test("an ungrouped grid's data rows carry no level, position or set size", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <DataGrid columns={columns} dataSource={buildRows(2)} label="Flat" />,
+  );
+  expect(await dataRowPositions(root)).toEqual([
+    ["row-0", null, null, null],
+    ["row-1", null, null, null],
+  ]);
 });
 
 for (const palette of ["gridkit-light", "gridkit-dark"]) {
