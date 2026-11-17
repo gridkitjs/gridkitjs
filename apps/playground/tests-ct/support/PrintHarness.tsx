@@ -57,31 +57,30 @@ function printOnce(): Promise<void> {
 type Sabotage = "print throws" | "removed before load" | "fonts never ready";
 
 /**
- * Makes the frame's fonts never report ready once its document has loaded.
- * Done from a capturing `load` listener on the page's document, which runs
- * before the frame's own listeners: `printDocument` reads `fonts.ready` as
- * soon as its listener has run.
+ * Runs `change` on the frame's window once its document has loaded. Done
+ * from a capturing `load` listener on the page's document, which runs
+ * before the frame's own listeners: `printDocument` may read `fonts.ready`
+ * and call `print()` without leaving the task its listener runs in.
  */
-function stubFontsOnLoad(frame: HTMLIFrameElement): void {
-  function stub(event: Event): void {
-    const fonts = frame.contentDocument?.fonts;
-    if (event.target !== frame || fonts === undefined) {
+function onFrameLoad(
+  frame: HTMLIFrameElement,
+  change: (view: Window) => void,
+): void {
+  function loaded(event: Event): void {
+    if (event.target !== frame || frame.contentWindow === null) {
       return;
     }
-    document.removeEventListener("load", stub, { capture: true });
-    Object.defineProperty(fonts, "ready", {
-      value: new Promise<never>(() => undefined),
-    });
+    document.removeEventListener("load", loaded, { capture: true });
+    change(frame.contentWindow);
   }
-  document.addEventListener("load", stub, { capture: true });
+  document.addEventListener("load", loaded, { capture: true });
 }
 
 /**
  * Breaks the next frame `printDocument` adds to `document.body`: takes it
  * away again before it loads, makes its `print()` throw, or makes its fonts
- * never report ready. The frame is caught as it is added, so its `load`
- * listener runs after `printDocument`'s own, as `recordPrints`' does, and
- * before the dialog opens.
+ * never report ready. The frame is caught as it is added, before it loads,
+ * and its `print()` is broken after `recordPrints` has stood in for it.
  */
 function sabotageNextFrame(sabotage: Sabotage): void {
   const observer = new MutationObserver((records) => {
@@ -94,23 +93,19 @@ function sabotageNextFrame(sabotage: Sabotage): void {
     observer.disconnect();
     if (sabotage === "removed before load") {
       frame.remove();
-      return;
+    } else if (sabotage === "fonts never ready") {
+      onFrameLoad(frame, (view) => {
+        Object.defineProperty(view.document.fonts, "ready", {
+          value: new Promise<never>(() => undefined),
+        });
+      });
+    } else {
+      onFrameLoad(frame, (view) => {
+        view.print = () => {
+          throw new Error("The print dialog failed to open.");
+        };
+      });
     }
-    if (sabotage === "fonts never ready") {
-      stubFontsOnLoad(frame);
-      return;
-    }
-    frame.addEventListener(
-      "load",
-      () => {
-        if (frame.contentWindow !== null) {
-          frame.contentWindow.print = () => {
-            throw new Error("The print dialog failed to open.");
-          };
-        }
-      },
-      { once: true },
-    );
   });
   observer.observe(document.body, { childList: true });
 }
@@ -119,8 +114,8 @@ function sabotageNextFrame(sabotage: Sabotage): void {
  * `printDocument` as a renderer calls it, with `buildPrintDocument` and
  * `printStyles` and a rule of the app's own after them. It writes what a
  * spec cannot otherwise see where one can read it: every print as its
- * dialog opened (the frame is gone the moment headless Chromium's `print()`
- * returns), and the order the calls settled in, a rejected one as
+ * dialog opened (the frame is gone once the dialog closes), and the order
+ * the calls settled in, a rejected one as
  * "<name> failed". "Print twice" asks for a second print while the first is
  * open; "Print, failing", "Print, frame taken away" and "Print, fonts never
  * ready" break the print they start.

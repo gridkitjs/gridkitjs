@@ -11,51 +11,51 @@ export interface RecordedPrint {
   };
 }
 
+/** What the frame holds as its dialog opens. */
+function readPrint(
+  frame: HTMLIFrameElement,
+  frameDocument: Document,
+): RecordedPrint {
+  return {
+    title: frameDocument.title,
+    styles: frameDocument.head.textContent,
+    bodyHtml: frameDocument.body.innerHTML,
+    frame: {
+      ariaHidden: frame.getAttribute("aria-hidden"),
+      width: frame.offsetWidth,
+      height: frame.offsetHeight,
+    },
+  };
+}
+
 /**
- * Records every print `printDocument` opens, as the frame's `beforeprint`
- * fires: headless Chromium has no dialog, so its `print()` returns at once
- * and the frame is gone straight after — this is the moment to read it. The
- * frame is caught as it is added to `document.body`, before it loads, so
- * its `load` listener runs after `printDocument`'s own. Returns the way to
- * stop recording.
+ * Records every print `printDocument` opens, standing in for its dialog: no
+ * headless browser shows one, and each fakes it its own way — Chromium's
+ * `print()` fires `beforeprint` and `afterprint` and returns, WebKit's fires
+ * neither, and Firefox's never returns. A frame's `print` reads what the
+ * frame holds, then fires `afterprint` as a dialog closing at once would.
+ * It is set from a capturing `load` listener on the page's document, which
+ * runs before the frame's own: `printDocument` may call `print()` without
+ * leaving the task its listener runs in. Returns the way to stop recording.
  */
 export function recordPrints(
   onPrint: (print: RecordedPrint) => void,
 ): () => void {
-  function watch(frame: HTMLIFrameElement): void {
-    frame.addEventListener(
-      "load",
-      () => {
-        frame.contentWindow?.addEventListener("beforeprint", () => {
-          const frameDocument = frame.contentDocument;
-          if (frameDocument !== null) {
-            onPrint({
-              title: frameDocument.title,
-              styles: frameDocument.head.textContent,
-              bodyHtml: frameDocument.body.innerHTML,
-              frame: {
-                ariaHidden: frame.getAttribute("aria-hidden"),
-                width: frame.offsetWidth,
-                height: frame.offsetHeight,
-              },
-            });
-          }
-        });
-      },
-      { once: true },
-    );
-  }
-  const observer = new MutationObserver((records) => {
-    for (const record of records) {
-      for (const node of record.addedNodes) {
-        if (node instanceof HTMLIFrameElement) {
-          watch(node);
-        }
-      }
+  function standIn(event: Event): void {
+    const frame = event.target;
+    if (!(frame instanceof HTMLIFrameElement) || frame.contentWindow === null) {
+      return;
     }
-  });
-  observer.observe(document.body, { childList: true });
+    const view = frame.contentWindow;
+    view.print = () => {
+      onPrint(readPrint(frame, view.document));
+      setTimeout(() => {
+        view.dispatchEvent(new Event("afterprint"));
+      });
+    };
+  }
+  document.addEventListener("load", standIn, { capture: true });
   return () => {
-    observer.disconnect();
+    document.removeEventListener("load", standIn, { capture: true });
   };
 }
