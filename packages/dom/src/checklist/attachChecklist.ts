@@ -31,7 +31,8 @@ export interface AttachedChecklist {
    */
   readonly focusItem: (index: number) => void;
   /**
-   * Removes every listener and observer. The items keep their `tabindex`.
+   * Removes every listener and observer. The list and its items keep their
+   * `tabindex`.
    * After it, `setCount` and `focusItem` do nothing: they neither scroll
    * nor focus, and a move still waiting for its item is dropped.
    */
@@ -74,7 +75,10 @@ function indexOf(item: Element): number {
  * One item at a time has `tabindex="0"` — the focused one, or the first
  * mounted while the focused one is scrolled away — and the rest `-1`, kept
  * so as items mount by an observer of the list's children rather than by
- * the renderer. A move to an item outside the window asks `scrollToIndex`
+ * the renderer. The list itself gets `tabindex="-1"`: a browser may make an
+ * element that scrolls a tab stop of its own, as Firefox does, which would
+ * put a second stop before the items' one, on an element the keys do not
+ * move from. A move to an item outside the window asks `scrollToIndex`
  * for it and focuses it once it mounts, unless focus has gone somewhere
  * else in the meantime.
  *
@@ -245,6 +249,7 @@ export function attachChecklist(
     attributeFilter: [INDEX],
   });
 
+  list.tabIndex = -1;
   setTabStop();
   list.addEventListener("keydown", onKeyDown);
   list.addEventListener("focusin", onFocusIn);

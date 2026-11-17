@@ -16,10 +16,6 @@ import { mountGrid, updateGrid } from "./support/mountGrid";
 /** DataGrid's space between a menu or panel and what it opens below. */
 const ANCHOR_GAP = 4;
 
-/** The product bug the tests that Tab into a checklist meet in Firefox. */
-const LIST_TAB_STOP_BUG =
-  "Firefox makes the scrolling listbox a tab stop of its own, before its items";
-
 function header(root: MountResult, name: string): Locator {
   return root.getByRole("columnheader", { name, exact: true });
 }
@@ -1622,9 +1618,7 @@ test.describe("the excel editor", () => {
   test("past its value limit the list waits for a search, then lists the first matches and how many more there are", async ({
     mount,
     page,
-    browserName,
   }) => {
-    test.fixme(browserName === "firefox", LIST_TAB_STOP_BUG);
     const root = await mountGrid(
       mount,
       <ManyValuesGrid size={50} valueLimit={20} />,
@@ -1660,9 +1654,7 @@ test.describe("the excel editor", () => {
   test("lists 10,000 values by default, windowed, and keeps up with the keyboard", async ({
     mount,
     page,
-    browserName,
   }) => {
-    test.fixme(browserName === "firefox", LIST_TAB_STOP_BUG);
     const root = await mountGrid(mount, <ManyValuesGrid size={20000} />);
     const filterMenu = await openFromButton(root, page, "Value");
 
