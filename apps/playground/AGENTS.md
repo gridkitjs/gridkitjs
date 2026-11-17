@@ -14,7 +14,7 @@ published, so it needs no changeset.
 | `tests-ct/`               | Playwright component tests, one spec file per area.                          |
 | `tests-ct/support/`       | Test-only grids and harnesses the specs mount, plus coverage setup.          |
 | `playwright/index.tsx`    | The component-test entry; it imports `src/index.css`.                        |
-| `playwright-ct.config.ts` | The suite's config: Chromium, the Vite plugins, coverage instrumentation.    |
+| `playwright-ct.config.ts` | The suite's config: the three browsers, the Vite plugins, coverage.          |
 
 Packages resolve to source, so editing a package hot-reloads the app; run it
 from the repo root with `pnpm dev` (see the root
@@ -25,14 +25,24 @@ from the repo root with `pnpm dev` (see the root
 The suite in `tests-ct/` mounts `DataGrid` in isolation through
 `@playwright/experimental-ct-react` rather than through the playground's own
 demo (`App.tsx`), against the real `theme-tailwind` stylesheet so measured
-widths and paddings are real ones. Chromium only — this is an internal
-suite, not a cross-browser guarantee for a published package.
+widths and paddings are real ones.
+
+It runs in three desktop browsers, one Playwright project each: `chromium`
+(Desktop Chrome), `firefox` (Desktop Firefox) and `webkit` (Desktop Safari).
+Mobile browsers and touch input are not part of it.
 
 ```bash
-pnpm --filter playground test:e2e             # run the suite
-pnpm --filter playground test:e2e:ui           # same, with Playwright's UI
-pnpm --filter playground test:e2e:coverage     # instrumented; enforces 80% line/statement/function coverage over DataGrid/ and dom
+pnpm --filter playground test:e2e                     # run the suite in all three browsers
+pnpm --filter playground test:e2e --project=firefox   # one browser
+pnpm --filter playground test:e2e:ui                  # same, with Playwright's UI
+pnpm --filter playground test:e2e:coverage            # Chromium, instrumented; enforces 80% line/statement/function coverage over DataGrid/ and dom
+pnpm --filter playground exec playwright install chromium firefox webkit   # once, on a fresh machine
 ```
+
+Coverage comes from the Chromium project alone. Each coverage file is named
+by its test's id, which the three projects share, and one browser is enough
+to measure what the tests reach. CI runs each browser as its own job:
+Chromium with coverage, Firefox and WebKit without, each retried once.
 
 `test:e2e` is not part of `pnpm test` and does not run under `pnpm -r test`,
 by design — it's a separate, slower check, invoked explicitly rather than on
@@ -45,6 +55,33 @@ to whichever one already covers the area being changed. A spec imports `test`
 and `expect` from `./support/coverage` (the only way coverage is collected) and
 mounts the grid with `mountGrid` from `./support/mountGrid`; copy the imports
 of a neighbouring spec such as `keyboard-navigation.spec.tsx`.
+
+### A test that passes in every browser
+
+A test may differ per browser only where the browser itself differs, and
+says why next to the difference. What the suite already handles:
+
+- **Clipboard.** Playwright grants clipboard permissions in Chromium alone,
+  so `clipboard.spec.tsx` asks for them there only. Firefox reads the real
+  clipboard without them. WebKit refuses a read no user gesture started, so
+  there the spec's `recordCopies` notes what the grid handed the browser to
+  copy, and the spec reads that. Two tests of a copy the browser makes itself
+  (text highlighted in a cell, a text field inside a cell) skip in WebKit
+  with `NATIVE_COPY_UNREADABLE`: the grid hands over nothing to record.
+- **Print.** No headless browser shows a print dialog, and each fakes it
+  differently, so print tests stand in for it with
+  `support/printRecorder.ts` in every browser.
+- **Focus on click.** WebKit, like Safari, does not focus a button that is
+  clicked. A harness button a test clicks and then expects focus on carries
+  `tabIndex={0}`.
+- **The mouse's `pointerId`.** Firefox numbers it from 0, Chromium and
+  WebKit from 1. A test that names the mouse's pointer presses with
+  `support/pressMouse.ts`, which returns the id the browser gave it.
+- **Tab, then a scrolling key.** WebKit scrolls an element focused by Tab
+  into view a frame later, undoing a scroll made straight after it. A test
+  that Tabs into a scroll container and then presses a key that scrolls it
+  (End in a long checklist) calls `waitForFocusReveal` from
+  `support/focusReveal.ts` in between.
 
 ### Stale styles after a stylesheet edit
 

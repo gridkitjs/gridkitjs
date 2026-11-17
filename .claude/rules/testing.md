@@ -37,8 +37,18 @@ run, their commands and where a new one goes. A new `DataGrid` or `dom`
 behavior needs a Playwright test the same way new `core` logic needs a Vitest
 one.
 
+They run in three desktop browsers, one Playwright project each: `chromium`,
+`firefox` and `webkit`. Every test passes in all three; one that cannot run
+in a browser skips there with a one-line reason, as the clipboard spec's
+WebKit skips do. Run one browser with
+`pnpm --filter playground test:e2e --project=firefox`. Mobile browsers and
+touch input are not covered.
+
 ## Coverage
 
-CI's `e2e` job (see [Standards](../../AGENTS.md#standards) in the root
+CI's `e2e` check (see [Standards](../../AGENTS.md#standards) in the root
 `AGENTS.md`) fails if line, statement or function coverage over
 `packages/react/src/DataGrid/` and `packages/dom/src/` drops below 80%.
+Coverage is collected in the Chromium project only
+(`pnpm --filter playground test:e2e:coverage`); Firefox and WebKit run the
+same tests uninstrumented.
