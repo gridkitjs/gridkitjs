@@ -1039,7 +1039,7 @@ test.describe("the simple editor", () => {
 
     // Another column's filter leaves what was typed.
     await updateGrid(root, grid([scoreAbove10]));
-    expect(await names(root)).toEqual(["Charlie", "Bravo"]);
+    await expect.poll(() => names(root)).toEqual(["Charlie", "Bravo"]);
     await expect(valueOf(filterMenu, 1)).toHaveValue("zz");
 
     await updateGrid(

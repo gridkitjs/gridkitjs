@@ -516,7 +516,7 @@ test("a drop lands by the column order given mid-drag, not the order the drag be
   const start = await dragStart(page, headerLocators.nth(1));
   await page.mouse.move(start.x + 10, start.y, { steps: 3 });
   await updateGrid(root, grid(["name", "status", "id"]), { width: 900 });
-  expect(await columnIds(root)).toEqual(["name", "status", "id"]);
+  await expect.poll(() => columnIds(root)).toEqual(["name", "status", "id"]);
 
   // The trailing half of "status": the gap before "id", now last.
   const box = await headerLocators.nth(1).boundingBox();
@@ -564,7 +564,7 @@ test("a drag whose own header moves mid-drag keeps following the pointer, drops 
 
   // React re-inserts the dragged header's own node to put it last.
   await updateGrid(root, grid(["name", "status", "id"]), { width: 900 });
-  expect(await columnIds(root)).toEqual(["name", "status", "id"]);
+  await expect.poll(() => columnIds(root)).toEqual(["name", "status", "id"]);
   await expect(dragged).toHaveAttribute("data-probe", "pressed");
 
   const ghostBefore = await ghost.getAttribute("style");
