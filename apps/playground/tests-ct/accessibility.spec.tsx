@@ -2,12 +2,16 @@
 // ./support/coverage rather than directly from the CT package — see that
 // file for why.
 import { groupRowId, type ColumnDefinition } from "@gridkitjs/core";
+import type React from "react";
+import type { Page } from "@playwright/test";
 import type { MountResult } from "@playwright/experimental-ct-react";
-import { DataGrid } from "@gridkitjs/react";
+import { DataGrid, type DataGridProps } from "@gridkitjs/react";
 import { expectNoAxeViolations } from "./support/axe";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
+import ContextMenuGrid from "./support/ContextMenuGrid";
 import HeaderTextGrid from "./support/HeaderTextGrid";
+import ToolbarGrid from "./support/ToolbarGrid";
 
 interface Row {
   id: string;
@@ -509,13 +513,185 @@ test("an ungrouped grid's data rows carry no level, position or set size", async
   ]);
 });
 
+/** One state of the grid an axe scan covers. */
+interface Scan {
+  readonly name: string;
+  /** Called, not mounted as a component: CT mounts only imported components. */
+  readonly grid: () => React.JSX.Element;
+  readonly width?: number;
+  /** Brings the grid into the state, once mounted: opens a menu, selects a cell. */
+  readonly prepare?: (root: MountResult, page: Page) => Promise<void>;
+}
+
+const scanColumns: readonly ColumnDefinition<TeamRow>[] = [
+  { field: "name", header: "Name", width: 120 },
+  { field: "region", header: "Region", width: 120 },
+  { field: "amount", header: "Amount", width: 100, type: "number" },
+];
+
+/** A grid of `teamRows` with `scanColumns`; `props` override. */
+function scanGrid(props: Partial<DataGridProps<TeamRow>> = {}) {
+  return (
+    <DataGrid
+      columns={scanColumns}
+      dataSource={teamRows}
+      label="Scanned"
+      {...props}
+    />
+  );
+}
+
+/** Clicks a header's filter button and waits for its filter menu. */
+async function openFilterMenu(root: MountResult, page: Page): Promise<void> {
+  await root
+    .getByRole("columnheader", { name: "Name", exact: true })
+    .locator(".gridkit-header-filter-toggle")
+    .click();
+  await expect(page.getByRole("dialog", { name: "Name filter" })).toBeVisible();
+}
+
+const scans: readonly Scan[] = [
+  { name: "a plain grid", grid: () => scanGrid() },
+  {
+    name: "a grid with row, column and cell selection on and a cell selected",
+    grid: () =>
+      scanGrid({
+        selectable: { rows: "multiple", columns: "multiple", cells: "single" },
+      }),
+    prepare: async (root) => {
+      const cell = root.locator("tbody td").first();
+      await cell.click();
+      await expect(cell).toHaveAttribute("aria-selected", "true");
+    },
+  },
+  {
+    name: "sorted and filtered headers",
+    grid: () =>
+      scanGrid({
+        sortableColumns: true,
+        filterableColumns: true,
+        defaultColumnSort: [{ columnId: "amount", direction: "desc" }],
+        defaultFilter: [
+          {
+            kind: "operator",
+            columnId: "region",
+            operator: "eq",
+            value: "North",
+          },
+        ],
+      }),
+    prepare: async (root) => {
+      const amount = root.getByRole("columnheader", { name: "Amount" });
+      await expect(amount).toHaveAttribute("aria-sort", "descending");
+      const region = root.getByRole("columnheader", { name: "Region" });
+      await expect(region).toHaveAttribute("aria-description", "Filtered");
+    },
+  },
+  {
+    name: "the simple filter menu, open",
+    grid: () => scanGrid({ filterableColumns: true }),
+    prepare: openFilterMenu,
+  },
+  {
+    name: "the excel filter menu, open",
+    grid: () =>
+      scanGrid({ filterableColumns: true, filterMenu: { ui: "excel" } }),
+    prepare: openFilterMenu,
+  },
+  {
+    name: "a context menu with its submenu open",
+    grid: () => <ContextMenuGrid />,
+    prepare: async (root, page) => {
+      await root
+        .getByRole("columnheader", { name: "Name", exact: true })
+        .click({ button: "right" });
+      const menu = page.getByRole("menu", { name: "Name column menu" });
+      await menu.getByRole("menuitem", { name: "View" }).focus();
+      await page.keyboard.press("ArrowRight");
+      await expect(page.getByRole("menu", { name: "View" })).toBeVisible();
+    },
+  },
+  {
+    name: "the column chooser, open",
+    grid: () => scanGrid({ toolbar: { items: ["column.choose"] } }),
+    prepare: async (root, page) => {
+      await root.getByRole("button", { name: "Choose columns" }).click();
+      await expect(page.getByRole("dialog", { name: "Columns" })).toBeVisible();
+    },
+  },
+  {
+    name: "the toolbar with its overflow menu open",
+    grid: () => <ToolbarGrid />,
+    // Narrow enough that some of the toolbar's entries move into More.
+    width: 520,
+    prepare: async (root, page) => {
+      await root.getByRole("button", { name: "More" }).click();
+      await expect(page.getByRole("menu", { name: "More" })).toBeVisible();
+    },
+  },
+  {
+    name: "the compact pager",
+    grid: () =>
+      scanGrid({
+        paginated: true,
+        defaultPagination: { pageIndex: 1, pageSize: 2 },
+      }),
+  },
+  {
+    name: "the numbered pager",
+    grid: () =>
+      scanGrid({
+        paginated: true,
+        pager: { variant: "numbered" },
+        defaultPagination: { pageIndex: 1, pageSize: 2 },
+      }),
+    prepare: async (root) => {
+      await expect(root.locator(".gridkit-grid-pager-page")).toHaveCount(3);
+    },
+  },
+  {
+    name: "the group-by bar with chips",
+    grid: () =>
+      scanGrid({
+        groupableColumns: true,
+        defaultGroupBy: [{ columnId: "region" }, { columnId: "amount" }],
+      }),
+    prepare: async (root) => {
+      await expect(root.locator(".gridkit-group-by-chip")).toHaveCount(2);
+    },
+  },
+  {
+    name: "a grouped grid with inline subtotals",
+    grid: () => groupedGrid("inline"),
+  },
+  {
+    name: "a grouped grid with row subtotals",
+    grid: () => groupedGrid("row"),
+  },
+  { name: "a grid with no rows", grid: () => scanGrid({ dataSource: [] }) },
+  {
+    name: "a grid loading more rows by infinite scroll",
+    grid: () =>
+      scanGrid({
+        infiniteScroll: {
+          hasMore: true,
+          isLoadingMore: true,
+          onLoadMore: () => undefined,
+        },
+      }),
+    prepare: async (root) => {
+      await expect(root.locator(".gridkit-grid-loading-row")).toBeVisible();
+    },
+  },
+];
+
 for (const palette of ["gridkit-light", "gridkit-dark"]) {
-  for (const display of ["inline", "row"] as const) {
-    test(`an axe scan of a grouped grid with ${display} subtotals finds no violations under .${palette}`, async ({
+  for (const { name, grid, width, prepare } of scans) {
+    test(`an axe scan of ${name} finds no violations under .${palette}`, async ({
       mount,
       page,
     }) => {
-      await mountGrid(
+      const root = await mountGrid(
         mount,
         // Data rows take their text colour and background from the page, so
         // the wrapper sets both from the palette the way a page would.
@@ -526,9 +702,11 @@ for (const palette of ["gridkit-light", "gridkit-dark"]) {
             backgroundColor: "var(--gridkit-surface)",
           }}
         >
-          {groupedGrid(display)}
+          {grid()}
         </div>,
+        width === undefined ? undefined : { width },
       );
+      await prepare?.(root, page);
       await expectNoAxeViolations(page);
     });
   }
