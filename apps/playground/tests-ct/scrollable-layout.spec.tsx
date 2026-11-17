@@ -154,4 +154,44 @@ test.describe("scrollable layout", () => {
     );
     expect(overflows).toBe(false);
   });
+
+  test("Tab passes through a grid that scrolls both ways in one stop, its roving cell, and neither scroller", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <div>
+        <button type="button">Before</button>
+        <DataGrid
+          columns={columns.map((column) => ({ ...column, width: 300 }))}
+          dataSource={buildRows(50)}
+          label="Tab stops"
+          height={150}
+          resizeMode="fixed"
+        />
+        <button type="button">After</button>
+      </div>,
+    );
+    const body = root.locator(".gridkit-data-grid-body");
+    const viewport = root.locator(".gridkit-data-grid-viewport");
+    for (const scroller of [body, viewport]) {
+      expect(
+        await scroller.evaluate(
+          (element) =>
+            element.scrollHeight > element.clientHeight ||
+            element.scrollWidth > element.clientWidth,
+        ),
+      ).toBe(true);
+    }
+
+    await root.getByRole("button", { name: "Before" }).focus();
+    await page.keyboard.press("Tab");
+    await expect(root.getByRole("columnheader").first()).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(root.getByRole("button", { name: "After" })).toBeFocused();
+
+    await page.keyboard.press("Shift+Tab");
+    await expect(root.getByRole("columnheader").first()).toBeFocused();
+  });
 });

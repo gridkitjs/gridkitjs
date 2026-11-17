@@ -986,7 +986,14 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   const hasFooter = aggregates.length > 0;
 
   return (
-    <div className="gridkit-data-grid-viewport" ref={viewportRef}>
+    <div
+      className="gridkit-data-grid-viewport"
+      ref={viewportRef}
+      // Chromium and Firefox make an element that scrolls a Tab stop of its
+      // own; the grid's one stop is its roving cell, so neither scroller,
+      // this one or the body, takes a place in the Tab order.
+      tabIndex={-1}
+    >
       <GridToolbar<Row>
         toolbar={props.toolbar}
         renderItem={props.renderToolbarItem}
@@ -1111,6 +1118,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
         <div
           className="gridkit-data-grid-body"
           ref={bodyScrollRef}
+          tabIndex={-1}
           style={
             height === undefined
               ? undefined
