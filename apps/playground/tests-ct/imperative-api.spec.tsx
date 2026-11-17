@@ -1047,7 +1047,9 @@ test("openColumnChooser opens the chooser at the grid's top-end corner, giving f
   );
   const opener = root.getByRole("button", { name: "open-column-chooser" });
 
-  await opener.click();
+  // From the keyboard: WebKit, as Safari does, leaves a clicked button
+  // without focus, so focus would have nothing to go back to.
+  await opener.press("Enter");
 
   const chooser = page.getByRole("dialog", { name: "Columns" });
   await expect(

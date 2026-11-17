@@ -158,7 +158,9 @@ test.describe("column chooser", () => {
     await expect
       .poll(() => viewport.evaluate((element) => element.scrollLeft))
       .toBe(0);
-    await option(chooser, "Name").click();
+    // From the keyboard: WebKit, as Safari does, leaves a clicked checkbox
+    // without focus.
+    await option(chooser, "Name").press("Space");
     await expect(header(root, "Name")).toHaveCount(0);
     await expect(chooser).toBeVisible();
     await expect(option(chooser, "Name")).toBeFocused();
