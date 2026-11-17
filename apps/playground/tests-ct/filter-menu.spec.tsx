@@ -11,6 +11,7 @@ import HundredThousandRowsGrid from "./support/HundredThousandRowsGrid";
 import ImperativeApiGrid from "./support/ImperativeApiGrid";
 import ManyValuesGrid from "./support/ManyValuesGrid";
 import PresetGrid from "./support/PresetGrid";
+import { waitForFocusReveal } from "./support/focusReveal";
 import { mountGrid, updateGrid } from "./support/mountGrid";
 
 /** DataGrid's space between a menu or panel and what it opens below. */
@@ -1645,6 +1646,7 @@ test.describe("the excel editor", () => {
     );
     await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
+    await waitForFocusReveal(page);
     await page.keyboard.press("End");
     const last = option(filterMenu, "Value 00020");
     await expect(last).toBeFocused();
@@ -1670,6 +1672,7 @@ test.describe("the excel editor", () => {
     await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
     await expect(first).toBeFocused();
+    await waitForFocusReveal(page);
     await page.keyboard.press("End");
     const last = option(filterMenu, "Value 19999");
     await expect(last).toBeFocused();

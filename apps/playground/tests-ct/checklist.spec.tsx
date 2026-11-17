@@ -5,6 +5,7 @@ import type { Locator } from "@playwright/test";
 import type { MountResult } from "@playwright/experimental-ct-react";
 import { expect, test } from "./support/coverage";
 import ChecklistHarness from "./support/ChecklistHarness";
+import { waitForFocusReveal } from "./support/focusReveal";
 
 /** Far more values than the list's window mounts. */
 const CHECKLIST_SIZE = 5000;
@@ -14,11 +15,15 @@ function option(root: MountResult, n: number): Locator {
   return root.getByRole("option", { name: `Value ${String(n)}`, exact: true });
 }
 
-/** Focuses the list's first item by tabbing into it from the search box. */
+/**
+ * Focuses the list's first item by tabbing into it from the search box, and
+ * waits for the browser to have scrolled it into view.
+ */
 async function tabIntoList(root: MountResult): Promise<void> {
   await root.getByRole("searchbox", { name: "Search" }).focus();
   await root.page().keyboard.press("Tab");
   await expect(option(root, 1)).toBeFocused();
+  await waitForFocusReveal(root.page());
 }
 
 test.describe("markup", () => {
