@@ -82,6 +82,12 @@ says why next to the difference. What the suite already handles:
   that Tabs into a scroll container and then presses a key that scrolls it
   (End in a long checklist) calls `waitForFocusReveal` from
   `support/focusReveal.ts` in between.
+- **Typing a date.** WebKit on Linux sets a date field only from its
+  picker and ignores typed digits, so a test that types into one skips
+  there with `DATE_FIELD_TAKES_NO_TYPING`. WebKit on Windows takes typing.
+- **Pixel widths.** `getBoundingClientRect()` can differ in the fifth
+  decimal place for boxes of the same computed width. A test comparing
+  widths rounds them first.
 
 ### Stale styles after a stylesheet edit
 
