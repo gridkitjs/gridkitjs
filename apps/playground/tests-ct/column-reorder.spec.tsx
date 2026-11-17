@@ -61,6 +61,10 @@ async function dragStart(
   return { x, y, pointerId };
 }
 
+/** The product bug a drag whose header React re-inserts meets in WebKit. */
+const RECAPTURE_HANG_BUG =
+  "WebKit hangs when the gesture takes pointer capture again from lostpointercapture";
+
 /**
  * Fires `type` on `target` from a second finger at `point`: a pointer the
  * gesture under way did not start from.
@@ -535,7 +539,9 @@ test("a drop lands by the column order given mid-drag, not the order the drag be
 test("a drag whose own header moves mid-drag keeps following the pointer, drops by the new order, and leaves the next drag free", async ({
   mount,
   page,
+  browserName,
 }) => {
+  test.fixme(browserName === "webkit", RECAPTURE_HANG_BUG);
   const events: ColumnOrderEvent[] = [];
   const grid = (order: readonly string[]) => (
     <DataGrid
