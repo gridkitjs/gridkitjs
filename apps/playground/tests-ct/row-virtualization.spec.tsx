@@ -500,12 +500,17 @@ test.describe("row virtualization", () => {
         1000 + step * 30,
       );
 
-      const rows = await mountedDataRows(root).evaluateAll(
-        (elements, color) =>
-          elements.map((row) => ({
-            index: Number(row.getAttribute("data-gridkit-row-index")),
-            striped: getComputedStyle(row).backgroundColor === color,
-          })),
+      // Found and read in one task: the window can still move after the two
+      // frames, and a row found in one task may have left the page by the
+      // next, with no style to read.
+      const rows = await body.evaluate(
+        (element, color) =>
+          [...element.querySelectorAll("tbody tr[data-gridkit-row-index]")].map(
+            (row) => ({
+              index: Number(row.getAttribute("data-gridkit-row-index")),
+              striped: getComputedStyle(row).backgroundColor === color,
+            }),
+          ),
         stripe,
       );
       expect(

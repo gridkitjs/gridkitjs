@@ -717,8 +717,13 @@ test.describe("pager bar", () => {
     );
 
     // [1, …, 59, 60, 61, …, 120]: one, two and three digits side by side.
+    // Rounded to a hundredth of a pixel: Firefox reports a box's width as the
+    // difference of its two edges in floating point, so slots of the same
+    // computed width can differ in the fifth decimal place.
     const widths = await windowSlots(root).evaluateAll((slots) =>
-      slots.map((slot) => slot.getBoundingClientRect().width),
+      slots.map(
+        (slot) => Math.round(slot.getBoundingClientRect().width * 100) / 100,
+      ),
     );
     expect(widths).toHaveLength(7);
     expect(new Set(widths).size).toBe(1);

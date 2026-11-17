@@ -167,7 +167,7 @@ The behaviour sets nothing on the markup but `tabindex`. The roles, the label an
 | `aria-setsize`, `aria-posinset`                               | each item | How many items the whole list holds and this one's place in it, from 1, since only a window of them is in the page.         |
 | `data-gridkit-checklist-item`, `data-gridkit-checklist-index` | each item | What makes it an item, and its place in the whole list from 0 — the index every callback reports. Read afresh on every key. |
 
-The list is the element that scrolls — the virtualizer's scroll element — so put the spacers that stand in for unmounted items inside it with `role="presentation"`. One item at a time has `tabindex="0"` — the focused one, or the first mounted while the focused one is scrolled away — and the rest `-1`; an observer of the list keeps that so as items mount and unmount, so do not render a `tabindex` of your own.
+The list is the element that scrolls — the virtualizer's scroll element — so put the spacers that stand in for unmounted items inside it with `role="presentation"`. One item at a time has `tabindex="0"` — the focused one, or the first mounted while the focused one is scrolled away — and the rest `-1`; an observer of the list keeps that so as items mount and unmount, so do not render a `tabindex` of your own. The list itself gets `tabindex="-1"`, since a browser may make an element that scrolls a tab stop of its own, as Firefox does, which would put a second stop before the items, on an element the keys do not move from.
 
 | Option          | Called                                                                                                                                        |
 | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -186,7 +186,7 @@ The list is the element that scrolls — the virtualizer's scroll element — so
 
 A key pressed with <Kbd>Ctrl</Kbd>, <Kbd>Alt</Kbd>, <Kbd>Shift</Kbd> or <Kbd>Meta</Kbd> is left alone. A move to an item outside the window asks `scrollToIndex` for it and focuses it once it mounts, unless focus has gone elsewhere in the meantime. There is no typeahead: a checklist of values comes with a search box.
 
-`setCount(count)` says how many items the whole list holds. It starts at 0, so call it straight after attaching, and again whenever the list changes — a search narrowing it, say; a focused place past the new end moves back to the last item, and so does a move still waiting for an item past it. `focusItem(index)` focuses an item from code, scrolling to it first. `detach()` removes its listeners and observer; after it, `setCount` and `focusItem` do nothing, and a move still waiting for its item is dropped.
+`setCount(count)` says how many items the whole list holds. It starts at 0, so call it straight after attaching, and again whenever the list changes — a search narrowing it, say; a focused place past the new end moves back to the last item, and so does a move still waiting for an item past it. `focusItem(index)` focuses an item from code, scrolling to it first. `detach()` removes its listeners and observer, leaving the list and its items their `tabindex`; after it, `setCount` and `focusItem` do nothing, and a move still waiting for its item is dropped.
 
 ```ts
 import { attachChecklist, createRowVirtualizer } from "@gridkitjs/dom";

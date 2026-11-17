@@ -47,6 +47,10 @@ export interface OverlayHarnessProps {
  * "Shrink" halves the panel's height, for its re-placement, and "Drop anchor"
  * takes the anchor out of the page while the panel stays open. "Fallback"
  * is where focus goes back to, with `withFallback`, once the anchor is gone.
+ *
+ * The anchor, "Elsewhere" and "Open child" have `tabIndex={0}`: WebKit, as
+ * Safari does, focuses a button on a click only when it has a `tabindex`,
+ * and the specs click them to put focus where they check it comes back to.
  */
 export default function OverlayHarness({
   anchorStyle,
@@ -127,6 +131,7 @@ export default function OverlayHarness({
         <button
           ref={anchorRef}
           type="button"
+          tabIndex={0}
           style={{ position: "fixed", top: 20, left: 20, ...anchorStyle }}
           onClick={() => {
             setOpen((current) => !current);
@@ -135,7 +140,9 @@ export default function OverlayHarness({
           Anchor
         </button>
       )}
-      <button type="button">Elsewhere</button>
+      <button type="button" tabIndex={0}>
+        Elsewhere
+      </button>
       <button ref={fallbackRef} type="button">
         Fallback
       </button>
@@ -163,6 +170,7 @@ export default function OverlayHarness({
             <button
               ref={childAnchorRef}
               type="button"
+              tabIndex={0}
               onClick={() => {
                 setChildOpen(true);
               }}

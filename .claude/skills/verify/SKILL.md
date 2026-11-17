@@ -33,13 +33,23 @@ Run it when the change touches `packages/react/src/` (the `DataGrid`),
 pnpm --filter playground test:e2e:coverage
 ```
 
-This is what CI runs: the Playwright component tests, instrumented, failing
-below the [coverage threshold](../../rules/testing.md#coverage). It clears
-the Playwright build cache itself. On a fresh machine, install the browser
-once with `pnpm --filter playground exec playwright install chromium`.
+This is what CI's Chromium job runs: the Playwright component tests,
+instrumented, failing below the
+[coverage threshold](../../rules/testing.md#coverage). It clears the
+Playwright build cache itself. CI also runs the suite in Firefox and WebKit,
+in jobs of their own, so run those too:
 
-For a quicker run without coverage, use `pnpm --filter playground test:e2e`,
-but delete `apps/playground/playwright/.cache` first after editing
+```bash
+pnpm --filter playground test:e2e --project=firefox
+pnpm --filter playground test:e2e --project=webkit
+```
+
+On a fresh machine, install the browsers once with
+`pnpm --filter playground exec playwright install chromium firefox webkit`.
+
+`pnpm --filter playground test:e2e` without `--project` runs all three
+browsers, uninstrumented. Delete `apps/playground/playwright/.cache` first
+after editing
 `packages/theme-tailwind/src/styles.css`, or it tests the old styles (see
 [apps/playground/AGENTS.md](../../../apps/playground/AGENTS.md#stale-styles-after-a-stylesheet-edit)).
 
@@ -67,7 +77,7 @@ What each script does is in
 | `typecheck`       | Fix the types; don't loosen the tsconfig. A missing DOM type in `core` means it belongs in `dom`.         |
 | `test`            | Rerun one package with `pnpm --filter @gridkitjs/<pkg> test`.                                             |
 | `build`           | Rerun one package with `pnpm --filter @gridkitjs/<pkg> build` to see its full error.                      |
-| `test:e2e`        | Rerun one area with `pnpm --filter playground test:e2e tests-ct/<area>.spec.tsx`.                         |
+| `test:e2e`        | Rerun one area with `pnpm --filter playground test:e2e tests-ct/<area>.spec.tsx --project=<browser>`.     |
 | coverage under 80 | Add a Playwright test for the uncovered code in the spec file for that area.                              |
 | `lint-packages`   | publint or attw names the packaging mistake; fix the package's `package.json`, with a patch changeset.    |
 | `smoke-packages`  | It prints the failing fixture's step and output; rerun one with `node scripts/smoke-packages.mjs <name>`. |

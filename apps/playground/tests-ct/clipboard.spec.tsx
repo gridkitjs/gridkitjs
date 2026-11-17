@@ -7,7 +7,29 @@ import { expect, test } from "./support/coverage";
 import ClipboardGrid from "./support/ClipboardGrid";
 import { mountGrid } from "./support/mountGrid";
 
-test.use({ permissions: ["clipboard-read", "clipboard-write"] });
+/**
+ * Playwright knows the clipboard permissions in Chromium alone; Firefox
+ * reads the clipboard back without them. WebKit refuses a read that no user
+ * gesture started, so there a spec reads what the grid handed the browser to
+ * copy instead, as `recordCopies` notes it.
+ */
+test.use({
+  permissions: async ({ browserName }, provide) => {
+    await provide(
+      browserName === "chromium" ? ["clipboard-read", "clipboard-write"] : [],
+    );
+  },
+});
+
+test.beforeEach(async ({ page, browserName }) => {
+  if (browserName === "webkit") {
+    await recordCopies(page);
+  }
+});
+
+/** Why a test of the browser's own copy cannot run where the clipboard cannot be read. */
+const NATIVE_COPY_UNREADABLE =
+  "WebKit refuses to read the clipboard, and a copy the browser makes itself hands the grid nothing to record";
 
 interface ClipboardRead {
   readonly text: string | null;
@@ -15,11 +37,64 @@ interface ClipboardRead {
 }
 
 /**
+ * Notes, on the page's root element, the last copy the grid handed the
+ * browser — through the async Clipboard API, or through the `copy` event it
+ * prevented — once the browser has taken it.
+ */
+async function recordCopies(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    function note(copied: ClipboardRead): void {
+      document.documentElement.dataset.copied = JSON.stringify(copied);
+    }
+    async function read(
+      item: ClipboardItem | undefined,
+      type: string,
+    ): Promise<string | null> {
+      return item?.types.includes(type)
+        ? (await item.getType(type)).text()
+        : null;
+    }
+    const clipboard = navigator.clipboard;
+    const write = clipboard.write.bind(clipboard);
+    const writeText = clipboard.writeText.bind(clipboard);
+    clipboard.write = async (items) => {
+      await write(items);
+      const [item] = items;
+      note({
+        text: await read(item, "text/plain"),
+        html: await read(item, "text/html"),
+      });
+    };
+    clipboard.writeText = async (text) => {
+      await writeText(text);
+      note({ text, html: null });
+    };
+    window.addEventListener("copy", (event) => {
+      if (event.defaultPrevented && event.clipboardData !== null) {
+        note({
+          text: event.clipboardData.getData("text/plain"),
+          html: event.clipboardData.getData("text/html"),
+        });
+      }
+    });
+  });
+}
+
+/**
  * What the clipboard holds now, by type; `null` for a type it lacks. Text
  * comes back with the platform's line ends — CRLF on Windows — so they are
- * read as LF, as the grid wrote them.
+ * read as LF, as the grid wrote them. In WebKit, what `recordCopies` noted.
  */
 function readClipboard(page: Page): Promise<ClipboardRead> {
+  if (page.context().browser()?.browserType().name() === "webkit") {
+    return page.evaluate(
+      () =>
+        JSON.parse(
+          document.documentElement.dataset.copied ??
+            '{ "text": null, "html": null }',
+        ) as ClipboardRead,
+    );
+  }
   return page.evaluate(async () => {
     const [item] = await navigator.clipboard.read();
     async function read(type: string): Promise<string | null> {
@@ -211,7 +286,9 @@ test.describe("with the keyboard", () => {
   test("Ctrl+C with text highlighted in a cell copies that text", async ({
     mount,
     page,
+    browserName,
   }) => {
+    test.skip(browserName === "webkit", NATIVE_COPY_UNREADABLE);
     // Nothing selectable: a selectable row is drawn `user-select: none`.
     const root = await mountGrid(mount, <ClipboardGrid />);
     const cell = bodyCell(root, 1, 0);
@@ -239,7 +316,9 @@ test.describe("with the keyboard", () => {
   test("Ctrl+C in a text field inside a cell copies the field's text", async ({
     mount,
     page,
+    browserName,
   }) => {
+    test.skip(browserName === "webkit", NATIVE_COPY_UNREADABLE);
     const root = await mountGrid(mount, <ClipboardGrid />);
     const field = root.getByRole("textbox", { name: "Comment on Alice" });
     await field.click();
@@ -273,13 +352,18 @@ test("of two copies close together, only the latest is announced", async ({
     const clipboard = navigator.clipboard;
     const write = clipboard.write.bind(clipboard);
     let writes = 0;
-    // The first write lands at once but takes 300ms to say so.
+    let finishFirst = (): void => undefined;
+    // The first write lands at once but says so only after the second has.
     clipboard.write = async (items) => {
       writes += 1;
       await write(items);
       if (writes === 1) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        await new Promise<void>((resolve) => {
+          finishFirst = resolve;
+        });
         document.body.dataset.slowWriteDone = "true";
+      } else {
+        setTimeout(finishFirst);
       }
     };
     const announced: string[] = [];

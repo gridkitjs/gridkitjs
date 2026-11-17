@@ -11,10 +11,15 @@ import HundredThousandRowsGrid from "./support/HundredThousandRowsGrid";
 import ImperativeApiGrid from "./support/ImperativeApiGrid";
 import ManyValuesGrid from "./support/ManyValuesGrid";
 import PresetGrid from "./support/PresetGrid";
+import { waitForFocusReveal } from "./support/focusReveal";
 import { mountGrid, updateGrid } from "./support/mountGrid";
 
 /** DataGrid's space between a menu or panel and what it opens below. */
 const ANCHOR_GAP = 4;
+
+/** Why a test that types into a date field skips in WebKit on Linux. */
+const DATE_FIELD_TAKES_NO_TYPING =
+  "WebKit on Linux sets a date field only from its picker, ignoring typed digits";
 
 function header(root: MountResult, name: string): Locator {
   return root.getByRole("columnheader", { name, exact: true });
@@ -868,7 +873,12 @@ test.describe("the simple editor", () => {
   test("a date missing its year marks its condition, though nothing else was changed", async ({
     mount,
     page,
+    browserName,
   }) => {
+    test.skip(
+      browserName === "webkit" && process.platform === "linux",
+      DATE_FIELD_TAKES_NO_TYPING,
+    );
     const root = await mountGrid(mount, <FilterMenuGrid />);
     const filterMenu = await openFromHeaderMenu(root, page, "Joined");
 
@@ -1039,7 +1049,7 @@ test.describe("the simple editor", () => {
 
     // Another column's filter leaves what was typed.
     await updateGrid(root, grid([scoreAbove10]));
-    expect(await names(root)).toEqual(["Charlie", "Bravo"]);
+    await expect.poll(() => names(root)).toEqual(["Charlie", "Bravo"]);
     await expect(valueOf(filterMenu, 1)).toHaveValue("zz");
 
     await updateGrid(
@@ -1645,6 +1655,7 @@ test.describe("the excel editor", () => {
     );
     await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
+    await waitForFocusReveal(page);
     await page.keyboard.press("End");
     const last = option(filterMenu, "Value 00020");
     await expect(last).toBeFocused();
@@ -1670,6 +1681,7 @@ test.describe("the excel editor", () => {
     await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
     await expect(first).toBeFocused();
+    await waitForFocusReveal(page);
     await page.keyboard.press("End");
     const last = option(filterMenu, "Value 19999");
     await expect(last).toBeFocused();

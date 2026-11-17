@@ -9,6 +9,7 @@ import { expect, test } from "./support/coverage";
 import ControlledStateGrid from "./support/ControlledStateGrid";
 import PointerGestureHarness from "./support/PointerGestureHarness";
 import { mountGrid, updateGrid } from "./support/mountGrid";
+import { pressMouse } from "./support/pressMouse";
 import { trackWindowListeners } from "./support/windowListeners";
 
 interface Row {
@@ -41,11 +42,14 @@ async function columnIds(root: MountResult): Promise<(string | null)[]> {
   );
 }
 
-/** Presses the pointer down on a header's center, without releasing it. */
+/**
+ * Presses the pointer down on a header's center, without releasing it, and
+ * returns where, with the press's `pointerId`.
+ */
 async function dragStart(
   page: Page,
   header: ReturnType<typeof headers>,
-): Promise<{ x: number; y: number }> {
+): Promise<{ x: number; y: number; pointerId: number }> {
   const box = await header.boundingBox();
   if (box === null) {
     throw new Error("header is not visible");
@@ -53,12 +57,9 @@ async function dragStart(
   const x = box.x + box.width / 2;
   const y = box.y + box.height / 2;
   await page.mouse.move(x, y);
-  await page.mouse.down();
-  return { x, y };
+  const pointerId = await pressMouse(page);
+  return { x, y, pointerId };
 }
-
-/** The `pointerId` Chromium gives the mouse that `page.mouse` drives. */
-const MOUSE_POINTER_ID = 1;
 
 /**
  * Fires `type` on `target` from a second finger at `point`: a pointer the
@@ -397,14 +398,14 @@ test("a cancelled pointer mid-drag ends the drag and leaves the order as it was"
     { width: 900 },
   );
   const dragged = headers(root).first();
-  await dragStart(page, dragged);
+  const { pointerId } = await dragStart(page, dragged);
   const last = await headers(root).nth(2).boundingBox();
   if (last === null) throw new Error("header 2 not visible");
   await page.mouse.move(last.x + last.width * 0.75, last.y + 5, { steps: 5 });
   await expect(headers(root).nth(2)).toHaveClass(/is-drop-after/);
 
   await dragged.dispatchEvent("pointercancel", {
-    pointerId: MOUSE_POINTER_ID,
+    pointerId,
     isPrimary: true,
     bubbles: true,
   });
@@ -516,7 +517,7 @@ test("a drop lands by the column order given mid-drag, not the order the drag be
   const start = await dragStart(page, headerLocators.nth(1));
   await page.mouse.move(start.x + 10, start.y, { steps: 3 });
   await updateGrid(root, grid(["name", "status", "id"]), { width: 900 });
-  expect(await columnIds(root)).toEqual(["name", "status", "id"]);
+  await expect.poll(() => columnIds(root)).toEqual(["name", "status", "id"]);
 
   // The trailing half of "status": the gap before "id", now last.
   const box = await headerLocators.nth(1).boundingBox();
@@ -564,7 +565,7 @@ test("a drag whose own header moves mid-drag keeps following the pointer, drops 
 
   // React re-inserts the dragged header's own node to put it last.
   await updateGrid(root, grid(["name", "status", "id"]), { width: 900 });
-  expect(await columnIds(root)).toEqual(["name", "status", "id"]);
+  await expect.poll(() => columnIds(root)).toEqual(["name", "status", "id"]);
   await expect(dragged).toHaveAttribute("data-probe", "pressed");
 
   const ghostBefore = await ghost.getAttribute("style");
@@ -745,7 +746,7 @@ test("aborting a drag's signal ends it and leaves nothing listening", async ({
   expect(
     await grab.evaluate(
       (element, pointerId) => element.hasPointerCapture(pointerId),
-      MOUSE_POINTER_ID,
+      start.pointerId,
     ),
   ).toBe(false);
 

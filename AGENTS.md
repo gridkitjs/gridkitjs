@@ -49,8 +49,11 @@ a single command would have:
 pnpm format:check && pnpm lint && node scripts/check-mdx-tags.mjs && pnpm typecheck && pnpm test && pnpm build
 ```
 
-The `e2e` job runs `pnpm --filter playground test:e2e:coverage`, failing below
-the threshold in [.claude/rules/testing.md](.claude/rules/testing.md#coverage).
+The `e2e` job passes when the component tests pass in Chromium, Firefox and
+WebKit, each run as its own job: Chromium's runs
+`pnpm --filter playground test:e2e:coverage`, failing below the threshold in
+[.claude/rules/testing.md](.claude/rules/testing.md#coverage), and the others
+run `pnpm --filter playground test:e2e --project=<browser>`.
 The `packages` job packs the published packages, lints the tarballs and
 installs them into fresh Vite, Next.js and Node apps; see
 [scripts/AGENTS.md](scripts/AGENTS.md#package-verification).
