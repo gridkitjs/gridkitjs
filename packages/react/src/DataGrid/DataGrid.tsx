@@ -1028,9 +1028,9 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
          * other two's rows now that they're split. It obliges the single
          * tab stop `useGridNavigation` keeps.
          *
-         * So each `<table>` is `role="presentation"`, and its sections, rows
-         * and cells carry `rowgroup`, `row`, `columnheader` and `gridcell`
-         * explicitly: a native table inside a grid would own those rows
+         * So each `<table>` is `role="presentation"`, and the header and
+         * footer sections, the body's scroller, and every row and cell carry
+         * `rowgroup`, `row`, `columnheader` and `gridcell` explicitly: a native table inside a grid would own those rows
          * itself, with its own implicit roles, leaving the grid none, and
          * would make a group row's `aria-level`/`aria-expanded` invalid on
          * what is then a plain table row. The tables stay for layout alone.
@@ -1118,6 +1118,11 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
         <div
           className="gridkit-data-grid-body"
           ref={bodyScrollRef}
+          // The body's rowgroup, rather than its `<tbody>`: an element that
+          // can take focus, as `tabIndex` makes this one, must have a role
+          // the grid allows among its children, and a rowgroup may not hold
+          // another, so the `<tbody>` inside is presentational.
+          role="rowgroup"
           tabIndex={-1}
           style={
             height === undefined

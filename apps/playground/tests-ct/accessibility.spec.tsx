@@ -337,9 +337,14 @@ test("each <table> is presentational and every section, row and cell carries its
     await expect(table).toHaveAttribute("role", "presentation");
   }
   await expect(root.getByRole("table")).toHaveCount(0);
-  for (const section of await root.locator("thead, tbody, tfoot").all()) {
+  // The body's rowgroup is its scroller, which can take focus, so the
+  // `<tbody>` inside it is presentational.
+  for (const section of await root
+    .locator("thead, .gridkit-data-grid-body, tfoot")
+    .all()) {
     await expect(section).toHaveAttribute("role", "rowgroup");
   }
+  await expect(root.locator("tbody")).toHaveAttribute("role", "presentation");
   await expect(root.getByRole("rowgroup")).toHaveCount(3);
   for (const row of await root.locator("tr:not([aria-hidden='true'])").all()) {
     await expect(row).toHaveAttribute("role", "row");

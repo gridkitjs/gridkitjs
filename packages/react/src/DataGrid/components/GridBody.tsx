@@ -191,7 +191,8 @@ export default function GridBody<Row>({
 
   return (
     <tbody
-      role="rowgroup"
+      // The rowgroup is the scrolling element around the body's table.
+      role="presentation"
       className="gridkit-grid-body"
       onFocus={(event) => {
         const group = groupRowFrom(event.target);
