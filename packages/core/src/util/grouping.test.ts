@@ -197,6 +197,27 @@ describe("groupRows", () => {
     );
   });
 
+  test("each group header carries its place among the groups sharing its parent", () => {
+    const groupBy: GroupByState = [
+      { columnId: "Region" },
+      { columnId: "Status" },
+    ];
+    const result = groupRows(rows, groupBy, ALL_EXPANDED, columns);
+
+    expect(
+      result
+        .filter(isGroup)
+        .map((entry) => [entry.path, entry.position, entry.setSize]),
+    ).toEqual([
+      [["East"], 1, 2],
+      [["East", "Closed"], 1, 2],
+      [["East", "Open"], 2, 2],
+      [["West"], 2, 2],
+      [["West", "Closed"], 1, 2],
+      [["West", "Open"], 2, 2],
+    ]);
+  });
+
   test("each data row carries its depth and its place among its group's rows", () => {
     const groupBy: GroupByState = [{ columnId: "Region" }];
     const result = groupRows(rows, groupBy, ALL_EXPANDED, columns);

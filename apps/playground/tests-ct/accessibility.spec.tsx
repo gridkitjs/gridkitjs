@@ -477,6 +477,25 @@ test("a group split by row pagination gives its rows the same set size on its se
   ]);
 });
 
+test("a group on a later page keeps its place among every sibling group, not just the page's", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={teamColumns}
+      dataSource={teamRows}
+      label="Paged groups"
+      defaultGroupBy={[{ columnId: "region" }]}
+      paginated
+      defaultPagination={{ pageIndex: 1, pageSize: 1 }}
+    />,
+  );
+  const south = root.getByRole("row", { name: /^region: South/ });
+  await expect(south).toHaveAttribute("aria-posinset", "2");
+  await expect(south).toHaveAttribute("aria-setsize", "2");
+});
+
 test("an ungrouped grid's data rows carry no level, position or set size", async ({
   mount,
 }) => {

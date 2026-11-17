@@ -142,7 +142,7 @@ function buildLevel<Row>(
   const rest = levels.slice(1);
   const groups = partitionByValue(rows, column, level.direction ?? "asc");
 
-  for (const group of groups) {
+  for (const [index, group] of groups.entries()) {
     const path = [...parentPath, group.value];
     const groupId = groupRowId(path);
     const expanded = isGroupExpanded(expansion, groupId);
@@ -155,6 +155,8 @@ function buildLevel<Row>(
       path,
       expanded,
       count: group.rows.length,
+      position: index + 1,
+      setSize: groups.length,
       // Both set by `groupRows` once it has the whole flattened array.
       rowIndex: -1,
       datasetIndex: -1,

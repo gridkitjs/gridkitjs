@@ -27,6 +27,8 @@ A `DisplayRow<Row>` is a data row (`ResolvedRow<Row>`, `kind: "data"`), a group 
 | `path`         | `readonly unknown[]` | The value at every level from the top down to this one.                         |
 | `expanded`     | `boolean`            | Whether the group is open.                                                      |
 | `count`        | `number`             | Its leaf rows, collapsed or not.                                                |
+| `position`     | `number`             | Its 1-based place among the groups sharing its parent, on any page.             |
+| `setSize`      | `number`             | How many groups share its parent, itself included, on any page.                 |
 | `rowIndex`     | `number`             | Its position among the rows as rendered.                                        |
 | `datasetIndex` | `number`             | Its position in the whole grouped result, on any page.                          |
 | `aggregates`   | `AggregateResults`   | Its own aggregate results, once `withGroupAggregates` has run; empty otherwise. |

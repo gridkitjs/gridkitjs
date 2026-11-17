@@ -523,6 +523,10 @@ export interface ResolvedGroupRow {
   readonly expanded: boolean;
   /** Leaf row count under this group, regardless of collapse state. */
   readonly count: number;
+  /** 1-based place among the groups sharing its parent, for `aria-posinset`: the same on every page. */
+  readonly position: number;
+  /** How many groups share its parent, itself included, for `aria-setsize`: the same on every page. */
+  readonly setSize: number;
   /** Position among the display rows as rendered — same invariant ResolvedRow.rowIndex keeps. */
   readonly rowIndex: number;
   /** This header's absolute position in the whole filtered/sorted/grouped dataset, matching ResolvedRow.datasetIndex. */
