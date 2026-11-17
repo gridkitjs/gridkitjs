@@ -30,6 +30,10 @@ const separatorStyle: CSSProperties = { height: 1, background: "gray" };
  * that toggles when activated, and the submenu item; several labels share a
  * first letter, for typeahead. Activating an item closes every menu, as a
  * grid's menus do.
+ *
+ * The anchor has `tabIndex={0}`: WebKit, as Safari does, focuses a button on
+ * a click only when it has a `tabindex`, and the specs open the menu with a
+ * click and check that focus comes back to it.
  */
 export default function MenuHarness() {
   const anchorRef = useRef<HTMLButtonElement>(null);
@@ -130,6 +134,7 @@ export default function MenuHarness() {
       <button
         ref={anchorRef}
         type="button"
+        tabIndex={0}
         style={{ position: "fixed", top: 20, left: 20 }}
         onClick={() => {
           setOpen((current) => !current);
