@@ -43,8 +43,19 @@ jobs:
       - run: pnpm test
       - run: pnpm build
 
-  e2e:
+  # The component tests, one job per browser so they run side by side.
+  # Coverage is measured in Chromium alone: the projects share test ids, so
+  # their coverage files would collide, and one browser is enough to measure
+  # what the tests reach.
+  e2e-browser:
+    name: e2e (${{ matrix.browser }})
     runs-on: ubuntu-latest
+    strategy:
+      # A failure in one browser still lets the others finish, so the run
+      # shows every browser that is broken.
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
     steps:
       - uses: actions/checkout@v7
 
@@ -57,31 +68,56 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # Cached separately from pnpm's own store, keyed on the pinned
-      # Playwright version so a bump invalidates it automatically.
+      # Cached separately from pnpm's own store, per browser since each job
+      # installs only its own, and keyed on the pinned Playwright version so
+      # a bump invalidates it automatically.
       - uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('apps/playground/package.json') }}
+          key: playwright-${{ runner.os }}-${{ matrix.browser }}-${{ hashFiles('apps/playground/package.json') }}
 
-      - run: pnpm --filter playground exec playwright install --with-deps chromium
-      - run: pnpm --filter playground test:e2e:coverage
+      - run: pnpm --filter playground exec playwright install --with-deps ${{ matrix.browser }}
+
+      - if: matrix.browser == 'chromium'
+        run: pnpm --filter playground test:e2e:coverage
+
+      - if: matrix.browser != 'chromium'
+        run: pnpm --filter playground test:e2e --project=${{ matrix.browser }}
 
       - if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.browser }}
           path: |
             apps/playground/playwright-report/
             apps/playground/test-results/
           retention-days: 7
 
-      - if: always()
+      - if: always() && matrix.browser == 'chromium'
         uses: actions/upload-artifact@v7
         with:
           name: coverage-report
           path: apps/playground/coverage/
           retention-days: 7
+
+  # Branch protection on main requires a check named exactly `e2e`, and the
+  # browser jobs report as `e2e (chromium)` and so on, so this job reports
+  # it on their behalf. `always()` rather than `!cancelled()`: a skipped
+  # required check counts as passed, so this job must run and fail when the
+  # browser jobs fail or are cancelled.
+  e2e:
+    needs: e2e-browser
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every browser to pass
+        env:
+          RESULT: ${{ needs.e2e-browser.result }}
+        run: |
+          if [ "$RESULT" != "success" ]; then
+            echo "::error::The browser tests ended as $RESULT."
+            exit 1
+          fi
 
   # The packages as consumers install them: packed, linted, and smoke-tested
   # in fresh apps. Check name: `packages / verify`.
