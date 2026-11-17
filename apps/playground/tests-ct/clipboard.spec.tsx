@@ -352,13 +352,18 @@ test("of two copies close together, only the latest is announced", async ({
     const clipboard = navigator.clipboard;
     const write = clipboard.write.bind(clipboard);
     let writes = 0;
-    // The first write lands at once but takes 300ms to say so.
+    let finishFirst = (): void => undefined;
+    // The first write lands at once but says so only after the second has.
     clipboard.write = async (items) => {
       writes += 1;
       await write(items);
       if (writes === 1) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        await new Promise<void>((resolve) => {
+          finishFirst = resolve;
+        });
         document.body.dataset.slowWriteDone = "true";
+      } else {
+        setTimeout(finishFirst);
       }
     };
     const announced: string[] = [];
