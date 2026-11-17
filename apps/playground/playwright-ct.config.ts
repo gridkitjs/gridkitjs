@@ -18,7 +18,10 @@ const repoRoot = path.resolve(import.meta.dirname, "../..");
  * `test:e2e:coverage` (which sets `VITE_COVERAGE=true`) pays for it. The CT
  * build cache under `playwright/.cache` is not keyed on that variable, so
  * `test:e2e:coverage` deletes it first — an uninstrumented bundle reused from
- * a plain run would collect no coverage at all.
+ * a plain run would collect no coverage at all. It also runs the Chromium
+ * project alone: each coverage file is named by its test's id, which the
+ * three browsers' projects share, and one browser is enough to measure what
+ * the tests reach.
  */
 const coveragePlugin = istanbul({
   cwd: repoRoot,
@@ -46,5 +49,9 @@ export default defineConfig({
       plugins: [react(), tailwindcss(), coveragePlugin],
     },
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "firefox", use: { ...devices["Desktop Firefox"] } },
+    { name: "webkit", use: { ...devices["Desktop Safari"] } },
+  ],
 });
