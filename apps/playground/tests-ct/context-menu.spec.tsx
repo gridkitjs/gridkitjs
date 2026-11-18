@@ -241,8 +241,10 @@ test.describe("header menu", () => {
       "Autofit all columns",
       "Hide column",
       "Choose columns",
+      "Pin to start",
+      "Pin to end",
     ]);
-    await expect(menu.getByRole("separator")).toHaveCount(3);
+    await expect(menu.getByRole("separator")).toHaveCount(4);
     await expect(item(menu, "Sort ascending")).toHaveAttribute(
       "role",
       "menuitemcheckbox",
@@ -395,7 +397,10 @@ test.describe("header menu", () => {
     const menu = await openOn(root, page, "Name");
 
     await page.keyboard.press("End");
-    await page.keyboard.press("ArrowUp");
+    for (let step = 0; step < 3; step += 1) {
+      await page.keyboard.press("ArrowUp");
+    }
+    await expect(item(menu, "Hide column")).toBeFocused();
     await page.keyboard.press("Enter");
 
     await expect(header(root, "Name")).toHaveCount(0);
@@ -566,7 +571,8 @@ test.describe("header menu", () => {
       grid({
         sortableColumns: false,
         resizableColumns: false,
-        // The defaults less "Choose columns", which every header offers.
+        // The defaults less "Choose columns" and the pin entries, which every
+        // header offers.
         contextMenu: {
           header: [
             "sort.ascending",
@@ -883,10 +889,12 @@ test.describe("menus worked out per request", () => {
       "Sort descending",
       "Clear sort",
       "Choose columns",
+      "Pin to start",
+      "Pin to end",
       "View",
       "Pin column",
     ]);
-    await expect(menu.getByRole("separator")).toHaveCount(3);
+    await expect(menu.getByRole("separator")).toHaveCount(4);
   });
 
   test("an inline item runs in the context of the row it opened on", async ({

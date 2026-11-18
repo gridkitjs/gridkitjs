@@ -108,6 +108,8 @@ test.describe("filter menu", () => {
       "Clear filter",
       "Hide column",
       "Choose columns",
+      "Pin to start",
+      "Pin to end",
     ]);
     await expect(
       menu.getByRole("menuitem", { name: "Clear filter" }),
