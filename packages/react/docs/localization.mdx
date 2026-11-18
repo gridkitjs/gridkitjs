@@ -1,6 +1,6 @@
 ---
 title: "Localization"
-description: "Translating the grid's own strings with messages, and formatting values with locale."
+description: "Translating the grid's own strings with messages, formatting values with locale, and laying the grid out right to left."
 ---
 
 Two props put a grid into another language, and they divide the work:
@@ -9,6 +9,8 @@ Two props put a grid into another language, and they divide the work:
 - **`messages`** replaces the grid's own strings — the pager's buttons, the group-by bar, the loading row, boolean and blank values, the labels of the [built-in commands](/docs/core/commands#built-in-commands), the names of its menus, the toolbar's search box and "More" button, the filter menu, and every [live announcement](/docs/react/accessibility#live-announcements) a screen reader hears.
 
 Text your data supplies — cell values, headers, `label` — is already yours to choose, so neither touches it.
+
+The writing direction takes no prop: a grid on a right-to-left page mirrors on its own. See [right-to-left](#right-to-left).
 
 ## Translating the grid's strings
 
@@ -190,6 +192,56 @@ Functions are called with numbers that count from one, and receive a column by i
 - **A `pager.template` or `infiniteScroll.loadingTemplate`** replaces the built-in UI outright, so its text is whatever you render.
 - **Symbols** — the "×" on a group-by chip's remove button, the "…" between numbered pages, the "—" in an empty aggregate cell — read the same in any language and are not keys.
 - **Development warnings** logged to the console stay in English: they are for whoever is building the page, not its users.
+
+## Right-to-left
+
+The grid follows the writing direction of the page it sits in, with no prop to set. Put `dir="rtl"` on `<html>`, or on any element around the grid, and it lays itself out right to left: the first column at the right edge, the rest following leftward.
+
+```tsx title="App.tsx"
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+}
+
+const rows: Product[] = [
+  { id: "p1", name: "מחברת", price: 12 },
+  { id: "p2", name: "עט", price: 4.5 },
+];
+
+const columns: ColumnDefinition<Product>[] = [
+  { field: "name", header: "שם", width: 160 },
+  { field: "price", header: "מחיר", width: 100, type: "number" },
+];
+
+export default function App() {
+  return (
+    <div dir="rtl" lang="he">
+      <DataGrid
+        columns={columns}
+        dataSource={rows}
+        getRowId={(row) => row.id}
+        label="מוצרים"
+        locale="he-IL"
+      />
+    </div>
+  );
+}
+```
+
+Set the `dir` attribute, not only the CSS `direction` property. The grid's keys and gestures read the computed direction, but the theme's mirrored rules (borders, the resize and drop indicators, the group toggle, the pager's and the menus' arrows) match the `dir` attribute, so a page that sets `direction` alone gets mirrored keys over unmirrored styles.
+
+In a right-to-left grid:
+
+- **Columns stay in their order.** Column order, sizing and every piece of state mean what they mean left to right; only where they are drawn changes.
+- **Alignment mirrors.** A column's `alignment` of `"left"` sets its text against the edge its lines start from, the right one here, and `"right"` against the other. So text columns sit on the right and number columns, which align `"right"` by default, on the left.
+- **The arrow keys move the way they point.** <Kbd>ArrowLeft</Kbd> moves to the next column and <Kbd>ArrowRight</Kbd> to the previous one, in the body, the header and the toolbar. On a header, <Kbd>Ctrl</Kbd>+<Kbd>ArrowLeft</Kbd> moves the column later and <Kbd>Alt</Kbd>+<Kbd>ArrowLeft</Kbd> widens it; on a group-by chip, <Kbd>Ctrl</Kbd>+<Kbd>ArrowLeft</Kbd> moves it later. See the [keyboard model](/docs/react/accessibility#keyboard-navigation).
+- **Gestures follow the pointer.** A column's resize handle is on its left edge, and dragging it leftward widens the column. A header dropped on another's right half lands before it.
+- **Menus and panels open toward the reading side.** A header's menu opened from the keyboard, and its filter menu, line up with the header's right edge; a submenu opens to the left of its item, and <Kbd>ArrowLeft</Kbd> opens it. Menus and panels render into `document.body` and take the grid's direction with them, so this holds when only a wrapper sets `dir`.
+
+Printing and copying stay left to right: the HTML the grid hands to the [print](/docs/react/printing) frame and the [clipboard](/docs/react/clipboard) carries no `dir`, and a column's `alignment` there names the physical side. Text inside a cell is laid out by the browser, as any text on the page is.
 
 ## See also
 

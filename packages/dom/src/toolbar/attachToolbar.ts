@@ -1,4 +1,9 @@
-import { nextMenuIndex, type MenuMove } from "@gridkitjs/core/renderer";
+import {
+  inlineStep,
+  nextMenuIndex,
+  type MenuMove,
+} from "@gridkitjs/core/renderer";
+import { writingDirection } from "../writingDirection";
 
 /** Every element a toolbar is made of. Those with no control in them — separators, spacers — are passed over. */
 const ENTRY = "[data-gridkit-toolbar-item]";
@@ -13,13 +18,20 @@ const FOCUSABLE = [
   "[tabindex]",
 ].join(", ");
 
-/** The keys that move focus, and where to. */
-const MOVES: Readonly<Record<string, MenuMove>> = {
-  ArrowRight: "next",
-  ArrowLeft: "previous",
+/** The keys besides the arrows that move focus, and where to. */
+const JUMPS: Readonly<Record<string, MenuMove>> = {
   Home: "first",
   End: "last",
 };
+
+/** Where `key` moves focus along `toolbar`, whose arrows follow its writing direction. */
+function moveFor(key: string, toolbar: HTMLElement): MenuMove | undefined {
+  const step = inlineStep(key, writingDirection(toolbar));
+  if (step === null) {
+    return JUMPS[key];
+  }
+  return step === 1 ? "next" : "previous";
+}
 
 /** Each control, as `nextMenuIndex` reads it: no separators are among them. */
 const AS_ENTRY = { type: "item" } as const;
@@ -97,6 +109,10 @@ function belongsToField(target: EventTarget | null, move: MenuMove): boolean {
  * control, wrapping round the ends, and Home and End to the first and last.
  * Returns the function that stops it.
  *
+ * The arrows point the way focus moves: under `dir="rtl"`, where the
+ * controls run from the right, ArrowLeft moves to the next one. The
+ * direction is read from `writingDirection(toolbar)` on each key.
+ *
  * The toolbar's entries are its descendants with a `data-gridkit-toolbar-item`,
  * and each entry's control is the entry itself when it can take focus, else
  * the first element in it that can; an entry with none — a separator, a
@@ -136,7 +152,7 @@ export function attachToolbar(toolbar: HTMLElement): () => void {
   }
 
   function onKeyDown(event: KeyboardEvent): void {
-    const move = MOVES[event.key];
+    const move = moveFor(event.key, toolbar);
     if (
       move === undefined ||
       event.isComposing ||

@@ -181,6 +181,9 @@ export interface KeyShortcutCapabilities {
  * The `aria-keyshortcuts` string for a column header, naming only the keys
  * that column actually responds to — so the keys are discoverable, since
  * none of them is a convention a user would try unprompted.
+ *
+ * The same in either writing direction: both horizontal arrows work in
+ * each, and only which way each one moves is mirrored.
  */
 export function buildKeyShortcuts(
   capabilities: KeyShortcutCapabilities,

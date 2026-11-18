@@ -67,7 +67,7 @@ const aggregates: AggregateState<Row> = [
 ];
 ```
 
-Only the footer and `"row"`-mode summary cells read `alignment` — `"inline"` rendering is text inside the header's own cell, not a cell of its own, so alignment doesn't apply there. When two specs share a column and disagree, the **first one** in `aggregates` wins for that shared `<td>`: one cell can only take one `text-align`, and both results still render, comma-separated, regardless of which one's alignment was used.
+Only the footer and `"row"`-mode summary cells read `alignment` — `"inline"` rendering is text inside the header's own cell, not a cell of its own, so alignment doesn't apply there. When two specs share a column and disagree, the **first one** in `aggregates` wins for that shared `<td>`: one cell can only take one `text-align`, and both results still render, comma-separated, regardless of which one's alignment was used. As for a column, `"left"` and `"right"` are the reading-start and reading-end sides, so they mirror in a right-to-left page.
 
 ## Writing a custom aggregate function
 

@@ -1,3 +1,5 @@
+import { inlineStep, type WritingDirection } from "./direction";
+
 /**
  * The cell the grid's single tab stop sits on: a header cell, or a cell of
  * body row `rowIndex`. A body focus's `rowIndex` counts from `0`.
@@ -136,8 +138,11 @@ function skipSkippableRows(
  * summary row (`groupAggregateDisplay: "row"`), which still occupies a real
  * row slot for `rowCount`/`aria-rowindex` purposes but is presentational,
  * not a stop of its own. Left/right and plain `Home`/`End` stay row-scoped
- * and so never consult it. Defaults to skipping nothing, so every existing
- * caller (and every horizontal move) is unaffected.
+ * and so never consult it. Defaults to skipping nothing.
+ *
+ * `direction` is the way the grid's rows run, which the left and right
+ * arrows follow: in `"rtl"`, where the first column is at the right edge,
+ * `ArrowLeft` moves to the next column. Defaults to `"ltr"`.
  */
 export function nextFocusForKey(
   key: string,
@@ -147,6 +152,7 @@ export function nextFocusForKey(
   columnCount: number,
   pageSize: number,
   isSkippableRow: (rowIndex: number) => boolean = noRowsSkippable,
+  direction: WritingDirection = "ltr",
 ): GridFocus | null {
   // Alt on an arrow resizes and Ctrl on one reorders; the header claims both
   // before this runs, and elsewhere they belong to the browser.
@@ -166,13 +172,14 @@ export function nextFocusForKey(
     );
   }
 
+  const step = inlineStep(key, direction);
+  if (step !== null) {
+    return modifiers.ctrlKey
+      ? null
+      : { ...focus, columnIndex: columnIndex + step };
+  }
+
   switch (key) {
-    case "ArrowLeft":
-      if (modifiers.ctrlKey) return null;
-      return { ...focus, columnIndex: columnIndex - 1 };
-    case "ArrowRight":
-      if (modifiers.ctrlKey) return null;
-      return { ...focus, columnIndex: columnIndex + 1 };
     case "ArrowUp":
       return moveRows(-1);
     case "ArrowDown":

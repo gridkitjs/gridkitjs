@@ -393,7 +393,69 @@ test.describe("cell alignment", () => {
     );
 
     const amountCell = footer(root).locator('td[data-gridkit-column="amount"]');
-    await expect(amountCell).toHaveCSS("text-align", "right");
+    await expect(amountCell).toHaveCSS("text-align", "end");
+  });
+
+  test("left and right are the reading-start and reading-end sides, so they mirror in a right-to-left page", async ({
+    mount,
+  }) => {
+    const aggregates: AggregateState<Row> = [
+      { columnId: "amount", fn: "sum" },
+      { columnId: "region", fn: "count" },
+    ];
+    const root = await mountGrid(
+      mount,
+      <div dir="rtl">
+        <RowIdentifiedGrid
+          columns={columns}
+          dataSource={buildRows()}
+          label="Right-to-left alignment"
+          defaultGroupBy={[{ columnId: "region" }]}
+          aggregates={aggregates}
+          groupAggregateDisplay="row"
+        />
+      </div>,
+    );
+
+    /** Which edge of its cell the text sits against. */
+    function textSide(cell: ReturnType<MountResult["locator"]>) {
+      return cell.evaluate((element) => {
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        const text = range.getBoundingClientRect();
+        const box = element.getBoundingClientRect();
+        return text.left - box.left < box.right - text.right ? "left" : "right";
+      });
+    }
+
+    const firstDataRow = root
+      .locator(
+        "tr[data-gridkit-row-index]:not([data-gridkit-group]):not([data-gridkit-group-summary])",
+      )
+      .first();
+    // "region" aligns left by default, "amount", a number, right.
+    expect(
+      await textSide(firstDataRow.locator('td[data-gridkit-column="region"]')),
+    ).toBe("right");
+    expect(
+      await textSide(firstDataRow.locator('td[data-gridkit-column="amount"]')),
+    ).toBe("left");
+
+    const footerRow = footer(root);
+    expect(
+      await textSide(footerRow.locator('td[data-gridkit-column="region"]')),
+    ).toBe("right");
+    expect(
+      await textSide(footerRow.locator('td[data-gridkit-column="amount"]')),
+    ).toBe("left");
+
+    const summaryRow = groupSummaryRows(root).first();
+    expect(
+      await textSide(summaryRow.locator('td[data-gridkit-column="region"]')),
+    ).toBe("right");
+    expect(
+      await textSide(summaryRow.locator('td[data-gridkit-column="amount"]')),
+    ).toBe("left");
   });
 
   test("AggregateSpec.alignment overrides the column's own alignment, in both the footer and a group's summary row", async ({
@@ -441,7 +503,7 @@ test.describe("cell alignment", () => {
     );
 
     const amountCell = footer(root).locator('td[data-gridkit-column="amount"]');
-    await expect(amountCell).toHaveCSS("text-align", "left");
+    await expect(amountCell).toHaveCSS("text-align", "start");
     // Both values still render — the alignment conflict resolves without
     // dropping either result.
     await expect(amountCell).toHaveText("150, 30");

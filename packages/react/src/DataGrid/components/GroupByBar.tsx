@@ -4,8 +4,11 @@ import {
   type GridMessages,
   type GroupByState,
 } from "@gridkitjs/core";
-import { resolveKeyboardDropTarget } from "@gridkitjs/core/renderer";
-import type { GroupByDropTarget } from "@gridkitjs/dom";
+import {
+  inlineStep,
+  resolveKeyboardDropTarget,
+} from "@gridkitjs/core/renderer";
+import { writingDirection, type GroupByDropTarget } from "@gridkitjs/dom";
 import type { ColumnDefinition, ResolvedColumn } from "../DataGrid";
 import { classNames } from "../classNames";
 import useGroupByDrag from "../useGroupByDrag";
@@ -145,14 +148,13 @@ export default function GroupByBar<Row>({
               chipDrag.startDrag(entry.columnId, event);
             }}
             onKeyDown={(event) => {
-              const horizontal =
-                event.key === "ArrowLeft" || event.key === "ArrowRight";
-              if (horizontal && event.ctrlKey) {
+              const step = inlineStep(
+                event.key,
+                writingDirection(event.currentTarget),
+              );
+              if (step !== null && event.ctrlKey) {
                 event.preventDefault();
-                moveByKeyboard(
-                  entry.columnId,
-                  event.key === "ArrowLeft" ? -1 : 1,
-                );
+                moveByKeyboard(entry.columnId, step);
               }
             }}
           >

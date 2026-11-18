@@ -10,6 +10,7 @@ import {
   bodyRowFrom,
   findBodyRow,
   groupRowFrom,
+  writingDirection,
   type OverlayAnchor,
 } from "@gridkitjs/dom";
 
@@ -91,13 +92,19 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
+/** The x of `box`'s edge where `element`'s lines start: its left, or its right under `dir="rtl"`. */
+function inlineStartOf(element: Element, box: DOMRect): number {
+  return writingDirection(element) === "rtl" ? box.right : box.left;
+}
+
 /**
  * A cell's place, anchored to the cell itself while any of it is in the
  * grid's view (a group row's cell can be wider than the view). One scrolled
  * wholly out of it — the ref can ask for any cell drawn — is
- * anchored to the point of the view nearest its bottom-left corner instead,
- * so the menu opens at the grid's edge rather than off in the page, over
- * whatever the grid's scrolling hides it under.
+ * anchored to the point of the view nearest its bottom corner at the inline
+ * start (the left one, or the right under `dir="rtl"`) instead, so the menu
+ * opens at the grid's edge rather than off in the page, over whatever the
+ * grid's scrolling hides it under.
  */
 function onCell(
   target: GridContextMenuTarget,
@@ -122,16 +129,20 @@ function onCell(
     target,
     cell,
     anchor: {
-      x: clamp(box.left, view.left, view.right),
+      x: clamp(inlineStartOf(cell.element, box), view.left, view.right),
       y: clamp(box.bottom, view.top, view.bottom),
     },
   };
 }
 
-/** The body's empty space, anchored to its top-left corner. */
+/** The body's empty space, anchored to its top corner at the inline start. */
 function onBody(body: HTMLElement): ContextMenuPlace {
-  const { left, top } = body.getBoundingClientRect();
-  return { target: { area: "body" }, cell: null, anchor: { x: left, y: top } };
+  const box = body.getBoundingClientRect();
+  return {
+    target: { area: "body" },
+    cell: null,
+    anchor: { x: inlineStartOf(body, box), y: box.top },
+  };
 }
 
 function headerPlaceAt<Row>(

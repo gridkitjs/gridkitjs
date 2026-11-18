@@ -26,13 +26,13 @@ export default function GridContextMenu({
       gap={menu.anchor instanceof Element ? ANCHOR_GAP : 0}
       returnFocusTo={menu.cell ?? undefined}
       returnFocusFallback={returnFocusFallback}
-      themeClassName={menu.themeClassName}
+      scope={menu.scope}
       onDismiss={close}
     >
       <GridMenu
         entries={menu.entries}
         label={menu.label}
-        themeClassName={menu.themeClassName}
+        scope={menu.scope}
         onRun={run}
         onClose={close}
       />

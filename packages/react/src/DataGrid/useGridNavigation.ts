@@ -11,6 +11,7 @@ import {
   createGridFocus,
   findBodyRow,
   measurePageSize,
+  writingDirection,
   type FocusVirtualRange,
   type GridFocusOptions,
   type GridFocusRows,
@@ -190,6 +191,7 @@ export default function useGridNavigation({
           event.key,
           event,
           measurePageSize(bodyTableRef.current),
+          writingDirection(event.currentTarget),
         )
       ) {
         event.preventDefault();

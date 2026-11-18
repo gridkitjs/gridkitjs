@@ -24,7 +24,7 @@ import {
   type OverlayAnchor,
 } from "@gridkitjs/dom";
 import type { GridCommandsApi } from "../commands/useGridCommands";
-import { overlayThemeClassName } from "../overlay/Overlay";
+import { overlayScope, type OverlayScope } from "../overlay/Overlay";
 import type { GridOverlayApi } from "../overlay/useGridOverlay";
 import type { DataGridController } from "../useGridController";
 import type { GridNavigationApi } from "../useGridNavigation";
@@ -70,7 +70,7 @@ export interface OpenContextMenu {
    * `null` in the body's empty space, which leaves focus where it was.
    */
   readonly cell: HTMLElement | null;
-  readonly themeClassName: string;
+  readonly scope: OverlayScope;
 }
 
 export interface ContextMenuApi {
@@ -226,7 +226,7 @@ export default function useContextMenu<Row>({
         label: labelOf(target),
         anchor: point ?? anchor,
         cell: cell?.element ?? null,
-        themeClassName: overlayThemeClassName(rootRef.current),
+        scope: overlayScope(rootRef.current),
       },
     });
     return true;
