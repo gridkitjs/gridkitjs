@@ -26,7 +26,7 @@ It keeps one item the tab stop — `tabindex="0"` on the focused item, or the fi
 | `onActivate`        | `(id)` — an enabled item that opens no submenu was chosen. Run it and close every menu.                                                                                                                      |
 | `onOpenSubmenu`     | `(id, { focus })` — an enabled submenu item asks for its submenu. `focus` is `"first"` from the keyboard, so focus its first item; `"none"` from a click or the pointer resting on it, so leave focus there. |
 | `onCollapseSubmenu` | `()` — the pointer came to rest on another item. Close any submenu open from this menu.                                                                                                                      |
-| `onCloseSubmenu`    | `()` — <Kbd>ArrowLeft</Kbd> in this menu, which is a submenu: close it. Pass it only to a submenu's menu.                                                                                                    |
+| `onCloseSubmenu`    | `()` — <Kbd>ArrowLeft</Kbd> in this menu, which is a submenu, or <Kbd>ArrowRight</Kbd> in a right-to-left one: close it. Pass it only to a submenu's menu.                                                   |
 | `onClose`           | `("tab")` — <Kbd>Tab</Kbd> or <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd>: close every menu, and focus returns to where the first was opened from.                                                                       |
 
 | Key                                              | Does                                                                                                                                                                             |
@@ -34,11 +34,13 @@ It keeps one item the tab stop — `tabindex="0"` on the focused item, or the fi
 | <Kbd>ArrowDown</Kbd> / <Kbd>ArrowUp</Kbd>        | Focuses the next or previous item, wrapping round the ends.                                                                                                                      |
 | <Kbd>Home</Kbd> / <Kbd>End</Kbd>                 | Focuses the first or last item.                                                                                                                                                  |
 | <Kbd>Enter</Kbd> / <Kbd>Space</Kbd>              | `onActivate(id)`; on a submenu item, `onOpenSubmenu(id, { focus: "first" })`. Nothing on a disabled item.                                                                        |
-| <Kbd>ArrowRight</Kbd>                            | On a submenu item, `onOpenSubmenu(id, { focus: "first" })` — also for one already open, when focus should move into it.                                                          |
-| <Kbd>ArrowLeft</Kbd>                             | `onCloseSubmenu()`, when given.                                                                                                                                                  |
+| <Kbd>ArrowRight</Kbd>                            | On a submenu item, `onOpenSubmenu(id, { focus: "first" })` — also for one already open, when focus should move into it. <Kbd>ArrowLeft</Kbd> in a right-to-left menu.            |
+| <Kbd>ArrowLeft</Kbd>                             | `onCloseSubmenu()`, when given. <Kbd>ArrowRight</Kbd> in a right-to-left menu.                                                                                                   |
 | <Kbd>Tab</Kbd> / <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd> | `onClose("tab")`, in place of the key's own move.                                                                                                                                |
 | A printable character                            | Typeahead: focuses the next item whose label starts with what was typed in the last half second, since any other key. One letter typed again steps through every item it starts. |
 | <Kbd>Escape</Kbd>                                | Not handled here: the [overlay stack](/docs/dom/overlays#stacking) closes the topmost overlay.                                                                                   |
+
+A submenu opens toward the menu's inline end, so the arrow pointing there opens it: the panel's [`writingDirection`](/docs/dom/gestures-and-focus#writing-direction), read on every key, decides which. Open the submenu at `placement: "right-start"`, which [`attachOverlay`](/docs/dom/overlays#right-to-left) mirrors in a right-to-left panel.
 
 Moving the pointer over an item focuses it at once. What the item opens or closes waits until the pointer has rested on it for 150 ms: a submenu item reports `onOpenSubmenu(id, { focus: "none" })`, any other item `onCollapseSubmenu()`. Leaving the panel cancels the wait, so a pointer crossing another item on its way into an open submenu leaves it open, and so does any key the menu acts on: the pointer has to move again before it opens or closes anything. A click chooses an item as <Kbd>Enter</Kbd> does, except that a submenu opens with `focus: "none"`. Touch has no hover: only its taps count, as clicks.
 
@@ -141,7 +143,9 @@ One control at a time has `tabindex="0"` — the focused one, or the first — a
 | <Kbd>ArrowRight</Kbd> / <Kbd>ArrowLeft</Kbd> | Focuses the next or previous control, wrapping round the ends. |
 | <Kbd>Home</Kbd> / <Kbd>End</Kbd>             | Focuses the first or last control.                             |
 
-A text field keeps the keys it needs: <Kbd>Home</Kbd> and <Kbd>End</Kbd> move its caret, and so do the arrows while there is text to move through. With the caret at the start, <Kbd>ArrowLeft</Kbd> moves on to the previous control; at the end, <Kbd>ArrowRight</Kbd> to the next — otherwise a search box holding the tab stop would leave no way to the controls after it. With text selected, or in a field that keeps its caret to itself, such as `type="email"`, the arrows stay with the field.
+The arrows point the way focus moves: in a right-to-left toolbar, where the controls run from the right, <Kbd>ArrowLeft</Kbd> focuses the next control and <Kbd>ArrowRight</Kbd> the previous one, by the toolbar's [`writingDirection`](/docs/dom/gestures-and-focus#writing-direction) on each key.
+
+A text field keeps the keys it needs: <Kbd>Home</Kbd> and <Kbd>End</Kbd> move its caret, and so do the arrows while there is text to move through. With the caret at the start, the arrow toward the previous control moves on to it; at the end, the arrow toward the next — otherwise a search box holding the tab stop would leave no way to the controls after it. With text selected, or in a field that keeps its caret to itself, such as `type="email"`, the arrows stay with the field.
 
 ```ts
 import { attachToolbar } from "@gridkitjs/dom";

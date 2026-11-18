@@ -97,6 +97,7 @@ export {
   type ToolbarOverflowItem,
   type ToolbarOverflowOptions,
 } from "./toolbar/observeToolbarOverflow";
+export { writingDirection } from "./writingDirection";
 export {
   printDocument,
   type PrintDocumentOptions,

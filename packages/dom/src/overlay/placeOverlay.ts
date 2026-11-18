@@ -1,3 +1,5 @@
+import type { WritingDirection } from "@gridkitjs/core/renderer";
+
 /** Which side of its anchor an overlay opens on. */
 export type OverlaySide = "top" | "bottom" | "left" | "right";
 
@@ -36,6 +38,17 @@ export interface OverlayPlacementOptions {
    * still kept on screen. Defaults to `0`.
    */
   readonly offset?: number | undefined;
+  /**
+   * The writing direction the placement is read in. `"rtl"` mirrors it, as
+   * a right-to-left page is mirrored: `left` and `right` swap, `start` and
+   * `end` beside `top` or `bottom` are the anchor's right and left edges, an
+   * `offset` along those sides runs leftward, and an overlay wider than the
+   * viewport keeps its right edge in view. The placement it ends up with is
+   * reported in the same mirrored terms, so `"bottom-start"` lines up with
+   * the anchor's inline start and `"right-start"` opens a submenu toward
+   * the inline end in either direction. Defaults to `"ltr"`.
+   */
+  readonly direction?: WritingDirection | undefined;
 }
 
 /** Where an overlay goes: its top-left corner, and the placement it ended up with. */
@@ -141,12 +154,37 @@ function clampIntoView(value: number, limit: number): number {
  * A point — a context menu opened where the pointer is — is an anchor with
  * no width or height, which is what makes `start`/`end` mean "after" and
  * "before" it.
+ *
+ * In `"rtl"` the anchor is mirrored across the viewport, placed as in
+ * left-to-right, and the result mirrored back, so every rule above holds
+ * with left and right exchanged.
  */
 export function placeOverlay(
   anchor: OverlayRect,
   panel: OverlaySize,
   viewport: OverlaySize,
   options: OverlayPlacementOptions = {},
+): OverlayPosition {
+  if (options.direction !== "rtl") {
+    return placeLeftToRight(anchor, panel, viewport, options);
+  }
+  const mirrored = placeLeftToRight(
+    { ...anchor, left: viewport.width - anchor.left - anchor.width },
+    panel,
+    viewport,
+    options,
+  );
+  return {
+    ...mirrored,
+    left: viewport.width - mirrored.left - panel.width,
+  };
+}
+
+function placeLeftToRight(
+  anchor: OverlayRect,
+  panel: OverlaySize,
+  viewport: OverlaySize,
+  options: OverlayPlacementOptions,
 ): OverlayPosition {
   const [preferredSide, preferredAlign] = (
     options.placement ?? "bottom-start"

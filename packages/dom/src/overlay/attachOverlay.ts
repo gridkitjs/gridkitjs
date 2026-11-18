@@ -9,6 +9,7 @@ import {
   type OverlayPlacementOptions,
   type OverlayRect,
 } from "./placeOverlay";
+import { writingDirection } from "../writingDirection";
 
 /** What an overlay opens beside: an element, or a point in viewport coordinates. */
 export type OverlayAnchor =
@@ -146,6 +147,13 @@ function initialFocusTarget(
  * panel flipped above its anchor keeps its bottom edge there — or beside
  * where the anchor was, once it has left the page. Focus moves
  * where `initialFocus` says.
+ *
+ * The placement is read in the panel's own writing direction unless
+ * `direction` names one, so a panel laid out right to left — given
+ * `dir="rtl"`, or rendered into a right-to-left page — opens toward the
+ * inline end of what it is drawn in. A renderer portalling the panel out of
+ * a right-to-left grid in a left-to-right page sets `dir` on it from the
+ * grid, which mirrors its content and its placement together.
  *
  * Nothing that happens on or in the anchor dismisses the overlay, so a button
  * that toggles it can close it with its own click rather than having the
@@ -320,7 +328,7 @@ export function attachOverlay(
         width: document.documentElement.clientWidth,
         height: document.documentElement.clientHeight,
       },
-      options,
+      { ...options, direction: options.direction ?? writingDirection(panel) },
     );
     panel.style.top = `${String(position.top)}px`;
     panel.style.left = `${String(position.left)}px`;

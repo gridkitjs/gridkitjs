@@ -3,6 +3,7 @@ import {
   clampFocus,
   nextFocusForKey,
   type NavigationModifiers,
+  type WritingDirection,
 } from "@gridkitjs/core/renderer";
 
 /** Rows a page key moves when the viewport cannot be measured. */
@@ -71,11 +72,16 @@ export interface GridFocusController {
    * them, in which case the caller prevents its default: taken even when the
    * move lands nowhere, or an arrow at the last row would scroll the page
    * out from under the grid.
+   *
+   * `direction` is the way the grid's rows run, which the left and right
+   * arrows follow — `writingDirection` of the element the key was pressed
+   * in. Defaults to `"ltr"`.
    */
   readonly handleKey: (
     key: string,
     modifiers: NavigationModifiers,
     pageSize: number,
+    direction?: WritingDirection,
   ) => boolean;
   /**
    * Connects the tab stop to the rendered rows, which the browser's focus
@@ -276,7 +282,7 @@ export function createGridFocus(
       options = next;
     },
     focusCell,
-    handleKey(key, modifiers, pageSize) {
+    handleKey(key, modifiers, pageSize, direction) {
       const next = nextFocusForKey(
         key,
         modifiers,
@@ -285,6 +291,7 @@ export function createGridFocus(
         options.columnCount,
         pageSize,
         options.isSkippableRow,
+        direction,
       );
       if (next === null) {
         return false;

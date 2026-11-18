@@ -147,3 +147,85 @@ describe("placeOverlay", () => {
     });
   });
 });
+
+describe("placeOverlay in right-to-left", () => {
+  const rtl = { direction: "rtl" } as const;
+
+  it("lines a start placement up with the anchor's right edge", () => {
+    expect(placeOverlay(button(500, 40), panel, viewport, rtl)).toEqual({
+      top: 60,
+      left: 400,
+      placement: "bottom-start",
+    });
+  });
+
+  it("lines an end placement up with the anchor's left edge", () => {
+    expect(
+      placeOverlay(button(300, 40), panel, viewport, {
+        ...rtl,
+        placement: "bottom-end",
+      }),
+    ).toEqual({ top: 60, left: 300, placement: "bottom-end" });
+  });
+
+  it("places as in left-to-right when told ltr", () => {
+    expect(
+      placeOverlay(button(500, 40), panel, viewport, { direction: "ltr" }),
+    ).toEqual({ top: 60, left: 500, placement: "bottom-start" });
+  });
+
+  it("lines up with the other edge when the start one runs off the left", () => {
+    expect(placeOverlay(button(50, 40), panel, viewport, rtl)).toEqual({
+      top: 60,
+      left: 50,
+      placement: "bottom-end",
+    });
+  });
+
+  it("flips above the anchor as in left-to-right", () => {
+    expect(
+      placeOverlay(button(500, 560), panel, viewport, { ...rtl, gap: 4 }),
+    ).toEqual({ top: 456, left: 400, placement: "top-start" });
+  });
+
+  it("opens a right placement, a submenu's, to the anchor's left", () => {
+    expect(
+      placeOverlay(button(500, 40), panel, viewport, {
+        ...rtl,
+        placement: "right-start",
+      }),
+    ).toEqual({ top: 40, left: 300, placement: "right-start" });
+  });
+
+  it("flips a right placement to the anchor's right when there is no room to its left", () => {
+    expect(
+      placeOverlay(button(100, 40), panel, viewport, {
+        ...rtl,
+        placement: "right-start",
+      }),
+    ).toEqual({ top: 40, left: 200, placement: "left-start" });
+  });
+
+  it("runs an offset along the top or bottom leftward", () => {
+    expect(
+      placeOverlay(button(500, 40), panel, viewport, { ...rtl, offset: 10 }),
+    ).toEqual({ top: 60, left: 390, placement: "bottom-start" });
+  });
+
+  it("keeps the right edge of an overlay wider than the viewport in view", () => {
+    expect(
+      placeOverlay(button(500, 40), { width: 900, height: 100 }, viewport, rtl),
+    ).toEqual({ top: 60, left: -100, placement: "bottom-start" });
+  });
+
+  it("opens beside a point toward the left", () => {
+    expect(
+      placeOverlay(
+        { top: 100, left: 500, width: 0, height: 0 },
+        panel,
+        viewport,
+        rtl,
+      ),
+    ).toEqual({ top: 100, left: 300, placement: "bottom-start" });
+  });
+});

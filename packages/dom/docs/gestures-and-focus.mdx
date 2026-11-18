@@ -3,7 +3,7 @@ title: "Gestures and focus"
 description: "Body event targets, column resize and reorder drags, focus movement in the grid and in a checklist, and the live announcer in @gridkitjs/dom."
 ---
 
-These are the behaviours a renderer attaches to the grid's own table: reading which cell or row a body event addressed (`bodyCellFrom`, `groupRowFrom`, `bodyRowFrom`), the pointer gestures that resize and reorder columns (`startColumnResizeGesture`, `startDragReorder`), the single tab stop the keyboard moves through the grid (`createGridFocus`) and through a long list of values (`attachChecklist`), and the live region that reports what changed (`createLiveAnnouncer`). Each follows [the contract](/docs/dom#the-contract): it attaches to markup the renderer drew and hands back the way to stop it.
+These are the behaviours a renderer attaches to the grid's own table: reading which cell or row a body event addressed (`bodyCellFrom`, `groupRowFrom`, `bodyRowFrom`), the pointer gestures that resize and reorder columns (`startColumnResizeGesture`, `startDragReorder`), the single tab stop the keyboard moves through the grid (`createGridFocus`) and through a long list of values (`attachChecklist`), the live region that reports what changed (`createLiveAnnouncer`), and the writing direction the keys and gestures follow (`writingDirection`). Each follows [the contract](/docs/dom#the-contract): it attaches to markup the renderer drew and hands back the way to stop it.
 
 ## Body event targets
 
@@ -32,7 +32,7 @@ A gesture starts from a `PointerPress` — the `pointerdown` that began it, nati
 
 ### Column resize
 
-`startColumnResizeGesture(handle, press, session, { onMove, onEnd, onCancel })` drags a column's edge. `session` comes from `beginColumnResize` in `@gridkitjs/core/renderer`, which also turns each pointer position into a clamped width. `onMove(width)` reports every move; `onEnd(width)` reports the release, with `null` when the width never changed (a click on the handle is not a resize), and with the start width for a drag that came back to it; `onCancel()` reports <Kbd>Escape</Kbd> or a cancelled pointer.
+`startColumnResizeGesture(handle, press, session, { onMove, onEnd, onCancel })` drags a column's edge. `session` comes from `beginColumnResize` in `@gridkitjs/core/renderer`, which also turns each pointer position into a clamped width. `onMove(width)` reports every move; `onEnd(width)` reports the release, with `null` when the width never changed (a click on the handle is not a resize), and with the start width for a drag that came back to it; `onCancel()` reports <Kbd>Escape</Kbd> or a cancelled pointer. The edge is the column's inline end, so dragging it outward grows the column: rightward on a left-to-right page, leftward under `dir="rtl"`, by the [`writingDirection`](#writing-direction) of `handle` when the drag starts.
 
 ```ts
 import { beginColumnResize } from "@gridkitjs/core/renderer";
@@ -90,7 +90,7 @@ The grid's own targets are hit-tested against its markup:
 | `resolveColumnDropTarget(x, y, movedId, context)`  | `{ kind: "column-order", beforeId }` over another `th[data-gridkit-column]`, by which half the pointer is in; else a group-by target for a column that may be grouped and is not yet; else `null`. |
 | `resolveGroupByDropTarget(x, y, movedId, groupBy)` | `{ kind: "group-by", beforeColumnId }` over `[data-gridkit-group-by-bar]`, before or after the `[data-gridkit-group-chip]` under the pointer, or appended; `null` elsewhere.                       |
 
-Either returns `null` for a drop that would change nothing, so a drop indicator only ever promises a move that happens.
+Either returns `null` for a drop that would change nothing, so a drop indicator only ever promises a move that happens. The half at a header's or chip's inline start is before it: the left half on a left-to-right page, the right half under `dir="rtl"`.
 
 ### Cancelling a gesture
 
@@ -122,18 +122,23 @@ function destroy() {
 
 A grid is one tab stop: <Kbd>Tab</Kbd> reaches it and passes it by, and the arrow keys, <Kbd>Home</Kbd>, <Kbd>End</Kbd>, <Kbd>PageUp</Kbd> and <Kbd>PageDown</Kbd> move within it. `createGridFocus({ rowCount, columnCount, isSkippableRow, virtualRange })` keeps that tab stop — starting on the header's first cell — and moves the browser's focus with it.
 
-| Member                                        | Description                                                                                                                                                                                                   |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `getFocus()`                                  | The focused cell, a core [`GridFocus`](/docs/core/navigation#focus) — `{ area: "header", columnIndex }` or `{ area: "body", rowIndex, columnIndex }` — clamped to the counts. The same object until it moves. |
-| `subscribe(listener)`                         | Calls `listener` when the focused cell moves.                                                                                                                                                                 |
-| `setOptions(options)`                         | The current counts, skippable rows and virtualized window, given on every render. Calls no listener.                                                                                                          |
-| `attach({ getHeaderRow, getBodyRow }, root?)` | Connects it to the rendered rows, and to `root`, the grid element holding them, when given; returns the function that disconnects them.                                                                       |
-| `focusCell(focus)`                            | Moves the tab stop to `focus`, a `GridFocus` such as `bodyFocus(rowIndex, columnIndex)` or `headerFocus(columnIndex)` from @gridkitjs/core. Moving to the focused cell does nothing.                          |
-| `handleKey(key, modifiers, pageSize)`         | Moves the tab stop as a navigation key does, and returns `true` — prevent the key's default then — or returns `false` for any other key.                                                                      |
-| `focusDrawnCell(drawn)`                       | Called after drawing `drawn`, a value `getFocus()` returned: moves the browser's focus to that cell if a move to it is pending.                                                                               |
+| Member                                            | Description                                                                                                                                                                                                                                                                 |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getFocus()`                                      | The focused cell, a core [`GridFocus`](/docs/core/navigation#focus) — `{ area: "header", columnIndex }` or `{ area: "body", rowIndex, columnIndex }` — clamped to the counts. The same object until it moves.                                                               |
+| `subscribe(listener)`                             | Calls `listener` when the focused cell moves.                                                                                                                                                                                                                               |
+| `setOptions(options)`                             | The current counts, skippable rows and virtualized window, given on every render. Calls no listener.                                                                                                                                                                        |
+| `attach({ getHeaderRow, getBodyRow }, root?)`     | Connects it to the rendered rows, and to `root`, the grid element holding them, when given; returns the function that disconnects them.                                                                                                                                     |
+| `focusCell(focus)`                                | Moves the tab stop to `focus`, a `GridFocus` such as `bodyFocus(rowIndex, columnIndex)` or `headerFocus(columnIndex)` from @gridkitjs/core. Moving to the focused cell does nothing.                                                                                        |
+| `handleKey(key, modifiers, pageSize, direction?)` | Moves the tab stop as a navigation key does, and returns `true` — prevent the key's default then — or returns `false` for any other key. `direction` is the grid's [writing direction](#writing-direction), which the left and right arrows follow; it defaults to `"ltr"`. |
+| `focusDrawnCell(drawn)`                           | Called after drawing `drawn`, a value `getFocus()` returned: moves the browser's focus to that cell if a move to it is pending.                                                                                                                                             |
 
 ```ts
-import { createGridFocus, findBodyRow, measurePageSize } from "@gridkitjs/dom";
+import {
+  createGridFocus,
+  findBodyRow,
+  measurePageSize,
+  writingDirection,
+} from "@gridkitjs/dom";
 
 const focus = createGridFocus({ rowCount, columnCount });
 focus.attach(
@@ -146,13 +151,28 @@ focus.attach(
 focus.subscribe(() => draw()); // draw() renders tabindex 0 on focus.getFocus(), then calls focus.focusDrawnCell(focus.getFocus())
 
 grid.addEventListener("keydown", (event) => {
-  if (focus.handleKey(event.key, event, measurePageSize(bodyTable))) {
+  if (
+    focus.handleKey(
+      event.key,
+      event,
+      measurePageSize(bodyTable),
+      writingDirection(grid),
+    )
+  ) {
     event.preventDefault();
   }
 });
 ```
 
 The browser's focus follows only once the move is drawn, so it lands on the cell in the new markup — after a column moves, the header now at that index. A virtualized row outside the drawn window is scrolled into it with `virtualRange.scrollToIndex` and focused when a later drawing mounts it. Given a `root`, the user can take over from that wait: focus leaving `root`, or a wheel or a press inside it, drops the move, so the row mounting later neither scrolls the grid back to it nor pulls focus back in. `findBodyRow(bodyTable, rowIndex)` finds a body row by its `data-gridkit-row-index`, not its position, which under virtualization is off by the rows not mounted; `measurePageSize(bodyTable)` is how many rows a page key moves — as many as fit the body's scrolling area.
+
+## Writing direction
+
+`writingDirection(element)` returns `"rtl"` when `element` lays out right to left and `"ltr"` otherwise, from its computed `direction`: what it inherits from a `dir` attribute or the CSS `direction` property. It returns a core [`WritingDirection`](/docs/core/navigation#focus) and is read afresh on every call, so a page that switches direction is followed from the next key press, gesture or overlay on.
+
+The behaviours here and on the other pages read it where direction matters, with nothing to pass: the resize gesture and the drop targets read the element under the pointer, `attachMenu` and `attachToolbar` read their own element on every key, and `attachOverlay` reads its panel. `handleKey` is the exception, taking the direction as an argument, because the tab stop it keeps has no element of its own; pass `writingDirection` of the grid.
+
+Set the `dir` attribute rather than only the CSS `direction` property: the theme's mirrored lines and chevrons use `:dir(rtl)`, which follows the attribute, while this function reads the computed property, which either sets.
 
 ## Checklist
 

@@ -5,6 +5,7 @@ import {
   resolveDropBefore,
   type DropSide,
 } from "@gridkitjs/core/renderer";
+import { writingDirection } from "./writingDirection";
 
 /** A drop into the group-by bar, in front of `beforeColumnId` — `null` to append. */
 export interface GroupByDropTarget {
@@ -43,12 +44,17 @@ function elementAt(x: number, y: number, selector: string): Element | null {
 }
 
 /**
- * Which half of `element` `x` falls in. Read fresh on every move, so a width
- * changed mid-drag cannot leave the midpoint stale.
+ * Which half of `element` `x` falls in: the one at its inline start, the
+ * left half in a left-to-right page and the right half under `dir="rtl"`,
+ * is before it. Read fresh on every move, so a width changed mid-drag
+ * cannot leave the midpoint stale.
  */
 function sideOf(element: Element, x: number): DropSide {
   const rect = element.getBoundingClientRect();
-  return x < rect.left + rect.width / 2 ? "before" : "after";
+  const leftHalf = x < rect.left + rect.width / 2;
+  return leftHalf === (writingDirection(element) === "ltr")
+    ? "before"
+    : "after";
 }
 
 /**

@@ -7,6 +7,7 @@ import {
   startPointerGesture,
   type PointerPress,
 } from "./pointerGesture";
+import { writingDirection } from "./writingDirection";
 
 export interface ColumnResizeGestureHandlers {
   /** Every pointer move, with the width the column takes there. */
@@ -39,6 +40,10 @@ export interface ColumnResizeGestureHandlers {
  * only the primary button of the primary pointer starts one, and not once
  * `handlers.signal` has aborted.
  *
+ * The edge is the column's inline end, and dragging it outward grows the
+ * column: rightward on a left-to-right page, leftward under `dir="rtl"`, as
+ * `writingDirection` reads `handle` when the drag starts.
+ *
  * Captures the pointer on `handle`, so the drag keeps reporting wherever the
  * pointer goes, and prevents the press's default, so it does not select the
  * header text it started on. No minimum distance, unlike a reorder drag: the
@@ -55,6 +60,7 @@ export function startColumnResizeGesture(
   }
   press.preventDefault();
 
+  const direction = writingDirection(handle);
   let width = session.startWidth;
   let resized = false;
   startPointerGesture(
@@ -62,7 +68,7 @@ export function startColumnResizeGesture(
     press.pointerId,
     {
       onMove(event) {
-        width = applyColumnResize(session, event.clientX);
+        width = applyColumnResize(session, event.clientX, direction);
         resized ||= width !== session.startWidth;
         handlers.onMove(width);
       },

@@ -1,8 +1,10 @@
 import {
+  inlineStep,
   nextMenuIndex,
   typeaheadIndex,
   type MenuMove,
 } from "@gridkitjs/core/renderer";
+import { writingDirection } from "../writingDirection";
 
 /**
  * Where focus goes when a submenu opens: its first item, or nowhere — it
@@ -20,10 +22,11 @@ export interface MenuOptions {
    */
   readonly onActivate: (id: string) => void;
   /**
-   * An enabled submenu item asks for its submenu: Enter, Space or ArrowRight
-   * on it want its first item focused (`"first"`), a click or the pointer
-   * resting on it want focus left where it is (`"none"`). It may come for a
-   * submenu already open — ArrowRight on one the pointer opened — when a
+   * An enabled submenu item asks for its submenu: Enter, Space or the arrow
+   * pointing to the inline end — ArrowRight, or ArrowLeft in a right-to-left
+   * menu — on it want its first item focused (`"first"`), a click or the
+   * pointer resting on it want focus left where it is (`"none"`). It may come
+   * for a submenu already open — that arrow on one the pointer opened — when a
    * `"first"` asks for focus to move into it (`focusItem(0)` on its menu).
    * Opening it closes any other submenu open from this menu.
    */
@@ -37,9 +40,10 @@ export interface MenuOptions {
    */
   readonly onCollapseSubmenu?: (() => void) | undefined;
   /**
-   * ArrowLeft was pressed in this menu, which is a submenu: close it, and
-   * focus goes back to the item that opened it. Passed only for a submenu —
-   * in a menu without it, ArrowLeft does nothing.
+   * The arrow pointing to the inline start — ArrowLeft, or ArrowRight in a
+   * right-to-left menu — was pressed in this menu, which is a submenu: close
+   * it, and focus goes back to the item that opened it. Passed only for a
+   * submenu — in a menu without it, that arrow does nothing.
    */
   readonly onCloseSubmenu?: (() => void) | undefined;
   /**
@@ -138,6 +142,11 @@ function isTypeahead(event: KeyboardEvent): boolean {
  * close submenus, and the pointer moves focus to the item under it. It
  * decides; the caller is told through the callbacks and draws the outcome —
  * runs the item, opens or closes a submenu.
+ *
+ * A submenu opens toward the panel's inline end, so the arrow pointing there
+ * opens it and the other closes it: ArrowRight opens one in a left-to-right
+ * panel, ArrowLeft under `dir="rtl"`, read from `writingDirection(panel)` on
+ * each key.
  *
  * Items are the panel's descendants with a menu item role (`menuitem`,
  * `menuitemcheckbox`, `menuitemradio`) and a `data-gridkit-menu-item` id,
@@ -260,6 +269,7 @@ export function attachMenu(
     const item = itemOf(event.target);
     const from = item === null ? -1 : all.indexOf(item);
     const move = MOVES[event.key];
+    const step = inlineStep(event.key, writingDirection(panel));
     if (move !== undefined) {
       const next =
         all[
@@ -276,11 +286,11 @@ export function attachMenu(
       if (item !== null) {
         choose(item, "first");
       }
-    } else if (event.key === "ArrowRight") {
+    } else if (step === 1) {
       if (item !== null && opensSubmenu(item)) {
         openSubmenu(item, "first");
       }
-    } else if (event.key === "ArrowLeft") {
+    } else if (step === -1) {
       options.onCloseSubmenu?.();
     } else if (event.key === "Tab") {
       options.onClose("tab");
