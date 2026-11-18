@@ -751,6 +751,93 @@
     );
   }
 
+  /*
+   * A screen that cannot hover never brings the header's toggles out, so
+   * there they show at rest, still told apart by colour and fill once the
+   * column is sorted, filtered or grouped.
+   */
+  @media (hover: none) {
+    .gridkit-data-grid
+      .gridkit-header-sort-toggle:not(.is-sorted-asc):not(.is-sorted-desc),
+    .gridkit-data-grid .gridkit-header-filter-toggle:not(.is-filtered),
+    .gridkit-data-grid .gridkit-header-group-toggle:not(.is-grouped) {
+      opacity: 1;
+    }
+  }
+
+  /*
+   * A finger needs 24 by 24 pixels to land on, WCAG 2.2's minimum target.
+   * Each toggle grows its box by padding around an unchanged icon, and the
+   * ones docked to the inline end move inward to sit side by side, clear of
+   * the resize handle, which widens to the same 24 pixels. The handle draws
+   * nothing of its own, so the line a resize colours stays on the column's
+   * edge.
+   */
+  @media (pointer: coarse) {
+    .gridkit-data-grid .gridkit-header-resize-handle {
+      width: 24px;
+    }
+
+    .gridkit-data-grid .gridkit-header-sort-toggle,
+    .gridkit-data-grid .gridkit-header-filter-toggle,
+    .gridkit-data-grid .gridkit-header-group-toggle {
+      box-sizing: border-box;
+      min-width: 24px;
+      min-height: 24px;
+      justify-content: center;
+      padding: max(0px, calc((24px - var(--gridkit-header-icon-size)) / 2));
+    }
+
+    .gridkit-data-grid .gridkit-header-sort-toggle,
+    .gridkit-data-grid .gridkit-header-filter-toggle {
+      inset-inline-end: 24px;
+    }
+
+    .gridkit-data-grid
+      .gridkit-header-cell:has(> .gridkit-header-filter-toggle)
+      .gridkit-header-sort-toggle {
+      inset-inline-end: 48px;
+    }
+
+    /*
+     * A touch screen shows the docked toggles at rest, where they would sit
+     * over the label, so the label keeps clear of them and is cut short
+     * instead.
+     */
+    .gridkit-data-grid
+      .gridkit-grid-header
+      .gridkit-header-cell:has(> .gridkit-header-sort-toggle),
+    .gridkit-data-grid
+      .gridkit-grid-header
+      .gridkit-header-cell:has(> .gridkit-header-filter-toggle) {
+      padding-inline-end: 48px;
+    }
+
+    .gridkit-data-grid
+      .gridkit-grid-header
+      .gridkit-header-cell:has(> .gridkit-header-sort-toggle):has(
+        > .gridkit-header-filter-toggle
+      ) {
+      padding-inline-end: 72px;
+    }
+
+    /* Grown into the header's padding, so the label stays where it was. */
+    .gridkit-data-grid .gridkit-header-group-toggle {
+      margin-block: min(
+        0px,
+        calc((var(--gridkit-header-icon-size) - 24px) / 2)
+      );
+      margin-inline-start: min(
+        0px,
+        calc((var(--gridkit-header-icon-size) - 24px) / 2)
+      );
+      margin-inline-end: calc(
+        var(--gridkit-spacing) * 1.5 +
+          min(0px, calc((var(--gridkit-header-icon-size) - 24px) / 2))
+      );
+    }
+  }
+
   .gridkit-data-grid .gridkit-grid-cell {
     padding: var(--gridkit-cell-padding-y) var(--gridkit-cell-padding-x);
   }
