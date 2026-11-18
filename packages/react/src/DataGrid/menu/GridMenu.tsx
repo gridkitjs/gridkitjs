@@ -10,21 +10,22 @@ import {
   type MenuSubmenuFocus,
 } from "@gridkitjs/dom";
 import { ariaAttr } from "../ariaAttr";
-import Overlay from "../overlay/Overlay";
+import Overlay, { type OverlayScope } from "../overlay/Overlay";
 import { CheckIcon, ChevronRightIcon, MenuIcon } from "./menuIcons";
 
 interface GridMenuProps {
   entries: readonly ResolvedMenuEntry[];
   /** The menu's accessible name. */
   label: string;
-  /** The palette its submenus take — the one its own overlay took. */
-  themeClassName: string;
+  /** The palette and direction its submenus take — the ones its own overlay took. */
+  scope: OverlayScope;
   /** An enabled item was chosen: run it, and close every menu. */
   onRun: (item: ResolvedMenuItem) => void;
   /** Tab or Shift+Tab: close every menu. */
   onClose: () => void;
   /**
-   * ArrowLeft: close this menu, which is a submenu, so focus goes back to
+   * ArrowLeft, or ArrowRight in a right-to-left menu: close this menu, which
+   * is a submenu, so focus goes back to
    * the item that opened it. Given only to a submenu; a menu without it has
    * nowhere to go back to.
    */
@@ -132,7 +133,7 @@ function MenuItem({
 export default function GridMenu({
   entries,
   label,
-  themeClassName,
+  scope,
   onRun,
   onClose,
   onCloseSubmenu,
@@ -277,13 +278,13 @@ export default function GridMenu({
           placement="right-start"
           offset={submenu.offset}
           initialFocus={submenu.focus}
-          themeClassName={themeClassName}
+          scope={scope}
           onDismiss={closeSubmenu}
         >
           <GridMenu
             entries={openEntry.items}
             label={openEntry.label}
-            themeClassName={themeClassName}
+            scope={scope}
             onRun={onRun}
             onClose={onClose}
             onCloseSubmenu={closeSubmenu}

@@ -102,13 +102,13 @@ export default function OperatorMenuButton({
           placement="right-start"
           gap={state.gap}
           returnFocusTo={state.anchor}
-          themeClassName={state.themeClassName}
+          scope={state.scope}
           onDismiss={close}
         >
           <GridMenu
             entries={entries}
             label={label}
-            themeClassName={state.themeClassName}
+            scope={state.scope}
             behaviourRef={behaviourRef}
             onRun={(item) => {
               item.run();

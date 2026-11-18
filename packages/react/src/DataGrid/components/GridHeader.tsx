@@ -9,10 +9,12 @@ import {
 } from "@gridkitjs/core";
 import {
   buildKeyShortcuts,
+  inlineStep,
   intentOf,
   KEYBOARD_STEP,
   resolveColumnFilterMenu,
 } from "@gridkitjs/core/renderer";
+import { writingDirection } from "@gridkitjs/dom";
 import type { ResolvedColumn } from "../DataGrid";
 import { ariaAttr } from "../ariaAttr";
 import { classNames } from "../classNames";
@@ -189,18 +191,21 @@ export default function GridHeader<Row>({
               }}
               onKeyDown={(event) => {
                 if (!isOwnEvent(event)) return;
-                const horizontal =
-                  event.key === "ArrowLeft" || event.key === "ArrowRight";
-                const direction = event.key === "ArrowLeft" ? -1 : 1;
+                // Toward the next column moves it later and grows it, its
+                // resize handle being on that side.
+                const step = inlineStep(
+                  event.key,
+                  writingDirection(event.currentTarget),
+                );
 
-                if (horizontal && event.ctrlKey && entry.reorderable) {
+                if (step !== null && event.ctrlKey && entry.reorderable) {
                   event.preventDefault();
-                  drag.moveByKeyboard(entry, direction);
+                  drag.moveByKeyboard(entry, step);
                   return;
                 }
-                if (horizontal && event.altKey && entry.resizable) {
+                if (step !== null && event.altKey && entry.resizable) {
                   event.preventDefault();
-                  resize.nudge(entry, direction * KEYBOARD_STEP);
+                  resize.nudge(entry, step * KEYBOARD_STEP);
                   return;
                 }
                 // The keyboard equivalent of double-clicking the resize

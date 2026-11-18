@@ -1,13 +1,26 @@
 import { useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
+import type { WritingDirection } from "@gridkitjs/core/renderer";
 import {
   attachOverlay,
+  writingDirection,
   type OverlayAnchor,
   type OverlayDismissReason,
   type OverlayInitialFocus,
   type OverlayPlacement,
 } from "@gridkitjs/dom";
 import { classNames } from "../classNames";
+
+/**
+ * What an overlay copies from the element it opens from, rendering into
+ * `document.body` out of reach of what that element inherits: the palette
+ * class (`gridkit-light`, `gridkit-dark` or none, to follow the page) and
+ * the writing direction, which lays out its content and places it.
+ */
+export interface OverlayScope {
+  readonly themeClassName: string;
+  readonly direction: WritingDirection;
+}
 
 interface OverlayProps {
   /**
@@ -38,8 +51,8 @@ interface OverlayProps {
   ignoreScrollAfterInput?: boolean | undefined;
   /** See `attachOverlay`'s option: Tab stays inside, as in a dialog. */
   trapFocus?: boolean | undefined;
-  /** The palette the overlay takes — see `overlayThemeClassName`. */
-  themeClassName: string;
+  /** The palette and direction the overlay takes — see `overlayScope`. */
+  scope: OverlayScope;
   /** The overlay asks to close; the caller unmounts it, or not. */
   onDismiss: (reason: OverlayDismissReason) => void;
   children: ReactNode;
@@ -65,10 +78,9 @@ function attachedFocus(
 /**
  * The palette class an overlay opened from `element` copies:
  * `gridkit-light` or `gridkit-dark`, from the nearest ancestor carrying one,
- * or none to follow the page. An overlay renders into `document.body`, out of
- * reach of the tokens that ancestor sets.
+ * or none to follow the page.
  */
-export function overlayThemeClassName(element: Element | null): string {
+function themeClassNameOf(element: Element | null): string {
   const scope = element?.closest(".gridkit-light, .gridkit-dark");
   if (scope === null || scope === undefined) {
     return "";
@@ -76,6 +88,17 @@ export function overlayThemeClassName(element: Element | null): string {
   return scope.classList.contains("gridkit-dark")
     ? "gridkit-dark"
     : "gridkit-light";
+}
+
+/**
+ * The scope an overlay opened from `element` takes, read as it opens. With
+ * no element, it follows the page.
+ */
+export function overlayScope(element: Element | null): OverlayScope {
+  return {
+    themeClassName: themeClassNameOf(element),
+    direction: writingDirection(element ?? document.documentElement),
+  };
 }
 
 /**
@@ -99,7 +122,7 @@ export default function Overlay({
   returnFocusFallback,
   ignoreScrollAfterInput,
   trapFocus,
-  themeClassName,
+  scope,
   onDismiss,
   children,
 }: OverlayProps) {
@@ -144,7 +167,8 @@ export default function Overlay({
   return createPortal(
     <div
       ref={panelRef}
-      className={classNames("gridkit-overlay", themeClassName)}
+      className={classNames("gridkit-overlay", scope.themeClassName)}
+      dir={scope.direction}
     >
       {children}
     </div>,

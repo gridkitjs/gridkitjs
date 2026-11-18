@@ -7,7 +7,11 @@ import {
   type RefObject,
 } from "react";
 import type { AttachedMenu } from "@gridkitjs/dom";
-import { ANCHOR_GAP, overlayThemeClassName } from "../overlay/Overlay";
+import {
+  ANCHOR_GAP,
+  overlayScope,
+  type OverlayScope,
+} from "../overlay/Overlay";
 
 /** A menu button's menu: closed, or open from the button. */
 export type MenuButtonState =
@@ -16,7 +20,7 @@ export type MenuButtonState =
       readonly kind: "open";
       /** The button, which the menu opens beside and returns focus to. */
       readonly anchor: HTMLElement;
-      readonly themeClassName: string;
+      readonly scope: OverlayScope;
       /** How far from the button the menu opens. */
       readonly gap: number;
       /** The item it opens on: the first, or the last when ArrowUp opened it. */
@@ -75,7 +79,7 @@ export default function useMenuButton({
     setState({
       kind: "open",
       anchor: button,
-      themeClassName: overlayThemeClassName(button),
+      scope: overlayScope(button),
       gap: gap(button),
       focusItem: onLast ? itemCount - 1 : 0,
     });

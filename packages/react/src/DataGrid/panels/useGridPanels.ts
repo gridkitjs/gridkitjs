@@ -1,7 +1,11 @@
 import { useRef, type RefObject } from "react";
 import type { GridCommandTarget, GridPanelKind } from "@gridkitjs/core";
-import type { OverlayAnchor, OverlayPlacement } from "@gridkitjs/dom";
-import { overlayThemeClassName } from "../overlay/Overlay";
+import {
+  writingDirection,
+  type OverlayAnchor,
+  type OverlayPlacement,
+} from "@gridkitjs/dom";
+import { overlayScope, type OverlayScope } from "../overlay/Overlay";
 import type {
   GridOverlayApi,
   GridOverlayState,
@@ -29,7 +33,7 @@ export interface OpenPanel {
    * opened from, or, for `undefined`, whatever had focus as it opened.
    */
   readonly returnFocusTo: HTMLElement | undefined;
-  readonly themeClassName: string;
+  readonly scope: OverlayScope;
 }
 
 export interface GridPanelsApi {
@@ -121,9 +125,11 @@ export default function useGridPanels({
         returnFocusTo: element,
       };
     }
-    const { right, top } = root.getBoundingClientRect();
+    // The grid's top corner at the inline end: its right, or its left under
+    // `dir="rtl"`, where the overlay mirrors `bottom-end` to match.
+    const { left, right, top } = root.getBoundingClientRect();
     return {
-      anchor: { x: right, y: top },
+      anchor: { x: writingDirection(root) === "rtl" ? left : right, y: top },
       placement: "bottom-end",
       returnFocusTo: undefined,
     };
@@ -145,7 +151,7 @@ export default function useGridPanels({
           kind,
           target,
           ...placeFor(root, target),
-          themeClassName: overlayThemeClassName(root),
+          scope: overlayScope(root),
         },
       });
     },

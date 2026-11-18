@@ -69,13 +69,13 @@ export default function ToolbarMenuButton({
           gap={state.gap}
           returnFocusTo={state.anchor}
           returnFocusFallback={returnFocusFallback}
-          themeClassName={state.themeClassName}
+          scope={state.scope}
           onDismiss={close}
         >
           <GridMenu
             entries={entries}
             label={label}
-            themeClassName={state.themeClassName}
+            scope={state.scope}
             behaviourRef={behaviourRef}
             onRun={(item) => {
               item.run();
