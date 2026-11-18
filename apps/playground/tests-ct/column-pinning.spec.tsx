@@ -342,19 +342,33 @@ test.describe("rows drawn with one cell", () => {
       <PinnedColumnsGrid height={300} virtualized rowCount={2000} />,
     );
     const area = scrollArea(root);
-    await area.evaluate((element) => {
-      element.scrollTop = 30000;
-    });
-    await scrollSideways(area, 0.5);
     const spacers = root.locator(
       '.gridkit-data-grid-body tr[aria-hidden="true"]:not([class]) td',
     );
-    await expect(spacers).toHaveCount(2);
-
-    for (const spacer of await spacers.all()) {
-      await expect(spacer).toHaveCSS("position", "static");
-      await expect(spacer).not.toHaveClass(/is-pinned/);
-    }
+    // Scrolled again until the window has a spacer on each side: WebKit can
+    // clamp a scroll made before the rows' full height is laid out.
+    await expect
+      .poll(async () => {
+        await area.evaluate((element) => {
+          element.scrollTop = 30000;
+        });
+        return spacers.count();
+      })
+      .toBe(2);
+    await scrollSideways(area, 0.5);
+    await expect
+      .poll(() =>
+        spacers.evaluateAll((cells) =>
+          cells.map((cell) => ({
+            position: getComputedStyle(cell).position,
+            pinned: cell.matches(".is-pinned-start, .is-pinned-end"),
+          })),
+        ),
+      )
+      .toEqual([
+        { position: "static", pinned: false },
+        { position: "static", pinned: false },
+      ]);
   });
 });
 
