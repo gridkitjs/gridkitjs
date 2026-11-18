@@ -13,7 +13,7 @@ surface colour, never the cells scrolled underneath; a row's background image
 does not carry into them. The `is-pinned-edge` cell beside the scrolling
 columns draws a divider in `--gridkit-line`, under any `borders` setting, and
 the column before the end divider leaves out its own line so the two never
-double. Printing the page puts pinned columns back in their own places.
+double, even with no column left between the two edges. Printing the page puts pinned columns back in their own places.
 
 A group row's label now sticks to the start edge in every grid, so it stays
 in view however far a wide grouped grid scrolls sideways.

@@ -1368,7 +1368,8 @@
    * The divider between the pinned columns and the scrolling ones, in every
    * `borders` setting: the edge cell's own border on the scrolling side,
    * outranking the column lines above. None where the edge cell ends the
-   * row, which is no seam.
+   * row, which is no seam, and none at the start edge when the end edge cell
+   * comes straight after it, whose divider is then the one line between them.
    */
   .gridkit-data-grid
     :is(
@@ -1376,7 +1377,7 @@
       .gridkit-grid-cell,
       .gridkit-grid-footer-cell,
       .gridkit-grid-group-summary-cell
-    ).is-pinned-start.is-pinned-edge:not(:last-child) {
+    ).is-pinned-start.is-pinned-edge:not(:last-child, :has(+ .is-pinned-end)) {
     border-inline-end: var(--gridkit-border-width) var(--gridkit-border-style)
       var(--gridkit-line);
   }
