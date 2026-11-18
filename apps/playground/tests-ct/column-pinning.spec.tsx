@@ -7,6 +7,7 @@ import type { MountResult } from "@playwright/experimental-ct-react";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
 import PinnedColumnsGrid from "./support/PinnedColumnsGrid";
+import RightToLeft from "./support/RightToLeft";
 
 interface Clip {
   x: number;
@@ -20,45 +21,203 @@ function scrollArea(root: MountResult): Locator {
   return root.locator(".gridkit-data-grid-tables");
 }
 
-/** Scrolls the area sideways to `fraction` of the way to its end. */
+/**
+ * Scrolls the area sideways to `fraction` of the way from its start edge to
+ * its end. Right to left, `scrollLeft` runs from 0 down to minus the overflow.
+ */
 async function scrollSideways(area: Locator, fraction: number): Promise<void> {
   await area.evaluate((element, share) => {
-    element.scrollLeft = (element.scrollWidth - element.clientWidth) * share;
+    const overflow = element.scrollWidth - element.clientWidth;
+    const rtl = getComputedStyle(element).direction === "rtl";
+    element.scrollLeft = (rtl ? -overflow : overflow) * share;
   }, fraction);
 }
 
+/** The scroll area's scrollport, its scrollbars left out. */
+interface Scrollport extends Clip {
+  readonly rtl: boolean;
+  /** The width the pinned columns cover at the start and the end edge. */
+  readonly startWidth: number;
+  readonly endWidth: number;
+}
+
 /**
- * The scrollport, scrollbars left out, and the two strips the pinned columns
- * cover at its start and end, each a pixel short of its edges so rounding
- * never takes in a scrolled cell beside it.
+ * The area's scrollport. `clientLeft` takes in a vertical scrollbar on the
+ * left, where a right-to-left area draws it.
+ */
+async function scrollportOf(area: Locator): Promise<Scrollport> {
+  return area.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    return {
+      x: box.left + element.clientLeft,
+      y: box.top + element.clientTop,
+      width: element.clientWidth,
+      height: element.clientHeight,
+      rtl: style.direction === "rtl",
+      startWidth: parseFloat(
+        style.getPropertyValue("--gridkit-pinned-start-width"),
+      ),
+      endWidth: parseFloat(
+        style.getPropertyValue("--gridkit-pinned-end-width"),
+      ),
+    };
+  });
+}
+
+/**
+ * The scrollport and the two strips the pinned columns cover at its start
+ * and end, each a pixel short of its edges so rounding never takes in a
+ * scrolled cell beside it.
  */
 async function stripsOf(
   area: Locator,
 ): Promise<{ scrollport: Clip; start: Clip; end: Clip }> {
-  return area.evaluate((element) => {
-    const box = element.getBoundingClientRect();
-    const style = getComputedStyle(element);
-    const startWidth = parseFloat(
-      style.getPropertyValue("--gridkit-pinned-start-width"),
-    );
-    const endWidth = parseFloat(
-      style.getPropertyValue("--gridkit-pinned-end-width"),
-    );
-    const left = box.left + element.clientLeft;
-    const top = box.top + element.clientTop;
-    const width = element.clientWidth;
-    const height = element.clientHeight;
-    return {
-      scrollport: { x: left, y: top, width, height },
-      start: { x: left + 1, y: top, width: startWidth - 2, height },
-      end: {
-        x: left + width - endWidth + 1,
-        y: top,
-        width: endWidth - 2,
-        height,
-      },
-    };
+  const port = await scrollportOf(area);
+  const { x, y, width, height } = port;
+  const atLeft = (stripWidth: number) => ({
+    x: x + 1,
+    y,
+    width: stripWidth - 2,
+    height,
   });
+  const atRight = (stripWidth: number) => ({
+    x: x + width - stripWidth + 1,
+    y,
+    width: stripWidth - 2,
+    height,
+  });
+  return {
+    scrollport: { x, y, width, height },
+    start: port.rtl ? atRight(port.startWidth) : atLeft(port.startWidth),
+    end: port.rtl ? atLeft(port.endWidth) : atRight(port.endWidth),
+  };
+}
+
+/** What sits at the pinned edges of one row, read with `elementFromPoint`. */
+interface EdgeHits {
+  /**
+   * The columns met walking in from the start edge: the first 3px inside
+   * it, each next one 3px past the outer edge of the one before.
+   */
+  readonly start: readonly (string | null)[];
+  /** The column 3px inside the end edge. */
+  readonly end: string | null;
+  /** How far the outer edge of the first and the last column hit lies from the scrollport's edge. */
+  readonly startGap: number;
+  readonly endGap: number;
+}
+
+/**
+ * Hit-tests `row` across its middle at the scrollport's edges, meeting
+ * `startCount` columns from the start. A column scrolled under a pinned one
+ * is not what the point finds, so this proves which cell is on top.
+ */
+async function edgeHits(
+  row: Locator,
+  port: Scrollport,
+  startCount = 2,
+): Promise<EdgeHits> {
+  return row.evaluate(
+    (element, { port: { x, width, rtl }, startCount: count }) => {
+      const box = element.getBoundingClientRect();
+      const y = box.top + box.height / 2;
+      const inward = rtl ? -1 : 1;
+      const startEdge = rtl ? x + width : x;
+      const endEdge = rtl ? x : x + width;
+      const cellAt = (pointX: number) =>
+        document
+          .elementFromPoint(pointX, y)
+          ?.closest<HTMLElement>("[data-gridkit-column]") ?? null;
+      const outerStart = (cell: HTMLElement) => {
+        const rect = cell.getBoundingClientRect();
+        return rtl ? rect.right : rect.left;
+      };
+      const outerEnd = (cell: HTMLElement) => {
+        const rect = cell.getBoundingClientRect();
+        return rtl ? rect.left : rect.right;
+      };
+
+      const start: (HTMLElement | null)[] = [];
+      let pointX = startEdge + inward * 3;
+      for (let index = 0; index < count; index += 1) {
+        const cell = cellAt(pointX);
+        start.push(cell);
+        if (cell === null) break;
+        pointX = outerEnd(cell) + inward * 3;
+      }
+      const first = start[0] ?? null;
+      const end = cellAt(endEdge - inward * 3);
+      return {
+        start: start.map((cell) => cell?.dataset.gridkitColumn ?? null),
+        end: end?.dataset.gridkitColumn ?? null,
+        startGap:
+          first === null ? width : Math.abs(outerStart(first) - startEdge),
+        endGap: end === null ? width : Math.abs(outerEnd(end) - endEdge),
+      };
+    },
+    { port, startCount },
+  );
+}
+
+/**
+ * Which of the `selector` rows is in the middle of those whose whole box
+ * lies in the scrollport between the sticky header and footer rows; -1 when
+ * none does.
+ */
+async function rowIndexInView(
+  area: Locator,
+  selector: string,
+): Promise<number> {
+  return area.evaluate((element, rowSelector) => {
+    const port = element.getBoundingClientRect();
+    const top =
+      element.querySelector(".gridkit-grid-header")?.getBoundingClientRect()
+        .bottom ?? port.top;
+    const bottom =
+      element.querySelector(".gridkit-grid-footer")?.getBoundingClientRect()
+        .top ?? port.top + element.clientHeight;
+    const rows = Array.from(element.querySelectorAll(rowSelector));
+    const inView = rows.flatMap((row, rowIndex) => {
+      const box = row.getBoundingClientRect();
+      return box.top >= top && box.bottom <= bottom ? [rowIndex] : [];
+    });
+    return inView[Math.floor(inView.length / 2)] ?? -1;
+  }, selector);
+}
+
+/** The `selector` row `rowIndexInView` finds. */
+async function rowInView(area: Locator, selector: string): Promise<Locator> {
+  const index = await rowIndexInView(area, selector);
+  if (index < 0) throw new Error(`no ${selector} row in view`);
+  return area.locator(selector).nth(index);
+}
+
+/** A data row, as opposed to a group, summary, spacer or loading row. */
+const DATA_ROW = ".gridkit-grid-body .gridkit-grid-row";
+const SUMMARY_ROW = ".gridkit-grid-group-summary-row";
+
+/** The header row, a data row in view and the footer row. */
+async function rowsToHit(area: Locator): Promise<Locator[]> {
+  return [
+    area.locator(".gridkit-grid-header"),
+    await rowInView(area, DATA_ROW),
+    area.locator(".gridkit-grid-footer"),
+  ];
+}
+
+/** `PinnedColumnsGrid`'s pinned columns: two at the start, one at the end. */
+const PINNED_HITS = { start: ["team", "c1"], end: "c7" };
+
+/** Expects `row` to show `PinnedColumnsGrid`'s pinned columns, flush with both edges. */
+async function expectPinnedAtEdges(
+  row: Locator,
+  port: Scrollport,
+): Promise<void> {
+  const hits = await edgeHits(row, port);
+  expect({ start: hits.start, end: hits.end }).toEqual(PINNED_HITS);
+  expect(hits.startGap).toBeLessThanOrEqual(1);
+  expect(hits.endGap).toBeLessThanOrEqual(1);
 }
 
 /** How many pixels of `clip` on screen are the red blocks' red. */
@@ -316,4 +475,236 @@ test.describe("the divider", () => {
       ).toBe(1);
     });
   }
+});
+
+test.describe("pinned cells stay at their edges", () => {
+  for (const dir of ["ltr", "rtl"] as const) {
+    test(`in the header, body and footer, scrolled 0%, 50% and 100%, ${dir}`, async ({
+      mount,
+    }) => {
+      const grid = <PinnedColumnsGrid height={300} />;
+      const root = await mountGrid(
+        mount,
+        dir === "rtl" ? <RightToLeft>{grid}</RightToLeft> : grid,
+      );
+      const area = scrollArea(root);
+      const port = await scrollportOf(area);
+      expect(port.rtl).toBe(dir === "rtl");
+
+      for (const fraction of [0, 0.5, 1]) {
+        await scrollSideways(area, fraction);
+        for (const row of await rowsToHit(area)) {
+          await expectPinnedAtEdges(row, port);
+        }
+      }
+      expect(
+        await area.evaluate((element) => Math.abs(element.scrollLeft)),
+      ).toBeGreaterThan(0);
+    });
+  }
+
+  test("without a height", async ({ mount }) => {
+    const root = await mountGrid(mount, <PinnedColumnsGrid rowCount={5} />);
+    const area = scrollArea(root);
+    const port = await scrollportOf(area);
+    await scrollSideways(area, 1);
+
+    for (const row of await rowsToHit(area)) {
+      await expectPinnedAtEdges(row, port);
+    }
+  });
+
+  test("pinned to the start only", async ({ mount }) => {
+    const root = await mountGrid(
+      mount,
+      <PinnedColumnsGrid height={300} defaultColumnPinning={{ c7: "none" }} />,
+    );
+    const area = scrollArea(root);
+    const port = await scrollportOf(area);
+    await scrollSideways(area, 0.5);
+
+    for (const row of await rowsToHit(area)) {
+      const hits = await edgeHits(row, port);
+      expect(hits.start).toEqual(["team", "c1"]);
+      expect(hits.startGap).toBeLessThanOrEqual(1);
+      // Half scrolled, the column at the unpinned edge runs past it.
+      expect(hits.end).not.toBe("c7");
+      expect(hits.endGap).toBeGreaterThan(1);
+    }
+  });
+
+  test("pinned to the end only", async ({ mount }) => {
+    const root = await mountGrid(
+      mount,
+      <PinnedColumnsGrid
+        height={300}
+        defaultColumnPinning={{ team: "none", c1: "none" }}
+      />,
+    );
+    const area = scrollArea(root);
+    const port = await scrollportOf(area);
+    await scrollSideways(area, 0.5);
+
+    for (const row of await rowsToHit(area)) {
+      const hits = await edgeHits(row, port, 1);
+      expect(hits.end).toBe("c7");
+      expect(hits.endGap).toBeLessThanOrEqual(1);
+      // Half scrolled, the column at the unpinned edge runs past it.
+      expect(hits.startGap).toBeGreaterThan(1);
+    }
+  });
+
+  test("in virtualized rows, scrolled up and down", async ({ mount }) => {
+    const root = await mountGrid(
+      mount,
+      <PinnedColumnsGrid height={300} virtualized rowCount={2000} />,
+    );
+    const area = scrollArea(root);
+    const port = await scrollportOf(area);
+
+    for (const share of [0.5, 0.25, 0.75, 1]) {
+      await area.evaluate((element, fraction) => {
+        element.scrollTop =
+          (element.scrollHeight - element.clientHeight) * fraction;
+      }, share);
+      await scrollSideways(area, share);
+      // The virtualizer draws the rows now in view a frame after the scroll.
+      await expect
+        .poll(() => rowIndexInView(area, DATA_ROW))
+        .toBeGreaterThanOrEqual(0);
+      for (const row of await rowsToHit(area)) {
+        await expectPinnedAtEdges(row, port);
+      }
+    }
+  });
+
+  test("in grouped rows and their summary rows", async ({ mount }) => {
+    const root = await mountGrid(
+      mount,
+      <PinnedColumnsGrid
+        height={300}
+        defaultGroupBy={[{ columnId: "team" }]}
+        groupAggregateDisplay="row"
+        rowCount={8}
+      />,
+    );
+    const area = scrollArea(root);
+    const port = await scrollportOf(area);
+    await scrollSideways(area, 0.5);
+
+    await expectPinnedAtEdges(await rowInView(area, SUMMARY_ROW), port);
+    for (const row of await rowsToHit(area)) {
+      await expectPinnedAtEdges(row, port);
+    }
+  });
+
+  test("in fit mode, where nothing scrolls", async ({ mount }) => {
+    const root = await mountGrid(
+      mount,
+      <PinnedColumnsGrid height={300} resizeMode="fit" />,
+      { width: 1100 },
+    );
+    const area = scrollArea(root);
+    const port = await scrollportOf(area);
+    await scrollSideways(area, 1);
+
+    expect(await area.evaluate((element) => element.scrollLeft)).toBe(0);
+    for (const row of await rowsToHit(area)) {
+      await expectPinnedAtEdges(row, port);
+    }
+  });
+});
+
+test.describe("selection on pinned cells", () => {
+  test("a selected row, cell and column colour their pinned cells", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <PinnedColumnsGrid
+        height={300}
+        selectable={{ rows: "multiple", cells: "single", columns: "multiple" }}
+        defaultRowSelection={["r1"]}
+        defaultCellSelection={{ kind: "cell", rowId: "r3", columnId: "team" }}
+        defaultColumnSelection={["c7"]}
+      />,
+    );
+    await scrollSideways(scrollArea(root), 0.5);
+
+    /** A cell's colour and the colour its top background layer paints. */
+    function colours(rowId: string, columnId: string) {
+      return root
+        .locator(
+          `[data-gridkit-row-id="${rowId}"] [data-gridkit-column="${columnId}"]`,
+        )
+        .evaluate((cell) => ({
+          cell: getComputedStyle(cell).backgroundColor,
+          layer: getComputedStyle(cell, "::after").backgroundColor,
+        }));
+    }
+    const selected = await root
+      .locator('[data-gridkit-row-id="r1"]')
+      .evaluate((row) => getComputedStyle(row).backgroundColor);
+    expect((await colours("r5", "team")).cell).not.toBe(selected);
+
+    for (const [rowId, columnId] of [
+      ["r1", "team"],
+      ["r1", "c7"],
+      ["r3", "team"],
+      ["r5", "c7"],
+    ] as const) {
+      expect(await colours(rowId, columnId)).toEqual({
+        cell: selected,
+        layer: selected,
+      });
+    }
+    await expect(
+      root.locator('.gridkit-header-cell[data-gridkit-column="c7"]'),
+    ).toHaveClass(/is-selected/);
+  });
+});
+
+test.describe("pinning at run time", () => {
+  test("pins and unpins a column from its header menu", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <PinnedColumnsGrid height={300} contextMenu />,
+    );
+    const area = scrollArea(root);
+    const header = (columnId: string) =>
+      root.locator(`.gridkit-header-cell[data-gridkit-column="${columnId}"]`);
+    async function runFromMenu(columnId: string, item: string): Promise<void> {
+      await header(columnId).click({ button: "right" });
+      await page
+        .getByRole("menu", { name: `${columnId} column menu` })
+        .getByRole("menuitem", { name: item, exact: true })
+        .click();
+    }
+
+    await runFromMenu("c3", "Pin to start");
+    await expect(header("c3")).toHaveClass(/is-pinned-start is-pinned-edge/);
+    await expect(header("c1")).not.toHaveClass(/is-pinned-edge/);
+    await scrollSideways(area, 1);
+    let port = await scrollportOf(area);
+    for (const row of await rowsToHit(area)) {
+      const hits = await edgeHits(row, port, 3);
+      expect(hits.start).toEqual(["team", "c1", "c3"]);
+      expect(hits.end).toBe("c7");
+    }
+
+    await scrollSideways(area, 0);
+    await runFromMenu("team", "Unpin");
+    await expect(header("team")).not.toHaveClass(/is-pinned/);
+    await scrollSideways(area, 1);
+    port = await scrollportOf(area);
+    for (const row of await rowsToHit(area)) {
+      const hits = await edgeHits(row, port, 3);
+      expect(hits.start.slice(0, 2)).toEqual(["c1", "c3"]);
+      expect(hits.start[2]).not.toBe("team");
+      expect(hits.end).toBe("c7");
+    }
+  });
 });
