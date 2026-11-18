@@ -41,8 +41,10 @@ They run in three desktop browsers, one Playwright project each: `chromium`,
 `firefox` and `webkit`. Every test passes in all three; one that cannot run
 in a browser skips there with a one-line reason, as the clipboard spec's
 WebKit skips do. Run one browser with
-`pnpm --filter playground test:e2e --project=firefox`. Mobile browsers and
-touch input are not covered.
+`pnpm --filter playground test:e2e --project=firefox`. Two phone projects,
+`chromium-touch` and `webkit-touch`, run only the tests tagged `@touch`, with
+a touch screen; see
+[A touch test](../../apps/playground/AGENTS.md#a-touch-test).
 
 ## Coverage
 

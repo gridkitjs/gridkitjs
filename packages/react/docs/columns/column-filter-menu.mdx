@@ -48,7 +48,7 @@ Three things open it, each [described below](#opening-it): the funnel button in 
 
 ## Opening it
 
-- **The header's filter button.** A filterable header shows a funnel at its end, beside the sort toggle — faint until the header is hovered or focused, and marked while the column is filtered. Pressing it opens the menu, and pressing it again closes it.
+- **The header's filter button.** A filterable header shows a funnel at its end, beside the sort toggle — faint until the header is hovered or focused (always shown on a touch screen), and marked while the column is filtered. Pressing it opens the menu, and pressing it again closes it.
 - **The keyboard.** <Kbd>Alt</Kbd>+<Kbd>Shift</Kbd>+<Kbd>ArrowDown</Kbd> on a focused header opens it. The header's `aria-keyshortcuts` lists the key, as it does its others.
 - **A header's context menu.** With [`contextMenu`](/docs/react/context-menu) on, a filterable header's menu lists "Filter…" after its sort entries, then "Clear filter", which clears the column's filter without opening anything — disabled while the column is not filtered.
 - **The ref.** `openFilterMenu(columnId)` opens it, and returns whether it did: not for a column with no filter menu, nor a hidden one, which has no header to open below. `closeFilterMenu()` closes it, leaving the column chooser alone. `runCommand("filter.open", { area: "header", columnId })` opens it too, reporting to `onCommand` as the API's.

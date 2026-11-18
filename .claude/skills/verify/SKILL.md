@@ -37,18 +37,20 @@ This is what CI's Chromium job runs: the Playwright component tests,
 instrumented, failing below the
 [coverage threshold](../../rules/testing.md#coverage). It clears the
 Playwright build cache itself. CI also runs the suite in Firefox and WebKit,
-in jobs of their own, so run those too:
+and the `@touch` tests in a Chromium and a WebKit phone, in jobs of their
+own, so run those too:
 
 ```bash
 pnpm --filter playground test:e2e --project=firefox
 pnpm --filter playground test:e2e --project=webkit
+pnpm --filter playground test:e2e --project=chromium-touch --project=webkit-touch
 ```
 
 On a fresh machine, install the browsers once with
 `pnpm --filter playground exec playwright install chromium firefox webkit`.
 
-`pnpm --filter playground test:e2e` without `--project` runs all three
-browsers, uninstrumented. Delete `apps/playground/playwright/.cache` first
+`pnpm --filter playground test:e2e` without `--project` runs every project,
+uninstrumented. Delete `apps/playground/playwright/.cache` first
 after editing
 `packages/theme-tailwind/src/styles.css`, or it tests the old styles (see
 [apps/playground/AGENTS.md](../../../apps/playground/AGENTS.md#stale-styles-after-a-stylesheet-edit)).

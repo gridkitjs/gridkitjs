@@ -49,9 +49,36 @@ export default defineConfig({
       plugins: [react(), tailwindcss(), coveragePlugin],
     },
   },
+  /*
+   * The desktop projects run every test but those tagged `@touch`, and the
+   * phone projects run only those: a touch test needs a touch screen, and a
+   * desktop test has nothing to prove on a phone that the desktop run hasn't.
+   */
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-    { name: "firefox", use: { ...devices["Desktop Firefox"] } },
-    { name: "webkit", use: { ...devices["Desktop Safari"] } },
+    {
+      name: "chromium",
+      grepInvert: /@touch/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "firefox",
+      grepInvert: /@touch/,
+      use: { ...devices["Desktop Firefox"] },
+    },
+    {
+      name: "webkit",
+      grepInvert: /@touch/,
+      use: { ...devices["Desktop Safari"] },
+    },
+    {
+      name: "chromium-touch",
+      grep: /@touch/,
+      use: { ...devices["Pixel 7"] },
+    },
+    {
+      name: "webkit-touch",
+      grep: /@touch/,
+      use: { ...devices["iPhone 15"] },
+    },
   ],
 });
