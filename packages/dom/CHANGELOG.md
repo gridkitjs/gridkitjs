@@ -1,5 +1,130 @@
 # @gridkitjs/dom
 
+## 0.8.0
+
+### Minor Changes
+
+- a39e9d6: Gestures, keys and overlays follow the page's writing direction. The new
+  `writingDirection(element)` returns `"ltr"` or `"rtl"` from an element's
+  computed `direction`, read afresh on every call. Under `dir="rtl"`:
+
+  - `startColumnResizeGesture` grows a column as its left edge is dragged
+    leftward, the edge being the column's inline end.
+  - `resolveColumnDropTarget` and `resolveGroupByDropTarget` drop before a
+    header or chip when the pointer is over its right half.
+  - `attachToolbar` moves to the next control on `ArrowLeft`, and
+    `attachMenu` opens a submenu on `ArrowLeft` and closes one on
+    `ArrowRight`.
+  - `placeOverlay` takes an optional `direction` that mirrors the placement:
+    `"bottom-start"` lines up with the anchor's right edge and `"right-start"`
+    opens to its left. `attachOverlay` defaults it to the panel's own
+    direction.
+  - `GridFocusController.handleKey` takes an optional `direction` as its
+    fourth argument, which the left and right arrows follow.
+
+  Left-to-right pages are unaffected.
+
+- c32ea0d: Breaking: the header, the rows and the footer scroll in one element,
+  `.gridkit-data-grid-tables`, both up and down and sideways, with the header
+  and footer stuck to its top and bottom. Before, `.gridkit-data-grid-body`
+  scrolled the rows up and down under `height`, and
+  `.gridkit-data-grid-viewport`, which `DataGridApi.element` returns, scrolled
+  the tables sideways. No class, `data-gridkit-*` attribute or ARIA role moves,
+  and `element` and `table` are the same elements, but code that reads or sets
+  a scroll position, or listens for `scroll`, on the body or the viewport now
+  addresses `.gridkit-data-grid-tables`:
+
+  ```ts
+  // before
+  grid.querySelector(".gridkit-data-grid-body").scrollTop = 0;
+  api.element.scrollLeft = 0;
+
+  // after
+  const tables = grid.querySelector(".gridkit-data-grid-tables");
+  tables.scrollTop = 0;
+  tables.scrollLeft = 0;
+  ```
+
+  `--gridkit-body-height`, which `height` sets, is set on
+  `.gridkit-data-grid-tables` in place of `.gridkit-data-grid-body`; CSS that
+  sets it itself sets it there.
+
+  This fixes a grid wider than its container putting its column titles over the
+  wrong columns. The rows scrolled sideways on their own, without the header and
+  footer, on a horizontal wheel or trackpad over them, a swipe, or keyboard
+  focus moving to a column out of view, and scrolling the grid sideways by its
+  scrollbar cut the rows off at the container's width. Now the header, rows and
+  footer stay in line however the scroll starts, in left-to-right and
+  right-to-left pages, with or without `height`. Under `height` the vertical
+  scrollbar stays at the grid's visible edge wherever it is scrolled sideways.
+
+  What stays the same: `height` bounds the rows alone, as the scroll area grows
+  by the header's and footer's measured heights (a server-rendered grid shows the
+  rows that much shorter until it hydrates); the toolbar, group-by bar and pager
+  stay where they are; keyboard focus and `scrollToRow` bring a row into view
+  clear of the header and footer; and the browser's print of the page is
+  unchanged. Under `resizeMode: "fit"` the columns fill the scroll area, so a
+  vertical scrollbar no longer makes them overflow sideways by its width.
+
+  `@gridkitjs/dom`: `observeElementHeight` reports an element's height as it
+  changes. `measurePageSize(bodyTable, scrollElement?)` takes the element the
+  rows scroll in and leaves out their block `scroll-margin`. `createGridFocus`
+  scrolls a body cell that focus leaves partly in view the rest of the way
+  (`block` and `inline` `"nearest"`). `createRowVirtualizer` works on a scroll
+  element whose rows follow a header stuck to its top.
+
+- f502536: Dragging a header shows where it can go when columns are pinned. A column
+  only moves within its pin group, and the drop line, the drop, the keyboard
+  move and its announcement now agree with that:
+
+  - `ColumnDropContext` takes an optional `pinOf(columnId)`, the edge each
+    column is pinned to. With it, `resolveColumnDropTarget` returns `null` over
+    a header in another pin group, and only targets that would move the column
+    within its own group.
+  - While a header is dragged, the headers of the other pin groups carry
+    `is-drag-blocked`, which the theme draws with a muted label and a
+    `not-allowed` cursor. The gap at the end of a group is marked
+    `is-drop-after` on its last header rather than `is-drop-before` on the next
+    group's first.
+  - Ctrl+Arrow on a header at its group's edge does
+    nothing; it announced a move that never happened. A move within a group
+    announces the column's position on screen.
+
+### Patch Changes
+
+- e625820: `attachChecklist` gives the list `tabindex="-1"`. In Firefox, which makes an
+  element that scrolls focusable, the scrolling list was a tab stop of its own
+  before its items, and the arrow keys, Home and End did nothing there; the
+  list is now one tab stop, on its item, in every browser. This fixes the
+  filter menu's value checklist in `@gridkitjs/react` too.
+- f502536: A cell that keyboard focus moves to, or that `scrollToColumn` scrolls to, is
+  no longer left partly under a pinned column. The stylesheet gives every
+  unpinned header and body cell a `scroll-margin-inline` of the pinned columns'
+  widths at each edge, and `createGridFocus` now scrolls a header cell to the
+  `nearest` edge after a key moves focus to it, as it already did for body
+  cells; Chromium and WebKit left a header cell where focus found it.
+- f502536: `attachInfiniteScroll` no longer starts a second load straight after one
+  finishes when the new rows have pushed the sentinel out of range. It read
+  where the sentinel was from the observer's last report, made before the rows
+  arrived, so in a busy browser a load at the bottom of the list could be
+  followed by another nobody scrolled for. A finished load now restarts the
+  observer, and the next load starts only if the sentinel is still in range.
+  This fixes `DataGrid`'s `infiniteScroll` in `@gridkitjs/react` too.
+- e625820: A column drag whose own header the renderer moves mid-drag no longer hangs
+  Safari. `startDragReorder` and `startColumnResizeGesture` take pointer
+  capture back in a task of their own after the browser releases it, rather
+  than from inside `lostpointercapture`, which WebKit answered by hanging the
+  page on the next pointer move. A pending recapture is dropped when the
+  gesture ends, is cancelled or its `signal` aborts.
+- Updated dependencies [42c8dc2]
+- Updated dependencies [e4bb289]
+- Updated dependencies [42c8dc2]
+- Updated dependencies [42c8dc2]
+- Updated dependencies [a39e9d6]
+- Updated dependencies [abcf889]
+- Updated dependencies [abcf889]
+  - @gridkitjs/core@0.19.0
+
 ## 0.7.0
 
 ### Minor Changes

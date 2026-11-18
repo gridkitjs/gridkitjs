@@ -1,5 +1,49 @@
 # @gridkitjs/core
 
+## 0.19.0
+
+### Minor Changes
+
+- 42c8dc2: New built-in commands `column.pinStart`, `column.pinEnd` and `column.unpin` pin a header's column to the start or end edge, or unpin it, each hidden where it would change nothing. `defaultContextMenu.header` ends with them, after a separator, so a grid's header menu now offers "Pin to start", "Pin to end" or "Unpin". Their labels are the new `GridMessages` keys `pinToStart`, `pinToEnd` and `unpinColumn`.
+- e4bb289: `GridMessages` adds `columnPinned(columnName, edge)` ("Name, pinned to start", "Name, pinned to end") and `columnUnpinned(columnName)` ("Name, unpinned"), what a renderer announces when one column is pinned or unpinned. A translation without them announces the English defaults.
+- 42c8dc2: `moveColumn` keeps a column among those pinned to the same edge, or among the unpinned ones: a target in an earlier group moves it to the start of its own group, and one in a later group to its end, so dragging never pins or unpins a column. A move held at its group's edge changes nothing and reports nothing. Grids with no pinned columns move exactly as before. `@gridkitjs/core/renderer` adds `moveColumnInPinGroup(orderedIds, pinOf, movedId, beforeId)`, the same rule on a plain id list.
+- 42c8dc2: Columns can be pinned to the grid's start or end edge. A column definition takes `pinned: "start" | "end"`, and the new `columnPinning` state slice (a `ColumnPinningState`, keyed by column id, where `"none"` unpins a column its definition pins) overrides it. The grid options take `defaultColumnPinning`, a controlled `columnPinning` and `onColumnPinningChange` (a `ColumnPinningEvent`), and the controller gains `pinColumn(columnId, pin)` and `setColumnPinning(pinning)`; `restoreState` puts the slice back, and saved state without it still restores. Pinning never changes `columnOrder`, so an unpinned column goes back to its place.
+
+  `view.columns` now lists the columns pinned to the start first and those pinned to the end last, each group in column order; `dataColumns` keeps column order. Each `ResolvedColumn` gains `pinned` (a `ColumnPin`: `"start"`, `"end"` or `"none"`), `pinOffset` (the summed widths of the columns pinned between it and its edge) and `pinEdge` (true on the last start-pinned and the first end-pinned column). `resolveColumnPin`, `applyColumnPinning` and `setColumnPin` work with the state directly, `ColumnResolveOptions` takes `pinning`, and `@gridkitjs/core/renderer` adds `pinnedWidths(columns)`, the width pinned to each edge.
+
+- a39e9d6: Navigation and resize maths take the writing direction. `nextFocusForKey`
+  takes an optional `direction` (`"ltr"` or `"rtl"`) after `isSkippableRow`:
+  in `"rtl"`, `ArrowLeft` moves to the next column and `ArrowRight` to the
+  previous one. `applyColumnResize` takes an optional `direction` after
+  `position`: in `"rtl"` the dragged edge is the column's left one, so a
+  leftward drag grows it. `@gridkitjs/core/renderer` adds the
+  `WritingDirection` type and `inlineStep(key, direction)`, which says which
+  way a horizontal arrow moves along a row. Both parameters default to
+  `"ltr"`, so left-to-right callers are unaffected.
+- abcf889: `ResolvedGroupRow` has two new fields, `position` and `setSize`: a group's
+  1-based place among the groups sharing its parent, and how many there are.
+  `groupRows` sets them over the whole grouped result. Code that builds a
+  `ResolvedGroupRow` by hand, such as a test fixture, needs to add them.
+
+  `DataGrid` draws a group row's `aria-posinset` and `aria-setsize` from them.
+  On a paginated grid they were counted over the current page only, so the
+  first group on page 2 read as "1 of 1" where it was the second of two; they
+  now count every group, whichever page is showing.
+
+- abcf889: A data row in a grouped grid now says where it sits. `groupRows` gives each
+  data row a `groupPosition` field, a new `RowGroupPosition` of `{ level,
+position, setSize }`: its depth (`1` under a top-level group), its 1-based
+  place among its group's rows, and how many rows the group holds. The field is
+  absent from an ungrouped result, and `@gridkitjs/react` re-exports the type.
+  No change is needed to existing code.
+
+  `DataGrid` draws it as `aria-level`, `aria-posinset` and `aria-setsize` on
+  each data row of a `treegrid`, as the WAI-ARIA treegrid pattern asks, so a
+  screen reader can say how deep a row is and where it falls in its group. The
+  set size is the whole group's, so a group split across pages by
+  `paginationUnit: "row"` reads the same on every page. An ungrouped grid's
+  rows are unchanged.
+
 ## 0.18.0
 
 ### Minor Changes
