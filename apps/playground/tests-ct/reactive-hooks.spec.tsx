@@ -54,6 +54,7 @@ interface ReactiveStatus {
   columnSizing: Record<string, number>;
   columnOrder: readonly string[];
   columnVisibility: Record<string, boolean>;
+  columnPinning: Record<string, string>;
   filter: unknown[];
 }
 
@@ -211,6 +212,25 @@ test("useColumnVisibilityState updates when a column is hidden through the ref",
     .poll(async () => (await readReactiveStatus(root)).columnVisibility)
     .toEqual({ amount: false });
   await expect(root.locator("thead th")).toHaveCount(2);
+});
+
+test("useColumnPinningState updates when a column is pinned through the ref", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <ReactiveHooksGrid columns={columns} dataSource={buildRows()} />,
+  );
+
+  expect((await readReactiveStatus(root)).columnPinning).toEqual({});
+  await root.getByRole("button", { name: "reactive-pin-last-column" }).click();
+  await expect
+    .poll(async () => (await readReactiveStatus(root)).columnPinning)
+    .toEqual({ amount: "start" });
+  await expect(root.locator("thead th").first()).toHaveAttribute(
+    "data-gridkit-column",
+    "amount",
+  );
 });
 
 test("usePaginationState updates on the silent page reset from a sort change, with no onPaginationChange or onColumnSortChange passed", async ({
