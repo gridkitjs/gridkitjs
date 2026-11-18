@@ -17,7 +17,7 @@ import {
   type ResolvedMenuEntry,
   type ResolvedMenuItem,
 } from "@gridkitjs/core";
-import { hasContextMenu } from "@gridkitjs/core/renderer";
+import { hasContextMenu, pinnedWidths } from "@gridkitjs/core/renderer";
 import {
   attachContextMenuTrigger,
   type ContextMenuRequest,
@@ -136,6 +136,7 @@ export default function useContextMenu<Row>({
       body: bodyRef.current,
       footerTable: footerTableRef.current,
       columns,
+      pinnedWidths: pinnedWidths(columns),
       pageRows,
     };
   }

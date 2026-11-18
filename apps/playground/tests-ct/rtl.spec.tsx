@@ -12,10 +12,14 @@ import { DataGrid, type DataGridProps } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import ContextMenuGrid from "./support/ContextMenuGrid";
 import FilterMenuGrid from "./support/FilterMenuGrid";
-import ImperativeApiGrid from "./support/ImperativeApiGrid";
+import ImperativeApiGrid, {
+  type ImperativeApiGridProps,
+} from "./support/ImperativeApiGrid";
 import RightToLeft from "./support/RightToLeft";
 import ToolbarGrid from "./support/ToolbarGrid";
 import { mountGrid } from "./support/mountGrid";
+import { scrollArea, scrollSideways } from "./support/scrollport";
+import { isUncovered } from "./support/uncovered";
 
 /** DataGrid's space between a menu or panel and what it opens below. */
 const ANCHOR_GAP = 4;
@@ -516,5 +520,93 @@ test.describe("toolbar", () => {
     await expect(toolbarButton(root, "Clear all sorting")).toBeFocused();
     await page.keyboard.press("ArrowRight");
     await expect(search).toBeFocused();
+  });
+});
+
+test.describe("pinned columns", () => {
+  /** Two 120px columns pinned to the start, at the right, one to the end, at the left, and six between. */
+  const pinnedColumns: readonly ColumnDefinition<Row>[] = [
+    { field: "id", width: 120, pinned: "start" },
+    ...Array.from({ length: 7 }, (_, index) => ({
+      id: `c${String(index + 1)}`,
+      field: "name" as const,
+      width: 120,
+      ...(index === 0 ? { pinned: "start" as const } : {}),
+    })),
+    { field: "status", width: 120, pinned: "end" },
+  ];
+
+  function pinnedGrid(props: Partial<ImperativeApiGridProps<Row>>) {
+    return (
+      <RightToLeft>
+        <ImperativeApiGrid
+          columns={pinnedColumns}
+          dataSource={buildRows(3)}
+          label="Pinned right to left"
+          resizeMode="fixed"
+          {...props}
+        />
+      </RightToLeft>
+    );
+  }
+
+  for (const [columnId, from] of [
+    ["c2", 1],
+    ["c7", 0],
+  ] as const) {
+    test(`scrollToColumn lands ${columnId}, past a pinned edge, clear of the pinned columns`, async ({
+      mount,
+    }) => {
+      const root = await mountGrid(
+        mount,
+        pinnedGrid({ scrollColumnId: columnId }),
+        { width: 520 },
+      );
+      await scrollSideways(scrollArea(root), from);
+      const target = root.locator(
+        `.gridkit-header-cell[data-gridkit-column="${columnId}"]`,
+      );
+      expect(await isUncovered(target)).toBe(false);
+
+      await root.getByRole("button", { name: "scroll-to-column" }).click();
+      await expect.poll(() => isUncovered(target)).toBe(true);
+    });
+  }
+
+  test("openContextMenu on a cell under the pinned columns opens at their left edge", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      pinnedGrid({
+        selectable: { rows: "multiple" },
+        contextMenu: true,
+        contextMenuTarget: { area: "cell", rowId: "row-1", columnId: "c2" },
+      }),
+      { width: 520 },
+    );
+    // c2 sits wholly under c1, the second pinned column.
+    await scrollArea(root).evaluate((element) => {
+      element.scrollLeft = -120;
+    });
+
+    await root.getByRole("button", { name: "open-context-menu" }).click();
+
+    await expect(
+      page
+        .getByRole("menu", { name: "Row menu" })
+        .locator("[data-gridkit-menu-item]")
+        .first(),
+    ).toBeFocused();
+    const row = 'tbody tr[data-gridkit-row-index="1"]';
+    const [pinnedEdge, cell, menu] = await Promise.all([
+      boxOf(root.locator(`${row} td[data-gridkit-column="c1"]`)),
+      boxOf(root.locator(`${row} td[data-gridkit-column="c2"]`)),
+      boxOf(page.locator(".gridkit-overlay")),
+    ]);
+    expect(cell.x).toBeCloseTo(pinnedEdge.x, 0);
+    expect(menu.x + menu.width).toBeCloseTo(pinnedEdge.x, 0);
+    expect(menu.y).toBeCloseTo(cell.y + cell.height, 0);
   });
 });

@@ -557,6 +557,17 @@
   }
 
   /*
+   * The headers of the other pin groups while a header is dragged: a column
+   * stays in its own group, so they take no drop. Muted rather than faded,
+   * since a pinned header's background must stay opaque over the cells
+   * scrolled under it.
+   */
+  .gridkit-data-grid .gridkit-header-cell.is-drag-blocked {
+    cursor: not-allowed;
+    color: var(--gridkit-fg-muted);
+  }
+
+  /*
    * A header, cell or group row that opens the grid's context menu — its
    * `aria-keyshortcuts` names Shift+F10 then — takes a long-press for that
    * menu, so iOS must not show its own callout, or start selecting the text
@@ -1304,6 +1315,22 @@
     position: sticky;
     inset-inline-end: var(--gridkit-pin-offset);
     z-index: 1;
+  }
+
+  /*
+   * Keeps a cell that keyboard focus or `scrollToColumn` scrolls into view
+   * clear of the pinned columns at both edges. A margin on the scrolling
+   * cells rather than padding on the scroll area: a pinned cell, stuck in
+   * that padding, would scroll the area to make room when focused, as the
+   * header would for `scroll-margin-block` above.
+   */
+  .gridkit-data-grid
+    :is(.gridkit-header-cell, .gridkit-grid-cell):not(
+      .is-pinned-start,
+      .is-pinned-end
+    ) {
+    scroll-margin-inline: var(--gridkit-pinned-start-width, 0px)
+      var(--gridkit-pinned-end-width, 0px);
   }
 
   /*

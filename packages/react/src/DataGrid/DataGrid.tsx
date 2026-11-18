@@ -11,8 +11,8 @@ import {
 } from "react";
 import {
   headerFocus,
-  moveColumnBefore,
   resolveColumnHeaderText,
+  resolveColumnPin,
   resolveMessages,
   resolveRows,
   type ColumnDefinition as CoreColumnDefinition,
@@ -54,7 +54,11 @@ import {
   type SerializedGridState,
   type GridFocus,
 } from "@gridkitjs/core";
-import { pinnedWidths, totalColumnWidth } from "@gridkitjs/core/renderer";
+import {
+  moveColumnInPinGroup,
+  pinnedWidths,
+  totalColumnWidth,
+} from "@gridkitjs/core/renderer";
 import type { ColumnDropTarget } from "@gridkitjs/dom";
 import GridColgroup from "./components/GridColgroup";
 import GridHeader from "./components/GridHeader";
@@ -773,6 +777,14 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     [view.columns],
   );
 
+  /** The edge a column is pinned to, hidden ones included. */
+  function pinOf(columnId: string): ColumnPin {
+    const column = definitions.get(columnId);
+    return column === undefined
+      ? "none"
+      : resolveColumnPin(column, state.columnPinning);
+  }
+
   /**
    * The one place a drop is applied — the two-armed switch on `target.kind`
    * the group-by bar's own second drop zone was always going to need.
@@ -790,20 +802,36 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     }
 
     // The order the controller will arrive at, worked out here as well for
-    // where the column lands on screen. `moveColumnBefore` hands back the
-    // same reference for a move that changes nothing, so a drop in place
-    // neither renders nor reports.
-    const next = moveColumnBefore(orderedIds, movedId, target.beforeId);
+    // where the column lands on screen. `moveColumnInPinGroup` hands back
+    // the same reference for a move that changes nothing, a move past the
+    // edge of the column's pin group included, so a drop in place neither
+    // renders nor reports.
+    const next = moveColumnInPinGroup(
+      orderedIds,
+      pinOf,
+      movedId,
+      target.beforeId,
+    );
     if (next === orderedIds) {
       return;
     }
     controller.moveColumn(movedId, target.beforeId);
     // Counted among the columns on screen, which is what the user can see
-    // and what the tab stop indexes.
-    const shown = next.filter((id) => displayedIds.includes(id));
-    const position = shown.indexOf(movedId);
+    // and what the tab stop indexes. The move stays inside the column's pin
+    // group, which starts where it did and keeps the new order within it.
+    const pin = pinOf(movedId);
+    const group = next.filter(
+      (id) => pinOf(id) === pin && displayedIds.includes(id),
+    );
+    const position =
+      displayedIds.findIndex((id) => pinOf(id) === pin) +
+      group.indexOf(movedId);
     announce(
-      messages.columnMoved(columnName(movedId), position + 1, shown.length),
+      messages.columnMoved(
+        columnName(movedId),
+        position + 1,
+        displayedIds.length,
+      ),
     );
     /**
      * The tab stop travels with the column. React reorders the headers by key,
@@ -818,6 +846,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     order: displayedIds,
     groupBy: state.groupBy,
     groupByDraggableIds,
+    pinOf,
     onDrop: handleDrop,
   });
 

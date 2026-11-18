@@ -42,7 +42,7 @@ Because a group header is a `row` owned by a `treegrid`, its `aria-level`, `aria
 
 ## Keyboard navigation
 
-One cell holds the grid's tab stop at a time — <Kbd>Tab</Kbd> reaches the grid once, and the arrow keys move within it from there. That holds in a grid that scrolls, under a `height` or wider than its container: its scroll containers take no Tab stop of their own, and moving the focused cell scrolls them.
+One cell holds the grid's tab stop at a time — <Kbd>Tab</Kbd> reaches the grid once, and the arrow keys move within it from there. That holds in a grid that scrolls, under a `height` or wider than its container: its scroll containers take no Tab stop of their own, and moving the focused cell scrolls them. The cell focus lands on is scrolled wholly into view, never left under the sticky header and footer or under pinned columns.
 
 | Key                                                                                      | Moves to                                          |
 | ---------------------------------------------------------------------------------------- | ------------------------------------------------- |

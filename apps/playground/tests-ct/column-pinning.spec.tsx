@@ -3,67 +3,18 @@
 // file for why.
 import type { CSSProperties } from "react";
 import type { Locator, Page } from "@playwright/test";
-import type { MountResult } from "@playwright/experimental-ct-react";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
 import PinnedColumnsGrid from "./support/PinnedColumnsGrid";
 import RightToLeft from "./support/RightToLeft";
-
-interface Clip {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-/** The scroll area the header, rows and footer scroll in. */
-function scrollArea(root: MountResult): Locator {
-  return root.locator(".gridkit-data-grid-tables");
-}
-
-/**
- * Scrolls the area sideways to `fraction` of the way from its start edge to
- * its end. Right to left, `scrollLeft` runs from 0 down to minus the overflow.
- */
-async function scrollSideways(area: Locator, fraction: number): Promise<void> {
-  await area.evaluate((element, share) => {
-    const overflow = element.scrollWidth - element.clientWidth;
-    const rtl = getComputedStyle(element).direction === "rtl";
-    element.scrollLeft = (rtl ? -overflow : overflow) * share;
-  }, fraction);
-}
-
-/** The scroll area's scrollport, its scrollbars left out. */
-interface Scrollport extends Clip {
-  readonly rtl: boolean;
-  /** The width the pinned columns cover at the start and the end edge. */
-  readonly startWidth: number;
-  readonly endWidth: number;
-}
-
-/**
- * The area's scrollport. `clientLeft` takes in a vertical scrollbar on the
- * left, where a right-to-left area draws it.
- */
-async function scrollportOf(area: Locator): Promise<Scrollport> {
-  return area.evaluate((element) => {
-    const box = element.getBoundingClientRect();
-    const style = getComputedStyle(element);
-    return {
-      x: box.left + element.clientLeft,
-      y: box.top + element.clientTop,
-      width: element.clientWidth,
-      height: element.clientHeight,
-      rtl: style.direction === "rtl",
-      startWidth: parseFloat(
-        style.getPropertyValue("--gridkit-pinned-start-width"),
-      ),
-      endWidth: parseFloat(
-        style.getPropertyValue("--gridkit-pinned-end-width"),
-      ),
-    };
-  });
-}
+import {
+  scrollArea,
+  scrollportOf,
+  scrollSideways,
+  type Clip,
+  type Scrollport,
+} from "./support/scrollport";
+import { isUncovered } from "./support/uncovered";
 
 /**
  * The scrollport and the two strips the pinned columns cover at its start
@@ -391,19 +342,33 @@ test.describe("rows drawn with one cell", () => {
       <PinnedColumnsGrid height={300} virtualized rowCount={2000} />,
     );
     const area = scrollArea(root);
-    await area.evaluate((element) => {
-      element.scrollTop = 30000;
-    });
-    await scrollSideways(area, 0.5);
     const spacers = root.locator(
       '.gridkit-data-grid-body tr[aria-hidden="true"]:not([class]) td',
     );
-    await expect(spacers).toHaveCount(2);
-
-    for (const spacer of await spacers.all()) {
-      await expect(spacer).toHaveCSS("position", "static");
-      await expect(spacer).not.toHaveClass(/is-pinned/);
-    }
+    // Scrolled again until the window has a spacer on each side: WebKit can
+    // clamp a scroll made before the rows' full height is laid out.
+    await expect
+      .poll(async () => {
+        await area.evaluate((element) => {
+          element.scrollTop = 30000;
+        });
+        return spacers.count();
+      })
+      .toBe(2);
+    await scrollSideways(area, 0.5);
+    await expect
+      .poll(() =>
+        spacers.evaluateAll((cells) =>
+          cells.map((cell) => ({
+            position: getComputedStyle(cell).position,
+            pinned: cell.matches(".is-pinned-start, .is-pinned-end"),
+          })),
+        ),
+      )
+      .toEqual([
+        { position: "static", pinned: false },
+        { position: "static", pinned: false },
+      ]);
   });
 });
 
@@ -746,4 +711,99 @@ test.describe("pinning at run time", () => {
       expect(hits.end).toBe("c7");
     }
   });
+});
+
+test.describe("keyboard focus", () => {
+  const COLUMN_IDS = ["team", "c1", "c2", "c3", "c4", "c5", "c6", "c7"];
+
+  /** The focused cell's column, and whether any of it is covered. */
+  async function focusedCell(
+    page: Page,
+  ): Promise<{ column: string | null; uncovered: boolean }> {
+    const cell = page.locator(":focus");
+    return {
+      column: await cell.getAttribute("data-gridkit-column"),
+      uncovered: await isUncovered(cell),
+    };
+  }
+
+  async function expectFocusClear(page: Page, column: string): Promise<void> {
+    await expect
+      .poll(() => focusedCell(page))
+      .toEqual({ column, uncovered: true });
+  }
+
+  /** Mounts `PinnedColumnsGrid` and tabs to its header's first cell. */
+  async function tabIntoGrid(
+    mount: Parameters<typeof mountGrid>[0],
+    page: Page,
+    dir: "ltr" | "rtl",
+  ): Promise<{ area: Locator; forward: string; back: string }> {
+    const grid = <PinnedColumnsGrid height={300} />;
+    const root = await mountGrid(
+      mount,
+      dir === "rtl" ? <RightToLeft>{grid}</RightToLeft> : grid,
+    );
+    await page.keyboard.press("Tab");
+    await expectFocusClear(page, "team");
+    return {
+      area: scrollArea(root),
+      forward: dir === "rtl" ? "ArrowLeft" : "ArrowRight",
+      back: dir === "rtl" ? "ArrowRight" : "ArrowLeft",
+    };
+  }
+
+  for (const dir of ["ltr", "rtl"] as const) {
+    test(`keeps the focused cell clear of the pinned columns, arrowing across the header and a row and back, ${dir}`, async ({
+      mount,
+      page,
+    }) => {
+      const { area, forward, back } = await tabIntoGrid(mount, page, dir);
+
+      for (const row of ["header", "body"]) {
+        if (row === "body") {
+          await page.keyboard.press("ArrowDown");
+          await expectFocusClear(page, "team");
+        }
+        for (const column of COLUMN_IDS.slice(1)) {
+          await page.keyboard.press(forward);
+          await expectFocusClear(page, column);
+        }
+        expect(
+          await area.evaluate((element) => Math.abs(element.scrollLeft)),
+        ).toBeGreaterThan(0);
+        for (const column of COLUMN_IDS.slice(0, -1).reverse()) {
+          await page.keyboard.press(back);
+          await expectFocusClear(page, column);
+        }
+      }
+    });
+
+    test(`Home, End and Ctrl+Home onto pinned cells leave the scroll position, ${dir}`, async ({
+      mount,
+      page,
+    }) => {
+      const { area, forward } = await tabIntoGrid(mount, page, dir);
+      await page.keyboard.press("ArrowDown");
+      for (const column of COLUMN_IDS.slice(1, 5)) {
+        await page.keyboard.press(forward);
+        await expectFocusClear(page, column);
+      }
+      const scrolled = await area.evaluate((element) => element.scrollLeft);
+      expect(scrolled).not.toBe(0);
+
+      for (const [key, column] of [
+        ["Home", "team"],
+        ["End", "c7"],
+        ["Control+Home", "team"],
+      ] as const) {
+        await page.keyboard.press(key);
+        await expectFocusClear(page, column);
+        expect(await area.evaluate((element) => element.scrollLeft)).toBe(
+          scrolled,
+        );
+      }
+      await expect(page.locator(":focus")).toHaveClass(/gridkit-header-cell/);
+    });
+  }
 });

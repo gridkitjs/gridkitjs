@@ -18,6 +18,7 @@ import type {
 import { expect, test } from "./support/coverage";
 import { mountGrid, updateGrid } from "./support/mountGrid";
 import ImperativeApiGrid from "./support/ImperativeApiGrid";
+import { isUncovered } from "./support/uncovered";
 
 /** DataGrid's space between a menu or panel and what it opens below. */
 const ANCHOR_GAP = 4;
@@ -291,6 +292,79 @@ test("scrollToColumn scrolls the column into view horizontally", async ({
   await expect
     .poll(async () => tables.evaluate((el) => el.scrollLeft))
     .toBeGreaterThan(0);
+});
+
+/** Two 120px columns pinned to the start, one to the end, and six between. */
+const pinnedColumns: readonly ColumnDefinition<Row>[] = [
+  { field: "id", width: 120, pinned: "start" },
+  ...Array.from({ length: 7 }, (_, index) => ({
+    id: `c${String(index + 1)}`,
+    field: "name" as const,
+    width: 120,
+    ...(index === 0 ? { pinned: "start" as const } : {}),
+  })),
+  { id: "last", field: "name", width: 120, pinned: "end" },
+];
+
+test.describe("scrollToColumn with pinned columns", () => {
+  async function mountScrolledTo(
+    mount: Parameters<typeof mountGrid>[0],
+    columnId: string,
+    fraction: number,
+  ) {
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={pinnedColumns}
+        dataSource={buildRows(3)}
+        label="Pinned"
+        resizeMode="fixed"
+        scrollColumnId={columnId}
+      />,
+      { width: 520 },
+    );
+    const tables = root.locator(".gridkit-data-grid-tables");
+    await tables.evaluate((element, share) => {
+      element.scrollLeft = (element.scrollWidth - element.clientWidth) * share;
+    }, fraction);
+    return { root, tables };
+  }
+
+  for (const [columnId, from] of [
+    ["c2", 1],
+    ["c7", 0],
+  ] as const) {
+    test(`lands ${columnId}, past a pinned edge, clear of the pinned columns`, async ({
+      mount,
+    }) => {
+      const { root } = await mountScrolledTo(mount, columnId, from);
+      const header = root.locator(
+        `.gridkit-header-cell[data-gridkit-column="${columnId}"]`,
+      );
+      expect(await isUncovered(header)).toBe(false);
+
+      await root.getByRole("button", { name: "scroll-to-column" }).click();
+      await expect.poll(() => isUncovered(header)).toBe(true);
+    });
+  }
+
+  test("leaves the scroll position alone for a pinned column", async ({
+    mount,
+  }) => {
+    const { root, tables } = await mountScrolledTo(mount, "c1", 0.5);
+    const scrolled = await tables.evaluate((element) => element.scrollLeft);
+    expect(scrolled).toBeGreaterThan(0);
+
+    await root.getByRole("button", { name: "scroll-to-column" }).click();
+    expect(await tables.evaluate((element) => element.scrollLeft)).toBe(
+      scrolled,
+    );
+    expect(
+      await isUncovered(
+        root.locator('.gridkit-header-cell[data-gridkit-column="c1"]'),
+      ),
+    ).toBe(true);
+  });
 });
 
 interface WideRow {
@@ -1007,6 +1081,58 @@ test.describe("context menu", () => {
     expect(cell?.y).toBeGreaterThan((body?.y ?? 0) + (body?.height ?? 0));
     expect(menu?.y).toBeCloseTo((body?.y ?? 0) + (body?.height ?? 0), 0);
     expect(menu?.x).toBeCloseTo(cell?.x ?? 0, 0);
+  });
+
+  test("openContextMenu on a cell under the pinned columns opens at their edge", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={pinnedColumns}
+        dataSource={buildRows(3)}
+        label="Open a menu under pinned columns"
+        resizeMode="fixed"
+        selectable={{ rows: "multiple" }}
+        contextMenu
+        contextMenuTarget={{ area: "cell", rowId: "row-1", columnId: "c2" }}
+      />,
+      { width: 520 },
+    );
+    const tables = root.locator(".gridkit-data-grid-tables");
+    // c2 sits wholly under c1, the second pinned column.
+    await tables.evaluate((element) => {
+      element.scrollLeft = 120;
+    });
+
+    await root.getByRole("button", { name: "open-context-menu" }).click();
+
+    await expect(
+      page
+        .getByRole("menu", { name: "Row menu" })
+        .locator("[data-gridkit-menu-item]")
+        .first(),
+    ).toBeFocused();
+    const [pinnedEdge, cell, menu] = await Promise.all([
+      root
+        .locator(
+          'tbody tr[data-gridkit-row-index="1"] td[data-gridkit-column="c1"]',
+        )
+        .boundingBox(),
+      root
+        .locator(
+          'tbody tr[data-gridkit-row-index="1"] td[data-gridkit-column="c2"]',
+        )
+        .boundingBox(),
+      page.locator(".gridkit-overlay").boundingBox(),
+    ]);
+    if (pinnedEdge === null || cell === null || menu === null) {
+      throw new Error("not drawn");
+    }
+    expect(cell.x).toBeCloseTo(pinnedEdge.x, 0);
+    expect(menu.x).toBeCloseTo(pinnedEdge.x + pinnedEdge.width, 0);
+    expect(menu.y).toBeCloseTo(cell.y + cell.height, 0);
   });
 
   test("openContextMenu opens nothing for a row not on screen, or without contextMenu", async ({

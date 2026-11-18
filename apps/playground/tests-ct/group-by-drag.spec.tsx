@@ -6,7 +6,9 @@ import type { MountResult } from "@playwright/experimental-ct-react";
 import type { ColumnDefinition, GroupByEvent } from "@gridkitjs/core";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
+import PinnedColumnsGrid from "./support/PinnedColumnsGrid";
 import RowIdentifiedGrid from "./support/RowIdentifiedGrid";
+import { scrollArea, scrollportOf, scrollSideways } from "./support/scrollport";
 
 interface Row {
   id: string;
@@ -475,4 +477,69 @@ test("chips and their remove buttons are independent tab stops in plain DOM orde
   await expect(first.locator(".gridkit-group-by-chip-remove")).toBeFocused();
   await first.locator(".gridkit-group-by-chip-remove").press("Tab");
   await expect(chips(root).nth(1)).toBeFocused();
+});
+
+test.describe("pinned columns", () => {
+  for (const [columnId, pinClass] of [
+    ["team", /is-pinned-start/],
+    ["c7", /is-pinned-end/],
+  ] as const) {
+    test(`the pinned ${columnId} header dragged onto the bar groups by it, and its column stays pinned`, async ({
+      mount,
+      page,
+    }) => {
+      const events: GroupByEvent[] = [];
+      const root = await mountGrid(
+        mount,
+        <PinnedColumnsGrid
+          height={300}
+          rowCount={8}
+          groupByDraggableColumns
+          groupByBarVisibility="always"
+          onGroupByChange={(event) => {
+            events.push(event);
+          }}
+        />,
+      );
+      const area = scrollArea(root);
+      await scrollSideways(area, 0.5);
+      const pinned = root.locator(
+        `.gridkit-header-cell[data-gridkit-column="${columnId}"]`,
+      );
+
+      const start = await dragStart(page, pinned);
+      await page.mouse.move(start.x, start.y - 60, { steps: 5 });
+      await expect(bar(root)).toHaveClass(/is-drag-target/);
+      const barBox = await bar(root).boundingBox();
+      if (barBox === null) throw new Error("bar not visible");
+      await page.mouse.move(
+        barBox.x + barBox.width / 2,
+        barBox.y + barBox.height / 2,
+        { steps: 5 },
+      );
+      await page.mouse.up();
+
+      expect(events.map((event) => event.groupBy)).toEqual([[{ columnId }]]);
+      await expect(chips(root)).toHaveCount(1);
+      await expect(pinned).toHaveClass(pinClass);
+      // Still drawn, and still stuck to its edge, scrolled either way.
+      const port = await scrollportOf(area);
+      for (const fraction of [0, 1]) {
+        await scrollSideways(area, fraction);
+        const box = await pinned.boundingBox();
+        if (box === null) throw new Error(`${columnId} is not drawn`);
+        const edge =
+          columnId === "team"
+            ? box.x - port.x
+            : port.x + port.width - (box.x + box.width);
+        expect(Math.abs(edge)).toBeLessThanOrEqual(1);
+      }
+      // Every data row, in its expanded group, still has the column's cell.
+      await expect(
+        root.locator(
+          `.gridkit-grid-body .gridkit-grid-row [data-gridkit-column="${columnId}"]`,
+        ),
+      ).toHaveCount(8);
+    });
+  }
 });

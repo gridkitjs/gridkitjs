@@ -7,7 +7,9 @@ import type { ColumnDefinition, ColumnOrderEvent } from "@gridkitjs/core";
 import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import ControlledStateGrid from "./support/ControlledStateGrid";
+import PinnedColumnsGrid from "./support/PinnedColumnsGrid";
 import PointerGestureHarness from "./support/PointerGestureHarness";
+import RightToLeft from "./support/RightToLeft";
 import { mountGrid, updateGrid } from "./support/mountGrid";
 import { pressMouse } from "./support/pressMouse";
 import { trackWindowListeners } from "./support/windowListeners";
@@ -836,4 +838,257 @@ test("unmounting the grid mid-drag leaves nothing listening on window", async ({
   await root.unmount();
   expect(await listening()).toBe(0);
   await page.mouse.up();
+});
+
+test.describe("pinned columns", () => {
+  /** Wide enough for all of `PinnedColumnsGrid`'s eight 120px columns. */
+  const WIDE = { width: 1000 };
+
+  function header(root: MountResult, columnId: string) {
+    return root.locator(
+      `.gridkit-header-cell[data-gridkit-column="${columnId}"]`,
+    );
+  }
+
+  /**
+   * Moves the pointer over `target`, `share` of the way from its inline
+   * start to its inline end.
+   */
+  async function pointerOver(
+    page: Page,
+    target: ReturnType<typeof header>,
+    share: number,
+  ): Promise<void> {
+    const box = await target.boundingBox();
+    if (box === null) throw new Error("header is not visible");
+    const rtl = await target.evaluate(
+      (element) => getComputedStyle(element).direction === "rtl",
+    );
+    await page.mouse.move(
+      box.x + box.width * (rtl ? 1 - share : share),
+      box.y + box.height / 2,
+      { steps: 5 },
+    );
+  }
+
+  /** The headers marked as a drop's gap. */
+  function dropMarks(root: MountResult) {
+    return root.locator(".is-drop-before, .is-drop-after");
+  }
+
+  async function blockedIds(root: MountResult): Promise<(string | null)[]> {
+    return root
+      .locator(".gridkit-header-cell.is-drag-blocked")
+      .evaluateAll((elements) =>
+        elements.map((element) => element.getAttribute("data-gridkit-column")),
+      );
+  }
+
+  for (const dir of ["ltr", "rtl"] as const) {
+    test(`an unpinned header drops only among the unpinned ones, and the pinned headers are blocked, ${dir}`, async ({
+      mount,
+      page,
+    }) => {
+      const events: ColumnOrderEvent[] = [];
+      const grid = (
+        <PinnedColumnsGrid
+          reorderableColumns
+          rowCount={2}
+          onColumnOrderChange={(event) => {
+            events.push(event);
+          }}
+        />
+      );
+      const root = await mountGrid(
+        mount,
+        dir === "rtl" ? <RightToLeft>{grid}</RightToLeft> : grid,
+        WIDE,
+      );
+
+      await dragStart(page, header(root, "c3"));
+      await pointerOver(page, header(root, "c2"), 0.25);
+      await expect(header(root, "c2")).toHaveClass(/is-drop-before/);
+      expect(await blockedIds(root)).toEqual(["team", "c1", "c7"]);
+
+      for (const columnId of ["c1", "team", "c7"]) {
+        await pointerOver(page, header(root, columnId), 0.25);
+        await expect(dropMarks(root)).toHaveCount(0);
+      }
+      // The trailing half of the last unpinned column: the group's end.
+      await pointerOver(page, header(root, "c6"), 0.75);
+      await expect(header(root, "c6")).toHaveClass(/is-drop-after/);
+      await expect(header(root, "c7")).not.toHaveClass(/is-drop-before/);
+      await page.mouse.up();
+
+      expect(events).toHaveLength(1);
+      expect(await columnIds(root)).toEqual([
+        "team",
+        "c1",
+        "c2",
+        "c4",
+        "c5",
+        "c6",
+        "c3",
+        "c7",
+      ]);
+      await expect(root.locator('[role="status"]')).toContainText(
+        "column 7 of 8",
+      );
+      await expect(header(root, "c3")).toHaveAttribute("tabindex", "0");
+      await expect(root.locator(".is-drag-blocked")).toHaveCount(0);
+    });
+  }
+
+  test("a header released over another pin group's header moves nothing", async ({
+    mount,
+    page,
+  }) => {
+    const events: ColumnOrderEvent[] = [];
+    const root = await mountGrid(
+      mount,
+      <PinnedColumnsGrid
+        reorderableColumns
+        rowCount={2}
+        onColumnOrderChange={(event) => {
+          events.push(event);
+        }}
+      />,
+      WIDE,
+    );
+    const before = await columnIds(root);
+
+    await dragStart(page, header(root, "c4"));
+    await pointerOver(page, header(root, "team"), 0.25);
+    await page.mouse.up();
+
+    expect(events).toHaveLength(0);
+    expect(await columnIds(root)).toEqual(before);
+    await expect(root.locator('[role="status"]')).toHaveText("");
+  });
+
+  test("a start-pinned header drops only among the start-pinned ones", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <PinnedColumnsGrid reorderableColumns rowCount={2} />,
+      WIDE,
+    );
+
+    await dragStart(page, header(root, "team"));
+    await pointerOver(page, header(root, "c3"), 0.25);
+    await expect(dropMarks(root)).toHaveCount(0);
+    expect(await blockedIds(root)).toEqual([
+      "c2",
+      "c3",
+      "c4",
+      "c5",
+      "c6",
+      "c7",
+    ]);
+    // The trailing half of the last start-pinned column: the group's end.
+    await pointerOver(page, header(root, "c1"), 0.75);
+    await expect(header(root, "c1")).toHaveClass(/is-drop-after/);
+    await expect(header(root, "c2")).not.toHaveClass(/is-drop-before/);
+    await page.mouse.up();
+
+    expect((await columnIds(root)).slice(0, 3)).toEqual(["c1", "team", "c2"]);
+    await expect(header(root, "team")).toHaveClass(
+      /is-pinned-start is-pinned-edge/,
+    );
+    await expect(root.locator('[role="status"]')).toContainText(
+      "column 2 of 8",
+    );
+  });
+
+  test("an end-pinned header drops only among the end-pinned ones", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <PinnedColumnsGrid
+        reorderableColumns
+        rowCount={2}
+        defaultColumnPinning={{ c6: "end" }}
+      />,
+      WIDE,
+    );
+
+    await dragStart(page, header(root, "c7"));
+    await pointerOver(page, header(root, "c5"), 0.75);
+    await expect(dropMarks(root)).toHaveCount(0);
+    expect(await blockedIds(root)).toEqual([
+      "team",
+      "c1",
+      "c2",
+      "c3",
+      "c4",
+      "c5",
+    ]);
+    await pointerOver(page, header(root, "c6"), 0.25);
+    await expect(header(root, "c6")).toHaveClass(/is-drop-before/);
+    await page.mouse.up();
+
+    expect((await columnIds(root)).slice(-2)).toEqual(["c7", "c6"]);
+    await expect(root.locator('[role="status"]')).toContainText(
+      "column 7 of 8",
+    );
+  });
+
+  for (const dir of ["ltr", "rtl"] as const) {
+    test(`Ctrl+Arrow moves a column within its pin group and stops at the group's edges, ${dir}`, async ({
+      mount,
+    }) => {
+      const events: ColumnOrderEvent[] = [];
+      const grid = (
+        <PinnedColumnsGrid
+          reorderableColumns
+          rowCount={2}
+          defaultColumnPinning={{ c6: "end" }}
+          onColumnOrderChange={(event) => {
+            events.push(event);
+          }}
+        />
+      );
+      const root = await mountGrid(
+        mount,
+        dir === "rtl" ? <RightToLeft>{grid}</RightToLeft> : grid,
+        WIDE,
+      );
+      const later = dir === "rtl" ? "Control+ArrowLeft" : "Control+ArrowRight";
+      const earlier =
+        dir === "rtl" ? "Control+ArrowRight" : "Control+ArrowLeft";
+      const status = root.locator('[role="status"]');
+
+      // Each group's edge, from inside it: nothing moves or is announced.
+      for (const [columnId, key] of [
+        ["c1", later],
+        ["c2", earlier],
+        ["c5", later],
+        ["c6", earlier],
+      ] as const) {
+        await header(root, columnId).focus();
+        await header(root, columnId).press(key);
+      }
+      expect(events).toHaveLength(0);
+      await expect(status).toHaveText("");
+
+      // Inside each group, one place.
+      for (const [columnId, key, order] of [
+        ["c1", earlier, ["c1", "team"]],
+        ["c2", later, ["c1", "team", "c3", "c2"]],
+        ["c7", earlier, ["c1", "team", "c3", "c2", "c4", "c5", "c7", "c6"]],
+      ] as const) {
+        await header(root, columnId).focus();
+        await header(root, columnId).press(key);
+        await expect
+          .poll(async () => (await columnIds(root)).slice(0, order.length))
+          .toEqual(order);
+        await expect(header(root, columnId)).toBeFocused();
+      }
+      expect(events).toHaveLength(3);
+    });
+  }
 });
