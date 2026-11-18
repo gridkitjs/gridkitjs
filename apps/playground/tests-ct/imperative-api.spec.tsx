@@ -18,6 +18,7 @@ import type {
 import { expect, test } from "./support/coverage";
 import { mountGrid, updateGrid } from "./support/mountGrid";
 import ImperativeApiGrid from "./support/ImperativeApiGrid";
+import { isUncovered } from "./support/uncovered";
 
 /** DataGrid's space between a menu or panel and what it opens below. */
 const ANCHOR_GAP = 4;
@@ -291,6 +292,79 @@ test("scrollToColumn scrolls the column into view horizontally", async ({
   await expect
     .poll(async () => tables.evaluate((el) => el.scrollLeft))
     .toBeGreaterThan(0);
+});
+
+test.describe("scrollToColumn with pinned columns", () => {
+  /** Two columns pinned to the start, one to the end, and six between. */
+  const pinnedColumns: readonly ColumnDefinition<Row>[] = [
+    { field: "id", width: 120, pinned: "start" },
+    ...Array.from({ length: 7 }, (_, index) => ({
+      id: `c${String(index + 1)}`,
+      field: "name" as const,
+      width: 120,
+      ...(index === 0 ? { pinned: "start" as const } : {}),
+    })),
+    { id: "last", field: "name", width: 120, pinned: "end" },
+  ];
+
+  async function mountScrolledTo(
+    mount: Parameters<typeof mountGrid>[0],
+    columnId: string,
+    fraction: number,
+  ) {
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={pinnedColumns}
+        dataSource={buildRows(3)}
+        label="Pinned"
+        resizeMode="fixed"
+        scrollColumnId={columnId}
+      />,
+      { width: 520 },
+    );
+    const tables = root.locator(".gridkit-data-grid-tables");
+    await tables.evaluate((element, share) => {
+      element.scrollLeft = (element.scrollWidth - element.clientWidth) * share;
+    }, fraction);
+    return { root, tables };
+  }
+
+  for (const [columnId, from] of [
+    ["c2", 1],
+    ["c7", 0],
+  ] as const) {
+    test(`lands ${columnId}, past a pinned edge, clear of the pinned columns`, async ({
+      mount,
+    }) => {
+      const { root } = await mountScrolledTo(mount, columnId, from);
+      const header = root.locator(
+        `.gridkit-header-cell[data-gridkit-column="${columnId}"]`,
+      );
+      expect(await isUncovered(header)).toBe(false);
+
+      await root.getByRole("button", { name: "scroll-to-column" }).click();
+      await expect.poll(() => isUncovered(header)).toBe(true);
+    });
+  }
+
+  test("leaves the scroll position alone for a pinned column", async ({
+    mount,
+  }) => {
+    const { root, tables } = await mountScrolledTo(mount, "c1", 0.5);
+    const scrolled = await tables.evaluate((element) => element.scrollLeft);
+    expect(scrolled).toBeGreaterThan(0);
+
+    await root.getByRole("button", { name: "scroll-to-column" }).click();
+    expect(await tables.evaluate((element) => element.scrollLeft)).toBe(
+      scrolled,
+    );
+    expect(
+      await isUncovered(
+        root.locator('.gridkit-header-cell[data-gridkit-column="c1"]'),
+      ),
+    ).toBe(true);
+  });
 });
 
 interface WideRow {
