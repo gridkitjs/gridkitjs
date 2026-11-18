@@ -282,12 +282,12 @@ test("scrollToColumn scrolls the column into view horizontally", async ({
     />,
     { width: 200 },
   );
-  const viewport = root.locator(".gridkit-data-grid-viewport");
-  await expect(viewport).toHaveJSProperty("scrollLeft", 0);
+  const tables = root.locator(".gridkit-data-grid-tables");
+  await expect(tables).toHaveJSProperty("scrollLeft", 0);
 
   await root.getByRole("button", { name: "scroll-to-column" }).click();
   await expect
-    .poll(async () => viewport.evaluate((el) => el.scrollLeft))
+    .poll(async () => tables.evaluate((el) => el.scrollLeft))
     .toBeGreaterThan(0);
 });
 
@@ -831,8 +831,10 @@ test.describe("context menu", () => {
         .locator("[data-gridkit-menu-item]")
         .first(),
     ).toBeFocused();
+    // The scroll area the rows are seen through: with no footer, its bottom
+    // edge is the rows' too.
     const [body, cell, menu] = await Promise.all([
-      root.locator(".gridkit-data-grid-body").boundingBox(),
+      root.locator(".gridkit-data-grid-tables").boundingBox(),
       root
         .locator('tbody tr[data-gridkit-row-index="25"] td')
         .nth(1)

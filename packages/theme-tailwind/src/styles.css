@@ -331,10 +331,10 @@
   }
 
   /*
-   * The table is exactly as wide as its columns, so anything wider than the
-   * space available scrolls here rather than squashing the columns. Scrolls
-   * the header, body, and footer tables together, since all three are
-   * descendants of this one viewport.
+   * The grid's root. The tables scroll inside it, in
+   * `.gridkit-data-grid-tables`, so the toolbar, the group-by bar and the
+   * pager stay where they are; it scrolls sideways itself only when one of
+   * those is wider than it.
    */
   .gridkit-data-grid-viewport {
     overflow-x: auto;
@@ -357,35 +357,81 @@
   }
 
   /*
-   * The row area alone. `height` unset leaves this `auto` — exactly the
-   * content-driven height the single-table layout had before the
-   * header/body/footer split — and a consumer-set `height` bounds only this
-   * div, so the group-by bar, header, footer, and pager stay outside it and
-   * always visible while the rows scroll independently.
+   * The one scroll area for the header, the rows and the footer, on both
+   * axes. The tables are exactly as wide as their columns, so columns wider
+   * than the space available scroll here rather than squash. The header and
+   * footer stick to its top and bottom and stay in view while the rows
+   * scroll under them; with one element scrolling sideways they cannot fall
+   * out of line with the rows, and a cell made to stick sideways sticks in
+   * all three tables alike.
    *
-   * No `position: sticky` here or anywhere else in this file for the header/
-   * footer: they don't need it. Splitting header, body, and footer into
-   * sibling `<table>`s already keeps the header and footer out of the region
-   * that scrolls — there's nothing to "stick," since they were never going
-   * to scroll away. A consumer wanting a divider or shadow at the seam adds
-   * their own CSS targeting `.gridkit-data-grid-header`/
-   * `.gridkit-data-grid-footer`.
+   * `height` bounds the rows alone: the grid sets `--gridkit-body-height`
+   * here from it, and `--gridkit-header-height` and
+   * `--gridkit-footer-height` from the two tables' measured heights, and
+   * the area grows by both. Without `height` the area is as tall as its
+   * content and scrolls only sideways, and the header, with nothing
+   * scrolling under it, never sticks.
+   */
+  .gridkit-data-grid-tables {
+    overflow: auto;
+    height: calc(
+      var(--gridkit-body-height) + var(--gridkit-header-height, 0px) +
+        var(--gridkit-footer-height, 0px)
+    );
+  }
+
+  /*
+   * Above the rows scrolled under them. A consumer wanting a divider or
+   * shadow at the seam adds their own CSS targeting
+   * `.gridkit-data-grid-header`/`.gridkit-data-grid-footer`.
+   */
+  .gridkit-data-grid-header {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 2;
+  }
+
+  .gridkit-data-grid-footer {
+    position: sticky;
+    inset-block-end: 0;
+    z-index: 2;
+  }
+
+  /*
+   * The rows' rowgroup. As wide as its table, and never narrower than the
+   * scroll area, so its box covers every row however far the area scrolls
+   * sideways; and at least `height` tall, so under a few rows the space
+   * down to the footer is the body's.
    */
   .gridkit-data-grid-body {
-    overflow-y: auto;
-    height: var(--gridkit-body-height, auto);
+    width: max-content;
+    min-width: 100%;
+    min-height: var(--gridkit-body-height, 0);
+  }
+
+  /*
+   * Keeps a row or cell that keyboard focus or `scrollToRow` scrolls into
+   * view clear of the header and footer stuck over the rows. A margin on the
+   * rows rather than padding on the scroll area: a header cell, stuck at the
+   * area's top, would sit inside that padding, and focusing it would scroll
+   * the rows to make room.
+   */
+  .gridkit-data-grid-body tr,
+  .gridkit-data-grid-body td {
+    scroll-margin-block: var(--gridkit-header-height, 0px)
+      var(--gridkit-footer-height, 0px);
   }
 
   /*
    * Slim scrollbars on the grid's own scroll regions, never on the page: the
-   * viewport, the row area, the menus, and the column chooser and filter
-   * checklist lists. Chromium and Firefox honour
+   * viewport, the tables' scroll area, the menus, and the column chooser and
+   * filter checklist lists. Chromium and Firefox honour
    * `scrollbar-width`/`scrollbar-color`; the `::-webkit-scrollbar` rules are
    * only for engines that do not, since a browser that supports the standard
    * properties ignores them anyway.
    */
   .gridkit-data-grid-viewport,
-  .gridkit-data-grid-body,
+  .gridkit-data-grid-tables,
   .gridkit-menu,
   .gridkit-column-chooser-list,
   .gridkit-filter-menu-checklist {
@@ -395,7 +441,7 @@
 
   @supports not (scrollbar-color: auto) {
     .gridkit-data-grid-viewport::-webkit-scrollbar,
-    .gridkit-data-grid-body::-webkit-scrollbar,
+    .gridkit-data-grid-tables::-webkit-scrollbar,
     .gridkit-menu::-webkit-scrollbar,
     .gridkit-column-chooser-list::-webkit-scrollbar,
     .gridkit-filter-menu-checklist::-webkit-scrollbar {
@@ -404,7 +450,7 @@
     }
 
     .gridkit-data-grid-viewport::-webkit-scrollbar-track,
-    .gridkit-data-grid-body::-webkit-scrollbar-track,
+    .gridkit-data-grid-tables::-webkit-scrollbar-track,
     .gridkit-menu::-webkit-scrollbar-track,
     .gridkit-column-chooser-list::-webkit-scrollbar-track,
     .gridkit-filter-menu-checklist::-webkit-scrollbar-track {
@@ -412,7 +458,7 @@
     }
 
     .gridkit-data-grid-viewport::-webkit-scrollbar-thumb,
-    .gridkit-data-grid-body::-webkit-scrollbar-thumb,
+    .gridkit-data-grid-tables::-webkit-scrollbar-thumb,
     .gridkit-menu::-webkit-scrollbar-thumb,
     .gridkit-column-chooser-list::-webkit-scrollbar-thumb,
     .gridkit-filter-menu-checklist::-webkit-scrollbar-thumb {
@@ -534,8 +580,8 @@
    * cell is the only sign of where that stop currently is — without this ring a
    * keyboard user is navigating blind.
    *
-   * Inset because the viewport clips its overflow: an outline drawn outwards
-   * would be cut off on the first and last columns.
+   * Inset because the scroll area clips its overflow: an outline drawn
+   * outwards would be cut off on the first and last columns.
    */
   .gridkit-data-grid .gridkit-header-cell:focus-visible,
   .gridkit-data-grid .gridkit-grid-cell:focus-visible {
@@ -1264,9 +1310,10 @@
 
   /*
    * The toolbar: the grid's first child, above the group-by bar, and unscoped
-   * by `.gridkit-data-grid` for the same reason that bar is. The grid scrolls
-   * sideways with everything in it, so the toolbar sticks to its start edge
-   * and stays in view while the tables scroll on under it.
+   * by `.gridkit-data-grid` for the same reason that bar is. It sits outside
+   * the tables' scroll area, so it stays in view while they scroll, and it
+   * sticks to the viewport's start edge for the rare grid whose viewport
+   * scrolls sideways itself, under a group-by bar wider than it.
    *
    * Its entries keep to one row at their own widths, which is what the
    * overflow measures: what does not fit goes into "More", and `overflow:
@@ -2431,11 +2478,23 @@
       display: none;
     }
 
-    /* No height bound, and nothing scrolls, so no row is cut off. */
+    /*
+     * No height bound, and nothing scrolls or sticks, so no row is cut off
+     * or printed over, and the footer follows the last row.
+     */
     .gridkit-data-grid-viewport,
-    .gridkit-data-grid-viewport .gridkit-data-grid-body {
+    .gridkit-data-grid-viewport .gridkit-data-grid-tables {
       height: auto;
       overflow: visible;
+    }
+
+    .gridkit-data-grid-viewport .gridkit-data-grid-header,
+    .gridkit-data-grid-viewport .gridkit-data-grid-footer {
+      position: static;
+    }
+
+    .gridkit-data-grid-viewport .gridkit-data-grid-body {
+      min-height: 0;
     }
 
     .gridkit-data-grid-viewport :focus-visible {

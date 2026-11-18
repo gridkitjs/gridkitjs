@@ -42,7 +42,7 @@ The message reads:
 
 ## `rootMargin` fires the load early
 
-The grid watches its last row against its own scrollable body, not the page, so loading works even when the grid sits in a page that does not scroll. `rootMargin` (default `"200px"`) widens that area, so `onLoadMore` fires while the last row is still `rootMargin` away from view rather than only once the user reaches the bottom:
+The grid watches its last row against its own scroll area, not the page, so loading works even when the grid sits in a page that does not scroll. `rootMargin` (default `"200px"`) widens that area, so `onLoadMore` fires while the last row is still `rootMargin` away from view rather than only once the user reaches the bottom:
 
 ```tsx
 <DataGrid

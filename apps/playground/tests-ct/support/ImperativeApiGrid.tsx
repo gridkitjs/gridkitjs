@@ -75,9 +75,9 @@ export interface ImperativeApiGridProps<Row extends RowWithId> extends Omit<
  * keeps every read on the same footing whichever action came before it.
  *
  * The grid is wrapped in its own fixed-height, scrollable container (rather
- * than relying on `gridkit-data-grid-viewport`, which only scrolls
- * horizontally by design) so `scrollToRow` has a bounded scrollable ancestor
- * to move — a real embedding page would supply the same thing.
+ * than relying on the grid's own scroll area, which scrolls up and down only
+ * under `height`) so `scrollToRow` has a bounded scrollable ancestor to
+ * move — a real embedding page would supply the same thing.
  */
 export default function ImperativeApiGrid<Row extends RowWithId>({
   scrollRowId,

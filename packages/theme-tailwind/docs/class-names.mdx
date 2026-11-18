@@ -26,17 +26,17 @@ const row = grid.querySelector('.gridkit-grid-row[data-gridkit-row-id="42"]');
 
 ## Layout
 
-The grid is a set of siblings rather than one table, so the header and footer never scroll with the rows:
+The grid is a set of sibling tables rather than one, in one element that scrolls; the header and footer stick to its top and bottom:
 
-| Class                         | Element   | Description                                                                                                                                                       |
-| ----------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.gridkit-data-grid-viewport` | `<div>`   | The grid's root: the toolbar, the group-by bar, the tables and the pager, in that order. Scrolls sideways when the columns are wider than it.                     |
-| `.gridkit-data-grid-tables`   | `<div>`   | Holds the three tables and carries `role="grid"` (or `"treegrid"` while grouped), since the pattern needs one element around every row.                           |
-| `.gridkit-data-grid`          | `<table>` | Each of the grid's tables (header, rows and footer), not the grid's root. Carries the border, hover and selectable modifiers below.                               |
-| `.gridkit-data-grid-header`   | `<table>` | The header's table. Also a `.gridkit-data-grid`.                                                                                                                  |
-| `.gridkit-data-grid-body`     | `<div>`   | The scroll container around the rows' table, the one `height` bounds, through `--gridkit-body-height`.                                                            |
-| `.gridkit-data-grid-footer`   | `<table>` | The grand-total footer's table, while `aggregates` is non-empty. Also a `.gridkit-data-grid`.                                                                     |
-| `.gridkit-sr-only`            | `<div>`   | The live region announcements are read from, clipped to nothing but left in the accessibility tree. Usable on anything of your own that should be read, not seen. |
+| Class                         | Element   | Description                                                                                                                                                         |
+| ----------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.gridkit-data-grid-viewport` | `<div>`   | The grid's root: the toolbar, the group-by bar, the tables and the pager, in that order. The tables scroll inside it, and the rest stays where it is.               |
+| `.gridkit-data-grid-tables`   | `<div>`   | Holds the three tables and carries `role="grid"` (or `"treegrid"` while grouped). The element that scrolls, both ways; `height` sets `--gridkit-body-height` on it. |
+| `.gridkit-data-grid`          | `<table>` | Each of the grid's tables (header, rows and footer), not the grid's root. Carries the border, hover and selectable modifiers below.                                 |
+| `.gridkit-data-grid-header`   | `<table>` | The header's table, stuck to the top of `.gridkit-data-grid-tables`. Also a `.gridkit-data-grid`.                                                                   |
+| `.gridkit-data-grid-body`     | `<div>`   | The rows' rowgroup, around their table: as wide as the table, and at least `height` tall.                                                                           |
+| `.gridkit-data-grid-footer`   | `<table>` | The grand-total footer's table, while `aggregates` is non-empty, stuck to the bottom of `.gridkit-data-grid-tables`. Also a `.gridkit-data-grid`.                   |
+| `.gridkit-sr-only`            | `<div>`   | The live region announcements are read from, clipped to nothing but left in the accessibility tree. Usable on anything of your own that should be read, not seen.   |
 
 ### Borders, hover and selection
 
@@ -138,7 +138,7 @@ The [pager](/docs/react/pagination#the-built-in-pager) sits below the tables, ou
 
 ## Toolbar
 
-The grid's [toolbar](/docs/react/toolbar) is the first thing inside it, above the group-by bar. It sticks to the grid's start edge, so it stays in view while the tables scroll sideways, and keeps its entries on one row: what does not fit moves into "More". States are ARIA attributes, not classes.
+The grid's [toolbar](/docs/react/toolbar) is the first thing inside it, above the group-by bar. It sits outside the tables' scroll area, so it stays in view while they scroll sideways, and keeps its entries on one row: what does not fit moves into "More". States are ARIA attributes, not classes.
 
 | Class                               | Element    | Description                                                                                                                                                                                  |
 | ----------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

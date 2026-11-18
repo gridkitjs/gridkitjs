@@ -77,6 +77,7 @@ import useGridPanels from "./panels/useGridPanels";
 import GridToolbar from "./toolbar/GridToolbar";
 import useColumnDrag from "./useColumnDrag";
 import useColumnResize from "./useColumnResize";
+import useElementHeight from "./useElementHeight";
 import useElementWidth from "./useElementWidth";
 import useGridController, {
   type DataGridController,
@@ -138,13 +139,16 @@ export type SelectionCallbacks<Row> = CoreSelectionCallbacks<Row, ReactNode>;
  */
 export interface DataGridApi<Row>
   extends GridExportApi, GridPrintApi, GridPanelApi {
-  /** The grid's scrollable viewport element. */
+  /**
+   * The grid's root element, `.gridkit-data-grid-viewport`. The tables
+   * scroll inside it, in `.gridkit-data-grid-tables`, not on it.
+   */
   readonly element: HTMLDivElement | null;
   /**
    * The grid's row-area `<table>` element — the one holding `<tbody>`. The
    * header and, when aggregates are active, footer render as their own
    * sibling `<table>`s outside this one; use `element` to reach the whole
-   * scrollable viewport instead.
+   * grid instead.
    */
   readonly table: HTMLTableElement | null;
 
@@ -534,9 +538,13 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   const gridRef = useRef<HTMLDivElement>(null);
   const headerTableRef = useRef<HTMLTableElement>(null);
   const bodyTableRef = useRef<HTMLTableElement>(null);
-  const bodyScrollRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const footerTableRef = useRef<HTMLTableElement>(null);
   const sentinelRef = useRef<HTMLTableRowElement>(null);
-  const viewportWidth = useElementWidth(viewportRef, resizeMode === "fit");
+  // The tables' scroll area rather than the viewport: a vertical scrollbar
+  // takes its width from the scroll area, and columns filling the viewport
+  // would then overflow it by that much.
+  const viewportWidth = useElementWidth(gridRef, resizeMode === "fit");
   const subscribersRef = useRef(new Set<() => void>());
   /** The grid element's id, for the toolbar's `aria-controls`. */
   const gridId = useId();
@@ -584,7 +592,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   const virtualizer = useRowVirtualizer({
     enabled: virtualized,
     rows: view.pageRows,
-    bodyScrollRef,
+    scrollRef: gridRef,
     bodyTableRef,
     estimatedRowHeight,
     overscan,
@@ -608,7 +616,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
   }, [paginated, hasInfiniteScroll]);
 
   useInfiniteScroll({
-    rootRef: bodyScrollRef,
+    rootRef: gridRef,
     sentinelRef,
     config: infiniteScroll,
   });
@@ -810,9 +818,11 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
 
   const contextMenu = useContextMenu({
     rootRef: viewportRef,
+    scrollRef: gridRef,
     headerTableRef,
     bodyTableRef,
-    bodyScrollRef,
+    bodyRef,
+    footerTableRef,
     contextMenu: props.contextMenu,
     overlay,
     controller,
@@ -984,14 +994,23 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     selection.cellMode === false ? "" : "gridkit-selectable-cells",
   );
   const hasFooter = aggregates.length > 0;
+  // What the header and footer, sticking to the scroll area's top and
+  // bottom, cover of it: the area grows by both, so `height` is the rows'
+  // alone, and keyboard focus scrolls a cell clear of both.
+  const headerHeight = useElementHeight(headerTableRef, height !== undefined);
+  const footerHeight = useElementHeight(
+    footerTableRef,
+    height !== undefined && hasFooter,
+  );
 
   return (
     <div
       className="gridkit-data-grid-viewport"
       ref={viewportRef}
       // Chromium and Firefox make an element that scrolls a Tab stop of its
-      // own; the grid's one stop is its roving cell, so neither scroller,
-      // this one or the body, takes a place in the Tab order.
+      // own; the grid's one stop is its roving cell, so no scroller takes a
+      // place in the Tab order: not the tables below, nor this one, which
+      // scrolls only when something beside them is wider than it.
       tabIndex={-1}
     >
       <GridToolbar<Row>
@@ -1029,7 +1048,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
          * tab stop `useGridNavigation` keeps.
          *
          * So each `<table>` is `role="presentation"`, and the header and
-         * footer sections, the body's scroller, and every row and cell carry
+         * footer sections, the body's wrapper, and every row and cell carry
          * `rowgroup`, `row`, `columnheader` and `gridcell` explicitly: a native table inside a grid would own those rows
          * itself, with its own implicit roles, leaving the grid none, and
          * would make a group row's `aria-level`/`aria-expanded` invalid on
@@ -1057,6 +1076,24 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
         // pattern even while paged.
         aria-rowcount={view.displayRows.length + (hasFooter ? 2 : 1)}
         aria-colcount={view.columns.length}
+        // The one element that scrolls the rows, both ways, with the header
+        // and footer sticking to its top and bottom: a Tab stop of its own
+        // in Chromium and Firefox otherwise, as the viewport's note says.
+        tabIndex={-1}
+        style={
+          height === undefined
+            ? undefined
+            : ({
+                "--gridkit-body-height":
+                  typeof height === "number" ? `${String(height)}px` : height,
+                ...(headerHeight === null
+                  ? {}
+                  : { "--gridkit-header-height": `${String(headerHeight)}px` }),
+                ...(footerHeight === null
+                  ? {}
+                  : { "--gridkit-footer-height": `${String(footerHeight)}px` }),
+              } as CSSProperties)
+        }
         {...ariaAttr(multiselectable, "aria-multiselectable", true)}
         {...ariaAttr(labelledBy !== undefined, "aria-labelledby", labelledBy)}
         {...ariaAttr(
@@ -1117,21 +1154,15 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
 
         <div
           className="gridkit-data-grid-body"
-          ref={bodyScrollRef}
+          ref={bodyRef}
           // The body's rowgroup, rather than its `<tbody>`: an element that
           // can take focus, as `tabIndex` makes this one, must have a role
           // the grid allows among its children, and a rowgroup may not hold
-          // another, so the `<tbody>` inside is presentational.
+          // another, so the `<tbody>` inside is presentational. Focusable
+          // from script and by a click on the rows' empty space, never by
+          // Tab.
           role="rowgroup"
           tabIndex={-1}
-          style={
-            height === undefined
-              ? undefined
-              : ({
-                  "--gridkit-body-height":
-                    typeof height === "number" ? `${String(height)}px` : height,
-                } as CSSProperties)
-          }
         >
           <table
             ref={bodyTableRef}
@@ -1166,6 +1197,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
 
         {hasFooter && (
           <table
+            ref={footerTableRef}
             role="presentation"
             style={{ width: totalColumnWidth(view.columns) }}
             className={classNames(

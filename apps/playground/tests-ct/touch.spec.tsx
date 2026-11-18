@@ -6,6 +6,7 @@ import type { MountResult } from "@playwright/experimental-ct-react";
 import type { ColumnDefinition } from "@gridkitjs/core";
 import { DataGrid, type DataGridProps } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
+import RightToLeft from "./support/RightToLeft";
 import ToolbarGrid from "./support/ToolbarGrid";
 import { mountGrid } from "./support/mountGrid";
 import {
@@ -21,14 +22,6 @@ const MIN_TARGET = 24;
 
 /** A phone held upright: the width every overlay has to fit. */
 const PHONE = { width: 390, height: 844 };
-
-/**
- * Why the header falls out of line with rows dragged sideways: the row area
- * is a scroll container of its own on both axes, so a swipe on the rows
- * scrolls it alone and leaves the header where it was.
- */
-const ROWS_SCROLL_WITHOUT_HEADER =
-  "the row area scrolls sideways on its own, without the header";
 
 interface Row {
   id: string;
@@ -103,6 +96,18 @@ async function expectWithinPage(page: Page, locator: Locator): Promise<void> {
   const width = await page.evaluate(() => document.documentElement.clientWidth);
   expect(box.x).toBeGreaterThanOrEqual(0);
   expect(box.x + box.width).toBeLessThanOrEqual(width);
+}
+
+/**
+ * How far `cell` sits from `header` sideways. A swipe can fling on after
+ * the finger lifts, so a test polls this rather than comparing one cell's
+ * position with the header's taken earlier.
+ */
+async function offsetFromHeader(
+  cell: Locator,
+  header: Locator,
+): Promise<number> {
+  return (await boxOf(cell)).x - (await boxOf(header)).x;
 }
 
 function scrollLeftOf(locator: Locator): Promise<number> {
@@ -218,13 +223,37 @@ test.describe("touch", { tag: "@touch" }, () => {
   }) => {
     test.skip(!canDriveTouch(browserName), TOUCH_DRAG_UNAVAILABLE);
     const root = await mountGrid(mount, grid(), { width: 360 });
-    test.fixme(true, ROWS_SCROLL_WITHOUT_HEADER);
     const cell = bodyCell(root, 2, 2);
     const from = await centerOf(cell);
     await touchDrag(page, from, { x: from.x - 150, y: from.y });
     await expect
+      .poll(() => offsetFromHeader(cell, header(root, "City")))
+      .toBeCloseTo(0, 2);
+  });
+
+  test("dragging the rows of a right-to-left grid with a height sideways keeps the header in line with them", async ({
+    mount,
+    page,
+    browserName,
+  }) => {
+    test.skip(!canDriveTouch(browserName), TOUCH_DRAG_UNAVAILABLE);
+    const root = await mountGrid(
+      mount,
+      <RightToLeft>{grid({ height: 200 })}</RightToLeft>,
+      { width: 360 },
+    );
+    const cell = bodyCell(root, 2, 2);
+    const before = await boxOf(cell);
+    const from = await centerOf(cell);
+    // The columns past the visible ones lie to the left, so the finger
+    // moves right to bring them in.
+    await touchDrag(page, from, { x: from.x + 150, y: from.y });
+    await expect
       .poll(async () => (await boxOf(cell)).x)
-      .toBeCloseTo((await boxOf(header(root, "City"))).x, 0);
+      .toBeGreaterThan(before.x);
+    await expect
+      .poll(() => offsetFromHeader(cell, header(root, "City")))
+      .toBeCloseTo(0, 2);
   });
 
   test("dragging a header that does not reorder scrolls the grid sideways", async ({
@@ -234,10 +263,10 @@ test.describe("touch", { tag: "@touch" }, () => {
   }) => {
     test.skip(!canDriveTouch(browserName), TOUCH_DRAG_UNAVAILABLE);
     const root = await mountGrid(mount, grid(), { width: 360 });
-    const viewport = root.locator(".gridkit-data-grid-viewport");
+    const tables = root.locator(".gridkit-data-grid-tables");
     const from = await centerOf(header(root, "City"));
     await touchDrag(page, from, { x: from.x - 150, y: from.y });
-    await expect.poll(() => scrollLeftOf(viewport)).toBeGreaterThan(0);
+    await expect.poll(() => scrollLeftOf(tables)).toBeGreaterThan(0);
   });
 
   test("dragging a reorderable header moves its column rather than scrolling", async ({
@@ -249,12 +278,12 @@ test.describe("touch", { tag: "@touch" }, () => {
     const root = await mountGrid(mount, grid({ reorderableColumns: true }), {
       width: 360,
     });
-    const viewport = root.locator(".gridkit-data-grid-viewport");
+    const tables = root.locator(".gridkit-data-grid-tables");
     const from = await centerOf(header(root, "Name"));
     const to = await centerOf(header(root, "Id"));
     await touchDrag(page, from, { x: to.x - 20, y: to.y });
     await expect(root.locator("thead th").first()).toHaveAccessibleName("Name");
-    expect(await scrollLeftOf(viewport)).toBe(0);
+    expect(await scrollLeftOf(tables)).toBe(0);
   });
 
   test("a column resizes by dragging its edge, which is wide enough for a finger", async ({

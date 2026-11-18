@@ -30,7 +30,7 @@ Without Tailwind, install [`@gridkitjs/theme-css`](/docs/theme-css) instead: thi
 
 The stylesheet targets the class names `@gridkitjs/react` renders and nothing else. Every one starts with `gridkit-`, so no rule reaches an element outside the grid; a state is an `is-*` class beside one of them, such as `.gridkit-grid-row.is-selected`. [Class names](/docs/theme-tailwind/class-names) lists every class, state class and `data-gridkit-*` attribute, grouped by part of the grid, with what each one marks.
 
-The grid is a set of siblings rather than one table, so the header and footer never scroll with the rows: `div.gridkit-data-grid-viewport` is the root, and each of the header's, rows' and footer's tables is a `.gridkit-data-grid`.
+The grid is a set of sibling tables rather than one: `div.gridkit-data-grid-viewport` is the root, each of the header's, rows' and footer's tables is a `.gridkit-data-grid`, and all three scroll in `div.gridkit-data-grid-tables`, with the header and footer stuck to its top and bottom.
 
 ## Overlays and menus
 
@@ -40,14 +40,14 @@ Because an overlay sits outside the grid, it takes its colours from the tokens o
 
 ## Scrollbars
 
-The viewport, the row area, the menus, the column chooser list and the filter checklist show thin scrollbars (`scrollbar-width: thin`) whose thumb is `--gridkit-scrollbar-thumb`, by default `--gridkit-fg-muted` at 45%, on a transparent track, so they follow light and dark with the other tokens. Engines without `scrollbar-color` get an 8px rounded `::-webkit-scrollbar` equivalent. Only the grid's own elements are styled, never `html` or `body`. To recolour the thumb, override the token's light and dark pair; to change the rest, set `scrollbar-width` or `scrollbar-color` on any of those classes.
+The viewport, the tables' scroll area, the menus, the column chooser list and the filter checklist show thin scrollbars (`scrollbar-width: thin`) whose thumb is `--gridkit-scrollbar-thumb`, by default `--gridkit-fg-muted` at 45%, on a transparent track, so they follow light and dark with the other tokens. Engines without `scrollbar-color` get an 8px rounded `::-webkit-scrollbar` equivalent. Only the grid's own elements are styled, never `html` or `body`. To recolour the thumb, override the token's light and dark pair; to change the rest, set `scrollbar-width` or `scrollbar-color` on any of those classes.
 
 ## Printing
 
 An `@media print` block makes the browser's own print of the page — <Kbd>Ctrl</Kbd>+<Kbd>P</Kbd>, or <Kbd>Cmd</Kbd>+<Kbd>P</Kbd> on a Mac — read as a plain table. Inside `.gridkit-data-grid-viewport`, it:
 
 - hides the toolbar, the group-by bar, the built-in pager and the resize handles;
-- drops a `height` bound and the inner scrolling, so every row the grid has drawn flows onto as many pages as it takes;
+- drops a `height` bound, the inner scrolling and the sticking header and footer, so every row the grid has drawn flows onto as many pages as it takes, with the footer after the last;
 - drops the focus ring;
 - prints the header's and selected rows' shading as it is (`print-color-adjust: exact`) rather than dropping it to save ink;
 - keeps each row whole rather than splitting it across two pages.

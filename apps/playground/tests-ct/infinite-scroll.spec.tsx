@@ -28,7 +28,7 @@ const columns: readonly ColumnDefinition<Row>[] = [
 ];
 
 function gridBody(root: MountResult) {
-  return root.locator(".gridkit-data-grid-body");
+  return root.locator(".gridkit-data-grid-tables");
 }
 
 function scrollToBottom(body: ReturnType<typeof gridBody>): Promise<void> {

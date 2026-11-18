@@ -727,18 +727,18 @@ test.describe("DataGrid toolbar", () => {
     const root = await mountGrid(mount, <ToolbarGrid resizeMode="fixed" />, {
       width: 240,
     });
-    const viewport = root.locator(".gridkit-data-grid-viewport");
+    const tables = root.locator(".gridkit-data-grid-tables");
 
-    await viewport.evaluate((element) => {
+    await tables.evaluate((element) => {
       element.scrollLeft = 100;
     });
 
-    expect(await viewport.evaluate((element) => element.scrollLeft)).toBe(100);
-    const [toolbarBox, viewportBox] = await Promise.all([
+    expect(await tables.evaluate((element) => element.scrollLeft)).toBe(100);
+    const [toolbarBox, tablesBox] = await Promise.all([
       gridToolbar(root).boundingBox(),
-      viewport.boundingBox(),
+      tables.boundingBox(),
     ]);
-    expect(toolbarBox?.x).toBe(viewportBox?.x);
+    expect(toolbarBox?.x).toBe(tablesBox?.x);
   });
 });
 

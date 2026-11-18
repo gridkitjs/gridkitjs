@@ -1,9 +1,9 @@
 ---
 title: "Observers and virtualizer"
-description: "observeElementWidth, createRowVirtualizer and attachInfiniteScroll: the observers behind fit-to-width, row virtualization and infinite scroll."
+description: "observeElementWidth, observeElementHeight, createRowVirtualizer and attachInfiniteScroll: the observers behind layout, virtualization and infinite scroll."
 ---
 
-Three behaviours that watch the page's layout and report what it means for the grid: `observeElementWidth` reports the width `resizeMode: "fit"` fills, `createRowVirtualizer` the window of rows near the scroll position, and `attachInfiniteScroll` the moment the next load should start. Each owns its observers and listeners, and stops with the function or object it returns.
+Four behaviours that watch the page's layout and report what it means for the grid: `observeElementWidth` reports the width `resizeMode: "fit"` fills, `observeElementHeight` the height of a header or footer stuck over the rows, `createRowVirtualizer` the window of rows near the scroll position, and `attachInfiniteScroll` the moment the next load should start. Each owns its observers and listeners, and stops with the function or object it returns.
 
 ## Element width
 
@@ -12,14 +12,26 @@ Three behaviours that watch the page's layout and report what it means for the g
 ```ts
 import { observeElementWidth } from "@gridkitjs/dom";
 
-const disconnect = observeElementWidth(viewportElement, (width) => {
+const disconnect = observeElementWidth(scrollElement, (width) => {
   controller.setOptions({ ...options, viewportWidth: width });
+});
+```
+
+## Element height
+
+`observeElementHeight(element, onHeight)` reports `element`'s height straight away and again whenever it changes, and returns the function that stops it. It reads `getBoundingClientRect().height`, unrounded. `DataGrid` uses it on the header and footer tables, which stick to the top and bottom of the scrolling element: it grows that element by both, so `height` is the rows' alone, and gives the rows a `scroll-margin` of both, so a row scrolled into view lands clear of them.
+
+```ts
+import { observeElementHeight } from "@gridkitjs/dom";
+
+const disconnect = observeElementHeight(headerTable, (height) => {
+  scrollElement.style.setProperty("--header-height", `${String(height)}px`);
 });
 ```
 
 ## Row virtualizer
 
-`createRowVirtualizer(scrollElement, { estimatedRowHeight, overscan, onRange })` windows a long list of rows inside a scrolling element down to those near its scroll position. It measures each rendered row's real height — rows need not be uniform — and reports the window to render through `onRange({ startIndex, endIndex, offsetBefore, offsetAfter })`, with `offsetBefore`/`offsetAfter` the heights of the spacers that stand in for the rows outside it. It reports only when the window moves.
+`createRowVirtualizer(scrollElement, { estimatedRowHeight, overscan, onRange })` windows a long list of rows inside a scrolling element down to those near its scroll position. The rows start at the top of the element's content, or straight after a header that sticks to its top: the element's scroll position is then the rows' own, and the window covers the header's height in extra rows. It measures each rendered row's real height — rows need not be uniform — and reports the window to render through `onRange({ startIndex, endIndex, offsetBefore, offsetAfter })`, with `offsetBefore`/`offsetAfter` the heights of the spacers that stand in for the rows outside it. It reports only when the window moves.
 
 | Member                          | Description                                                                                                                                                                                                                   |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -33,7 +45,7 @@ const disconnect = observeElementWidth(viewportElement, (width) => {
 ```ts
 import { createRowVirtualizer } from "@gridkitjs/dom";
 
-const virtualizer = createRowVirtualizer(bodyElement, {
+const virtualizer = createRowVirtualizer(scrollElement, {
   estimatedRowHeight: 40,
   overscan: 4,
   onRange: (range) => drawRows(range), // rows startIndex..endIndex, between two spacers
@@ -55,7 +67,7 @@ The arithmetic is `visibleRange` from `@gridkitjs/core/renderer`; this owns the 
 ```ts
 import { attachInfiniteScroll } from "@gridkitjs/dom";
 
-const scroll = attachInfiniteScroll(bodyElement, {
+const scroll = attachInfiniteScroll(scrollElement, {
   sentinel: lastRow,
   hasMore: true,
   onLoadMore: () => fetchNextPage(),

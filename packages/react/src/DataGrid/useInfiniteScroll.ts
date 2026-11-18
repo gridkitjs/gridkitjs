@@ -3,7 +3,7 @@ import { attachInfiniteScroll, type InfiniteScroll } from "@gridkitjs/dom";
 import type { InfiniteScrollConfig } from "./DataGrid";
 
 interface UseInfiniteScrollOptions {
-  /** The `.gridkit-data-grid-body` scroll wrapper. */
+  /** The `.gridkit-data-grid-tables` scroll area the rows scroll in. */
   rootRef: RefObject<HTMLDivElement | null>;
   /** The always-last `<tr>` `GridBody` renders while `config?.hasMore` is true. */
   sentinelRef: RefObject<HTMLTableRowElement | null>;
@@ -11,7 +11,7 @@ interface UseInfiniteScrollOptions {
 }
 
 /**
- * `@gridkitjs/dom`'s `attachInfiniteScroll` on the body, idle until the
+ * `@gridkitjs/dom`'s `attachInfiniteScroll` on the scroll area, idle until the
  * effect below hands it the props. That runs after every commit: the
  * sentinel row mounts and unmounts with `hasMore`, so only after a commit is
  * `sentinelRef` current, and an update that changes nothing does nothing.

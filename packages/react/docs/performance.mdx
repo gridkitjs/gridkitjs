@@ -170,7 +170,7 @@ The React DevTools Profiler, with "Highlight updates when components render" tur
 | -------------------- | ------------------------------------- | -------------- | ----------------------------------------------------------------- |
 | `getRowId`           | `(row: Row, index: number) => string` | `row position` | A row's stable id: the key its element and its selection follow.  |
 | `virtualized`        | `boolean`                             | `false`        | Mounts only the rows near the scroll position. Requires `height`. |
-| `height`             | `number \| string`                    |                | Bounds the row area, which then scrolls on its own.               |
+| `height`             | `number \| string`                    |                | Bounds the row area's height, which the rows then scroll in.      |
 | `overscan`           | `number`                              | `4`            | Rows mounted beyond each edge of the visible area.                |
 | `estimatedRowHeight` | `number`                              | `40`           | The height assumed for a row not yet measured.                    |
 | `paginated`          | `boolean`                             | `false`        | Shows one page of rows at a time.                                 |
