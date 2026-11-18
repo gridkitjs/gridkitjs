@@ -19,9 +19,9 @@ import {
   toggleGroupExpansion as toggledGroupExpansion,
 } from "../util/grouping";
 import { memoizeLast } from "../util/memoize";
-import { moveColumnBefore } from "../util/ordering";
+import { moveColumnInPinGroup } from "../util/ordering";
 import { paginateRows, type PaginatedRows } from "../util/paging";
-import { setColumnPin } from "../util/pinning";
+import { resolveColumnPin, setColumnPin } from "../util/pinning";
 import { reportError } from "../util/report";
 import { NO_CELL_SELECTED } from "../util/selection";
 import {
@@ -650,13 +650,25 @@ export function createGridController<Row, Node = string>(
       });
     },
     /**
-     * Applied to every id in display order rather than to the stored order,
+     * Applied to every id in column order rather than to the stored order,
      * which starts empty and may name only some columns, so would have
      * nothing to rearrange.
      */
     moveColumn(columnId, beforeId) {
-      const orderedIds = getView().dataColumns.map((entry) => entry.id);
-      const next = moveColumnBefore(orderedIds, columnId, beforeId);
+      const { dataColumns } = getView();
+      const orderedIds = dataColumns.map((entry) => entry.id);
+      const pins = new Map(
+        dataColumns.map((entry) => [
+          entry.id,
+          resolveColumnPin(entry.column, state.columnPinning),
+        ]),
+      );
+      const next = moveColumnInPinGroup(
+        orderedIds,
+        (id) => pins.get(id) ?? "none",
+        columnId,
+        beforeId,
+      );
       if (next === orderedIds) {
         return;
       }

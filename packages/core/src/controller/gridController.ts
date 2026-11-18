@@ -168,8 +168,10 @@ export interface GridController<Row, Node = string> {
   readonly setColumnOrder: (order: ColumnOrderState) => void;
   /**
    * Moves a column in front of `beforeId`, or to the end when that is
-   * `null`, among every column — hidden ones keep their place. A move that
-   * changes nothing reports nothing.
+   * `null`, among every column — hidden ones keep their place. The column
+   * stays among those pinned to the same edge, or the unpinned ones: a
+   * `beforeId` in an earlier group moves it to the start of its own, and one
+   * in a later group to its end. A move that changes nothing reports nothing.
    */
   readonly moveColumn: (columnId: string, beforeId: string | null) => void;
 

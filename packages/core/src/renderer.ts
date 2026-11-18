@@ -21,6 +21,7 @@ export { buildKeyShortcuts } from "./util/grid";
 export type { NavigationModifiers } from "./util/navigation";
 export { clampFocus, nextFocusForKey } from "./util/navigation";
 export {
+  moveColumnInPinGroup,
   movesColumn,
   resolveDropBefore,
   resolveKeyboardDropTarget,

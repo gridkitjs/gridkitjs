@@ -945,6 +945,26 @@ describe("createGridController: pinning", () => {
     ]);
   });
 
+  test("moveColumn keeps a column inside its pin group, and a move held at its edge reports nothing", () => {
+    const onColumnOrderChange = vi.fn<(event: ColumnOrderEvent) => void>();
+    const controller = create({
+      defaultColumnPinning: { Id: "start" },
+      onColumnOrderChange,
+    });
+
+    controller.moveColumn("Amount", "Id");
+    controller.moveColumn("Amount", "Id");
+
+    expect(onColumnOrderChange.mock.calls).toEqual([
+      [{ columnId: "Amount", order: ["Id", "Amount", "Region"] }],
+    ]);
+    expect(controller.getView().columns.map((entry) => entry.id)).toEqual([
+      "Id",
+      "Amount",
+      "Region",
+    ]);
+  });
+
   test("starts from defaultColumnPinning", () => {
     const controller = create({ defaultColumnPinning: { Region: "end" } });
 
