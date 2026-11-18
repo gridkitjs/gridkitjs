@@ -346,12 +346,13 @@ export function createGridFocus(
         // a click.
         const moving = cell.ownerDocument.activeElement !== cell;
         cell.focus();
-        if (moving && drawn.area === "body") {
-          // Firefox leaves a cell that focus finds partly in view where it
-          // is, which can be under a header or footer stuck over the rows;
-          // "nearest", with the scroll margin a renderer gives its rows for
-          // them, brings it wholly into view, and is a no-op for a cell
-          // focus already did.
+        if (moving) {
+          // A browser leaves a cell that focus finds partly in view where it
+          // is, which can be under a header or footer stuck over the rows or
+          // a pinned column stuck over the others (Firefox for body cells,
+          // Chromium and WebKit for header cells). "nearest", with the
+          // scroll margin a renderer gives its cells for them, brings it
+          // wholly into view, and is a no-op for a cell focus already did.
           cell.scrollIntoView({ block: "nearest", inline: "nearest" });
         }
         return;

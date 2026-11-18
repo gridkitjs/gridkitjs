@@ -8,6 +8,7 @@ import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
 import PinnedColumnsGrid from "./support/PinnedColumnsGrid";
 import RightToLeft from "./support/RightToLeft";
+import { isUncovered } from "./support/uncovered";
 
 interface Clip {
   x: number;
@@ -746,4 +747,99 @@ test.describe("pinning at run time", () => {
       expect(hits.end).toBe("c7");
     }
   });
+});
+
+test.describe("keyboard focus", () => {
+  const COLUMN_IDS = ["team", "c1", "c2", "c3", "c4", "c5", "c6", "c7"];
+
+  /** The focused cell's column, and whether any of it is covered. */
+  async function focusedCell(
+    page: Page,
+  ): Promise<{ column: string | null; uncovered: boolean }> {
+    const cell = page.locator(":focus");
+    return {
+      column: await cell.getAttribute("data-gridkit-column"),
+      uncovered: await isUncovered(cell),
+    };
+  }
+
+  async function expectFocusClear(page: Page, column: string): Promise<void> {
+    await expect
+      .poll(() => focusedCell(page))
+      .toEqual({ column, uncovered: true });
+  }
+
+  /** Mounts `PinnedColumnsGrid` and tabs to its header's first cell. */
+  async function tabIntoGrid(
+    mount: Parameters<typeof mountGrid>[0],
+    page: Page,
+    dir: "ltr" | "rtl",
+  ): Promise<{ area: Locator; forward: string; back: string }> {
+    const grid = <PinnedColumnsGrid height={300} />;
+    const root = await mountGrid(
+      mount,
+      dir === "rtl" ? <RightToLeft>{grid}</RightToLeft> : grid,
+    );
+    await page.keyboard.press("Tab");
+    await expectFocusClear(page, "team");
+    return {
+      area: scrollArea(root),
+      forward: dir === "rtl" ? "ArrowLeft" : "ArrowRight",
+      back: dir === "rtl" ? "ArrowRight" : "ArrowLeft",
+    };
+  }
+
+  for (const dir of ["ltr", "rtl"] as const) {
+    test(`keeps the focused cell clear of the pinned columns, arrowing across the header and a row and back, ${dir}`, async ({
+      mount,
+      page,
+    }) => {
+      const { area, forward, back } = await tabIntoGrid(mount, page, dir);
+
+      for (const row of ["header", "body"]) {
+        if (row === "body") {
+          await page.keyboard.press("ArrowDown");
+          await expectFocusClear(page, "team");
+        }
+        for (const column of COLUMN_IDS.slice(1)) {
+          await page.keyboard.press(forward);
+          await expectFocusClear(page, column);
+        }
+        expect(
+          await area.evaluate((element) => Math.abs(element.scrollLeft)),
+        ).toBeGreaterThan(0);
+        for (const column of COLUMN_IDS.slice(0, -1).reverse()) {
+          await page.keyboard.press(back);
+          await expectFocusClear(page, column);
+        }
+      }
+    });
+
+    test(`Home, End and Ctrl+Home onto pinned cells leave the scroll position, ${dir}`, async ({
+      mount,
+      page,
+    }) => {
+      const { area, forward } = await tabIntoGrid(mount, page, dir);
+      await page.keyboard.press("ArrowDown");
+      for (const column of COLUMN_IDS.slice(1, 5)) {
+        await page.keyboard.press(forward);
+        await expectFocusClear(page, column);
+      }
+      const scrolled = await area.evaluate((element) => element.scrollLeft);
+      expect(scrolled).not.toBe(0);
+
+      for (const [key, column] of [
+        ["Home", "team"],
+        ["End", "c7"],
+        ["Control+Home", "team"],
+      ] as const) {
+        await page.keyboard.press(key);
+        await expectFocusClear(page, column);
+        expect(await area.evaluate((element) => element.scrollLeft)).toBe(
+          scrolled,
+        );
+      }
+      await expect(page.locator(":focus")).toHaveClass(/gridkit-header-cell/);
+    });
+  }
 });

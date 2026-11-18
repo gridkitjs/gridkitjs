@@ -1363,6 +1363,22 @@
   }
 
   /*
+   * Keeps a cell that keyboard focus or `scrollToColumn` scrolls into view
+   * clear of the pinned columns at both edges. A margin on the scrolling
+   * cells rather than padding on the scroll area: a pinned cell, stuck in
+   * that padding, would scroll the area to make room when focused, as the
+   * header would for `scroll-margin-block` above.
+   */
+  .gridkit-data-grid
+    :is(.gridkit-header-cell, .gridkit-grid-cell):not(
+      .is-pinned-start,
+      .is-pinned-end
+    ) {
+    scroll-margin-inline: var(--gridkit-pinned-start-width, 0px)
+      var(--gridkit-pinned-end-width, 0px);
+  }
+
+  /*
    * Opaque in every row state, without restating a row rule. The cell takes
    * its row's colour, at no specificity, so a cell's own hover or selection
    * wins over it. A sticky cell is a stacking context, so its negative-z
