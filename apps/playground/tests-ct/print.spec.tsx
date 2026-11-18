@@ -391,19 +391,38 @@ test.describe("the theme's print media styles", () => {
         defaultPagination={{ pageIndex: 0, pageSize: 20 }}
       />,
     );
-    const body = root.locator(".gridkit-data-grid-body");
-    await expect(body).toHaveCSS("height", "120px");
+    const tables = root.locator(".gridkit-data-grid-tables");
+    const rowsInView = () =>
+      tables.evaluate(
+        (element) =>
+          element.clientHeight -
+          (element
+            .querySelector(".gridkit-data-grid-header")
+            ?.getBoundingClientRect().height ?? 0),
+      );
+    await expect.poll(rowsInView).toBeCloseTo(120, 0);
 
     await page.emulateMedia({ media: "print" });
 
     await expect(root.locator(".gridkit-toolbar")).toBeHidden();
     await expect(root.locator(".gridkit-grid-pager")).toBeHidden();
-    await expect(body).toHaveCSS("overflow-y", "visible");
-    const heights = await body.evaluate((element) => ({
-      body: element.getBoundingClientRect().height,
-      rows: element.querySelector("table")?.getBoundingClientRect().height,
+    await expect(tables).toHaveCSS("overflow-y", "visible");
+    await expect(root.locator(".gridkit-data-grid-header")).toHaveCSS(
+      "position",
+      "static",
+    );
+    const heights = await tables.evaluate((element) => ({
+      tables: element.getBoundingClientRect().height,
+      header:
+        element
+          .querySelector(".gridkit-data-grid-header")
+          ?.getBoundingClientRect().height ?? 0,
+      rows:
+        element
+          .querySelector(".gridkit-data-grid-body table")
+          ?.getBoundingClientRect().height ?? 0,
     }));
-    expect(heights.body).toBeGreaterThan(120);
-    expect(heights.body).toBeCloseTo(heights.rows ?? 0, 0);
+    expect(heights.rows).toBeGreaterThan(120);
+    expect(heights.tables).toBeCloseTo(heights.header + heights.rows, 0);
   });
 });

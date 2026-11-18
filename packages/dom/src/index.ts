@@ -45,6 +45,7 @@ export {
   type ColumnDropTarget,
   type GroupByDropTarget,
 } from "./dropTargets";
+export { observeElementHeight } from "./elementHeight";
 export { observeElementWidth } from "./elementWidth";
 export {
   createGridFocus,

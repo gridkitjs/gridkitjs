@@ -144,11 +144,11 @@ test.describe("column chooser", () => {
     page,
   }) => {
     const root = await mountGrid(mount, narrowGrid, { width: 260 });
-    const viewport = root.locator(".gridkit-data-grid-viewport");
-    await viewport.evaluate((element) => {
+    const tables = root.locator(".gridkit-data-grid-tables");
+    await tables.evaluate((element) => {
       element.scrollLeft = element.scrollWidth;
     });
-    expect(await viewport.evaluate((element) => element.scrollLeft)).toBe(60);
+    expect(await tables.evaluate((element) => element.scrollLeft)).toBe(60);
     const chooser = await openFromToolbar(root, page);
 
     // The tables become narrower than the grid, which scrolls back to 0.
@@ -156,7 +156,7 @@ test.describe("column chooser", () => {
 
     await expect(header(root, "Score")).toHaveCount(0);
     await expect
-      .poll(() => viewport.evaluate((element) => element.scrollLeft))
+      .poll(() => tables.evaluate((element) => element.scrollLeft))
       .toBe(0);
     // From the keyboard: WebKit, as Safari does, leaves a clicked checkbox
     // without focus.
@@ -185,7 +185,7 @@ test.describe("column chooser", () => {
         }),
     );
 
-    await root.locator(".gridkit-data-grid-viewport").evaluate((element) => {
+    await root.locator(".gridkit-data-grid-tables").evaluate((element) => {
       element.scrollLeft = 20;
     });
 

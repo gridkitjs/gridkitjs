@@ -72,11 +72,11 @@ async function scrollByHandUntilMounted(
   );
 }
 
-/** How far below the top of the grid body `row` sits. */
+/** How far below the top of the grid's scroll area `row` sits. */
 function offsetInBody(row: Locator): Promise<number> {
   return row.evaluate((element) => {
-    const scroller = element.closest(".gridkit-data-grid-body");
-    if (scroller === null) throw new Error("row outside the body");
+    const scroller = element.closest(".gridkit-data-grid-tables");
+    if (scroller === null) throw new Error("row outside the scroll area");
     return (
       element.getBoundingClientRect().top - scroller.getBoundingClientRect().top
     );
@@ -124,7 +124,7 @@ test.describe("row virtualization", () => {
     await expect(root.getByText("Row 0", { exact: true })).toBeVisible();
     await expect(root.getByText("Row 999", { exact: true })).not.toBeAttached();
 
-    const body = root.locator(".gridkit-data-grid-body");
+    const body = root.locator(".gridkit-data-grid-tables");
     await body.evaluate((element) => {
       element.scrollTop = element.scrollHeight;
     });
@@ -175,7 +175,7 @@ test.describe("row virtualization", () => {
     // Scrolled by hand towards row 800 until it mounts in the overscan below
     // the viewport. Scrolled to as the first call asked, it would sit at the
     // top instead.
-    const body = root.locator(".gridkit-data-grid-body");
+    const body = root.locator(".gridkit-data-grid-tables");
     const row800 = root.locator('tbody tr[data-gridkit-row-index="800"]');
     await scrollByHandUntilMounted(body, row800);
     expect(await offsetInBody(row800)).toBeGreaterThan(100);
@@ -199,13 +199,13 @@ test.describe("row virtualization", () => {
 
     // Scrolled back to the top in the same task, before row 800's place can
     // mount, as the user scrolling away before the far rows draw would.
-    const body = root.locator(".gridkit-data-grid-body");
+    const body = root.locator(".gridkit-data-grid-tables");
     await root
       .getByRole("button", { name: "scroll-then-sort" })
       .evaluate((button: HTMLElement) => {
         button.click();
-        const scroller = document.querySelector(".gridkit-data-grid-body");
-        if (scroller === null) throw new Error("no grid body");
+        const scroller = document.querySelector(".gridkit-data-grid-tables");
+        if (scroller === null) throw new Error("no scroll area");
         scroller.scrollTop = 0;
       });
     await expect(
@@ -450,7 +450,7 @@ test.describe("row virtualization", () => {
     const indexes = await ariaRowIndexes(root);
     expect(indexes).toEqual(consecutive(1, indexes.length));
 
-    const body = root.locator(".gridkit-data-grid-body");
+    const body = root.locator(".gridkit-data-grid-tables");
     await body.evaluate((element) => {
       element.scrollTop = element.scrollHeight;
     });
@@ -483,7 +483,7 @@ test.describe("row virtualization", () => {
     await page.addStyleTag({
       content: `:root { --gridkit-row-stripe-bg-light: ${stripe}; --gridkit-row-stripe-bg-dark: ${stripe}; }`,
     });
-    const body = root.locator(".gridkit-data-grid-body");
+    const body = root.locator(".gridkit-data-grid-tables");
     const firstIndexes = new Set<number>();
 
     // Row by row, so the mounted window starts on an even index as well as
@@ -541,7 +541,7 @@ test.describe("row virtualization", () => {
       );
     }
     const root = await mountGrid(mount, grid(true));
-    const body = root.locator(".gridkit-data-grid-body");
+    const body = root.locator(".gridkit-data-grid-tables");
     const tabStop = root.locator('[tabindex="0"]');
     const tabStopRow = () =>
       tabStop.evaluate((cell) =>
@@ -626,7 +626,7 @@ test.describe("row virtualization", () => {
 
     // The rows drawn last while virtualized are the bottom ones, far from the
     // focused cell once virtualization is off and it is back in view.
-    const body = root.locator(".gridkit-data-grid-body");
+    const body = root.locator(".gridkit-data-grid-tables");
     await body.evaluate((element) => {
       element.scrollTop = element.scrollHeight;
     });
@@ -666,7 +666,7 @@ test.describe("row virtualization", () => {
       );
     }
     const root = await mountGrid(mount, grid(false));
-    const body = root.locator(".gridkit-data-grid-body");
+    const body = root.locator(".gridkit-data-grid-tables");
     await body.evaluate((element) => {
       element.scrollTop = element.scrollHeight * 0.7;
     });

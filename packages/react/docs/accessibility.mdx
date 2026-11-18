@@ -28,15 +28,15 @@ Your part: give every grid an accessible name with `label` or `labelledBy` (with
 
 The grid is drawn with `<table>` elements for layout, but its semantics are ARIA's alone. Each `<table>` is `role="presentation"`, and every part inside carries its role explicitly, so the rows belong to the `grid` or `treegrid` element rather than to a native table:
 
-| Element                        | Role                 | Notes                                                                                                                 |
-| ------------------------------ | -------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `div.gridkit-data-grid-tables` | `grid` or `treegrid` | `treegrid` while `groupBy` is non-empty. Carries the label, `aria-rowcount` and `aria-colcount`.                      |
-| `<table>`                      | `presentation`       | The header, body and grand-total footer tables. Not exposed as tables.                                                |
-| `<thead>`, `<tfoot>`           | `rowgroup`           | The header's and the grand-total footer's rows.                                                                       |
-| `div.gridkit-data-grid-body`   | `rowgroup`           | The body's rows. The element that scrolls under `height`, around the body's table, whose `<tbody>` is `presentation`. |
-| `<tr>`                         | `row`                | Header, data, group header, group summary and footer rows alike. Spacer and loading rows are `aria-hidden`.           |
-| `<th>`                         | `columnheader`       | Headers relate to cells by their shared `aria-colindex`, not by native table association.                             |
-| `<td>`                         | `gridcell`           | A group header row has one, spanning every column.                                                                    |
+| Element                        | Role                 | Notes                                                                                                                      |
+| ------------------------------ | -------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `div.gridkit-data-grid-tables` | `grid` or `treegrid` | `treegrid` while `groupBy` is non-empty. Carries the label, `aria-rowcount` and `aria-colcount`. The element that scrolls. |
+| `<table>`                      | `presentation`       | The header, body and grand-total footer tables. Not exposed as tables.                                                     |
+| `<thead>`, `<tfoot>`           | `rowgroup`           | The header's and the grand-total footer's rows.                                                                            |
+| `div.gridkit-data-grid-body`   | `rowgroup`           | The body's rows, around the body's table, whose `<tbody>` is `presentation`.                                               |
+| `<tr>`                         | `row`                | Header, data, group header, group summary and footer rows alike. Spacer and loading rows are `aria-hidden`.                |
+| `<th>`                         | `columnheader`       | Headers relate to cells by their shared `aria-colindex`, not by native table association.                                  |
+| `<td>`                         | `gridcell`           | A group header row has one, spanning every column.                                                                         |
 
 Because a group header is a `row` owned by a `treegrid`, its `aria-level`, `aria-expanded`, `aria-posinset` and `aria-setsize` are permitted there, and so are a data row's `aria-level`, `aria-posinset` and `aria-setsize` beneath it. In a test, find the grid with `getByRole("grid")` or `getByRole("treegrid")`, not `getByRole("table")`.
 

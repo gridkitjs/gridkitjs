@@ -25,8 +25,11 @@ interface UseRowVirtualizerOptions {
   enabled: boolean;
   /** The full row array — only its `.length` and reference identity matter here; a new reference resets the measured heights (see below). */
   rows: readonly unknown[];
-  /** The `.gridkit-data-grid-body` scroll wrapper. */
-  bodyScrollRef: RefObject<HTMLDivElement | null>;
+  /**
+   * The `.gridkit-data-grid-tables` scroll area. The rows follow the header,
+   * which sticks to its top, so the area's scroll position is the rows' own.
+   */
+  scrollRef: RefObject<HTMLDivElement | null>;
   /** The body's `<table>`, whose mounted rows a new virtualizer measures before its first window. */
   bodyTableRef: RefObject<HTMLTableElement | null>;
   estimatedRowHeight: number;
@@ -80,7 +83,7 @@ function ignoreRow(): () => void {
 }
 
 /**
- * `@gridkitjs/dom`'s `createRowVirtualizer` on the body, with the window of
+ * `@gridkitjs/dom`'s `createRowVirtualizer` on the scroll area, with the window of
  * rows it reports held as state for `GridBody` to render. The virtualizer is
  * state too, because `measureRow` is read while rendering: a new one —
  * `estimatedRowHeight` or `overscan` changed — re-renders every row with its
@@ -93,9 +96,10 @@ function ignoreRow(): () => void {
  * it measures and scrolls nothing. The window goes back to every row, and
  * stays there when `enabled` comes back on until the new virtualizer
  * reports: the rows mounted then stay mounted, the focused one and the
- * browser's focus with it, and the body keeps its height, and so its scroll
- * position. An empty window, or the last one reported, would unmount them
- * for a pass, and could collapse the body and send its scroll to the top.
+ * browser's focus with it, and the body keeps its height, and so the scroll
+ * area its position. An empty window, or the last one reported, would
+ * unmount them for a pass, and could collapse the body and send the scroll
+ * area to the top.
  * The new virtualizer measures every mounted row before it reports, so its
  * first window is the rows on screen: one placed by `estimatedRowHeight`
  * could miss them when real heights differ from it, unmounting the focused
@@ -115,7 +119,7 @@ function ignoreRow(): () => void {
 export default function useRowVirtualizer({
   enabled,
   rows,
-  bodyScrollRef,
+  scrollRef,
   bodyTableRef,
   estimatedRowHeight,
   overscan,
@@ -138,7 +142,7 @@ export default function useRowVirtualizer({
   }, [rows]);
 
   useLayoutEffect(() => {
-    const element = bodyScrollRef.current;
+    const element = scrollRef.current;
     if (!enabled || element === null) {
       return undefined;
     }
@@ -158,7 +162,7 @@ export default function useRowVirtualizer({
     return () => {
       created.destroy();
     };
-  }, [enabled, bodyScrollRef, bodyTableRef, estimatedRowHeight, overscan]);
+  }, [enabled, scrollRef, bodyTableRef, estimatedRowHeight, overscan]);
 
   const range = rangeOf(rowWindow, rows.length);
   return {

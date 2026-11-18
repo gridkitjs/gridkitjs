@@ -83,8 +83,8 @@ function firstRowCells(root: MountResult) {
 /**
  * Every column whose header and first body and footer cells do not share
  * left and right edges, rounded to 1/100 px, plus every column whose header
- * centre, inside the viewport, does not land on its body cell: one the row
- * area cuts off under its header is out of line too.
+ * centre, inside the scroll area, does not land on its body cell: one cut
+ * off under its header is out of line too.
  */
 function misalignedColumns(root: MountResult): Promise<string[]> {
   return root.evaluate((element) => {
@@ -94,8 +94,8 @@ function misalignedColumns(root: MountResult): Promise<string[]> {
       const box = cell.getBoundingClientRect();
       return `${String(round(box.left))}-${String(round(box.right))}`;
     };
-    const viewport = element
-      .querySelector(".gridkit-data-grid-viewport")
+    const view = element
+      .querySelector(".gridkit-data-grid-tables")
       ?.getBoundingClientRect();
     const headers = Array.from(
       element.querySelectorAll(".gridkit-data-grid-header th"),
@@ -123,9 +123,9 @@ function misalignedColumns(root: MountResult): Promise<string[]> {
       const x = headerBox.left + headerBox.width / 2;
       if (
         body !== undefined &&
-        viewport !== undefined &&
-        x > viewport.left &&
-        x < viewport.right
+        view !== undefined &&
+        x > view.left &&
+        x < view.right
       ) {
         const bodyBox = body.getBoundingClientRect();
         const hit = document.elementFromPoint(
@@ -142,7 +142,7 @@ function misalignedColumns(root: MountResult): Promise<string[]> {
 }
 
 test.describe("scrollable layout", () => {
-  test("height bounds the body's own scroll area; the header and footer stay in place while it scrolls", async ({
+  test("height bounds the rows' scroll area; the header and footer stay in place while the rows scroll", async ({
     mount,
   }) => {
     const root = await mountGrid(
@@ -156,35 +156,45 @@ test.describe("scrollable layout", () => {
       />,
     );
 
-    const body = root.locator(".gridkit-data-grid-body");
+    const tables = root.locator(".gridkit-data-grid-tables");
     const header = root.locator(".gridkit-data-grid-header");
     const footer = root.locator(".gridkit-data-grid-footer");
     await expect(footer).toHaveCount(1);
 
-    // The body has more content than its bounded height allows — there's
+    // The rows have more content than their bounded height allows: there's
     // something to scroll through.
-    const overflows = await body.evaluate(
+    const overflows = await tables.evaluate(
       (element) => element.scrollHeight > element.clientHeight,
     );
     expect(overflows).toBe(true);
+    // `height` is the rows' alone: the area grows by the header and footer.
+    const [headerBox, footerBox] = await Promise.all([
+      header.boundingBox(),
+      footer.boundingBox(),
+    ]);
+    expect(
+      (await tables.evaluate((element) => element.clientHeight)) -
+        (headerBox?.height ?? 0) -
+        (footerBox?.height ?? 0),
+    ).toBeCloseTo(150, 0);
 
     const headerYBefore = (await header.boundingBox())?.y;
     const footerYBefore = (await footer.boundingBox())?.y;
 
-    await body.evaluate((element) => {
+    await tables.evaluate((element) => {
       element.scrollTop = element.scrollHeight;
     });
 
-    // Scrolling the body moved it, but the header and footer — siblings of
-    // the scrolling div, not descendants of it — never moved at all.
+    // The rows scrolled, but the header and footer, sticking to the scroll
+    // area's top and bottom, never moved at all.
     await expect
-      .poll(() => body.evaluate((element) => element.scrollTop))
+      .poll(() => tables.evaluate((element) => element.scrollTop))
       .toBeGreaterThan(0);
     expect((await header.boundingBox())?.y).toBe(headerYBefore);
     expect((await footer.boundingBox())?.y).toBe(footerYBefore);
   });
 
-  test("horizontal scroll on the viewport moves the header, body, and footer tables together, staying column-aligned", async ({
+  test("horizontal scroll on the grid's scroll area moves the header, body, and footer tables together, staying column-aligned", async ({
     mount,
   }) => {
     const wideColumns: readonly ColumnDefinition<Row>[] = [
@@ -204,18 +214,18 @@ test.describe("scrollable layout", () => {
       { width: 200 },
     );
 
-    const viewport = root.locator(".gridkit-data-grid-viewport");
+    const tables = root.locator(".gridkit-data-grid-tables");
     const headerCell = root.locator(".gridkit-data-grid-header th").nth(2);
     const bodyCell = root.locator("tbody tr").first().locator("td").nth(2);
     const footerCell = root.locator(".gridkit-data-grid-footer td").nth(2);
 
     const beforeX = (await headerCell.boundingBox())?.x;
 
-    await viewport.evaluate((element) => {
+    await tables.evaluate((element) => {
       element.scrollLeft = element.scrollWidth;
     });
     await expect
-      .poll(() => viewport.evaluate((element) => element.scrollLeft))
+      .poll(() => tables.evaluate((element) => element.scrollLeft))
       .toBeGreaterThan(0);
 
     const afterHeaderX = (await headerCell.boundingBox())?.x;
@@ -227,7 +237,7 @@ test.describe("scrollable layout", () => {
     expect(afterFooterX).toBe(afterHeaderX);
   });
 
-  test("scrollToRow scrolls within the grid's own height-bound body, not only a consumer-supplied ancestor", async ({
+  test("scrollToRow scrolls within the grid's own height-bound scroll area, not only a consumer-supplied ancestor", async ({
     mount,
   }) => {
     const root = await mountGrid(
@@ -240,16 +250,16 @@ test.describe("scrollable layout", () => {
         scrollRowId="row-39"
       />,
     );
-    const body = root.locator(".gridkit-data-grid-body");
-    await expect(body).toHaveJSProperty("scrollTop", 0);
+    const tables = root.locator(".gridkit-data-grid-tables");
+    await expect(tables).toHaveJSProperty("scrollTop", 0);
 
     await root.getByRole("button", { name: "scroll-to-row" }).click();
     await expect
-      .poll(() => body.evaluate((element) => element.scrollTop))
+      .poll(() => tables.evaluate((element) => element.scrollTop))
       .toBeGreaterThan(0);
   });
 
-  test("a grid with no height set has no internal scroll on its body — same layout as before this feature existed", async ({
+  test("a grid with no height set does not scroll up and down inside itself", async ({
     mount,
   }) => {
     const root = await mountGrid(
@@ -260,14 +270,14 @@ test.describe("scrollable layout", () => {
         label="No height"
       />,
     );
-    const body = root.locator(".gridkit-data-grid-body");
-    const overflows = await body.evaluate(
+    const tables = root.locator(".gridkit-data-grid-tables");
+    const overflows = await tables.evaluate(
       (element) => element.scrollHeight > element.clientHeight,
     );
     expect(overflows).toBe(false);
   });
 
-  test("Tab passes through a grid that scrolls both ways in one stop, its roving cell, and neither scroller", async ({
+  test("Tab passes through a grid that scrolls both ways in one stop, its roving cell, and not its scroll area", async ({
     mount,
     page,
   }) => {
@@ -285,17 +295,14 @@ test.describe("scrollable layout", () => {
         <button type="button">After</button>
       </div>,
     );
-    const body = root.locator(".gridkit-data-grid-body");
-    const viewport = root.locator(".gridkit-data-grid-viewport");
-    for (const scroller of [body, viewport]) {
-      expect(
-        await scroller.evaluate(
-          (element) =>
-            element.scrollHeight > element.clientHeight ||
-            element.scrollWidth > element.clientWidth,
-        ),
-      ).toBe(true);
-    }
+    const tables = root.locator(".gridkit-data-grid-tables");
+    expect(
+      await tables.evaluate(
+        (element) =>
+          element.scrollHeight > element.clientHeight &&
+          element.scrollWidth > element.clientWidth,
+      ),
+    ).toBe(true);
 
     await root.getByRole("button", { name: "Before" }).focus();
     await page.keyboard.press("Tab");
@@ -343,19 +350,19 @@ test.describe("scrollable layout", () => {
       expect(await misalignedColumns(root)).toEqual([]);
     });
 
-    test(`the viewport scrolled to its far end shows the rows under every header (${layout.name})`, async ({
+    test(`the grid scrolled sideways to its far end shows the rows under every header (${layout.name})`, async ({
       mount,
     }) => {
       const root = await wideGrid(mount, layout);
-      const viewport = root.locator(".gridkit-data-grid-viewport");
-      await viewport.evaluate((element) => {
+      const tables = root.locator(".gridkit-data-grid-tables");
+      await tables.evaluate((element) => {
         element.scrollLeft =
           getComputedStyle(element).direction === "rtl"
             ? -element.scrollWidth
             : element.scrollWidth;
       });
       await expect
-        .poll(() => viewport.evaluate((element) => element.scrollLeft))
+        .poll(() => tables.evaluate((element) => element.scrollLeft))
         .not.toBe(0);
       expect(await misalignedColumns(root)).toEqual([]);
     });
@@ -377,11 +384,105 @@ test.describe("scrollable layout", () => {
       />,
       { width: 300 },
     );
-    const viewport = root.locator(".gridkit-data-grid-viewport");
+    const tables = root.locator(".gridkit-data-grid-tables");
     await root.getByRole("button", { name: "scroll-to-column" }).click();
     await expect
-      .poll(() => viewport.evaluate((element) => element.scrollLeft))
+      .poll(() => tables.evaluate((element) => element.scrollLeft))
       .toBeGreaterThan(0);
     expect(await misalignedColumns(root)).toEqual([]);
   });
+
+  for (const layout of wideLayouts.filter(
+    (entry) => entry.height !== undefined,
+  )) {
+    test(`the rows' vertical scrollbar stays at the grid's visible inline-end edge, scrolled sideways anywhere (${layout.name})`, async ({
+      mount,
+    }) => {
+      const root = await wideGrid(mount, layout);
+      const tables = root.locator(".gridkit-data-grid-tables");
+      for (const fraction of [0, 0.5, 1]) {
+        await tables.evaluate((element, share) => {
+          const sign = getComputedStyle(element).direction === "rtl" ? -1 : 1;
+          element.scrollLeft =
+            sign * (element.scrollWidth - element.clientWidth) * share;
+        }, fraction);
+        const layoutNow = await root.evaluate((element) => {
+          const round = (value: number) => Math.round(value * 100) / 100;
+          const viewport = element.querySelector<HTMLElement>(
+            ".gridkit-data-grid-viewport",
+          );
+          if (viewport === null) throw new Error("no viewport");
+          // Every element in the grid that scrolls up and down.
+          const vertical = [viewport, ...viewport.querySelectorAll("*")]
+            .filter(
+              (candidate) =>
+                candidate.scrollHeight > candidate.clientHeight &&
+                ["auto", "scroll"].includes(
+                  getComputedStyle(candidate).overflowY,
+                ),
+            )
+            .map((candidate) => candidate.className);
+          const scroller = viewport.querySelector(".gridkit-data-grid-tables");
+          if (scroller === null) throw new Error("no scroll area");
+          const box = scroller.getBoundingClientRect();
+          const frame = viewport.getBoundingClientRect();
+          const innerLeft = frame.left + viewport.clientLeft;
+          return {
+            vertical,
+            // The scrollbar's track runs down the scroll area's inline-end
+            // edge, so the area spanning the viewport's inside puts it there.
+            left: round(box.left) === round(innerLeft),
+            right: round(box.right) === round(innerLeft + viewport.clientWidth),
+          };
+        });
+        expect(layoutNow).toEqual({
+          vertical: ["gridkit-data-grid-tables"],
+          left: true,
+          right: true,
+        });
+      }
+    });
+
+    test(`keyboard focus keeps the focused cell clear of the header and footer (${layout.name})`, async ({
+      mount,
+      page,
+    }) => {
+      const root = await wideGrid(mount, layout);
+      const clear = () =>
+        root.evaluate((element) => {
+          const cell = document.activeElement;
+          const header = element.querySelector(".gridkit-data-grid-header");
+          const footer = element.querySelector(".gridkit-data-grid-footer");
+          if (cell === null || header === null || footer === null) {
+            throw new Error("missing part");
+          }
+          const box = cell.getBoundingClientRect();
+          return (
+            box.top >= header.getBoundingClientRect().bottom - 0.5 &&
+            box.bottom <= footer.getBoundingClientRect().top + 0.5
+          );
+        });
+      await firstRowCells(root).first().click();
+      for (const key of [
+        ...Array.from({ length: 10 }, () => "ArrowDown"),
+        "PageDown",
+        "Control+End",
+        ...Array.from({ length: 10 }, () => "ArrowUp"),
+        "PageUp",
+      ]) {
+        await page.keyboard.press(key);
+        expect(await clear(), `after ${key}`).toBe(true);
+      }
+
+      // The header, stuck at the top, is in view already: focusing it
+      // leaves the rows where they are.
+      const tables = root.locator(".gridkit-data-grid-tables");
+      await tables.evaluate((element) => {
+        element.scrollTop = 200;
+      });
+      await page.keyboard.press("Control+Home");
+      await expect(root.getByRole("columnheader").first()).toBeFocused();
+      expect(await tables.evaluate((element) => element.scrollTop)).toBe(200);
+    });
+  }
 });

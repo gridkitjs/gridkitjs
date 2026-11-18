@@ -150,15 +150,25 @@ export function findBodyRow(
   );
 }
 
+/** A computed length in pixels, or 0 for anything else. */
+function pixelsOf(value: string): number {
+  const pixels = Number.parseFloat(value);
+  return Number.isNaN(pixels) ? 0 : pixels;
+}
+
 /**
- * How many rows fit `bodyTable`'s scroll wrapper — its parent, the row area
- * alone, not the header, footer and pager around it — which is what a page
- * key moves. Reads the first rendered row's height, and falls back to ten
+ * How many rows fit the area the rows scroll in, which is what a page key
+ * moves: `scrollElement`, or else `bodyTable`'s parent, less the block
+ * `scroll-margin` of the rows (what a header or footer sticking to its edges
+ * covers). Reads the first rendered row's height, and falls back to ten
  * rows when nothing can be measured.
  */
-export function measurePageSize(bodyTable: HTMLTableElement | null): number {
+export function measurePageSize(
+  bodyTable: HTMLTableElement | null,
+  scrollElement?: HTMLElement | null,
+): number {
   const firstRow = bodyTable?.tBodies[0]?.rows[0];
-  const viewport = bodyTable?.parentElement;
+  const viewport = scrollElement ?? bodyTable?.parentElement;
   if (
     firstRow === undefined ||
     viewport === null ||
@@ -167,7 +177,12 @@ export function measurePageSize(bodyTable: HTMLTableElement | null): number {
   ) {
     return FALLBACK_PAGE;
   }
-  return Math.max(1, Math.floor(viewport.clientHeight / firstRow.offsetHeight));
+  const style = getComputedStyle(firstRow);
+  const height =
+    viewport.clientHeight -
+    pixelsOf(style.scrollMarginTop) -
+    pixelsOf(style.scrollMarginBottom);
+  return Math.max(1, Math.floor(height / firstRow.offsetHeight));
 }
 
 /**
@@ -329,7 +344,16 @@ export function createGridFocus(
         // Focusing the cell the browser already sits on is a no-op, which is
         // what makes one method serve both a key press and a cell reporting
         // a click.
+        const moving = cell.ownerDocument.activeElement !== cell;
         cell.focus();
+        if (moving && drawn.area === "body") {
+          // Firefox leaves a cell that focus finds partly in view where it
+          // is, which can be under a header or footer stuck over the rows;
+          // "nearest", with the scroll margin a renderer gives its rows for
+          // them, brings it wholly into view, and is a no-op for a cell
+          // focus already did.
+          cell.scrollIntoView({ block: "nearest", inline: "nearest" });
+        }
         return;
       }
 

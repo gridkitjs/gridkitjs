@@ -190,7 +190,7 @@ export default function useGridNavigation({
         gridFocus.handleKey(
           event.key,
           event,
-          measurePageSize(bodyTableRef.current),
+          measurePageSize(bodyTableRef.current, gridRef.current),
           writingDirection(event.currentTarget),
         )
       ) {

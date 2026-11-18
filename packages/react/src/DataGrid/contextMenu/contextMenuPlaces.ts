@@ -35,12 +35,15 @@ export interface ContextMenuPlace {
 
 /** The parts of the grid, as drawn now, that a place is found among. */
 export interface GridParts<Row> {
-  /** The grid's root, which scrolls sideways. */
-  readonly root: HTMLElement | null;
+  /** The tables' scroll area, which scrolls the rows both ways. */
+  readonly scroller: HTMLElement | null;
+  /** Sticks to the scroll area's top, over the rows scrolled under it. */
   readonly headerTable: HTMLTableElement | null;
   readonly bodyTable: HTMLTableElement | null;
-  /** The body's scrolling region, whose empty space is the `body` area. */
+  /** The body's rowgroup, whose empty space is the `body` area. */
   readonly body: HTMLElement | null;
+  /** Sticks to the scroll area's bottom, over the rows scrolled under it. */
+  readonly footerTable: HTMLTableElement | null;
   /** The columns shown, in order — what a cell's column index counts. */
   readonly columns: readonly { readonly id: string }[];
   /** The rows of the page, as `data-gridkit-row-index` counts them. */
@@ -68,24 +71,28 @@ function bodyCell(
     : { element, focus: bodyFocus(rowIndex, columnIndex) };
 }
 
-/** The part of the viewport where `element` can be seen: its grid's scrolled view. */
+/**
+ * The part of the viewport where `element` can be seen: its grid's scrolled
+ * view, and for a body cell only the part of it between the header and the
+ * footer.
+ */
 function viewOf(element: Element, parts: GridParts<unknown>): DOMRect | null {
-  const root = parts.root?.getBoundingClientRect();
-  if (root === undefined) {
+  const view = parts.scroller?.getBoundingClientRect();
+  if (view === undefined) {
     return null;
   }
-  const body =
-    parts.body?.contains(element) === true
-      ? parts.body.getBoundingClientRect()
-      : root;
-  const left = Math.max(root.left, body.left);
-  const top = Math.max(root.top, body.top);
-  return new DOMRect(
-    left,
-    top,
-    Math.max(0, Math.min(root.right, body.right) - left),
-    Math.max(0, Math.min(root.bottom, body.bottom) - top),
-  );
+  let { top, bottom } = view;
+  if (parts.body?.contains(element) === true) {
+    top = Math.max(
+      top,
+      parts.headerTable?.getBoundingClientRect().bottom ?? top,
+    );
+    bottom = Math.min(
+      bottom,
+      parts.footerTable?.getBoundingClientRect().top ?? bottom,
+    );
+  }
+  return new DOMRect(view.left, top, view.width, Math.max(0, bottom - top));
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -135,13 +142,23 @@ function onCell(
   };
 }
 
-/** The body's empty space, anchored to its top corner at the inline start. */
-function onBody(body: HTMLElement): ContextMenuPlace {
+/**
+ * The body's empty space, anchored to the top corner of the part of it in
+ * view, at the inline start.
+ */
+function onBody(
+  body: HTMLElement,
+  parts: GridParts<unknown>,
+): ContextMenuPlace {
   const box = body.getBoundingClientRect();
+  const view = viewOf(body, parts) ?? box;
   return {
     target: { area: "body" },
     cell: null,
-    anchor: { x: inlineStartOf(body, box), y: box.top },
+    anchor: {
+      x: inlineStartOf(body, view),
+      y: clamp(box.top, view.top, view.bottom),
+    },
   };
 }
 
@@ -208,7 +225,7 @@ function bodyPlaceAt<Row>(
         )
       : null;
   }
-  return bodyRowFrom(element) === null ? onBody(body) : null;
+  return bodyRowFrom(element) === null ? onBody(body, parts) : null;
 }
 
 /**
@@ -258,6 +275,6 @@ export function placeOf<Row>(
       return onCell(target, bodyCell(parts, rowIndex, 0), parts);
     }
     case "body":
-      return parts.body === null ? null : onBody(parts.body);
+      return parts.body === null ? null : onBody(parts.body, parts);
   }
 }

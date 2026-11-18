@@ -39,10 +39,13 @@ import {
 interface UseContextMenuOptions<Row> {
   /** The grid's root element: a menu is asked for on what is inside it. */
   rootRef: RefObject<HTMLElement | null>;
+  /** The tables' scroll area, which a cell is seen through. */
+  scrollRef: RefObject<HTMLElement | null>;
   headerTableRef: RefObject<HTMLTableElement | null>;
   bodyTableRef: RefObject<HTMLTableElement | null>;
-  /** The body's scrolling region, whose empty space is the `body` area. */
-  bodyScrollRef: RefObject<HTMLElement | null>;
+  /** The body's rowgroup, whose empty space is the `body` area. */
+  bodyRef: RefObject<HTMLElement | null>;
+  footerTableRef: RefObject<HTMLTableElement | null>;
   contextMenu: GridOptions<Row>["contextMenu"];
   /** The grid's one open overlay, the menu among them. */
   overlay: GridOverlayApi;
@@ -106,9 +109,11 @@ export interface ContextMenuApi {
  */
 export default function useContextMenu<Row>({
   rootRef,
+  scrollRef,
   headerTableRef,
   bodyTableRef,
-  bodyScrollRef,
+  bodyRef,
+  footerTableRef,
   contextMenu,
   overlay,
   controller,
@@ -125,10 +130,11 @@ export default function useContextMenu<Row>({
   function parts(): GridParts<Row> {
     const { columns, pageRows } = controller.getView();
     return {
-      root: rootRef.current,
+      scroller: scrollRef.current,
       headerTable: headerTableRef.current,
       bodyTable: bodyTableRef.current,
-      body: bodyScrollRef.current,
+      body: bodyRef.current,
+      footerTable: footerTableRef.current,
       columns,
       pageRows,
     };

@@ -263,10 +263,10 @@ test.describe("touch", { tag: "@touch" }, () => {
   }) => {
     test.skip(!canDriveTouch(browserName), TOUCH_DRAG_UNAVAILABLE);
     const root = await mountGrid(mount, grid(), { width: 360 });
-    const viewport = root.locator(".gridkit-data-grid-viewport");
+    const tables = root.locator(".gridkit-data-grid-tables");
     const from = await centerOf(header(root, "City"));
     await touchDrag(page, from, { x: from.x - 150, y: from.y });
-    await expect.poll(() => scrollLeftOf(viewport)).toBeGreaterThan(0);
+    await expect.poll(() => scrollLeftOf(tables)).toBeGreaterThan(0);
   });
 
   test("dragging a reorderable header moves its column rather than scrolling", async ({
@@ -278,12 +278,12 @@ test.describe("touch", { tag: "@touch" }, () => {
     const root = await mountGrid(mount, grid({ reorderableColumns: true }), {
       width: 360,
     });
-    const viewport = root.locator(".gridkit-data-grid-viewport");
+    const tables = root.locator(".gridkit-data-grid-tables");
     const from = await centerOf(header(root, "Name"));
     const to = await centerOf(header(root, "Id"));
     await touchDrag(page, from, { x: to.x - 20, y: to.y });
     await expect(root.locator("thead th").first()).toHaveAccessibleName("Name");
-    expect(await scrollLeftOf(viewport)).toBe(0);
+    expect(await scrollLeftOf(tables)).toBe(0);
   });
 
   test("a column resizes by dragging its edge, which is wide enough for a finger", async ({
