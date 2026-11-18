@@ -125,6 +125,12 @@ export interface GridMessages {
   collapseAllGroups: string;
   /** `column.hide` */
   hideColumn: string;
+  /** `column.pinStart`: pins the column to the grid's start edge. */
+  pinToStart: string;
+  /** `column.pinEnd`: pins the column to the grid's end edge. */
+  pinToEnd: string;
+  /** `column.unpin` */
+  unpinColumn: string;
   /** `column.autoFit`: sizes the column to its content. */
   autoFitColumn: string;
   autoFitAllColumns: string;
@@ -471,6 +477,9 @@ export function createDefaultMessages(locale?: FormatLocale): GridMessages {
     expandAllGroups: "Expand all groups",
     collapseAllGroups: "Collapse all groups",
     hideColumn: "Hide column",
+    pinToStart: "Pin to start",
+    pinToEnd: "Pin to end",
+    unpinColumn: "Unpin",
     autoFitColumn: "Autofit column",
     autoFitAllColumns: "Autofit all columns",
     selectAllRows: "Select all rows",

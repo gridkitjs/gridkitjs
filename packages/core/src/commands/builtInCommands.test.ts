@@ -122,6 +122,9 @@ describe("builtInCommands", () => {
       "group.expandAll",
       "group.collapseAll",
       "column.hide",
+      "column.pinStart",
+      "column.pinEnd",
+      "column.unpin",
       "column.autoFit",
       "column.autoFitAll",
       "column.choose",
@@ -560,6 +563,105 @@ describe("column.hide", () => {
       "Region",
       "Amount",
     ]);
+  });
+});
+
+describe("column.pinStart, column.pinEnd and column.unpin", () => {
+  function visibility(
+    controller: GridController<Order>,
+    target: GridCommandTarget,
+  ): readonly boolean[] {
+    return (["column.pinStart", "column.pinEnd", "column.unpin"] as const).map(
+      (id) => builtIn(id, controller, target).visible(),
+    );
+  }
+
+  test("show on a header, each hidden where it would change nothing", () => {
+    const controller = create();
+
+    expect(visibility(controller, header("Amount"))).toEqual([
+      true,
+      true,
+      false,
+    ]);
+
+    controller.pinColumn("Amount", "start");
+    expect(visibility(controller, header("Amount"))).toEqual([
+      false,
+      true,
+      true,
+    ]);
+
+    controller.pinColumn("Amount", "end");
+    expect(visibility(controller, header("Amount"))).toEqual([
+      true,
+      false,
+      true,
+    ]);
+  });
+
+  test("read a column pinned by its definition", () => {
+    const controller = create({
+      columns: columns.map((column) =>
+        column.field === "Amount" ? { ...column, pinned: "end" } : column,
+      ),
+    });
+
+    expect(visibility(controller, header("Amount"))).toEqual([
+      true,
+      false,
+      true,
+    ]);
+  });
+
+  test("show nowhere but on a header", () => {
+    const controller = create();
+
+    for (const target of [GRID, TOOLBAR, BODY, cell("1", "Amount")]) {
+      expect(visibility(controller, target)).toEqual([false, false, false]);
+    }
+  });
+
+  test("label each from the messages", () => {
+    const controller = create();
+    controller.pinColumn("Amount", "start");
+
+    expect(
+      (["column.pinStart", "column.pinEnd", "column.unpin"] as const).map(
+        (id) => builtIn(id, controller, header("Amount")).label(),
+      ),
+    ).toEqual(["Pin to start", "Pin to end", "Unpin"]);
+  });
+
+  test("pin and unpin the column, reporting each change", () => {
+    const onColumnPinningChange = vi.fn();
+    const controller = create({ onColumnPinningChange });
+
+    builtIn("column.pinEnd", controller, header("Region")).run();
+    expect(controller.getView().columns.map((entry) => entry.id)).toEqual([
+      "Id",
+      "Amount",
+      "Region",
+    ]);
+
+    builtIn("column.pinStart", controller, header("Amount")).run();
+    expect(controller.getView().columns.map((entry) => entry.id)).toEqual([
+      "Amount",
+      "Id",
+      "Region",
+    ]);
+
+    builtIn("column.unpin", controller, header("Region")).run();
+    expect(controller.getView().columns.map((entry) => entry.id)).toEqual([
+      "Amount",
+      "Id",
+      "Region",
+    ]);
+    expect(controller.getState().columnPinning).toEqual({
+      Region: "none",
+      Amount: "start",
+    });
+    expect(onColumnPinningChange).toHaveBeenCalledTimes(3);
   });
 });
 

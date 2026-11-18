@@ -182,6 +182,9 @@ function resolvedColumn(
     reorderable: false,
     groupByDraggable: false,
     alignment: "left",
+    pinned: "none",
+    pinOffset: 0,
+    pinEdge: false,
   };
 }
 

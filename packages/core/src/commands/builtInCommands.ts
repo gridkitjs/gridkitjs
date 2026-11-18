@@ -8,9 +8,15 @@ import { exportPrintDocument } from "../export/print";
 import { resolveExportWriters } from "../export/writer";
 import type { GridMessages } from "../messages";
 import { resolveColumnFilterMenu } from "../filterMenu/options";
-import type { DataColumn, SelectableConfig, SortDirection } from "../types";
+import type {
+  ColumnPin,
+  DataColumn,
+  SelectableConfig,
+  SortDirection,
+} from "../types";
 import { isColumnFiltered, touchesColumn } from "../util/filterEditor";
 import { resolveColumnHeaderText } from "../util/grid";
+import { resolveColumnPin } from "../util/pinning";
 import { sortDirectionFor } from "../util/sorting";
 import type {
   GridCommand,
@@ -33,6 +39,9 @@ export type BuiltInCommandId =
   | "group.expandAll"
   | "group.collapseAll"
   | "column.hide"
+  | "column.pinStart"
+  | "column.pinEnd"
+  | "column.unpin"
   | "column.autoFit"
   | "column.autoFitAll"
   | "column.choose"
@@ -333,6 +342,28 @@ function copyCommand<Row>({
   };
 }
 
+/** A built-in moving a header's column to `pin`, hidden where it is already there. */
+function pinCommand<Row>(
+  id: BuiltInCommandId,
+  pin: ColumnPin,
+  label: (messages: GridMessages) => string,
+): GridCommand<Row> {
+  return columnCommand({
+    id,
+    label: ({ messages }) => label(messages),
+    find: (context) => {
+      const column = columnOn(context, ["header"]);
+      return column !== null &&
+        resolveColumnPin(column.column, context.state.columnPinning) !== pin
+        ? column
+        : null;
+    },
+    execute: (column, { actions }) => {
+      actions.pinColumn(column.id, pin);
+    },
+  });
+}
+
 function sortCommand<Row>(direction: SortDirection): GridCommand<Row> {
   return columnCommand({
     id: direction === "asc" ? "sort.ascending" : "sort.descending",
@@ -350,7 +381,7 @@ function sortCommand<Row>(direction: SortDirection): GridCommand<Row> {
 
 /**
  * The grid's own commands, one per action its menus and toolbar offer —
- * sorting, grouping, hiding, fitting and choosing columns, selecting,
+ * sorting, grouping, hiding, pinning, fitting and choosing columns, selecting,
  * clearing, exporting, copying and printing.
  * Labels come from `messages`, so they follow the grid's language.
  *
@@ -444,6 +475,9 @@ export function builtInCommands<Row>(): readonly GridCommand<Row>[] {
         actions.hideColumns([column.id]);
       },
     }),
+    pinCommand("column.pinStart", "start", (messages) => messages.pinToStart),
+    pinCommand("column.pinEnd", "end", (messages) => messages.pinToEnd),
+    pinCommand("column.unpin", "none", (messages) => messages.unpinColumn),
     columnCommand({
       id: "column.autoFit",
       label: ({ messages }) => messages.autoFitColumn,

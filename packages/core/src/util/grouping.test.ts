@@ -51,6 +51,9 @@ function resolvedColumn(field: string): ResolvedColumn<SampleRow, unknown> {
     reorderable: false,
     groupByDraggable: false,
     alignment: "left",
+    pinned: "none",
+    pinOffset: 0,
+    pinEdge: false,
   };
 }
 

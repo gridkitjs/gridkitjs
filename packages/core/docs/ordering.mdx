@@ -7,16 +7,21 @@ description: "The reordering logic underneath reorderableColumns."
 
 ## Functions
 
-`movesColumn`, `resolveDropBefore` and `resolveKeyboardDropTarget` place a drop, so they come from `@gridkitjs/core/renderer`; the rest from `@gridkitjs/core`.
+`movesColumn`, `moveColumnInPinGroup`, `resolveDropBefore` and `resolveKeyboardDropTarget` place a drop, so they come from `@gridkitjs/core/renderer`; the rest from `@gridkitjs/core`.
 
 | Function                                                     | Type                               | Description                                                                                                                                       |
 | ------------------------------------------------------------ | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `applyColumnOrder(columns, order)`                           | `readonly ColumnDefinition<Row>[]` | Puts columns in the order order gives. Ids it omits keep their position among the definitions and follow those listed.                            |
 | `resolveDataColumns(columns, order)`                         | `readonly DataColumn<Row>[]`       | applyColumnOrder, with each column paired with its id as `{ id, column }` — the width-free list filtering, sorting, grouping and aggregates read. |
 | `moveColumnBefore(orderedIds, movedId, beforeId)`            | `ColumnOrderState`                 | Moves one column id to sit before another, or to the end when beforeId is null. Returns the same reference for a move that changes nothing.       |
+| `moveColumnInPinGroup(orderedIds, pinOf, movedId, beforeId)` | `ColumnOrderState`                 | moveColumnBefore, kept inside the moved column's pin group. `pinOf(id)` gives each id's `ColumnPin`. See [pinned columns](#pinned-columns).       |
 | `movesColumn(orderedIds, movedId, beforeId)`                 | `boolean`                          | Whether moving movedId in front of beforeId would rearrange anything, for a drop indicator that promises only real moves.                         |
 | `resolveDropBefore(orderedIds, targetId, side)`              | `string \| null`                   | "After C" and "before D" name the same gap — this collapses either side of a drop to the one id it lands in front of.                             |
 | `resolveKeyboardDropTarget(orderedIds, columnId, direction)` | `string \| null \| undefined`      | The beforeId a keyboard nudge (-1 or 1) produces, matching the pointer-drag drop path. undefined means the nudge is a no-op.                      |
+
+## Pinned columns
+
+A column never crosses a [pin](/docs/core/view#pinned-columns) boundary by being moved: it is pinned or unpinned through its definition, `pinColumn` or the pin commands. The controller's `moveColumn` applies `moveColumnInPinGroup`, so a move whose target is among the columns pinned to the other edge, or on the other side of the boundary, lands at the nearest place inside the moved column's own group: its start for a target in an earlier group, its end for one in a later group or `null`. A move that leaves every group as it was — a column already first or last in its group, nudged against the boundary — returns the same reference and reports nothing. Pinning never changes `columnOrder`, so a drop resolved with `resolveDropBefore` or `resolveKeyboardDropTarget` against `view.columns` needs nothing more.
 
 ## The same logic, in the React grid
 

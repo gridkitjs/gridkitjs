@@ -1,6 +1,7 @@
 import type {
   ColumnDefinition,
   ColumnOrderState,
+  ColumnPin,
   DataColumn,
   DropSide,
 } from "../types";
@@ -80,6 +81,68 @@ export function moveColumnBefore(
   return next.every((id, index) => id === orderedIds[index])
     ? orderedIds
     : next;
+}
+
+/** Where each pin group sits: the start group first, the end group last. */
+const PIN_GROUP_RANK: Readonly<Record<ColumnPin, number>> = {
+  start: 0,
+  none: 1,
+  end: 2,
+};
+
+/**
+ * `moveColumnBefore`, kept inside the moved column's pin group: a column is
+ * pinned or unpinned on purpose, never by being dragged across the boundary.
+ * `pinOf` gives each id's pin. A `beforeId` in an earlier group lands the
+ * column at the start of its own group, and one in a later group, like
+ * `null`, at its end.
+ *
+ * The end of a group is the end of `orderedIds`: the view lists each group
+ * in column order, so a column last in the order is last in its group,
+ * wherever the other groups' columns sit. That is also why a move can change
+ * `orderedIds` and leave every group as it was — a column already last in
+ * its group moved to the end — and such a move hands back `orderedIds`
+ * itself, as a move that changes nothing does.
+ */
+export function moveColumnInPinGroup(
+  orderedIds: ColumnOrderState,
+  pinOf: (columnId: string) => ColumnPin,
+  movedId: string,
+  beforeId: string | null,
+): ColumnOrderState {
+  if (beforeId !== null && !orderedIds.includes(beforeId)) {
+    return orderedIds;
+  }
+  const next = moveColumnBefore(
+    orderedIds,
+    movedId,
+    beforeIdInGroup(orderedIds, pinOf, pinOf(movedId), beforeId),
+  );
+  const grouped = (ids: ColumnOrderState) =>
+    ids.toSorted((a, b) => PIN_GROUP_RANK[pinOf(a)] - PIN_GROUP_RANK[pinOf(b)]);
+  const before = grouped(orderedIds);
+  return grouped(next).every((id, index) => id === before[index])
+    ? orderedIds
+    : next;
+}
+
+/** `beforeId`, or the nearest gap to it inside the group pinned to `pin`. */
+function beforeIdInGroup(
+  orderedIds: ColumnOrderState,
+  pinOf: (columnId: string) => ColumnPin,
+  pin: ColumnPin,
+  beforeId: string | null,
+): string | null {
+  if (beforeId === null) {
+    return null;
+  }
+  const distance = PIN_GROUP_RANK[pinOf(beforeId)] - PIN_GROUP_RANK[pin];
+  if (distance === 0) {
+    return beforeId;
+  }
+  return distance > 0
+    ? null
+    : (orderedIds.find((id) => pinOf(id) === pin) ?? null);
 }
 
 /**

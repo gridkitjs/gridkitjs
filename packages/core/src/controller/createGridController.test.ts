@@ -3,6 +3,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import type {
   ColumnDefinition,
   ColumnOrderEvent,
+  ColumnPinningEvent,
   ColumnResizeEvent,
   ColumnSortEvent,
   ColumnVisibilityEvent,
@@ -890,6 +891,133 @@ describe("createGridController: visibility", () => {
     expect(onColumnVisibilityChange.mock.calls).toEqual([
       [{ columnIds: ["Region", "Amount"], visibility: { Amount: false } }],
     ]);
+  });
+});
+
+describe("createGridController: pinning", () => {
+  test("pinColumn reports once per change and reorders the view", () => {
+    const onColumnPinningChange = vi.fn<(event: ColumnPinningEvent) => void>();
+    const controller = create({ onColumnPinningChange });
+
+    controller.pinColumn("Amount", "start");
+    controller.pinColumn("Amount", "start");
+    controller.pinColumn("Id", "end");
+
+    expect(onColumnPinningChange.mock.calls).toEqual([
+      [{ columnIds: ["Amount"], pinning: { Amount: "start" } }],
+      [{ columnIds: ["Id"], pinning: { Amount: "start", Id: "end" } }],
+    ]);
+    expect(controller.getView().columns.map((entry) => entry.id)).toEqual([
+      "Amount",
+      "Region",
+      "Id",
+    ]);
+  });
+
+  test("pinColumn leaves the column order alone, so unpinning puts a column back", () => {
+    const onColumnOrderChange = vi.fn();
+    const controller = create({ onColumnOrderChange });
+
+    controller.pinColumn("Amount", "start");
+    controller.pinColumn("Amount", "none");
+
+    expect(onColumnOrderChange).not.toHaveBeenCalled();
+    expect(controller.getState().columnOrder).toEqual([]);
+    expect(controller.getView().columns.map((entry) => entry.id)).toEqual([
+      "Id",
+      "Region",
+      "Amount",
+    ]);
+  });
+
+  test("pinColumn unpins a column its definition pins, and ignores an unknown id", () => {
+    const onColumnPinningChange = vi.fn<(event: ColumnPinningEvent) => void>();
+    const controller = create({
+      columns: [{ field: "Id", pinned: "start" }, { field: "Region" }],
+      onColumnPinningChange,
+    });
+
+    controller.pinColumn("Missing", "start");
+    controller.pinColumn("Id", "none");
+
+    expect(onColumnPinningChange.mock.calls).toEqual([
+      [{ columnIds: ["Id"], pinning: { Id: "none" } }],
+    ]);
+  });
+
+  test("moveColumn keeps a column inside its pin group, and a move held at its edge reports nothing", () => {
+    const onColumnOrderChange = vi.fn<(event: ColumnOrderEvent) => void>();
+    const controller = create({
+      defaultColumnPinning: { Id: "start" },
+      onColumnOrderChange,
+    });
+
+    controller.moveColumn("Amount", "Id");
+    controller.moveColumn("Amount", "Id");
+
+    expect(onColumnOrderChange.mock.calls).toEqual([
+      [{ columnId: "Amount", order: ["Id", "Amount", "Region"] }],
+    ]);
+    expect(controller.getView().columns.map((entry) => entry.id)).toEqual([
+      "Id",
+      "Amount",
+      "Region",
+    ]);
+  });
+
+  test("starts from defaultColumnPinning", () => {
+    const controller = create({ defaultColumnPinning: { Region: "end" } });
+
+    expect(controller.getState().columnPinning).toEqual({ Region: "end" });
+    expect(controller.getView().columns.map((entry) => entry.id)).toEqual([
+      "Id",
+      "Amount",
+      "Region",
+    ]);
+  });
+
+  test("setColumnPinning reports every entry that changed, in column order", () => {
+    const onColumnPinningChange = vi.fn<(event: ColumnPinningEvent) => void>();
+    const controller = create({
+      defaultColumnPinning: { Region: "end" },
+      onColumnPinningChange,
+    });
+
+    controller.setColumnPinning({ Amount: "start", Id: "start" });
+    controller.setColumnPinning({ Amount: "start", Id: "start" });
+
+    expect(onColumnPinningChange.mock.calls).toEqual([
+      [
+        {
+          columnIds: ["Id", "Region", "Amount"],
+          pinning: { Amount: "start", Id: "start" },
+        },
+      ],
+    ]);
+  });
+
+  test("a controlled pinning only asks, and applies once the option follows", () => {
+    const onColumnPinningChange = vi.fn<(event: ColumnPinningEvent) => void>();
+    const listener = vi.fn();
+    const options = { columnPinning: {}, onColumnPinningChange };
+    const controller = create(options);
+    controller.subscribe(listener);
+
+    controller.pinColumn("Amount", "start");
+
+    expect(onColumnPinningChange).toHaveBeenCalledTimes(1);
+    expect(listener).not.toHaveBeenCalled();
+    expect(controller.getState().columnPinning).toEqual({});
+
+    controller.setOptions({
+      dataSource: data,
+      getRowId: (row) => String(row.Id),
+      columns,
+      ...options,
+      columnPinning: { Amount: "start" },
+    });
+
+    expect(controller.getView().columns[0]?.id).toBe("Amount");
   });
 });
 

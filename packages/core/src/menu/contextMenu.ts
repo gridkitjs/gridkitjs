@@ -95,6 +95,10 @@ export const defaultContextMenu: {
     "separator",
     "column.hide",
     "column.choose",
+    "separator",
+    "column.pinStart",
+    "column.pinEnd",
+    "column.unpin",
   ],
   cell: [
     "copy.cell",

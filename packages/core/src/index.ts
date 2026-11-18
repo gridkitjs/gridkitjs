@@ -22,6 +22,9 @@ export type {
   ColumnConstraints,
   ColumnOrderEvent,
   ColumnOrderState,
+  ColumnPin,
+  ColumnPinningEvent,
+  ColumnPinningState,
   ColumnResizeEvent,
   ColumnResolveOptions,
   ColumnSelectEvent,
@@ -226,6 +229,11 @@ export {
   isColumnVisible,
   setColumnVisibility,
 } from "./util/visibility";
+export {
+  applyColumnPinning,
+  resolveColumnPin,
+  setColumnPin,
+} from "./util/pinning";
 export { createGridViewResolver, resolveGridView } from "./util/view";
 export { serializeGridState } from "./util/serialize";
 export { isColumnFiltered } from "./util/filterEditor";

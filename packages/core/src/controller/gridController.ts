@@ -3,6 +3,8 @@ import type {
   CellSelectionState,
   ColumnDefinition,
   ColumnOrderState,
+  ColumnPin,
+  ColumnPinningState,
   ColumnSizingState,
   ColumnSortState,
   ColumnVisibilityState,
@@ -166,8 +168,10 @@ export interface GridController<Row, Node = string> {
   readonly setColumnOrder: (order: ColumnOrderState) => void;
   /**
    * Moves a column in front of `beforeId`, or to the end when that is
-   * `null`, among every column — hidden ones keep their place. A move that
-   * changes nothing reports nothing.
+   * `null`, among every column — hidden ones keep their place. The column
+   * stays among those pinned to the same edge, or the unpinned ones: a
+   * `beforeId` in an earlier group moves it to the start of its own, and one
+   * in a later group to its end. A move that changes nothing reports nothing.
    */
   readonly moveColumn: (columnId: string, beforeId: string | null) => void;
 
@@ -181,6 +185,20 @@ export interface GridController<Row, Node = string> {
   readonly showColumns: (columnIds: readonly string[]) => void;
   /** Hides the given columns. A hidden column still sorts, filters and groups. */
   readonly hideColumns: (columnIds: readonly string[]) => void;
+
+  /**
+   * Replaces the column pinning state. Reported through
+   * `onColumnPinningChange` with every column whose entry changed; an equal
+   * state reports nothing.
+   */
+  readonly setColumnPinning: (pinning: ColumnPinningState) => void;
+  /**
+   * Pins a column to the `"start"` or `"end"` edge, or unpins it with
+   * `"none"`, leaving the column order as it is: an unpinned column goes
+   * back to its place among the others. A column already there, or an id
+   * naming no column, reports nothing.
+   */
+  readonly pinColumn: (columnId: string, pin: ColumnPin) => void;
 
   /**
    * Replaces the filter. Reported through `onFilterChange`; a filter equal to

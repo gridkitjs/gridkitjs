@@ -1,6 +1,7 @@
 import type {
   AggregateResults,
   AggregateState,
+  ColumnPinningState,
   ColumnSizeDefaults,
   ColumnSizingState,
   DataColumn,
@@ -20,6 +21,7 @@ import { ALL_EXPANDED, groupRows } from "./grouping";
 import { memoizeLast } from "./memoize";
 import { resolveDataColumns } from "./ordering";
 import { paginateRows, type PaginatedRows } from "./paging";
+import { applyColumnPinning } from "./pinning";
 import { resolveShownRows } from "./rows";
 import { fitColumnsToWidth, resolveColumnWidths } from "./sizing";
 import { applyColumnVisibility } from "./visibility";
@@ -42,6 +44,7 @@ export const STARTING_VIEW_STATE = {
   columnSizing: {},
   columnOrder: [],
   columnVisibility: {},
+  columnPinning: {},
   columnSort: [],
   filter: [],
   groupBy: [],
@@ -58,6 +61,7 @@ function fillViewState<Row>(
     columnOrder: state.columnOrder ?? STARTING_VIEW_STATE.columnOrder,
     columnVisibility:
       state.columnVisibility ?? STARTING_VIEW_STATE.columnVisibility,
+    columnPinning: state.columnPinning ?? STARTING_VIEW_STATE.columnPinning,
     columnSort: state.columnSort ?? STARTING_VIEW_STATE.columnSort,
     filter: state.filter ?? STARTING_VIEW_STATE.filter,
     groupBy: state.groupBy ?? STARTING_VIEW_STATE.groupBy,
@@ -97,12 +101,14 @@ function identifyRows<Row>(
  *
  * The only stage that reads `sizing` or `viewportWidth`, and nothing reads
  * its output but the renderer: a resize re-runs this and leaves every data
- * stage alone. Handed the visible columns only, so the hidden ones take no
- * share of a fitted width.
+ * stage alone. Handed the visible columns only, in pinned order, so the
+ * hidden ones take no share of a fitted width and add nothing to a pinned
+ * column's offset.
  */
 function sizeColumns<Row, Node>(
   visibleColumns: readonly DataColumn<Row, Node>[],
   sizing: ColumnSizingState,
+  pinning: ColumnPinningState,
   sizes: Partial<ColumnSizeDefaults> | undefined,
   resizable: boolean | undefined,
   reorderable: boolean | undefined,
@@ -113,7 +119,7 @@ function sizeColumns<Row, Node>(
   const widths = resolveColumnWidths(
     visibleColumns.map((entry) => entry.column),
     sizing,
-    { sizes, resizable, reorderable, groupByDraggable },
+    { sizes, resizable, reorderable, groupByDraggable, pinning },
   );
   return resizeMode === "fit" && viewportWidth !== null
     ? fitColumnsToWidth(widths, viewportWidth, sizes)
@@ -199,6 +205,7 @@ export function createGridViewResolver<Row, Node = string>(): (
   const identify = memoizeLast(identifyRows<Row>);
   const orderColumns = memoizeLast(resolveDataColumns<Row, Node>);
   const showColumns = memoizeLast(applyColumnVisibility<Row, Node>);
+  const pinColumns = memoizeLast(applyColumnPinning<Row, Node>);
   const size = memoizeLast(sizeColumns<Row, Node>);
   const filterAndSort = memoizeLast(resolveShownRows<Row>);
   const group = memoizeLast(groupRows<Row>);
@@ -246,9 +253,15 @@ export function createGridViewResolver<Row, Node = string>(): (
     // Hidden after ordering, so a hidden column keeps its slot in the order
     // and comes back to it when shown; the data stages below still read
     // every column, so a sort or filter on a hidden one still applies.
+    // Pinning moves columns only here, never in `dataColumns`, so a column
+    // unpinned goes back to its place in the order.
     const columns = size(
-      showColumns(dataColumns, state.columnVisibility),
+      pinColumns(
+        showColumns(dataColumns, state.columnVisibility),
+        state.columnPinning,
+      ),
       state.columnSizing,
+      state.columnPinning,
       options.columnSizeDefaults,
       options.resizableColumns,
       options.reorderableColumns,
@@ -302,8 +315,8 @@ export function createGridViewResolver<Row, Node = string>(): (
 /**
  * What the user is looking at, derived from the rows, the columns, the
  * grid's state and its options in one call: rows filtered → sorted →
- * grouped → aggregated → paginated, and columns ordered → hidden → sized.
- * The one function a renderer, an export or a toolbar calls instead of
+ * grouped → aggregated → paginated, and columns ordered → hidden → pinned →
+ * sized. The one function a renderer, an export or a toolbar calls instead of
  * composing the stages itself, so none of them can disagree about what is
  * shown.
  *

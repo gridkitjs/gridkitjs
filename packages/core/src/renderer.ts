@@ -21,6 +21,7 @@ export { buildKeyShortcuts } from "./util/grid";
 export type { NavigationModifiers } from "./util/navigation";
 export { clampFocus, nextFocusForKey } from "./util/navigation";
 export {
+  moveColumnInPinGroup,
   movesColumn,
   resolveDropBefore,
   resolveKeyboardDropTarget,
@@ -38,6 +39,7 @@ export {
   totalColumnWidth,
 } from "./util/sizing";
 export { movesGroupBy } from "./util/grouping";
+export { pinnedWidths } from "./util/pinning";
 export type { PaginationWindowEntry } from "./util/paginationWindow";
 export { paginationWindow } from "./util/paginationWindow";
 export type {

@@ -3,7 +3,7 @@ title: "Controller"
 description: "createGridController: a grid's state, view and actions, without a renderer."
 ---
 
-`createGridController` is a whole grid minus the drawing. It holds the grid's state, derives the view from it with [resolveGridView](/docs/core/view), and carries every action a user can take — sorting, filtering, row grouping, expanding, pagination, resizing, reordering, hiding columns, selecting. @gridkitjs/react's DataGrid creates one per grid, hands it its props on every render, draws its view and calls its actions from event handlers; a renderer for another framework does the same, so none of them decides anything the user can see.
+`createGridController` is a whole grid minus the drawing. It holds the grid's state, derives the view from it with [resolveGridView](/docs/core/view), and carries every action a user can take — sorting, filtering, row grouping, expanding, pagination, resizing, reordering, hiding and pinning columns, selecting. @gridkitjs/react's DataGrid creates one per grid, hands it its props on every render, draws its view and calls its actions from event handlers; a renderer for another framework does the same, so none of them decides anything the user can see.
 
 ```ts
 import { createGridController } from "@gridkitjs/core";
@@ -38,6 +38,7 @@ Each slice of `GridState` is controlled or not on its own, the way a form input 
 | `columnSizing`     | `columnSizing`     | `defaultColumnSizing`     | `onColumnSizingChange`                                    |
 | `columnOrder`      | `columnOrder`      | `defaultColumnOrder`      | `onColumnOrderChange`                                     |
 | `columnVisibility` | `columnVisibility` | `defaultColumnVisibility` | `onColumnVisibilityChange`                                |
+| `columnPinning`    | `columnPinning`    | `defaultColumnPinning`    | `onColumnPinningChange`                                   |
 | `filter`           | `filter`           | `defaultFilter`           | `onFilterChange`                                          |
 | `rowSelection`     | `rowSelection`     | `defaultRowSelection`     | `onRowSelectionChange` and the other row callbacks        |
 | `columnSelection`  | `columnSelection`  | `defaultColumnSelection`  | `onColumnSelectionChange` and the other column callbacks  |
@@ -73,10 +74,12 @@ Every action works out the next value, stops if it is the value the slice alread
 | `resizeColumn(columnId, width, phase)`                             | `onColumnSizingChange`     | Sets one column's width, as a drag does: `"move"` while it lasts, `"end"` once. Never skipped for an unchanged width.                          |
 | `cancelColumnResize(columnId, startSizing, startWidth)`            | `onColumnSizingChange`     | Puts a column back as it was when a resize began, keeping other columns' changes, reported as the `"end"` at `startWidth`.                     |
 | `setColumnSizing(sizing)`                                          | `onColumnSizingChange`     | Replaces the widths, reported as the `"end"` of a resize of the first column that changed.                                                     |
-| `moveColumn(columnId, beforeId)`                                   | `onColumnOrderChange`      | Moves a column in front of another, or to the end for `null`. Hidden columns keep their place.                                                 |
+| `moveColumn(columnId, beforeId)`                                   | `onColumnOrderChange`      | Moves a column in front of another, or to the end for `null`, within its pin group. Hidden columns keep their place.                           |
 | `setColumnOrder(order)`                                            | `onColumnOrderChange`      | Replaces the order, naming the first column whose position changed.                                                                            |
 | `showColumns(ids)` / `hideColumns(ids)`                            | `onColumnVisibilityChange` | One report per call, naming every column it touched in display order.                                                                          |
 | `setColumnVisibility(visibility)`                                  | `onColumnVisibilityChange` | Replaces the visibility state.                                                                                                                 |
+| `pinColumn(columnId, pin)`                                         | `onColumnPinningChange`    | Pins a column to `"start"` or `"end"`, or unpins it with `"none"`. The column order is left as it is.                                          |
+| `setColumnPinning(pinning)`                                        | `onColumnPinningChange`    | Replaces the pinning state, naming every column whose entry changed in column order.                                                           |
 | `setFilter(filter)`                                                | `onFilterChange`           | Replaces the filter.                                                                                                                           |
 | `selectRow(rowId, intent)`                                         | row callbacks              | One click or key press — `"replace"`, `"toggle"` or `"range"` from the last non-range selection, across the data rows on the current page.     |
 | `selectRows(rowIds, intent?)`                                      | row callbacks              | Selects rows as a user could, within `selectable.rows`: `"replace"` (only the last id under `"single"`) or `"toggle"`.                         |
@@ -123,7 +126,7 @@ if (stored !== null) {
 }
 ```
 
-A saved state may be partial — `{ columnSizing, columnOrder, columnVisibility }` restores a column layout and leaves the sort, filter and selection alone.
+A saved state may be partial — `{ columnSizing, columnOrder, columnVisibility, columnPinning }` restores a column layout and leaves the sort, filter and selection alone.
 
 `serializeGridState` writes `version: 1`, the shape the state was saved in, and `restoreState` reads a saved state by it. A version newer than the release reads makes `restoreState` throw a `TypeError` naming both versions, before any slice is set. A saved state without a `version`, written before the field existed, still restores in the older shape: a `groupExpansion` saved as a bare list of group ids, as releases before the slice had a mode wrote it, lists the collapsed groups, so it reads as `{ mode: "allExpanded", except: ids }`. A `groupExpansion` of any other shape throws, like other unreadable state.
 

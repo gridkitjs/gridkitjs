@@ -1,9 +1,10 @@
 import { describe, expect, test } from "vitest";
 
-import type { ColumnDefinition } from "../types";
+import type { ColumnDefinition, ColumnPin } from "../types";
 import {
   applyColumnOrder,
   moveColumnBefore,
+  moveColumnInPinGroup,
   movesColumn,
   resolveDataColumns,
   resolveDropBefore,
@@ -235,5 +236,122 @@ describe("resolveKeyboardDropTarget", () => {
         );
       }
     }
+  });
+});
+
+describe("moveColumnInPinGroup", () => {
+  /**
+   * Column order E1 A S1 B S2 C, with S1 and S2 pinned to the start and E1
+   * to the end, so the view shows S1 S2 | A B C | E1.
+   */
+  const orderedIds = ["E1", "A", "S1", "B", "S2", "C"];
+  const pins: Readonly<Record<string, ColumnPin>> = {
+    S1: "start",
+    S2: "start",
+    E1: "end",
+  };
+  const pinOf = (id: string): ColumnPin => pins[id] ?? "none";
+
+  /** `ids` as the view lists them: each pin group in column order. */
+  function shown(ids: readonly string[]): readonly string[] {
+    return [
+      ...ids.filter((id) => pinOf(id) === "start"),
+      ...ids.filter((id) => pinOf(id) === "none"),
+      ...ids.filter((id) => pinOf(id) === "end"),
+    ];
+  }
+
+  function move(movedId: string, beforeId: string | null) {
+    return moveColumnInPinGroup(orderedIds, pinOf, movedId, beforeId);
+  }
+
+  test("moves a column within its own group as moveColumnBefore does", () => {
+    expect(shown(move("C", "A"))).toEqual(["S1", "S2", "C", "A", "B", "E1"]);
+    expect(shown(move("S2", "S1"))).toEqual(["S2", "S1", "A", "B", "C", "E1"]);
+  });
+
+  test("lands a move before an earlier group's column at the start of its own group", () => {
+    expect(shown(move("C", "S1"))).toEqual(["S1", "S2", "C", "A", "B", "E1"]);
+    expect(shown(move("E1", "A"))).toEqual(["S1", "S2", "A", "B", "C", "E1"]);
+  });
+
+  test("lands a move before a later group's column at the end of its own group", () => {
+    expect(shown(move("A", "E1"))).toEqual(["S1", "S2", "B", "C", "A", "E1"]);
+    expect(shown(move("S1", "A"))).toEqual(["S2", "S1", "A", "B", "C", "E1"]);
+  });
+
+  test("lands a move past the last column at the end of its own group", () => {
+    expect(shown(move("S1", null))).toEqual(["S2", "S1", "A", "B", "C", "E1"]);
+    expect(shown(move("A", null))).toEqual(["S1", "S2", "B", "C", "A", "E1"]);
+  });
+
+  test("hands back the order itself for a move that leaves every group as it was", () => {
+    expect(move("A", "S2")).toBe(orderedIds);
+    expect(move("C", "E1")).toBe(orderedIds);
+    expect(move("C", null)).toBe(orderedIds);
+    expect(move("S2", "B")).toBe(orderedIds);
+    expect(move("E1", "C")).toBe(orderedIds);
+    expect(move("E1", null)).toBe(orderedIds);
+  });
+
+  test("hands back the order itself for an id naming no column", () => {
+    expect(move("Missing", "A")).toBe(orderedIds);
+    expect(move("A", "Missing")).toBe(orderedIds);
+  });
+
+  test("stops a keyboard move at the edge of its group", () => {
+    const view = shown(orderedIds);
+    const left = resolveKeyboardDropTarget(view, "A", -1);
+    const right = resolveKeyboardDropTarget(view, "C", 1);
+
+    expect(left).toBe("S2");
+    expect(right).toBeNull();
+    expect(move("A", left ?? null)).toBe(orderedIds);
+    expect(move("C", right ?? null)).toBe(orderedIds);
+  });
+
+  test("lets a keyboard move inside a group through", () => {
+    const view = shown(orderedIds);
+    const left = resolveKeyboardDropTarget(view, "B", -1);
+    const right = resolveKeyboardDropTarget(view, "B", 1);
+
+    expect(right).toBe("E1");
+    expect(shown(move("B", left ?? null))).toEqual([
+      "S1",
+      "S2",
+      "B",
+      "A",
+      "C",
+      "E1",
+    ]);
+    expect(shown(move("B", right ?? null))).toEqual([
+      "S1",
+      "S2",
+      "A",
+      "C",
+      "B",
+      "E1",
+    ]);
+  });
+
+  test("lands a pointer drop across a boundary at the nearest place in its own group", () => {
+    const view = shown(orderedIds);
+
+    expect(shown(move("C", resolveDropBefore(view, "S1", "before")))).toEqual([
+      "S1",
+      "S2",
+      "C",
+      "A",
+      "B",
+      "E1",
+    ]);
+    expect(shown(move("B", resolveDropBefore(view, "E1", "after")))).toEqual([
+      "S1",
+      "S2",
+      "A",
+      "C",
+      "B",
+      "E1",
+    ]);
   });
 });
