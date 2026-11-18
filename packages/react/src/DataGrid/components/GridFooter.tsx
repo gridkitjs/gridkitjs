@@ -4,6 +4,8 @@ import type {
   FormatLocale,
 } from "@gridkitjs/core";
 import type { ResolvedColumn } from "../DataGrid";
+import { classNames } from "../classNames";
+import { pinnedCellClassNames, pinnedCellStyle } from "../pinnedCell";
 import { textAlignFor } from "../textAlign";
 import { renderAggregate } from "./renderAggregate";
 
@@ -66,9 +68,13 @@ export default function GridFooter<Row>({
               key={entry.id}
               role="gridcell"
               data-gridkit-column={entry.id}
-              className="gridkit-grid-footer-cell"
+              className={classNames(
+                "gridkit-grid-footer-cell",
+                pinnedCellClassNames(entry),
+              )}
               style={{
                 textAlign: textAlignFor(specs[0]?.alignment ?? entry.alignment),
+                ...pinnedCellStyle(entry),
               }}
             >
               {specs

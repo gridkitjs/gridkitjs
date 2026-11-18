@@ -52,7 +52,7 @@ import {
   type SerializedGridState,
   type GridFocus,
 } from "@gridkitjs/core";
-import { totalColumnWidth } from "@gridkitjs/core/renderer";
+import { pinnedWidths, totalColumnWidth } from "@gridkitjs/core/renderer";
 import type { ColumnDropTarget } from "@gridkitjs/dom";
 import GridColgroup from "./components/GridColgroup";
 import GridHeader from "./components/GridHeader";
@@ -499,6 +499,42 @@ function selectedRowsReader<Row>(
     }
     return last.selected;
   };
+}
+
+/**
+ * The custom properties the scroll area's rules read, each set only when it
+ * applies, so a grid with no `height` and no pinned column gets no `style`:
+ * the rows' height and what the header and footer add to it, under
+ * `height`, and the width pinned to each edge, while a column is pinned.
+ */
+function tablesStyle(
+  height: number | string | undefined,
+  headerHeight: number | null,
+  footerHeight: number | null,
+  pinned: { readonly start: number; readonly end: number },
+): CSSProperties | undefined {
+  const heights =
+    height === undefined
+      ? {}
+      : {
+          "--gridkit-body-height":
+            typeof height === "number" ? `${String(height)}px` : height,
+          ...(headerHeight === null
+            ? {}
+            : { "--gridkit-header-height": `${String(headerHeight)}px` }),
+          ...(footerHeight === null
+            ? {}
+            : { "--gridkit-footer-height": `${String(footerHeight)}px` }),
+        };
+  const widths =
+    pinned.start === 0 && pinned.end === 0
+      ? {}
+      : {
+          "--gridkit-pinned-start-width": `${String(pinned.start)}px`,
+          "--gridkit-pinned-end-width": `${String(pinned.end)}px`,
+        };
+  const style = { ...heights, ...widths };
+  return Object.keys(style).length === 0 ? undefined : (style as CSSProperties);
 }
 
 export function DataGrid<Row>(props: DataGridProps<Row>) {
@@ -1080,20 +1116,12 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
         // and footer sticking to its top and bottom: a Tab stop of its own
         // in Chromium and Firefox otherwise, as the viewport's note says.
         tabIndex={-1}
-        style={
-          height === undefined
-            ? undefined
-            : ({
-                "--gridkit-body-height":
-                  typeof height === "number" ? `${String(height)}px` : height,
-                ...(headerHeight === null
-                  ? {}
-                  : { "--gridkit-header-height": `${String(headerHeight)}px` }),
-                ...(footerHeight === null
-                  ? {}
-                  : { "--gridkit-footer-height": `${String(footerHeight)}px` }),
-              } as CSSProperties)
-        }
+        style={tablesStyle(
+          height,
+          headerHeight,
+          footerHeight,
+          pinnedWidths(view.columns),
+        )}
         {...ariaAttr(multiselectable, "aria-multiselectable", true)}
         {...ariaAttr(labelledBy !== undefined, "aria-labelledby", labelledBy)}
         {...ariaAttr(

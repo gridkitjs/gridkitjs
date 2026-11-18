@@ -8,6 +8,7 @@ import { memo, type Ref } from "react";
 import type { ResolvedColumn } from "../DataGrid";
 import { ariaAttr } from "../ariaAttr";
 import { classNames } from "../classNames";
+import { pinnedCellClassNames, pinnedCellStyle } from "../pinnedCell";
 import type { RowAttributes } from "../rowProps";
 import { textAlignFor } from "../textAlign";
 import { tabIndexFor } from "../useGridNavigation";
@@ -114,7 +115,8 @@ function GridRowComponent<Row>({
         rowClassName,
       )}
     >
-      {columns.map(({ id, column, alignment }, columnIndex) => {
+      {columns.map((entry, columnIndex) => {
+        const { id, column, alignment } = entry;
         // Resolved either way, so a template never has to walk the field path
         // a second time.
         const value = accessDotted(row, column.field);
@@ -134,9 +136,13 @@ function GridRowComponent<Row>({
               id === activeColumnId ? "is-resizing" : "",
               cellSelected || selectedColumnIds.has(id) ? "is-selected" : "",
               column.wrap?.cells ? "is-wrapped" : "",
+              pinnedCellClassNames(entry),
               column.cellClassName ?? "",
             )}
-            style={{ textAlign: textAlignFor(alignment) }}
+            style={{
+              textAlign: textAlignFor(alignment),
+              ...pinnedCellStyle(entry),
+            }}
           >
             {column.cellTemplate
               ? column.cellTemplate({

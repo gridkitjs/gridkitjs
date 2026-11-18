@@ -25,6 +25,7 @@ import {
   GroupIcon,
 } from "../icons";
 import { isOwnEvent } from "../isOwnEvent";
+import { pinnedCellClassNames, pinnedCellStyle } from "../pinnedCell";
 import type { GridPanelsApi } from "../panels/useGridPanels";
 import type { ColumnDragApi } from "../useColumnDrag";
 import type { ColumnResizeApi } from "../useColumnResize";
@@ -271,8 +272,10 @@ export default function GridHeader<Row>({
                 dropBefore ? "is-drop-before" : "",
                 dropAfter ? "is-drop-after" : "",
                 column.wrap?.header ? "is-wrapped" : "",
+                pinnedCellClassNames(entry),
                 column.headerClassName ?? "",
               )}
+              style={pinnedCellStyle(entry)}
               {...ariaAttr(shortcuts !== "", "aria-keyshortcuts", shortcuts)}
               {...ariaAttr(
                 filtered,

@@ -6,6 +6,7 @@ import type {
 } from "@gridkitjs/core";
 import type { ResolvedColumn } from "../DataGrid";
 import { classNames } from "../classNames";
+import { pinnedCellClassNames, pinnedCellStyle } from "../pinnedCell";
 import { textAlignFor } from "../textAlign";
 import { renderAggregate } from "./renderAggregate";
 
@@ -79,9 +80,13 @@ function GridGroupSummaryRowComponent<Row>({
             key={entry.id}
             role="gridcell"
             data-gridkit-column={entry.id}
-            className="gridkit-grid-group-summary-cell"
+            className={classNames(
+              "gridkit-grid-group-summary-cell",
+              pinnedCellClassNames(entry),
+            )}
             style={{
               textAlign: textAlignFor(specs[0]?.alignment ?? entry.alignment),
+              ...pinnedCellStyle(entry),
             }}
           >
             {entry.id === columns[0]?.id && (
