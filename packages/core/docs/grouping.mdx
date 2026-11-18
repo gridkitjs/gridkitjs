@@ -27,9 +27,19 @@ A `DisplayRow<Row>` is a data row (`ResolvedRow<Row>`, `kind: "data"`), a group 
 | `path`         | `readonly unknown[]` | The value at every level from the top down to this one.                         |
 | `expanded`     | `boolean`            | Whether the group is open.                                                      |
 | `count`        | `number`             | Its leaf rows, collapsed or not.                                                |
+| `position`     | `number`             | Its 1-based place among the groups sharing its parent, on any page.             |
+| `setSize`      | `number`             | How many groups share its parent, itself included, on any page.                 |
 | `rowIndex`     | `number`             | Its position among the rows as rendered.                                        |
 | `datasetIndex` | `number`             | Its position in the whole grouped result, on any page.                          |
 | `aggregates`   | `AggregateResults`   | Its own aggregate results, once `withGroupAggregates` has run; empty otherwise. |
+
+Each data row in the output carries a `groupPosition`, a `RowGroupPosition`, for drawing the row's `aria-level`, `aria-posinset` and `aria-setsize` in a treegrid. An ungrouped row has none.
+
+| Field      | Type     | Description                                                                                                     |
+| ---------- | -------- | --------------------------------------------------------------------------------------------------------------- |
+| `level`    | `number` | Nesting depth on a group header's scale: `1` under a top-level group, one more for each level below it.         |
+| `position` | `number` | Its 1-based place among the data rows of its group.                                                             |
+| `setSize`  | `number` | How many data rows its group holds, its header's `count`. A group split across pages has the same size on each. |
 
 ## The group-by stack
 

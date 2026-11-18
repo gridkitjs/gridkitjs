@@ -1,12 +1,17 @@
 // Coverage is only collected when tests import `test`/`expect` from
 // ./support/coverage rather than directly from the CT package — see that
 // file for why.
-import type { ColumnDefinition } from "@gridkitjs/core";
-import AxeBuilder from "@axe-core/playwright";
-import { DataGrid } from "@gridkitjs/react";
+import { groupRowId, type ColumnDefinition } from "@gridkitjs/core";
+import type React from "react";
+import type { Page } from "@playwright/test";
+import type { MountResult } from "@playwright/experimental-ct-react";
+import { DataGrid, type DataGridProps } from "@gridkitjs/react";
+import { expectNoAxeViolations } from "./support/axe";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
+import ContextMenuGrid from "./support/ContextMenuGrid";
 import HeaderTextGrid from "./support/HeaderTextGrid";
+import ToolbarGrid from "./support/ToolbarGrid";
 
 interface Row {
   id: string;
@@ -332,9 +337,14 @@ test("each <table> is presentational and every section, row and cell carries its
     await expect(table).toHaveAttribute("role", "presentation");
   }
   await expect(root.getByRole("table")).toHaveCount(0);
-  for (const section of await root.locator("thead, tbody, tfoot").all()) {
+  // The body's rowgroup is its scroller, which can take focus, so the
+  // `<tbody>` inside it is presentational.
+  for (const section of await root
+    .locator("thead, .gridkit-data-grid-body, tfoot")
+    .all()) {
     await expect(section).toHaveAttribute("role", "rowgroup");
   }
+  await expect(root.locator("tbody")).toHaveAttribute("role", "presentation");
   await expect(root.getByRole("rowgroup")).toHaveCount(3);
   for (const row of await root.locator("tr:not([aria-hidden='true'])").all()) {
     await expect(row).toHaveAttribute("role", "row");
@@ -374,13 +384,319 @@ test("the treegrid owns its rows directly, with a group row's level, expansion a
   await expect(group.getByRole("gridcell")).toHaveCount(1);
 });
 
+/** Each data row's name cell with its `aria-level`, `aria-posinset` and `aria-setsize`, `null` for one it lacks. */
+async function dataRowPositions(
+  root: MountResult,
+): Promise<(string | null)[][]> {
+  return root
+    .locator("tbody tr[data-gridkit-row-id]")
+    .evaluateAll((rows) =>
+      rows.map((row) => [
+        row.querySelector("td")?.textContent ?? null,
+        row.getAttribute("aria-level"),
+        row.getAttribute("aria-posinset"),
+        row.getAttribute("aria-setsize"),
+      ]),
+    );
+}
+
+interface TeamRow extends GroupedRow {
+  team: string;
+}
+
+const teamRows: TeamRow[] = [
+  { id: "a", name: "Alpha", region: "North", team: "Red", amount: 3 },
+  { id: "b", name: "Bravo", region: "South", team: "Red", amount: 5 },
+  { id: "c", name: "Charlie", region: "North", team: "Blue", amount: 2 },
+  { id: "d", name: "Delta", region: "North", team: "Red", amount: 4 },
+  { id: "e", name: "Echo", region: "South", team: "Blue", amount: 1 },
+];
+
+const teamColumns: readonly ColumnDefinition<TeamRow>[] = [
+  { field: "name", width: 120 },
+  { field: "region", width: 120 },
+  { field: "team", width: 120 },
+];
+
+test("a data row under one grouping column is level 2, placed among its group's rows", async ({
+  mount,
+}) => {
+  const root = await mountGrid(mount, groupedGrid());
+  expect(await dataRowPositions(root)).toEqual([
+    ["Alpha", "2", "1", "2"],
+    ["Charlie", "2", "2", "2"],
+    ["Bravo", "2", "1", "1"],
+  ]);
+});
+
+test("a data row under two grouping columns is level 3, placed within its innermost group beside a collapsed sibling", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={teamColumns}
+      dataSource={teamRows}
+      label="Two levels"
+      defaultGroupBy={[{ columnId: "region" }, { columnId: "team" }]}
+      defaultGroupExpansion={{
+        mode: "allExpanded",
+        except: [groupRowId(["North", "Blue"])],
+      }}
+    />,
+  );
+  const collapsed = root.getByRole("row", { name: /^team: Blue/ }).first();
+  await expect(collapsed).toHaveAttribute("aria-expanded", "false");
+  expect(await dataRowPositions(root)).toEqual([
+    ["Alpha", "3", "1", "2"],
+    ["Delta", "3", "2", "2"],
+    ["Echo", "3", "1", "1"],
+    ["Bravo", "3", "1", "1"],
+  ]);
+});
+
+test("a group split by row pagination gives its rows the same set size on its second page", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={teamColumns}
+      dataSource={teamRows}
+      label="Split group"
+      defaultGroupBy={[{ columnId: "region" }]}
+      paginated
+      paginationUnit="row"
+      defaultPagination={{ pageIndex: 0, pageSize: 2 }}
+    />,
+  );
+  expect(await dataRowPositions(root)).toEqual([
+    ["Alpha", "2", "1", "3"],
+    ["Charlie", "2", "2", "3"],
+  ]);
+
+  await root.getByRole("button", { name: "Next" }).click();
+  await expect(root.getByRole("row", { name: /^region: North/ })).toBeVisible();
+  await expect(
+    root.locator("tbody tr[data-gridkit-row-id]").first(),
+  ).toHaveText(/Delta/);
+  expect(await dataRowPositions(root)).toEqual([
+    ["Delta", "2", "3", "3"],
+    ["Bravo", "2", "1", "2"],
+  ]);
+});
+
+test("a group on a later page keeps its place among every sibling group, not just the page's", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <DataGrid
+      columns={teamColumns}
+      dataSource={teamRows}
+      label="Paged groups"
+      defaultGroupBy={[{ columnId: "region" }]}
+      paginated
+      defaultPagination={{ pageIndex: 1, pageSize: 1 }}
+    />,
+  );
+  const south = root.getByRole("row", { name: /^region: South/ });
+  await expect(south).toHaveAttribute("aria-posinset", "2");
+  await expect(south).toHaveAttribute("aria-setsize", "2");
+});
+
+test("an ungrouped grid's data rows carry no level, position or set size", async ({
+  mount,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <DataGrid columns={columns} dataSource={buildRows(2)} label="Flat" />,
+  );
+  expect(await dataRowPositions(root)).toEqual([
+    ["row-0", null, null, null],
+    ["row-1", null, null, null],
+  ]);
+});
+
+/** One state of the grid an axe scan covers. */
+interface Scan {
+  readonly name: string;
+  /** Called, not mounted as a component: CT mounts only imported components. */
+  readonly grid: () => React.JSX.Element;
+  readonly width?: number;
+  /** Brings the grid into the state, once mounted: opens a menu, selects a cell. */
+  readonly prepare?: (root: MountResult, page: Page) => Promise<void>;
+}
+
+const scanColumns: readonly ColumnDefinition<TeamRow>[] = [
+  { field: "name", header: "Name", width: 120 },
+  { field: "region", header: "Region", width: 120 },
+  { field: "amount", header: "Amount", width: 100, type: "number" },
+];
+
+/** A grid of `teamRows` with `scanColumns`; `props` override. */
+function scanGrid(props: Partial<DataGridProps<TeamRow>> = {}) {
+  return (
+    <DataGrid
+      columns={scanColumns}
+      dataSource={teamRows}
+      label="Scanned"
+      {...props}
+    />
+  );
+}
+
+/** Clicks a header's filter button and waits for its filter menu. */
+async function openFilterMenu(root: MountResult, page: Page): Promise<void> {
+  await root
+    .getByRole("columnheader", { name: "Name", exact: true })
+    .locator(".gridkit-header-filter-toggle")
+    .click();
+  await expect(page.getByRole("dialog", { name: "Name filter" })).toBeVisible();
+}
+
+const scans: readonly Scan[] = [
+  { name: "a plain grid", grid: () => scanGrid() },
+  {
+    name: "a grid with row, column and cell selection on and a cell selected",
+    grid: () =>
+      scanGrid({
+        selectable: { rows: "multiple", columns: "multiple", cells: "single" },
+      }),
+    prepare: async (root) => {
+      const cell = root.locator("tbody td").first();
+      await cell.click();
+      await expect(cell).toHaveAttribute("aria-selected", "true");
+    },
+  },
+  {
+    name: "sorted and filtered headers",
+    grid: () =>
+      scanGrid({
+        sortableColumns: true,
+        filterableColumns: true,
+        defaultColumnSort: [{ columnId: "amount", direction: "desc" }],
+        defaultFilter: [
+          {
+            kind: "operator",
+            columnId: "region",
+            operator: "eq",
+            value: "North",
+          },
+        ],
+      }),
+    prepare: async (root) => {
+      const amount = root.getByRole("columnheader", { name: "Amount" });
+      await expect(amount).toHaveAttribute("aria-sort", "descending");
+      const region = root.getByRole("columnheader", { name: "Region" });
+      await expect(region).toHaveAttribute("aria-description", "Filtered");
+    },
+  },
+  {
+    name: "the simple filter menu, open",
+    grid: () => scanGrid({ filterableColumns: true }),
+    prepare: openFilterMenu,
+  },
+  {
+    name: "the excel filter menu, open",
+    grid: () =>
+      scanGrid({ filterableColumns: true, filterMenu: { ui: "excel" } }),
+    prepare: openFilterMenu,
+  },
+  {
+    name: "a context menu with its submenu open",
+    grid: () => <ContextMenuGrid />,
+    prepare: async (root, page) => {
+      await root
+        .getByRole("columnheader", { name: "Name", exact: true })
+        .click({ button: "right" });
+      const menu = page.getByRole("menu", { name: "Name column menu" });
+      await menu.getByRole("menuitem", { name: "View" }).focus();
+      await page.keyboard.press("ArrowRight");
+      await expect(page.getByRole("menu", { name: "View" })).toBeVisible();
+    },
+  },
+  {
+    name: "the column chooser, open",
+    grid: () => scanGrid({ toolbar: { items: ["column.choose"] } }),
+    prepare: async (root, page) => {
+      await root.getByRole("button", { name: "Choose columns" }).click();
+      await expect(page.getByRole("dialog", { name: "Columns" })).toBeVisible();
+    },
+  },
+  {
+    name: "the toolbar with its overflow menu open",
+    grid: () => <ToolbarGrid />,
+    // Narrow enough that some of the toolbar's entries move into More.
+    width: 520,
+    prepare: async (root, page) => {
+      await root.getByRole("button", { name: "More" }).click();
+      await expect(page.getByRole("menu", { name: "More" })).toBeVisible();
+    },
+  },
+  {
+    name: "the compact pager",
+    grid: () =>
+      scanGrid({
+        paginated: true,
+        defaultPagination: { pageIndex: 1, pageSize: 2 },
+      }),
+  },
+  {
+    name: "the numbered pager",
+    grid: () =>
+      scanGrid({
+        paginated: true,
+        pager: { variant: "numbered" },
+        defaultPagination: { pageIndex: 1, pageSize: 2 },
+      }),
+    prepare: async (root) => {
+      await expect(root.locator(".gridkit-grid-pager-page")).toHaveCount(3);
+    },
+  },
+  {
+    name: "the group-by bar with chips",
+    grid: () =>
+      scanGrid({
+        groupableColumns: true,
+        defaultGroupBy: [{ columnId: "region" }, { columnId: "amount" }],
+      }),
+    prepare: async (root) => {
+      await expect(root.locator(".gridkit-group-by-chip")).toHaveCount(2);
+    },
+  },
+  {
+    name: "a grouped grid with inline subtotals",
+    grid: () => groupedGrid("inline"),
+  },
+  {
+    name: "a grouped grid with row subtotals",
+    grid: () => groupedGrid("row"),
+  },
+  { name: "a grid with no rows", grid: () => scanGrid({ dataSource: [] }) },
+  {
+    name: "a grid loading more rows by infinite scroll",
+    grid: () =>
+      scanGrid({
+        infiniteScroll: {
+          hasMore: true,
+          isLoadingMore: true,
+          onLoadMore: () => undefined,
+        },
+      }),
+    prepare: async (root) => {
+      await expect(root.locator(".gridkit-grid-loading-row")).toBeVisible();
+    },
+  },
+];
+
 for (const palette of ["gridkit-light", "gridkit-dark"]) {
-  for (const display of ["inline", "row"] as const) {
-    test(`an axe scan of a grouped grid with ${display} subtotals finds no violations under .${palette}`, async ({
+  for (const { name, grid, width, prepare } of scans) {
+    test(`an axe scan of ${name} finds no violations under .${palette}`, async ({
       mount,
       page,
     }) => {
-      await mountGrid(
+      const root = await mountGrid(
         mount,
         // Data rows take their text colour and background from the page, so
         // the wrapper sets both from the palette the way a page would.
@@ -391,18 +707,12 @@ for (const palette of ["gridkit-light", "gridkit-dark"]) {
             backgroundColor: "var(--gridkit-surface)",
           }}
         >
-          {groupedGrid(display)}
+          {grid()}
         </div>,
+        width === undefined ? undefined : { width },
       );
-      const results = await new AxeBuilder({ page })
-        .include(".gridkit-data-grid-viewport")
-        .analyze();
-      expect(
-        results.violations.map((violation) => ({
-          id: violation.id,
-          targets: violation.nodes.map((node) => node.target.join(" ")),
-        })),
-      ).toEqual([]);
+      await prepare?.(root, page);
+      await expectNoAxeViolations(page);
     });
   }
 }

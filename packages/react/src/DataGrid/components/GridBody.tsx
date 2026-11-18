@@ -6,7 +6,6 @@ import {
 } from "react";
 import {
   bodyFocus,
-  groupRowId,
   type AggregateState,
   type DisplayRow,
   type FormatLocale,
@@ -76,43 +75,6 @@ interface GridBodyProps<Row> {
   groupMenu: boolean;
 }
 
-interface GroupAriaMeta {
-  posinset: number;
-  setsize: number;
-}
-
-/**
- * `aria-posinset`/`aria-setsize` per group header: its 1-based position
- * among, and count of, the group headers sharing its level and immediate
- * parent. Depth-first order (see `groupRows`) keeps siblings contiguous, so
- * one pass tallies each parent's total and a second assigns each header's
- * position within it.
- */
-function groupAriaMeta<Row>(
-  rows: readonly DisplayRow<Row>[],
-): ReadonlyMap<string, GroupAriaMeta> {
-  const totals = new Map<string, number>();
-  for (const entry of rows) {
-    if (entry.kind !== "group") continue;
-    const parentKey = groupRowId(entry.path.slice(0, -1));
-    totals.set(parentKey, (totals.get(parentKey) ?? 0) + 1);
-  }
-
-  const seen = new Map<string, number>();
-  const meta = new Map<string, GroupAriaMeta>();
-  for (const entry of rows) {
-    if (entry.kind !== "group") continue;
-    const parentKey = groupRowId(entry.path.slice(0, -1));
-    const posinset = (seen.get(parentKey) ?? 0) + 1;
-    seen.set(parentKey, posinset);
-    meta.set(entry.groupId, {
-      posinset,
-      setsize: totals.get(parentKey) ?? posinset,
-    });
-  }
-  return meta;
-}
-
 /**
  * Events are delegated to the body rather than bound per cell, which is what
  * lets `GridRow` be memoised: a handler rebuilt each render is a prop that
@@ -141,7 +103,6 @@ export default function GridBody<Row>({
   groupMenu,
 }: GridBodyProps<Row>) {
   const { selectedCell, rowMode, cellMode, toggleOnClick } = selection;
-  const ariaMeta = useMemo(() => groupAriaMeta(rows), [rows]);
   // The full `rows` array otherwise — `virtualRange` is `null` whenever
   // `virtualized` is off, so this slice, and the spacer rows below, are a
   // no-op that reproduces today's output exactly.
@@ -230,7 +191,8 @@ export default function GridBody<Row>({
 
   return (
     <tbody
-      role="rowgroup"
+      // The rowgroup is the scrolling element around the body's table.
+      role="presentation"
       className="gridkit-grid-body"
       onFocus={(event) => {
         const group = groupRowFrom(event.target);
@@ -330,6 +292,9 @@ export default function GridBody<Row>({
                 row={entry.row}
                 rowIndex={entry.rowIndex}
                 datasetIndex={entry.datasetIndex}
+                groupLevel={entry.groupPosition?.level}
+                groupPosition={entry.groupPosition?.position}
+                groupSetSize={entry.groupPosition?.setSize}
                 activeColumnId={activeColumnId}
                 selectedColumnIds={selection.selectedColumnIds}
                 selected={selection.selectedRowIds.has(entry.rowId)}
@@ -393,8 +358,8 @@ export default function GridBody<Row>({
                 count={entry.count}
                 rowIndex={entry.rowIndex}
                 datasetIndex={entry.datasetIndex}
-                posinset={ariaMeta.get(entry.groupId)?.posinset ?? 1}
-                setsize={ariaMeta.get(entry.groupId)?.setsize ?? 1}
+                posinset={entry.position}
+                setsize={entry.setSize}
                 // Inline rendering only under "inline" display — under "row",
                 // the group's own summary row (above) already shows these, and
                 // showing them twice would be redundant.

@@ -89,12 +89,12 @@ test("groups rows by a single column, in group order, with each group's rows nes
 
   expect(await rowStructure(root)).toEqual([
     { isGroup: true, level: "1", id: null },
-    { isGroup: false, level: null, id: "r2" },
-    { isGroup: false, level: null, id: "r4" },
+    { isGroup: false, level: "2", id: "r2" },
+    { isGroup: false, level: "2", id: "r4" },
     { isGroup: true, level: "1", id: null },
-    { isGroup: false, level: null, id: "r1" },
-    { isGroup: false, level: null, id: "r3" },
-    { isGroup: false, level: null, id: "r5" },
+    { isGroup: false, level: "2", id: "r1" },
+    { isGroup: false, level: "2", id: "r3" },
+    { isGroup: false, level: "2", id: "r5" },
   ]);
 });
 
@@ -115,15 +115,15 @@ test("nests a second group-by level inside the first, depth-first", async ({
   expect(await rowStructure(root)).toEqual([
     { isGroup: true, level: "1", id: null }, // East (2)
     { isGroup: true, level: "2", id: null }, // East > Closed (1)
-    { isGroup: false, level: null, id: "r4" },
+    { isGroup: false, level: "3", id: "r4" },
     { isGroup: true, level: "2", id: null }, // East > Open (1)
-    { isGroup: false, level: null, id: "r2" },
+    { isGroup: false, level: "3", id: "r2" },
     { isGroup: true, level: "1", id: null }, // West (3)
     { isGroup: true, level: "2", id: null }, // West > Closed (1)
-    { isGroup: false, level: null, id: "r3" },
+    { isGroup: false, level: "3", id: "r3" },
     { isGroup: true, level: "2", id: null }, // West > Open (2)
-    { isGroup: false, level: null, id: "r1" },
-    { isGroup: false, level: null, id: "r5" },
+    { isGroup: false, level: "3", id: "r1" },
+    { isGroup: false, level: "3", id: "r5" },
   ]);
 });
 

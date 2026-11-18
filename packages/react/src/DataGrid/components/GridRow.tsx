@@ -18,6 +18,14 @@ interface GridRowProps<Row> {
   rowIndex: number;
   /** This row's absolute position in the whole dataset, unaffected by which page is showing — see `CellTemplateContext.datasetIndex`. */
   datasetIndex: number;
+  /**
+   * The row's `groupPosition` fields, for `aria-level`, `aria-posinset` and
+   * `aria-setsize`; `undefined` in an ungrouped grid. Scalars rather than the
+   * object, which regrouping rebuilds for every row and would defeat `memo`.
+   */
+  groupLevel: number | undefined;
+  groupPosition: number | undefined;
+  groupSetSize: number | undefined;
   /** The column being resized, so its cells outline with its header. */
   activeColumnId: string | null;
   selectedColumnIds: ReadonlySet<string>;
@@ -47,6 +55,9 @@ function GridRowComponent<Row>({
   row,
   rowIndex,
   datasetIndex,
+  groupLevel,
+  groupPosition,
+  groupSetSize,
   activeColumnId,
   selectedColumnIds,
   selected,
@@ -89,6 +100,10 @@ function GridRowComponent<Row>({
       // The row's identity, for a test or a script to find it by however it
       // has moved — the index above changes with every sort.
       data-gridkit-row-id={rowId}
+      // One-based, where `groupLevel` counts from zero as a group row's does.
+      aria-level={groupLevel === undefined ? undefined : groupLevel + 1}
+      aria-posinset={groupPosition}
+      aria-setsize={groupSetSize}
       // Omitted rather than `false` when rows cannot be selected, which would
       // otherwise have every row announce that it is not.
       {...ariaAttr(rowsSelectable, "aria-selected", selected)}
