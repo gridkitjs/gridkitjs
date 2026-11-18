@@ -97,6 +97,10 @@ export interface GridMessages {
   columnsHidden: (count: number) => string;
   /** Announced when one change shows more than one column. */
   columnsShown: (count: number) => string;
+  /** Announced when one column is pinned to the grid's `"start"` or `"end"` edge. */
+  columnPinned: (columnName: string, edge: "start" | "end") => string;
+  /** Announced when one column is unpinned. */
+  columnUnpinned: (columnName: string) => string;
   /**
    * Announced when one action autofits more than one column, as
    * `column.autoFitAll` does, in place of each column's `columnResized`.
@@ -463,6 +467,8 @@ export function createDefaultMessages(locale?: FormatLocale): GridMessages {
     columnShown: (columnName) => `${columnName}, column shown`,
     columnsHidden: (count) => columnCount(n, count, "hidden"),
     columnsShown: (count) => columnCount(n, count, "shown"),
+    columnPinned: (columnName, edge) => `${columnName}, pinned to ${edge}`,
+    columnUnpinned: (columnName) => `${columnName}, unpinned`,
     columnsAutoFitted: (count) => columnCount(n, count, "autofitted"),
     headerMenuLabel: (columnName) => `${columnName} column menu`,
     cellMenuLabel: "Row menu",
