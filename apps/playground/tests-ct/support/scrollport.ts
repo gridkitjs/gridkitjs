@@ -17,16 +17,36 @@ export function scrollArea(root: MountResult): Locator {
 /**
  * Scrolls the area sideways to `fraction` of the way from its start edge to
  * its end. Right to left, `scrollLeft` runs from 0 down to minus the overflow.
+ *
+ * Resolves once the area's `scroll` event has fired, which the browser sends
+ * a frame later: an overlay opened before it would be closed by it, as a
+ * scroll of the grid closes one.
  */
 export async function scrollSideways(
   area: Locator,
   fraction: number,
 ): Promise<void> {
-  await area.evaluate((element, share) => {
-    const overflow = element.scrollWidth - element.clientWidth;
-    const rtl = getComputedStyle(element).direction === "rtl";
-    element.scrollLeft = (rtl ? -overflow : overflow) * share;
-  }, fraction);
+  await area.evaluate(
+    (element, share) =>
+      new Promise<void>((resolve) => {
+        const overflow = element.scrollWidth - element.clientWidth;
+        const rtl = getComputedStyle(element).direction === "rtl";
+        const target = (rtl ? -overflow : overflow) * share;
+        if (Math.abs(element.scrollLeft - target) < 1) {
+          resolve();
+          return;
+        }
+        element.addEventListener(
+          "scroll",
+          () => {
+            resolve();
+          },
+          { once: true },
+        );
+        element.scrollLeft = target;
+      }),
+    fraction,
+  );
 }
 
 /** The scroll area's scrollport, its scrollbars left out. */
