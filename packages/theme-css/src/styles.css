@@ -948,7 +948,16 @@
     outline-offset: calc(var(--gridkit-focus-ring-width) * -1);
   }
 
+  /*
+   * Sticks to the scroll area's start edge, so a group's label stays in view
+   * however far a wide grid scrolls sideways; as wide as its content, so it
+   * has room to move along its row. It sticks only while the group cell does
+   * not clip: `overflow: clip`, unlike `hidden`, would keep it working.
+   */
   .gridkit-data-grid .gridkit-grid-group-cell-content {
+    position: sticky;
+    inset-inline-start: 0;
+    width: max-content;
     display: flex;
     align-items: center;
     gap: calc(var(--gridkit-spacing) * 2);
@@ -1256,6 +1265,146 @@
     .gridkit-grid-group-summary-row:last-child
     .gridkit-grid-group-summary-cell {
     border-bottom: none;
+  }
+
+  /*
+   * Pinned columns. A pinned column's header, body, footer and summary cells
+   * stick to the scroll area's start or end edge, at the
+   * `--gridkit-pin-offset` the grid sets on each: the summed widths of the
+   * columns pinned between it and that edge. The other columns scroll under
+   * them.
+   *
+   * After the header cell's `position: relative`, which this replaces at the
+   * same specificity; sticky is a containing block too, so the resize handle
+   * and the toggles stay inside the cell. `z-index: 1` lifts them over the
+   * scrolling cells, whose positioned header cells would otherwise paint
+   * over a start-pinned one that comes before them, and keeps them under the
+   * header and footer tables (2), which pinned body cells scroll under like
+   * any row.
+   */
+  .gridkit-data-grid
+    :is(
+      .gridkit-header-cell,
+      .gridkit-grid-cell,
+      .gridkit-grid-footer-cell,
+      .gridkit-grid-group-summary-cell
+    ).is-pinned-start {
+    position: sticky;
+    inset-inline-start: var(--gridkit-pin-offset);
+    z-index: 1;
+  }
+
+  .gridkit-data-grid
+    :is(
+      .gridkit-header-cell,
+      .gridkit-grid-cell,
+      .gridkit-grid-footer-cell,
+      .gridkit-grid-group-summary-cell
+    ).is-pinned-end {
+    position: sticky;
+    inset-inline-end: var(--gridkit-pin-offset);
+    z-index: 1;
+  }
+
+  /*
+   * Opaque in every row state, without restating a row rule. The cell takes
+   * its row's colour, at no specificity, so a cell's own hover or selection
+   * wins over it. A sticky cell is a stacking context, so its negative-z
+   * pseudo-elements paint above its own background and below its content:
+   * `::before` lays the surface over it and `::after` its colour again on
+   * top. A transparent row shows the surface, a translucent one its colour
+   * over the surface, and neither the cells scrolled underneath. `inset: 0`
+   * covers the padding box, so the borders stay visible; `box-shadow:
+   * inherit` repeats the resize and drop lines `::after` would cover.
+   */
+  .gridkit-data-grid :where(.is-pinned-start, .is-pinned-end) {
+    background-color: inherit;
+  }
+
+  .gridkit-data-grid
+    :is(
+      .gridkit-header-cell,
+      .gridkit-grid-cell,
+      .gridkit-grid-footer-cell,
+      .gridkit-grid-group-summary-cell
+    ):is(.is-pinned-start, .is-pinned-end)::before,
+  .gridkit-data-grid
+    :is(
+      .gridkit-header-cell,
+      .gridkit-grid-cell,
+      .gridkit-grid-footer-cell,
+      .gridkit-grid-group-summary-cell
+    ):is(.is-pinned-start, .is-pinned-end)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .gridkit-data-grid
+    :is(
+      .gridkit-header-cell,
+      .gridkit-grid-cell,
+      .gridkit-grid-footer-cell,
+      .gridkit-grid-group-summary-cell
+    ):is(.is-pinned-start, .is-pinned-end)::before {
+    z-index: -2;
+    background-color: var(--gridkit-surface);
+  }
+
+  .gridkit-data-grid
+    :is(
+      .gridkit-header-cell,
+      .gridkit-grid-cell,
+      .gridkit-grid-footer-cell,
+      .gridkit-grid-group-summary-cell
+    ):is(.is-pinned-start, .is-pinned-end)::after {
+    z-index: -1;
+    background-color: inherit;
+    box-shadow: inherit;
+  }
+
+  /*
+   * The divider between the pinned columns and the scrolling ones, in every
+   * `borders` setting: the edge cell's own border on the scrolling side,
+   * outranking the column lines above. None where the edge cell ends the
+   * row, which is no seam.
+   */
+  .gridkit-data-grid
+    :is(
+      .gridkit-header-cell,
+      .gridkit-grid-cell,
+      .gridkit-grid-footer-cell,
+      .gridkit-grid-group-summary-cell
+    ).is-pinned-start.is-pinned-edge:not(:last-child) {
+    border-inline-end: var(--gridkit-border-width) var(--gridkit-border-style)
+      var(--gridkit-line);
+  }
+
+  .gridkit-data-grid
+    :is(
+      .gridkit-header-cell,
+      .gridkit-grid-cell,
+      .gridkit-grid-footer-cell,
+      .gridkit-grid-group-summary-cell
+    ).is-pinned-end.is-pinned-edge:not(:first-child) {
+    border-inline-start: var(--gridkit-border-width) var(--gridkit-border-style)
+      var(--gridkit-line);
+  }
+
+  /*
+   * The cell before the end divider leaves out its own column line, which
+   * would sit beside the divider as a doubled one wherever the two meet:
+   * scrolled to the end, and in a grid with nothing to scroll.
+   */
+  .gridkit-data-grid
+    :is(
+      .gridkit-header-cell,
+      .gridkit-grid-cell,
+      .gridkit-grid-footer-cell,
+      .gridkit-grid-group-summary-cell
+    ):has(+ .is-pinned-end.is-pinned-edge) {
+    border-inline-end: none;
   }
 
   /*
@@ -2439,8 +2588,21 @@
     }
 
     .gridkit-data-grid-viewport .gridkit-data-grid-header,
-    .gridkit-data-grid-viewport .gridkit-data-grid-footer {
+    .gridkit-data-grid-viewport .gridkit-data-grid-footer,
+    .gridkit-data-grid-viewport .gridkit-grid-group-cell-content {
       position: static;
+    }
+
+    /*
+     * Pinned columns print in their own places. Relative rather than
+     * static: a cell stays the containing block of its background layers
+     * and its header's toggles, as an unpinned header cell is.
+     */
+    .gridkit-data-grid-viewport
+      .gridkit-data-grid
+      :is(.is-pinned-start, .is-pinned-end) {
+      position: relative;
+      inset-inline: auto;
     }
 
     .gridkit-data-grid-viewport .gridkit-data-grid-body {
