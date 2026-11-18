@@ -97,7 +97,7 @@ async function expectTappable(locator: Locator): Promise<void> {
   expect(box.height).toBeGreaterThanOrEqual(MIN_TARGET);
 }
 
-/** Whether `box` lies inside the page's width, with nothing cut off. */
+/** Expects `locator` to lie inside the page's width, with nothing cut off. */
 async function expectWithinPage(page: Page, locator: Locator): Promise<void> {
   const box = await boxOf(locator);
   const width = await page.evaluate(() => document.documentElement.clientWidth);
