@@ -7,9 +7,11 @@ import type { ColumnDefinition, ColumnResizeEvent } from "@gridkitjs/core";
 import { DataGrid } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import ControlledStateGrid from "./support/ControlledStateGrid";
+import PinnedColumnsGrid from "./support/PinnedColumnsGrid";
 import PointerGestureHarness from "./support/PointerGestureHarness";
 import { mountGrid, updateGrid } from "./support/mountGrid";
 import { pressMouse } from "./support/pressMouse";
+import { scrollArea, scrollportOf, scrollSideways } from "./support/scrollport";
 import { trackWindowListeners } from "./support/windowListeners";
 
 interface Row {
@@ -691,4 +693,126 @@ test("unmounting the grid mid-resize cancels it, leaving nothing listening", asy
   // Anything the press reported would cross the CT bridge after it resolves.
   await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 100)));
   expect(events).toHaveLength(reported);
+});
+
+test.describe("pinned columns", () => {
+  function pinnedHandle(root: MountResult, columnId: string) {
+    return root.locator(
+      `.gridkit-header-cell[data-gridkit-column="${columnId}"] .gridkit-header-resize-handle`,
+    );
+  }
+
+  /** The left and right edges of `columnId`'s cell in the header and in row r1. */
+  async function edgesOf(
+    root: MountResult,
+    columnId: string,
+  ): Promise<{ left: number; right: number }[]> {
+    return root
+      .locator(
+        `.gridkit-header-cell[data-gridkit-column="${columnId}"], [data-gridkit-row-id="r1"] [data-gridkit-column="${columnId}"]`,
+      )
+      .evaluateAll((cells) =>
+        cells.map((cell) => {
+          const box = cell.getBoundingClientRect();
+          return { left: box.left, right: box.right };
+        }),
+      );
+  }
+
+  /** Expects every one of `columnId`'s cells to have its `side` edge at `x`, to within a pixel. */
+  async function expectEdgeAt(
+    root: MountResult,
+    columnId: string,
+    side: "left" | "right",
+    x: number,
+  ): Promise<void> {
+    await expect
+      .poll(async () =>
+        (await edgesOf(root, columnId)).map((edges) =>
+          Math.abs(edges[side] - x) <= 1 ? "at" : edges[side],
+        ),
+      )
+      .toEqual(["at", "at"]);
+  }
+
+  /** `PinnedColumnsGrid`, resizable, scrolled halfway so its pinned cells are stuck. */
+  async function mountScrolled(
+    mount: Parameters<typeof mountGrid>[0],
+    props: { defaultColumnPinning?: Record<string, "start" | "end"> } = {},
+  ) {
+    const root = await mountGrid(
+      mount,
+      <PinnedColumnsGrid height={300} resizableColumns {...props} />,
+    );
+    const area = scrollArea(root);
+    await scrollSideways(area, 0.5);
+    return { root, area, port: await scrollportOf(area) };
+  }
+
+  test("dragging a start-pinned column's handle moves the pinned column after it at every step", async ({
+    mount,
+    page,
+  }) => {
+    const { root, port } = await mountScrolled(mount);
+    const start = await pointerDragStart(page, pinnedHandle(root, "team"));
+
+    for (const step of [10, 20, 30, 40]) {
+      await page.mouse.move(start.x + step, start.y);
+      await expectEdgeAt(root, "c1", "left", port.x + 120 + step);
+    }
+    await page.mouse.up();
+    await expectEdgeAt(root, "c1", "left", port.x + 160);
+  });
+
+  test("dragging the last start-pinned column's handle moves the divider", async ({
+    mount,
+    page,
+  }) => {
+    const { root, area, port } = await mountScrolled(mount);
+    const start = await pointerDragStart(page, pinnedHandle(root, "c1"));
+
+    await page.mouse.move(start.x + 20, start.y);
+    await page.mouse.move(start.x + 40, start.y);
+    await expectEdgeAt(root, "c1", "right", port.x + 280);
+    expect((await scrollportOf(area)).startWidth).toBe(280);
+    // What sits just past the divider is a scrolled column, not c1.
+    const past = await root
+      .locator('[data-gridkit-row-id="r1"]')
+      .evaluate((row, x) => {
+        const box = row.getBoundingClientRect();
+        return document
+          .elementFromPoint(x, box.top + box.height / 2)
+          ?.closest<HTMLElement>("[data-gridkit-column]")?.dataset
+          .gridkitColumn;
+      }, port.x + 283);
+    expect(past).toMatch(/^c[2-6]$/);
+    await page.mouse.up();
+  });
+
+  test("dragging an end-pinned column's handle moves the pinned column beyond it at every step", async ({
+    mount,
+    page,
+  }) => {
+    const { root, port } = await mountScrolled(mount, {
+      defaultColumnPinning: { c6: "end" },
+    });
+    const end = port.x + port.width;
+    const start = await pointerDragStart(page, pinnedHandle(root, "c7"));
+
+    for (const step of [10, 20, 30]) {
+      await page.mouse.move(start.x - step, start.y);
+      await expectEdgeAt(root, "c6", "right", end - 120 + step);
+    }
+    await page.mouse.up();
+  });
+
+  test("double-click autofits a pinned column, and the pinned column after it follows", async ({
+    mount,
+  }) => {
+    const { root, port } = await mountScrolled(mount);
+
+    await pinnedHandle(root, "team").dblclick();
+    await expect.poll(() => colWidth(root, 0)).not.toBe(120);
+    await expectEdgeAt(root, "c1", "left", port.x + (await colWidth(root, 0)));
+  });
 });
