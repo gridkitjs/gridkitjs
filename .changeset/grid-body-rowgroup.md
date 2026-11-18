@@ -2,7 +2,7 @@
 "@gridkitjs/react": minor
 ---
 
-The body's `rowgroup` role moves from its `<tbody>` to the element around
+Breaking: the body's `rowgroup` role moves from its `<tbody>` to the element around
 the body's table, `div.gridkit-data-grid-body`, and the `<tbody>` becomes
 `role="presentation"`. That element scrolls under `height` and carries
 `tabindex="-1"`, and a focusable element inside a grid must have a role the
