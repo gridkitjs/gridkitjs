@@ -98,6 +98,18 @@ async function expectWithinPage(page: Page, locator: Locator): Promise<void> {
   expect(box.x + box.width).toBeLessThanOrEqual(width);
 }
 
+/**
+ * How far `cell` sits from `header` sideways. A swipe can fling on after
+ * the finger lifts, so a test polls this rather than comparing one cell's
+ * position with the header's taken earlier.
+ */
+async function offsetFromHeader(
+  cell: Locator,
+  header: Locator,
+): Promise<number> {
+  return (await boxOf(cell)).x - (await boxOf(header)).x;
+}
+
 function scrollLeftOf(locator: Locator): Promise<number> {
   return locator.evaluate((element) => element.scrollLeft);
 }
@@ -215,8 +227,8 @@ test.describe("touch", { tag: "@touch" }, () => {
     const from = await centerOf(cell);
     await touchDrag(page, from, { x: from.x - 150, y: from.y });
     await expect
-      .poll(async () => (await boxOf(cell)).x)
-      .toBeCloseTo((await boxOf(header(root, "City"))).x, 0);
+      .poll(() => offsetFromHeader(cell, header(root, "City")))
+      .toBeCloseTo(0, 2);
   });
 
   test("dragging the rows of a right-to-left grid with a height sideways keeps the header in line with them", async ({
@@ -239,10 +251,9 @@ test.describe("touch", { tag: "@touch" }, () => {
     await expect
       .poll(async () => (await boxOf(cell)).x)
       .toBeGreaterThan(before.x);
-    expect((await boxOf(cell)).x).toBeCloseTo(
-      (await boxOf(header(root, "City"))).x,
-      2,
-    );
+    await expect
+      .poll(() => offsetFromHeader(cell, header(root, "City")))
+      .toBeCloseTo(0, 2);
   });
 
   test("dragging a header that does not reorder scrolls the grid sideways", async ({
