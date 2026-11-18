@@ -491,9 +491,15 @@
    * `fixed` is what makes a width a width. Under the default `auto` layout the
    * browser treats the colgroup as a hint and re-apportions space by content,
    * so dragging one column visibly shifts its neighbours.
+   *
+   * Separate borders, so each cell owns its lines: a cell made to stick
+   * sideways carries them along, where a collapsed table would paint them at
+   * the cell's unstuck place. Each seam is drawn by one of its two cells
+   * only, as the borders section below explains.
    */
   .gridkit-data-grid {
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     table-layout: fixed;
   }
 
@@ -1172,13 +1178,12 @@
   /*
    * Horizontal borders.
    *
-   * Header, body, and footer are three separate `<table>`s, so
-   * `border-collapse` only ever merges borders within one of them — it
-   * cannot merge a header border against a body border the way it would
-   * merge two adjacent body rows' borders in one shared `<tbody>`. Each seam
-   * below is therefore deliberately defined from one side only, never both,
-   * or the two tables' independent borders would render as a doubled line
-   * instead of collapsing into one:
+   * Each cell owns its borders, so every seam is drawn by one of its two
+   * cells only, never both, or the two lines would sit side by side as a
+   * doubled one: a seam between rows is the upper cell's `border-bottom`,
+   * and one between columns (in the vertical variants below) the earlier
+   * cell's `border-inline-end`. The seams between the header, body and
+   * footer tables follow the same rule:
    *   - header/body seam: the header's own `border-bottom` here. The body's
    *     first row never sets a `border-top` of its own.
    *   - body/footer seam: the footer's own `border-top` (below, alongside
@@ -1209,9 +1214,10 @@
   }
 
   /*
-   * The last row's bottom edge has no row below it to collapse with, so
-   * unlike every internal boundary it is a genuinely extra line — the same
-   * reason `gridkit-borders-vertical` drops its `:last-child` end border below.
+   * The last row's bottom edge is no seam between two rows, so it draws no
+   * line: the footer draws its own, and without a footer the line would be
+   * one more than the rows have seams — the same reason
+   * `gridkit-borders-vertical` drops its `:last-child` end border below.
    * Matched against both row kinds: the last rendered row can just as well
    * be a collapsed group header as a data row.
    */
@@ -1268,11 +1274,11 @@
   }
 
   /*
-   * The outer start and end edges have no neighbouring cell to collapse with, so
-   * unlike every internal boundary they are a genuinely extra line — without
-   * this the table would render two lines wider than the sum of its columns. A
-   * group cell is both its row's first and last child at once (it is the
-   * only cell), so it takes both exceptions.
+   * The outer start and end edges are no seam between two columns, so they
+   * draw no line: one there would sit against the scroll area's edge, or
+   * double the grid's outer border when it has one. A group cell is both its
+   * row's first and last child at once (it is the only cell), so it takes
+   * both exceptions.
    */
   .gridkit-data-grid.gridkit-borders-all
     .gridkit-grid-header
