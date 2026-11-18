@@ -11,6 +11,7 @@ import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
 import ContextMenuGrid from "./support/ContextMenuGrid";
 import HeaderTextGrid from "./support/HeaderTextGrid";
+import RightToLeft from "./support/RightToLeft";
 import ToolbarGrid from "./support/ToolbarGrid";
 
 interface Row {
@@ -555,6 +556,24 @@ async function openFilterMenu(root: MountResult, page: Page): Promise<void> {
   await expect(page.getByRole("dialog", { name: "Name filter" })).toBeVisible();
 }
 
+/**
+ * Opens `ContextMenuGrid`'s header menu on Name, then its View submenu with
+ * `opensKey`, the arrow pointing the way submenus open in the grid's direction.
+ */
+async function openViewSubmenu(
+  root: MountResult,
+  page: Page,
+  opensKey: "ArrowLeft" | "ArrowRight",
+): Promise<void> {
+  await root
+    .getByRole("columnheader", { name: "Name", exact: true })
+    .click({ button: "right" });
+  const menu = page.getByRole("menu", { name: "Name column menu" });
+  await menu.getByRole("menuitem", { name: "View" }).focus();
+  await page.keyboard.press(opensKey);
+  await expect(page.getByRole("menu", { name: "View" })).toBeVisible();
+}
+
 const scans: readonly Scan[] = [
   { name: "a plain grid", grid: () => scanGrid() },
   {
@@ -606,15 +625,16 @@ const scans: readonly Scan[] = [
   {
     name: "a context menu with its submenu open",
     grid: () => <ContextMenuGrid />,
-    prepare: async (root, page) => {
-      await root
-        .getByRole("columnheader", { name: "Name", exact: true })
-        .click({ button: "right" });
-      const menu = page.getByRole("menu", { name: "Name column menu" });
-      await menu.getByRole("menuitem", { name: "View" }).focus();
-      await page.keyboard.press("ArrowRight");
-      await expect(page.getByRole("menu", { name: "View" })).toBeVisible();
-    },
+    prepare: (root, page) => openViewSubmenu(root, page, "ArrowRight"),
+  },
+  {
+    name: "a right-to-left grid with a context menu and its submenu open",
+    grid: () => (
+      <RightToLeft>
+        <ContextMenuGrid />
+      </RightToLeft>
+    ),
+    prepare: (root, page) => openViewSubmenu(root, page, "ArrowLeft"),
   },
   {
     name: "the column chooser, open",
