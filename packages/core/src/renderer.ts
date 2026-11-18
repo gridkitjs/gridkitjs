@@ -14,6 +14,8 @@ export {
   splitToolbarItems,
 } from "./toolbar/overflow";
 export { searchTextOf, setSearchText } from "./toolbar/search";
+export type { WritingDirection } from "./util/direction";
+export { inlineStep } from "./util/direction";
 export type { KeyShortcutCapabilities } from "./util/grid";
 export { buildKeyShortcuts } from "./util/grid";
 export type { NavigationModifiers } from "./util/navigation";

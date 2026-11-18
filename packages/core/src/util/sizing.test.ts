@@ -250,6 +250,24 @@ describe("applyColumnResize", () => {
     expect(applyColumnResize(session, 5000)).toBe(300);
   });
 
+  test("moves as by default when told ltr", () => {
+    expect(applyColumnResize(session, 560, "ltr")).toBe(160);
+  });
+
+  test("grows on a leftward drag in right-to-left, the edge being the left one", () => {
+    expect(applyColumnResize(session, 440, "rtl")).toBe(160);
+    expect(applyColumnResize(session, 0, "rtl")).toBe(300);
+  });
+
+  test("shrinks on a rightward drag in right-to-left and stops at the minimum", () => {
+    expect(applyColumnResize(session, 530, "rtl")).toBe(70);
+    expect(applyColumnResize(session, 5000, "rtl")).toBe(60);
+  });
+
+  test("returns the starting width for a pointer that has not moved, in right-to-left", () => {
+    expect(applyColumnResize(session, 500, "rtl")).toBe(100);
+  });
+
   test("captures the column's id, so the drag survives a reorder", () => {
     expect(beginColumnResize({ field: "Name", id: "n" }, 10, 0).columnId).toBe(
       "n",

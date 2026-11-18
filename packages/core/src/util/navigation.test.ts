@@ -356,3 +356,105 @@ describe("nextFocusForKey", () => {
     });
   });
 });
+
+describe("nextFocusForKey in right-to-left", () => {
+  const focus = bodyFocus(2, 2);
+
+  test("moves ArrowLeft to the next column and ArrowRight to the previous", () => {
+    expect(
+      nextFocusForKey(
+        "ArrowLeft",
+        noModifiers,
+        focus,
+        5,
+        5,
+        2,
+        undefined,
+        "rtl",
+      ),
+    ).toEqual(bodyFocus(2, 3));
+    expect(
+      nextFocusForKey(
+        "ArrowRight",
+        noModifiers,
+        focus,
+        5,
+        5,
+        2,
+        undefined,
+        "rtl",
+      ),
+    ).toEqual(bodyFocus(2, 1));
+  });
+
+  test("moves along the header the same way", () => {
+    expect(
+      nextFocusForKey(
+        "ArrowLeft",
+        noModifiers,
+        headerFocus(0),
+        5,
+        5,
+        2,
+        undefined,
+        "rtl",
+      ),
+    ).toEqual(headerFocus(1));
+  });
+
+  test("leaves Ctrl with either arrow to reorder", () => {
+    for (const key of ["ArrowLeft", "ArrowRight"]) {
+      expect(
+        nextFocusForKey(
+          key,
+          { ...noModifiers, ctrlKey: true },
+          focus,
+          5,
+          5,
+          2,
+          undefined,
+          "rtl",
+        ),
+      ).toBeNull();
+    }
+  });
+
+  test("keeps Home at the first column and End at the last", () => {
+    expect(
+      nextFocusForKey("Home", noModifiers, focus, 5, 5, 2, undefined, "rtl"),
+    ).toEqual(bodyFocus(2, 0));
+    expect(
+      nextFocusForKey("End", noModifiers, focus, 5, 5, 2, undefined, "rtl"),
+    ).toEqual(bodyFocus(2, 4));
+  });
+
+  test("leaves the vertical keys as they are", () => {
+    expect(
+      nextFocusForKey(
+        "ArrowDown",
+        noModifiers,
+        focus,
+        5,
+        5,
+        2,
+        undefined,
+        "rtl",
+      ),
+    ).toEqual(bodyFocus(3, 2));
+  });
+
+  test("moves as in left-to-right when told ltr", () => {
+    expect(
+      nextFocusForKey(
+        "ArrowRight",
+        noModifiers,
+        focus,
+        5,
+        5,
+        2,
+        undefined,
+        "ltr",
+      ),
+    ).toEqual(bodyFocus(2, 3));
+  });
+});

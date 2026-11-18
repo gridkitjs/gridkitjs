@@ -7,6 +7,7 @@ import type {
   ColumnSizingState,
   ResolvedColumn,
 } from "../types";
+import type { WritingDirection } from "./direction";
 import { alignmentForType, getColumnId, resolveColumnLabel } from "./grid";
 
 /**
@@ -118,15 +119,19 @@ export function beginColumnResize<Row>(
 }
 
 /**
- * The width the dragged column takes with the pointer at `position`. The delta
- * is signed, so a right-to-left adapter negates it and nothing else changes.
+ * The width the dragged column takes with the pointer at `position`, its
+ * edge at the inline end of the column: the right edge in `"ltr"`, the left
+ * in `"rtl"`. Dragging that edge outward, away from the column, grows it in
+ * either direction. `direction` defaults to `"ltr"`.
  */
 export function applyColumnResize(
   session: ColumnResizeSession,
   position: number,
+  direction: WritingDirection = "ltr",
 ): number {
+  const moved = position - session.startPosition;
   return clampColumnWidth(
-    session.startWidth + (position - session.startPosition),
+    session.startWidth + (direction === "rtl" ? -moved : moved),
     session.constraints,
   );
 }
