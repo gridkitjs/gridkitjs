@@ -14,7 +14,7 @@ published, so it needs no changeset.
 | `tests-ct/`               | Playwright component tests, one spec file per area.                          |
 | `tests-ct/support/`       | Test-only grids and harnesses the specs mount, plus coverage setup.          |
 | `playwright/index.tsx`    | The component-test entry; it imports `src/index.css`.                        |
-| `playwright-ct.config.ts` | The suite's config: the three browsers, the Vite plugins, coverage.          |
+| `playwright-ct.config.ts` | The suite's config: the browsers and phones, the Vite plugins, coverage.     |
 
 Packages resolve to source, so editing a package hot-reloads the app; run it
 from the repo root with `pnpm dev` (see the root
@@ -29,10 +29,12 @@ widths and paddings are real ones.
 
 It runs in three desktop browsers, one Playwright project each: `chromium`
 (Desktop Chrome), `firefox` (Desktop Firefox) and `webkit` (Desktop Safari).
-Mobile browsers and touch input are not part of it.
+Two phone projects with a touch screen, `chromium-touch` (Pixel 7) and
+`webkit-touch` (iPhone 15), run only the tests tagged `@touch`, which the
+desktop projects leave out; `touch.spec.tsx` holds them.
 
 ```bash
-pnpm --filter playground test:e2e                     # run the suite in all three browsers
+pnpm --filter playground test:e2e                     # run the suite in every project
 pnpm --filter playground test:e2e --project=firefox   # one browser
 pnpm --filter playground test:e2e:ui                  # same, with Playwright's UI
 pnpm --filter playground test:e2e:coverage            # Chromium, instrumented; enforces 80% line/statement/function coverage over DataGrid/ and dom
@@ -41,8 +43,8 @@ pnpm --filter playground exec playwright install chromium firefox webkit   # onc
 
 Coverage comes from the Chromium project alone. Each coverage file is named
 by its test's id, which the three projects share, and one browser is enough
-to measure what the tests reach. CI runs each browser as its own job:
-Chromium with coverage, Firefox and WebKit without, each retried once.
+to measure what the tests reach. CI runs each project as its own job:
+desktop Chromium with coverage, the others without, each retried once.
 
 `test:e2e` is not part of `pnpm test` and does not run under `pnpm -r test`,
 by design — it's a separate, slower check, invoked explicitly rather than on
@@ -88,6 +90,19 @@ says why next to the difference. What the suite already handles:
 - **Pixel widths.** `getBoundingClientRect()` can differ in the fifth
   decimal place for boxes of the same computed width. A test comparing
   widths rounds them first.
+
+### A touch test
+
+A touch test is tagged `@touch` (`touch.spec.tsx` tags its whole
+`describe`), so it runs in the phone projects alone. Taps go through
+`page.touchscreen.tap`, a real touch in both. Playwright has no touch that
+rests or moves, so `support/touchscreen.ts` drives one through the DevTools
+protocol, which only Chromium speaks: a long-press or a swipe skips in
+`webkit-touch` with `TOUCH_DRAG_UNAVAILABLE`. A synthetic `pointerdown` is
+no stand-in for a drag there, since pointer capture refuses a pointer the
+browser never saw. The component-test page sets a `width=device-width`
+viewport, as a real mobile page does, so a phone lays it out at its own
+width rather than at 980px; desktop projects ignore it.
 
 ### Stale styles after a stylesheet edit
 

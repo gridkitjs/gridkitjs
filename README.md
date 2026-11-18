@@ -174,9 +174,9 @@ hot-reloads the playground immediately; never build to see a change.
 ## Tests
 
 Vitest for logic in `core` and `react`; Playwright component tests, in
-Chromium, Firefox and WebKit, for `react`'s `DataGrid` and the `dom`
-behaviours it attaches, mounting it in isolation against the real Tailwind
-theme rather than jsdom.
+Chromium, Firefox and WebKit, and on a Chromium and a WebKit phone with a
+touch screen, for `react`'s `DataGrid` and the `dom` behaviours it attaches,
+mounting it in isolation against the real Tailwind theme rather than jsdom.
 
 ```bash
 pnpm test                              # Vitest, all packages
