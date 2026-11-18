@@ -238,6 +238,16 @@ export interface ColumnDefinition<Row, Node = string> {
    */
   hideable?: boolean | undefined;
   /**
+   * Pins this column to the grid's inline start or end edge, where it stays
+   * while the other columns scroll sideways. `"start"` is the left edge in a
+   * left-to-right page and the right edge in a right-to-left one. Pinned
+   * columns are drawn ahead of, or after, every unpinned one, each group in
+   * column order. Pinning or unpinning it later lives in
+   * `ColumnPinningState`, which wins over this for as long as it holds an
+   * entry for the column.
+   */
+  pinned?: "start" | "end" | undefined;
+  /**
    * Whether this column is written to an export, a clipboard copy or a
    * print. Defaults to `true`. `false` keeps it out of every one of them —
    * even when an export names it by id — for a column whose cells mean
@@ -315,6 +325,8 @@ export interface ColumnResolveOptions {
   reorderable?: boolean | undefined;
   /** Whether columns may be dragged into the group-by bar, unless a column says otherwise. */
   groupByDraggable?: boolean | undefined;
+  /** Columns pinned or unpinned over their definitions' `pinned`. */
+  pinning?: ColumnPinningState | undefined;
 }
 
 /**
@@ -368,6 +380,20 @@ export interface ResolvedColumn<Row, Node = string> {
   groupByDraggable: boolean;
   /** How this column's cells align, after falling back to its type. */
   alignment: ColumnAlignment;
+  /** The edge this column is pinned to, after the pinning state, or `"none"`. */
+  pinned: ColumnPin;
+  /**
+   * How far, in px, a pinned column sits from its edge: the summed widths of
+   * the columns pinned to the same edge between it and that edge. `0` for
+   * the column nearest the edge, and for an unpinned column.
+   */
+  pinOffset: number;
+  /**
+   * Whether this column is the last pinned to the start edge or the first
+   * pinned to the end edge — the one beside the scrolling columns, where a
+   * divider goes.
+   */
+  pinEdge: boolean;
 }
 
 /**
@@ -408,6 +434,29 @@ export type ColumnVisibilityState = Readonly<Record<string, boolean>>;
 export interface ColumnVisibilityEvent {
   readonly columnIds: readonly string[];
   readonly visibility: ColumnVisibilityState;
+}
+
+/**
+ * The edge a column is pinned to: the grid's inline `"start"` or `"end"`, or
+ * `"none"` for a column that scrolls with the rest.
+ */
+export type ColumnPin = "start" | "end" | "none";
+
+/**
+ * Columns pinned or unpinned since the grid started, keyed by column id.
+ * Holding only what changed, the way `ColumnVisibilityState` does: a column
+ * absent from it follows its definition's `pinned`, and `"none"` unpins a
+ * column its definition pins.
+ */
+export type ColumnPinningState = Readonly<Record<string, ColumnPin>>;
+
+/**
+ * Reports columns pinned or unpinned. `columnIds` lists every column the one
+ * change touched, and `pinning` is the whole state to persist from.
+ */
+export interface ColumnPinningEvent {
+  readonly columnIds: readonly string[];
+  readonly pinning: ColumnPinningState;
 }
 
 /**
@@ -1029,6 +1078,7 @@ export interface GridState<Row> {
   readonly columnSizing: ColumnSizingState;
   readonly columnOrder: ColumnOrderState;
   readonly columnVisibility: ColumnVisibilityState;
+  readonly columnPinning: ColumnPinningState;
   readonly columnSort: ColumnSortState;
   readonly filter: FilterState<Row>;
   readonly groupBy: GroupByState;
@@ -1100,8 +1150,8 @@ export interface GridViewInput<Row, Node = string> {
   readonly columns: readonly ColumnDefinition<Row, Node>[];
   /**
    * The slices to show, any of them: one left out reads as the grid's
-   * starting default — no sizes, order, hidden columns, sort, filter or
-   * grouping, every group expanded, and the first page of 25.
+   * starting default — no sizes, order, hidden or pinned columns, sort,
+   * filter or grouping, every group expanded, and the first page of 25.
    */
   readonly state: {
     readonly [K in keyof GridViewState<Row>]?:
@@ -1118,7 +1168,10 @@ export interface GridViewInput<Row, Node = string> {
 export interface GridView<Row, Node = string> {
   /** Every column, hidden ones included, ordered but not sized — what the data stages read. */
   readonly dataColumns: readonly DataColumn<Row, Node>[];
-  /** The columns as rendered: visible, ordered and sized. */
+  /**
+   * The columns as rendered: visible, ordered and sized, with the columns
+   * pinned to the start first and those pinned to the end last.
+   */
   readonly columns: readonly ResolvedColumn<Row, Node>[];
   /** The rows, filtered then sorted. */
   readonly rows: readonly ResolvedRow<Row>[];

@@ -38,6 +38,7 @@ export {
   totalColumnWidth,
 } from "./util/sizing";
 export { movesGroupBy } from "./util/grouping";
+export { pinnedWidths } from "./util/pinning";
 export type { PaginationWindowEntry } from "./util/paginationWindow";
 export { paginationWindow } from "./util/paginationWindow";
 export type {

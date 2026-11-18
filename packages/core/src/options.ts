@@ -8,6 +8,8 @@ import type {
   ColumnsSelectEvent,
   ColumnOrderEvent,
   ColumnOrderState,
+  ColumnPinningEvent,
+  ColumnPinningState,
   ColumnResizeEvent,
   ColumnSizeDefaults,
   ColumnSizingState,
@@ -213,6 +215,23 @@ export interface GridOptions<Row> {
    */
   onColumnVisibilityChange?:
     ((event: ColumnVisibilityEvent) => void) | undefined;
+  /**
+   * Columns pinned (`"start"`, `"end"`) or unpinned (`"none"`) to start
+   * with, keyed by column id, over each definition's own `pinned`.
+   * Uncontrolled.
+   */
+  defaultColumnPinning?: ColumnPinningState | undefined;
+  /**
+   * Which columns are pinned, controlled — applied as given, changed only
+   * through `onColumnPinningChange`. Leave it `undefined` for the grid to
+   * keep it itself, starting from `defaultColumnPinning`.
+   */
+  columnPinning?: ColumnPinningState | undefined;
+  /**
+   * Called once when columns are pinned or unpinned, with every column that
+   * one change touched. A call that changes nothing does not call it.
+   */
+  onColumnPinningChange?: ((event: ColumnPinningEvent) => void) | undefined;
   /**
    * Sizes applied to columns that do not set their own — the width they start
    * at and the bounds they may be resized between. Distinct from

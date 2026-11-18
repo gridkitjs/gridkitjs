@@ -9,6 +9,7 @@ import type {
 } from "../types";
 import type { WritingDirection } from "./direction";
 import { alignmentForType, getColumnId, resolveColumnLabel } from "./grid";
+import { placePinnedColumns, resolveColumnPin } from "./pinning";
 
 /**
  * Applied to any column that does not size itself. The minimum is a width a
@@ -55,12 +56,15 @@ export function clampColumnWidth(
 
 /**
  * Pairs each column with everything needed to render it — the width it sits
- * at, the label its header shows, whether it may be resized and how its cells
- * align. Widths take the first of the sizing state, the column's own `width`,
- * and the default, then clamp.
+ * at, the label its header shows, whether it may be resized, how its cells
+ * align and where it is pinned. Widths take the first of the sizing state,
+ * the column's own `width`, and the default, then clamp.
  *
  * The sizing state winning means a user's drag outlives a re-render; a column
  * absent from it still tracks a `width` edited in the definition.
+ *
+ * Pin offsets are summed along `columns` as given, so they hold for columns
+ * already in pinned order — see `applyColumnPinning`.
  */
 export function resolveColumnWidths<Row, Node>(
   columns: readonly ColumnDefinition<Row, Node>[],
@@ -68,8 +72,9 @@ export function resolveColumnWidths<Row, Node>(
   options?: ColumnResolveOptions,
 ): readonly ResolvedColumn<Row, Node>[] {
   const resolved = withDefaults(options?.sizes);
+  const pinning = options?.pinning ?? {};
 
-  return columns.map((column) => {
+  const sized = columns.map((column): ResolvedColumn<Row, Node> => {
     const id = getColumnId(column);
     const stored = sizing[id];
 
@@ -87,8 +92,12 @@ export function resolveColumnWidths<Row, Node>(
       groupByDraggable:
         column.groupByDraggable ?? options?.groupByDraggable ?? false,
       alignment: column.alignment ?? alignmentForType(column.type ?? "string"),
+      pinned: resolveColumnPin(column, pinning),
+      pinOffset: 0,
+      pinEdge: false,
     };
   });
+  return placePinnedColumns(sized);
 }
 
 export function totalColumnWidth<Row, Node>(
@@ -206,7 +215,8 @@ function redistribute<Row, Node>(
  * Growing stops at each column's `maxWidth`; shrinking stops at its
  * `minWidth`. If shrinking every adjustable column to its floor still does
  * not reach `availableWidth`, the columns are returned untouched and the
- * container scrolls rather than crushing them further.
+ * container scrolls rather than crushing them further. Pin offsets follow
+ * the new widths.
  */
 export function fitColumnsToWidth<Row, Node>(
   resolved: readonly ResolvedColumn<Row, Node>[],
@@ -253,7 +263,7 @@ export function fitColumnsToWidth<Row, Node>(
   );
   let remainder = target - rounded.reduce((total, width) => total + width, 0);
 
-  return entries.map((item, index) => {
+  const fitted = entries.map((item, index) => {
     let width = rounded[index] ?? item.width;
     // Rounding toward the target can only ever leave it short when growing
     // (floor) or over when shrinking (ceil), so only one direction is ever
@@ -267,6 +277,7 @@ export function fitColumnsToWidth<Row, Node>(
 
     return { ...item.entry, width };
   });
+  return placePinnedColumns(fitted);
 }
 
 /**

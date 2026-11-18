@@ -1,6 +1,7 @@
 import type { GridOptions } from "../options";
 import type {
   ColumnDefinition,
+  ColumnPinningState,
   ColumnSizingState,
   ColumnVisibilityState,
   GridState,
@@ -20,6 +21,7 @@ import {
 import { memoizeLast } from "../util/memoize";
 import { moveColumnBefore } from "../util/ordering";
 import { paginateRows, type PaginatedRows } from "../util/paging";
+import { setColumnPin } from "../util/pinning";
 import { reportError } from "../util/report";
 import { NO_CELL_SELECTED } from "../util/selection";
 import {
@@ -56,6 +58,7 @@ const SLICE_KEYS = [
   "columnSizing",
   "columnOrder",
   "columnVisibility",
+  "columnPinning",
   "columnSort",
   "filter",
   "groupBy",
@@ -72,6 +75,7 @@ const DEFAULT_OPTION: { readonly [K in SliceKey]: `default${Capitalize<K>}` } =
     columnSizing: "defaultColumnSizing",
     columnOrder: "defaultColumnOrder",
     columnVisibility: "defaultColumnVisibility",
+    columnPinning: "defaultColumnPinning",
     columnSort: "defaultColumnSort",
     filter: "defaultFilter",
     groupBy: "defaultGroupBy",
@@ -108,6 +112,8 @@ function startingState<Row>(options: GridOptions<Row>): OwnState<Row> {
     columnOrder: options.defaultColumnOrder ?? STARTING_VIEW_STATE.columnOrder,
     columnVisibility:
       options.defaultColumnVisibility ?? STARTING_VIEW_STATE.columnVisibility,
+    columnPinning:
+      options.defaultColumnPinning ?? STARTING_VIEW_STATE.columnPinning,
     columnSort: options.defaultColumnSort ?? STARTING_VIEW_STATE.columnSort,
     filter: options.defaultFilter ?? STARTING_VIEW_STATE.filter,
     groupBy: options.defaultGroupBy ?? STARTING_VIEW_STATE.groupBy,
@@ -223,6 +229,7 @@ export function createGridController<Row, Node = string>(
       columnSizing: resolveSlice("columnSizing"),
       columnOrder: resolveSlice("columnOrder"),
       columnVisibility: resolveSlice("columnVisibility"),
+      columnPinning: resolveSlice("columnPinning"),
       columnSort: resolveSlice("columnSort"),
       filter: resolveSlice("filter"),
       groupBy: resolveSlice("groupBy"),
@@ -453,19 +460,27 @@ export function createGridController<Row, Node = string>(
   }
 
   /**
-   * Reported once per change, naming every column it touched in the order
-   * they are shown, whatever order the caller named them in — and ids naming
-   * no column last.
+   * The ids whose entries differ between two per-column states, in column
+   * order whatever order the caller named them in, and ids naming no column
+   * last — how a visibility or pinning change names the columns it touched.
    */
+  function changedColumnIds(
+    previous: Readonly<Record<string, unknown>>,
+    next: Readonly<Record<string, unknown>>,
+  ): readonly string[] {
+    const changed = new Set(changedKeys(previous, next));
+    const known = getView()
+      .dataColumns.map((entry) => entry.id)
+      .filter((id) => changed.delete(id));
+    return [...known, ...changed];
+  }
+
+  /** Reported once per change, naming every column it touched. */
   function commitColumnVisibility(next: ColumnVisibilityState): void {
     const previous = state.columnVisibility;
     commit("columnVisibility", next, () => {
-      const changed = new Set(changedKeys(previous, next));
-      const shown = getView()
-        .dataColumns.map((entry) => entry.id)
-        .filter((id) => changed.delete(id));
       options.onColumnVisibilityChange?.({
-        columnIds: [...shown, ...changed],
+        columnIds: changedColumnIds(previous, next),
         visibility: next,
       });
     });
@@ -483,6 +498,17 @@ export function createGridController<Row, Node = string>(
         visible,
       ),
     );
+  }
+
+  /** Reported once per change, naming every column it touched. */
+  function commitColumnPinning(next: ColumnPinningState): void {
+    const previous = state.columnPinning;
+    commit("columnPinning", next, () => {
+      options.onColumnPinningChange?.({
+        columnIds: changedColumnIds(previous, next),
+        pinning: next,
+      });
+    });
   }
 
   function commitGroupBy(next: GroupByState, columnId: string): void {
@@ -651,6 +677,17 @@ export function createGridController<Row, Node = string>(
       changeColumnVisibility(columnIds, false);
     },
 
+    setColumnPinning(pinning) {
+      if (changedKeys(state.columnPinning, pinning).length > 0) {
+        commitColumnPinning(pinning);
+      }
+    },
+    pinColumn(columnId, pin) {
+      commitColumnPinning(
+        setColumnPin(getView().dataColumns, state.columnPinning, columnId, pin),
+      );
+    },
+
     setFilter(filter) {
       if (sameFilter(state.filter, filter)) {
         return;
@@ -756,6 +793,9 @@ export function createGridController<Row, Node = string>(
     }
     if (saved.columnVisibility !== undefined) {
       controller.setColumnVisibility(saved.columnVisibility);
+    }
+    if (saved.columnPinning !== undefined) {
+      controller.setColumnPinning(saved.columnPinning);
     }
     if (saved.columnSort !== undefined) {
       controller.setColumnSort(saved.columnSort);

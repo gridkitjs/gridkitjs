@@ -3,6 +3,8 @@ import type {
   CellSelectionState,
   ColumnDefinition,
   ColumnOrderState,
+  ColumnPin,
+  ColumnPinningState,
   ColumnSizingState,
   ColumnSortState,
   ColumnVisibilityState,
@@ -181,6 +183,20 @@ export interface GridController<Row, Node = string> {
   readonly showColumns: (columnIds: readonly string[]) => void;
   /** Hides the given columns. A hidden column still sorts, filters and groups. */
   readonly hideColumns: (columnIds: readonly string[]) => void;
+
+  /**
+   * Replaces the column pinning state. Reported through
+   * `onColumnPinningChange` with every column whose entry changed; an equal
+   * state reports nothing.
+   */
+  readonly setColumnPinning: (pinning: ColumnPinningState) => void;
+  /**
+   * Pins a column to the `"start"` or `"end"` edge, or unpins it with
+   * `"none"`, leaving the column order as it is: an unpinned column goes
+   * back to its place among the others. A column already there, or an id
+   * naming no column, reports nothing.
+   */
+  readonly pinColumn: (columnId: string, pin: ColumnPin) => void;
 
   /**
    * Replaces the filter. Reported through `onFilterChange`; a filter equal to

@@ -38,6 +38,7 @@ const emptyState: GridViewState<SampleRow> = {
   columnSizing: {},
   columnOrder: [],
   columnVisibility: {},
+  columnPinning: {},
   columnSort: [],
   filter: [],
   groupBy: [],
@@ -411,6 +412,116 @@ describe("resolveGridView", () => {
   });
 });
 
+describe("resolveGridView: pinned columns", () => {
+  const wide: readonly ColumnDefinition<SampleRow>[] = [
+    { field: "Id", width: 60 },
+    { field: "Region", width: 120, pinned: "end" },
+    { field: "Amount", width: 90 },
+    { field: "Owner", width: 80, pinned: "start" },
+    { field: "Notes", width: 200 },
+  ];
+  const fixed = { resizeMode: "fixed" } as const;
+
+  function pinnedView(
+    state: Partial<GridViewState<SampleRow>> = {},
+    options: GridViewInput<SampleRow>["options"] = fixed,
+  ) {
+    return resolveGridView({ ...input(state, options), columns: wide });
+  }
+
+  function placesOf(view: ReturnType<typeof pinnedView>) {
+    return view.columns.map(({ id, pinned, pinOffset, pinEdge }) => ({
+      id,
+      pinned,
+      pinOffset,
+      pinEdge,
+    }));
+  }
+
+  test("lists start-pinned columns first and end-pinned ones last", () => {
+    const view = pinnedView({ columnPinning: { Amount: "start" } });
+
+    expect(view.columns.map((entry) => entry.id)).toEqual([
+      "Amount",
+      "Owner",
+      "Id",
+      "Notes",
+      "Region",
+    ]);
+  });
+
+  test("leaves dataColumns in column order", () => {
+    const view = pinnedView({ columnPinning: { Amount: "start" } });
+
+    expect(view.dataColumns.map((entry) => entry.id)).toEqual([
+      "Id",
+      "Region",
+      "Amount",
+      "Owner",
+      "Notes",
+    ]);
+  });
+
+  test("puts an unpinned column back in its place in the order", () => {
+    const view = pinnedView({
+      columnOrder: ["Notes"],
+      columnPinning: { Owner: "none" },
+    });
+
+    expect(view.columns.map((entry) => entry.id)).toEqual([
+      "Notes",
+      "Id",
+      "Amount",
+      "Owner",
+      "Region",
+    ]);
+  });
+
+  test("measures each pinned column from its edge and marks the edge columns", () => {
+    const view = pinnedView({
+      columnPinning: { Id: "start", Notes: "end" },
+    });
+
+    expect(placesOf(view)).toEqual([
+      { id: "Id", pinned: "start", pinOffset: 0, pinEdge: false },
+      { id: "Owner", pinned: "start", pinOffset: 60, pinEdge: true },
+      { id: "Amount", pinned: "none", pinOffset: 0, pinEdge: false },
+      { id: "Region", pinned: "end", pinOffset: 200, pinEdge: true },
+      { id: "Notes", pinned: "end", pinOffset: 0, pinEdge: false },
+    ]);
+  });
+
+  test("gives a hidden pinned column no width in any offset", () => {
+    const view = pinnedView({
+      columnPinning: { Id: "start", Amount: "start", Notes: "end" },
+      columnVisibility: { Id: false, Notes: false },
+    });
+
+    expect(placesOf(view)).toEqual([
+      { id: "Amount", pinned: "start", pinOffset: 0, pinEdge: false },
+      { id: "Owner", pinned: "start", pinOffset: 90, pinEdge: true },
+      { id: "Region", pinned: "end", pinOffset: 0, pinEdge: true },
+    ]);
+  });
+
+  test("measures offsets from the fitted widths under resizeMode fit", () => {
+    const view = resolveGridView({
+      ...input(
+        { columnPinning: { Amount: "start" } },
+        { columnSizeDefaults: { width: 100 }, viewportWidth: 1000 },
+      ),
+      columns: wide.map((column) => ({ ...column, width: undefined })),
+    });
+
+    expect(view.columns.map((entry) => entry.width)).toEqual([
+      200, 200, 200, 200, 200,
+    ]);
+    expect(view.columns.map((entry) => entry.pinOffset)).toEqual([
+      0, 200, 0, 0, 0,
+    ]);
+  });
+});
+
 describe("createGridViewResolver", () => {
   const groupedPaginated = {
     groupBy: [{ columnId: "Region" }],
@@ -484,6 +595,26 @@ describe("createGridViewResolver", () => {
     expect(after.displayRows).toBe(before.displayRows);
     expect(after.grandTotal).toBe(before.grandTotal);
     expect(after.columns.map((entry) => entry.id)).toEqual(["Id", "Region"]);
+  });
+
+  test("a pinning change re-sizes the columns and leaves every data stage alone", () => {
+    const resolve = createGridViewResolver<SampleRow>();
+    const base = input(groupedPaginated, options);
+    const before = resolve(base);
+    const after = resolve({
+      ...base,
+      state: { ...base.state, columnPinning: { Amount: "start" } },
+    });
+
+    expect(after.dataColumns).toBe(before.dataColumns);
+    expect(after.rows).toBe(before.rows);
+    expect(after.displayRows).toBe(before.displayRows);
+    expect(after.grandTotal).toBe(before.grandTotal);
+    expect(after.columns.map((entry) => entry.id)).toEqual([
+      "Amount",
+      "Id",
+      "Region",
+    ]);
   });
 
   test("returns the same view from call to call when slices are left out", () => {

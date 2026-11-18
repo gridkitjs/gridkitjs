@@ -51,6 +51,9 @@ function resolvedColumn(field: string): ResolvedColumn<SampleRow, unknown> {
     reorderable: false,
     groupByDraggable: false,
     alignment: "left",
+    pinned: "none",
+    pinOffset: 0,
+    pinEdge: false,
   };
 }
 
@@ -137,6 +140,9 @@ describe("paginateRows", () => {
         reorderable: false,
         groupByDraggable: false,
         alignment: "left",
+        pinned: "none",
+        pinOffset: 0,
+        pinEdge: false,
       };
     }
 
@@ -291,6 +297,9 @@ describe('paginateRows with unit "row"', () => {
       reorderable: false,
       groupByDraggable: false,
       alignment: "left",
+      pinned: "none",
+      pinOffset: 0,
+      pinEdge: false,
     };
   }
 

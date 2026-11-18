@@ -63,6 +63,7 @@ const saved: GridState<SampleRow> = {
   columnSizing: { Amount: 140 },
   columnOrder: ["Amount", "Id"],
   columnVisibility: { Region: false },
+  columnPinning: { Amount: "start" },
   columnSort: [{ columnId: "Amount", direction: "desc" }],
   filter: [
     { kind: "text", columnId: "Region", query: "%st" },
@@ -518,6 +519,20 @@ describe("saved state version", () => {
 
     expect(controller.getState().columnOrder).toEqual(["Amount", "Id"]);
     expect(controller.getState()).not.toHaveProperty("version");
+  });
+
+  test("a version 1 save with pinned columns restores them, and one without keeps the grid's own", () => {
+    const withPinning = create();
+    const withoutPinning = create({ defaultColumnPinning: { Id: "end" } });
+
+    withPinning.restoreState(
+      parseSaved(`{ "version": 1, "columnPinning": { "Amount": "start" } }`),
+    );
+    withoutPinning.restoreState(parseSaved(`{ "version": 1, ${layout} }`));
+
+    expect(withPinning.getState().columnPinning).toEqual({ Amount: "start" });
+    expect(withPinning.getView().columns[0]?.id).toBe("Amount");
+    expect(withoutPinning.getState().columnPinning).toEqual({ Id: "end" });
   });
 
   test("a whole saved state's version stays out of the state", () => {
