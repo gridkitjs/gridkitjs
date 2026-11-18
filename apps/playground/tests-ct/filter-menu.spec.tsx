@@ -10,9 +10,11 @@ import FilterMenuGrid, { type FilterMenuRow } from "./support/FilterMenuGrid";
 import HundredThousandRowsGrid from "./support/HundredThousandRowsGrid";
 import ImperativeApiGrid from "./support/ImperativeApiGrid";
 import ManyValuesGrid from "./support/ManyValuesGrid";
+import PinnedColumnsGrid from "./support/PinnedColumnsGrid";
 import PresetGrid from "./support/PresetGrid";
 import { waitForFocusReveal } from "./support/focusReveal";
 import { mountGrid, updateGrid } from "./support/mountGrid";
+import { scrollArea, scrollSideways } from "./support/scrollport";
 
 /** DataGrid's space between a menu or panel and what it opens below. */
 const ANCHOR_GAP = 4;
@@ -513,6 +515,44 @@ test.describe("filter menu from the header", () => {
     expect(await names(root)).toEqual(["Alice"]);
     await expect(header(root, "Id")).not.toHaveAttribute("aria-description");
   });
+
+  for (const columnId of ["team", "c7"]) {
+    test(`the header menu and filter menu open below the pinned ${columnId} header, scrolled sideways`, async ({
+      mount,
+      page,
+    }) => {
+      const root = await mountGrid(
+        mount,
+        <PinnedColumnsGrid height={300} contextMenu filterableColumns />,
+      );
+      await scrollSideways(scrollArea(root), 0.5);
+      const pinned = root.locator(
+        `.gridkit-header-cell[data-gridkit-column="${columnId}"]`,
+      );
+      const overlay = page.locator(".gridkit-overlay");
+      async function expectBelowHeader(): Promise<void> {
+        const [cell, opened] = await Promise.all([
+          pinned.boundingBox(),
+          overlay.boundingBox(),
+        ]);
+        if (cell === null || opened === null) throw new Error("not drawn");
+        expect(opened.x).toBeCloseTo(cell.x, 0);
+        expect(opened.y).toBeCloseTo(cell.y + cell.height + ANCHOR_GAP, 0);
+      }
+
+      await pinned.focus();
+      await pinned.press("Shift+F10");
+      const menu = page.getByRole("menu", { name: `${columnId} column menu` });
+      await expect(
+        menu.locator("[data-gridkit-menu-item]").first(),
+      ).toBeFocused();
+      await expectBelowHeader();
+
+      await menu.getByRole("menuitem", { name: "Filter…" }).click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await expectBelowHeader();
+    });
+  }
 });
 
 test.describe("the simple editor", () => {

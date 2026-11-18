@@ -14,7 +14,9 @@ import { mountGrid, updateGrid } from "./support/mountGrid";
 import ButtonCellGrid from "./support/ButtonCellGrid";
 import ControlledStateGrid from "./support/ControlledStateGrid";
 import ImperativeApiGrid from "./support/ImperativeApiGrid";
+import PinnedColumnsGrid from "./support/PinnedColumnsGrid";
 import RowIdentifiedGrid from "./support/RowIdentifiedGrid";
+import { scrollArea, scrollportOf, scrollSideways } from "./support/scrollport";
 
 interface Row {
   id: string;
@@ -735,4 +737,34 @@ test("a controlled empty cellSelection keeps every cell unselected until the par
 
   await root.getByRole("button", { name: "apply-requests" }).click();
   await expect(cell).toHaveAttribute("aria-selected", "true");
+});
+
+test("a click on a pinned cell scrolled over another selects the pinned cell", async ({
+  mount,
+  page,
+}) => {
+  const root = await mountGrid(
+    mount,
+    <PinnedColumnsGrid height={300} selectable={{ cells: "single" }} />,
+  );
+  const area = scrollArea(root);
+  await scrollSideways(area, 0.5);
+  const port = await scrollportOf(area);
+  const selected = root.locator('tbody td[aria-selected="true"]');
+
+  for (const [columnId, x] of [
+    ["c1", port.x + port.startWidth - 3],
+    ["c7", port.x + port.width - 3],
+  ] as const) {
+    const cell = root.locator(
+      `[data-gridkit-row-id="r3"] [data-gridkit-column="${columnId}"]`,
+    );
+    const box = await cell.boundingBox();
+    if (box === null) throw new Error(`${columnId} is not drawn`);
+    // Next to the edge a scrolled cell runs under.
+    await page.mouse.click(x, box.y + box.height / 2);
+
+    await expect(selected).toHaveCount(1);
+    await expect(cell).toHaveAttribute("aria-selected", "true");
+  }
 });

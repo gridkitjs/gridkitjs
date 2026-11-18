@@ -9,6 +9,8 @@ import { expect, test } from "./support/coverage";
 import ContextMenuGrid from "./support/ContextMenuGrid";
 import ContextMenuTriggerHarness from "./support/ContextMenuTriggerHarness";
 import { mountGrid, updateGrid } from "./support/mountGrid";
+import PinnedColumnsGrid from "./support/PinnedColumnsGrid";
+import { scrollArea, scrollSideways } from "./support/scrollport";
 
 /** DataGrid's space between a menu or panel and what it opens below. */
 const ANCHOR_GAP = 4;
@@ -766,6 +768,43 @@ test.describe("cell menu", () => {
 
     await expect(bodyCell(root, 0, 1)).not.toHaveAttribute("aria-keyshortcuts");
   });
+});
+
+test.describe("pinned cell menu", () => {
+  for (const columnId of ["c1", "c7"]) {
+    test(`opens on the pinned ${columnId} cell scrolled over another, and below it from the keyboard`, async ({
+      mount,
+      page,
+    }) => {
+      const root = await mountGrid(
+        mount,
+        <PinnedColumnsGrid height={300} contextMenu />,
+      );
+      await scrollSideways(scrollArea(root), 0.5);
+      const cell = root.locator(
+        `[data-gridkit-row-id="r2"] [data-gridkit-column="${columnId}"]`,
+      );
+      const menuItems = page
+        .getByRole("menu")
+        .locator("[data-gridkit-menu-item]");
+
+      await cell.click({ button: "right" });
+      await expect(menuItems.first()).toBeFocused();
+      await page.keyboard.press("Escape");
+      // Focus goes back to the cell the menu was opened on.
+      await expect(cell).toBeFocused();
+
+      await cell.press("Shift+F10");
+      await expect(menuItems.first()).toBeFocused();
+      const [cellBox, menuBox] = await Promise.all([
+        cell.boundingBox(),
+        page.locator(".gridkit-overlay").boundingBox(),
+      ]);
+      if (cellBox === null || menuBox === null) throw new Error("not drawn");
+      expect(menuBox.x).toBeCloseTo(cellBox.x, 0);
+      expect(menuBox.y).toBeCloseTo(cellBox.y + cellBox.height + ANCHOR_GAP, 0);
+    });
+  }
 });
 
 test.describe("group menu", () => {
