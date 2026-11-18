@@ -96,10 +96,10 @@ function underPinnedColumns(
  */
 function viewOf(element: Element, parts: GridParts<unknown>): DOMRect | null {
   const { scroller } = parts;
-  const view = scroller?.getBoundingClientRect();
-  if (scroller == null || view === undefined) {
+  if (scroller === null) {
     return null;
   }
+  const view = scroller.getBoundingClientRect();
   let { top, bottom, left, right } = view;
   if (parts.body?.contains(element) === true) {
     top = Math.max(
