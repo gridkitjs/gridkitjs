@@ -252,6 +252,24 @@ Every class the grid renders starts with `gridkit-`, and states are `is-*` class
 
 These keys act only when pressed inside the grid itself. A popover or menu that a template portals into `document.body` still sits inside the grid in React's tree, and React bubbles its events through the grid's handlers — but the grid ignores them, so <Kbd>Escape</Kbd> in it leaves the selection alone and <Kbd>Ctrl</Kbd>+<Kbd>A</Kbd> in its text box selects the text.
 
+## Touch and small screens
+
+The grid listens to pointer events, which a finger fires as a mouse does, so every pointer interaction above works on a phone or tablet, with the same grid and no separate mobile layout:
+
+- Tap a row, column or cell to select it, and a header's sort, filter or group toggle to use it. A tap is a plain click: with no <Kbd>Ctrl</Kbd> or <Kbd>Shift</Kbd> to hold, `selectable.toggleOnClick` is how a tap adds a row to a selection.
+- Under `contextMenu`, touch and hold a header, cell or group row for half a second to open its menu; tap outside it to close it.
+- Drag a header's trailing edge to resize its column, and drag a reorderable header to move it.
+- Swipe the rows, or a header that does not reorder, to scroll the grid sideways.
+- The filter menu, the column chooser and the menus fit a phone's width, and the toolbar moves what does not fit into its More menu.
+
+The [theme](/docs/theme-tailwind) adapts the header to a touch screen. Where the screen cannot hover, the sort, filter and group toggles show at rest rather than on hover; with a coarse pointer, each toggle and the resize handle take a 24 by 24 pixel target, the toggles sit side by side, and the label is cut short before them.
+
+Limits:
+
+- A drag that starts on a reorderable header, or on one that drags into the group-by bar, moves the column rather than scrolling the grid. Swipe the rows to scroll instead.
+- Swiping the rows sideways scrolls the row area on its own, so the header and footer fall out of line with the columns until they are scrolled back.
+- There are no pinch, pull-to-refresh or swipe-to-act gestures.
+
 ## See also
 
 - [Column definitions](/docs/react/column-definition) for the full `ColumnDefinition<Row>` field reference.
