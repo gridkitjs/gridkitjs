@@ -24,7 +24,8 @@ export interface InfiniteScroll {
   /**
    * Takes the current options. Cheap when nothing changed, so a renderer may
    * call it after every render; a new sentinel or `rootMargin` restarts the
-   * observer, and a load finishing or `hasMore` changing re-checks at once.
+   * observer, as does a load finishing, so the next load waits for where
+   * the new rows left the sentinel; `hasMore` changing re-checks at once.
    * While a load it asked for has not reported `isLoadingMore`, it measures
    * where the sentinel sits, to tell whether rows answered it.
    */
@@ -182,19 +183,24 @@ export function attachInfiniteScroll(
         return;
       }
       const hasMoreChanged = next.hasMore !== latest.hasMore;
+      const loadFinished =
+        state.kind === "loading" && !(next.isLoadingMore ?? false);
       latest = next;
       state = afterUpdate(state, next.isLoadingMore ?? false, hasMoreChanged);
       observe();
-      if (requestAnswered()) {
+      if (loadFinished || requestAnswered()) {
         // Where the sentinel is now is the observer's to say: a new one
-        // reports at once, and the last report predates the new rows.
+        // reports at once, and the last report predates the new rows. The
+        // browser may not have laid them out and reported since, so a load
+        // read off that report would start the next one under a sentinel
+        // they have already pushed out of range.
         state = IDLE;
         disconnect();
         observe();
       }
-      // After a load finishes, or `hasMore` changes, the sentinel may still be
-      // in range: then it never leaves and re-enters, and no observer report
-      // would come to trigger the next load.
+      // After `hasMore` changes the sentinel may still be in range: then it
+      // never leaves and re-enters, and no observer report would come to
+      // trigger the next load.
       maybeLoadMore();
     },
     detach() {
