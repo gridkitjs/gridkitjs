@@ -43,19 +43,32 @@ jobs:
       - run: pnpm test
       - run: pnpm build
 
-  # The component tests, one job per browser so they run side by side.
-  # Coverage is measured in Chromium alone: the projects share test ids, so
-  # their coverage files would collide, and one browser is enough to measure
-  # what the tests reach.
+  # The component tests, one job per Playwright project so they run side by
+  # side: the three desktop browsers, and a Chromium and a WebKit phone that
+  # run the tests tagged `@touch`. Coverage is measured in desktop Chromium
+  # alone: the projects share test ids, so their coverage files would
+  # collide, and one browser is enough to measure what the tests reach.
   e2e-browser:
-    name: e2e (${{ matrix.browser }})
+    name: e2e (${{ matrix.project }})
     runs-on: ubuntu-latest
     strategy:
-      # A failure in one browser still lets the others finish, so the run
+      # A failure in one project still lets the others finish, so the run
       # shows every browser that is broken.
       fail-fast: false
       matrix:
-        browser: [chromium, firefox, webkit]
+        project: [chromium, firefox, webkit, chromium-touch, webkit-touch]
+        # The browser each project installs.
+        include:
+          - project: chromium
+            browser: chromium
+          - project: firefox
+            browser: firefox
+          - project: webkit
+            browser: webkit
+          - project: chromium-touch
+            browser: chromium
+          - project: webkit-touch
+            browser: webkit
     steps:
       - uses: actions/checkout@v7
 
@@ -78,22 +91,22 @@ jobs:
 
       - run: pnpm --filter playground exec playwright install --with-deps ${{ matrix.browser }}
 
-      - if: matrix.browser == 'chromium'
+      - if: matrix.project == 'chromium'
         run: pnpm --filter playground test:e2e:coverage
 
-      - if: matrix.browser != 'chromium'
-        run: pnpm --filter playground test:e2e --project=${{ matrix.browser }}
+      - if: matrix.project != 'chromium'
+        run: pnpm --filter playground test:e2e --project=${{ matrix.project }}
 
       - if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report-${{ matrix.browser }}
+          name: playwright-report-${{ matrix.project }}
           path: |
             apps/playground/playwright-report/
             apps/playground/test-results/
           retention-days: 7
 
-      - if: always() && matrix.browser == 'chromium'
+      - if: always() && matrix.project == 'chromium'
         uses: actions/upload-artifact@v7
         with:
           name: coverage-report
