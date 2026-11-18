@@ -5,6 +5,7 @@ import type { MountResult } from "@playwright/experimental-ct-react";
 import type {
   CellSelectionState,
   ColumnDefinition,
+  ColumnPinningEvent,
   ColumnResizeEvent,
   ColumnSortEvent,
   ColumnSortState,
@@ -47,6 +48,7 @@ interface Status {
   columnIds: string[];
   dataColumnIds: string[];
   columnVisibility: Record<string, boolean>;
+  columnPinning: Record<string, string>;
   columnSizing: Record<string, number>;
   columnOrder: readonly string[];
   columnSort: ColumnSortState;
@@ -291,34 +293,34 @@ test("scrollToColumn scrolls the column into view horizontally", async ({
     .toBeGreaterThan(0);
 });
 
+interface WideRow {
+  id: string;
+  name: string;
+  region: string;
+  notes: string;
+}
+
+const wideColumns: readonly ColumnDefinition<WideRow>[] = [
+  { field: "id", width: 80 },
+  { field: "name", width: 120 },
+  { field: "region", width: 100 },
+  { field: "notes", width: 120, hidden: true },
+];
+
+const wideRows: WideRow[] = [
+  { id: "row-a", name: "Alpha", region: "West", notes: "first" },
+  { id: "row-b", name: "Bravo", region: "East", notes: "second" },
+];
+
+function headerIds(root: MountResult) {
+  return root
+    .locator("thead th")
+    .evaluateAll((cells) =>
+      cells.map((cell) => cell.getAttribute("data-gridkit-column")),
+    );
+}
+
 test.describe("column visibility", () => {
-  interface WideRow {
-    id: string;
-    name: string;
-    region: string;
-    notes: string;
-  }
-
-  const wideColumns: readonly ColumnDefinition<WideRow>[] = [
-    { field: "id", width: 80 },
-    { field: "name", width: 120 },
-    { field: "region", width: 100 },
-    { field: "notes", width: 120, hidden: true },
-  ];
-
-  const wideRows: WideRow[] = [
-    { id: "row-a", name: "Alpha", region: "West", notes: "first" },
-    { id: "row-b", name: "Bravo", region: "East", notes: "second" },
-  ];
-
-  function headerIds(root: MountResult) {
-    return root
-      .locator("thead th")
-      .evaluateAll((cells) =>
-        cells.map((cell) => cell.getAttribute("data-gridkit-column")),
-      );
-  }
-
   test("hideColumns drops a column and showColumns returns it to its place, one event each", async ({
     mount,
   }) => {
@@ -455,6 +457,166 @@ test.describe("column visibility", () => {
       name: false,
     });
     expect(await headerIds(root)).toEqual(["id", "name", "notes"]);
+  });
+});
+
+test.describe("column pinning", () => {
+  test("pinColumn moves a column to its edge and unpinning returns it to its place, one event each", async ({
+    mount,
+  }) => {
+    const events: ColumnPinningEvent[] = [];
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={wideColumns}
+        dataSource={wideRows}
+        label="Pinning"
+        pinColumnId="region"
+        onColumnPinningChange={(event) => {
+          events.push(event);
+        }}
+      />,
+    );
+    const pinButton = root.getByRole("button", { name: "pin-column" });
+
+    await pinButton.click();
+    await expect.poll(() => headerIds(root)).toEqual(["region", "id", "name"]);
+    await expect(root.locator("thead th").first()).toHaveClass(
+      /is-pinned-start/,
+    );
+    await expect.poll(() => events.length).toBe(1);
+    expect(events[0]).toEqual({
+      columnIds: ["region"],
+      pinning: { region: "start" },
+    });
+    await root.getByRole("button", { name: "report" }).click();
+    let status = await readStatus(root);
+    expect(status.columnPinning).toEqual({ region: "start" });
+    expect(status.columnOrder).toEqual([]);
+
+    // Pinning a column where it already is changes nothing and reports nothing.
+    await pinButton.click();
+    await root.getByRole("button", { name: "report" }).click();
+    expect(events).toHaveLength(1);
+
+    await updateGrid(
+      root,
+      <ImperativeApiGrid
+        columns={wideColumns}
+        dataSource={wideRows}
+        label="Pinning"
+        pinColumnId="region"
+        pinTo="none"
+        onColumnPinningChange={(event) => {
+          events.push(event);
+        }}
+      />,
+    );
+    await pinButton.click();
+    await expect.poll(() => headerIds(root)).toEqual(["id", "name", "region"]);
+    await expect(root.locator(".is-pinned-start")).toHaveCount(0);
+    await expect.poll(() => events.length).toBe(2);
+    await root.getByRole("button", { name: "report" }).click();
+    status = await readStatus(root);
+    expect(status.columnPinning).toEqual({ region: "none" });
+  });
+
+  test("pinning or unpinning one column announces it", async ({ mount }) => {
+    const props = {
+      columns: wideColumns,
+      dataSource: wideRows,
+      label: "Pinning announcements",
+      pinColumnId: "name",
+    };
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid {...props} pinTo="end" />,
+    );
+    const status = root.locator('[role="status"]');
+
+    await root.getByRole("button", { name: "pin-column" }).click();
+    await expect(status).toHaveText("name, pinned to end");
+
+    await updateGrid(root, <ImperativeApiGrid {...props} pinTo="none" />);
+    await root.getByRole("button", { name: "pin-column" }).click();
+    await expect(status).toHaveText("name, unpinned");
+  });
+
+  test("setColumnPinning replaces the state in one event and announces nothing for several columns", async ({
+    mount,
+  }) => {
+    const events: ColumnPinningEvent[] = [];
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={wideColumns}
+        dataSource={wideRows}
+        label="Set pinning"
+        pinningToSet={{ id: "end", region: "start" }}
+        onColumnPinningChange={(event) => {
+          events.push(event);
+        }}
+      />,
+    );
+
+    await root.getByRole("button", { name: "set-column-pinning" }).click();
+    await expect.poll(() => headerIds(root)).toEqual(["region", "name", "id"]);
+    await expect.poll(() => events.length).toBe(1);
+    expect(events[0]).toEqual({
+      columnIds: ["id", "region"],
+      pinning: { id: "end", region: "start" },
+    });
+    await expect(root.locator('[role="status"]')).toHaveText("");
+
+    // An equal state reports nothing.
+    await root.getByRole("button", { name: "set-column-pinning" }).click();
+    await root.getByRole("button", { name: "report" }).click();
+    expect(events).toHaveLength(1);
+  });
+
+  test("defaultColumnPinning and a definition's pinned start the columns at their edges", async ({
+    mount,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={wideColumns.map((column) =>
+          column.field === "id" ? { ...column, pinned: "end" } : column,
+        )}
+        dataSource={wideRows}
+        label="Default pinning"
+        defaultColumnPinning={{ region: "start" }}
+      />,
+    );
+
+    expect(await headerIds(root)).toEqual(["region", "name", "id"]);
+    await root.getByRole("button", { name: "report" }).click();
+    expect((await readStatus(root)).columnPinning).toEqual({ region: "start" });
+  });
+
+  test("a controlled columnPinning is drawn as given, and pinColumn only asks", async ({
+    mount,
+  }) => {
+    const events: ColumnPinningEvent[] = [];
+    const root = await mountGrid(
+      mount,
+      <ImperativeApiGrid
+        columns={wideColumns}
+        dataSource={wideRows}
+        label="Controlled pinning"
+        columnPinning={{ name: "start" }}
+        pinColumnId="region"
+        onColumnPinningChange={(event) => {
+          events.push(event);
+        }}
+      />,
+    );
+
+    expect(await headerIds(root)).toEqual(["name", "id", "region"]);
+    await root.getByRole("button", { name: "pin-column" }).click();
+    await expect.poll(() => events.length).toBe(1);
+    expect(events[0]?.pinning).toEqual({ name: "start", region: "start" });
+    expect(await headerIds(root)).toEqual(["name", "id", "region"]);
   });
 });
 

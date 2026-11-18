@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type {
+  ColumnPin,
+  ColumnPinningState,
   ColumnSortState,
   FilterState,
   GridCommandTarget,
@@ -35,6 +37,11 @@ export interface ImperativeApiGridProps<Row extends RowWithId> extends Omit<
   focusTarget?: GridFocus;
   /** Column ids `hide-columns` hides and `show-columns` shows. */
   visibilityColumnIds?: readonly string[];
+  /** The column `pin-column` pins, and the edge it pins it to (`"none"` unpins). */
+  pinColumnId?: string;
+  pinTo?: ColumnPin;
+  /** The state `set-column-pinning` applies. */
+  pinningToSet?: ColumnPinningState;
   /** The filter `set-filter` applies. */
   filterToSet?: FilterState<Row>;
   /** Row ids `select-rows` selects. */
@@ -85,6 +92,9 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
   scrollRowIds,
   focusTarget,
   visibilityColumnIds,
+  pinColumnId,
+  pinTo,
+  pinningToSet,
   filterToSet,
   selectRowIds,
   sortToSet,
@@ -132,6 +142,7 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         columnIds: api.getColumns().map((column) => column.id),
         dataColumnIds: api.getDataColumns().map((column) => column.id),
         columnVisibility: api.getColumnVisibility(),
+        columnPinning: api.getColumnPinning(),
         columnSizing: api.getColumnSizing(),
         columnOrder: api.getColumnOrder(),
         columnSort: api.getColumnSort(),
@@ -281,6 +292,24 @@ export default function ImperativeApiGrid<Row extends RowWithId>({
         }}
       >
         show-columns
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          if (pinColumnId !== undefined) {
+            gridRef.current?.pinColumn(pinColumnId, pinTo ?? "start");
+          }
+        }}
+      >
+        pin-column
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          gridRef.current?.setColumnPinning(pinningToSet ?? {});
+        }}
+      >
+        set-column-pinning
       </button>
       <button
         type="button"

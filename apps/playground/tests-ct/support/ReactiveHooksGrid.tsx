@@ -3,6 +3,7 @@ import {
   DataGrid,
   useAggregateState,
   useColumnOrderState,
+  useColumnPinningState,
   useColumnSizingState,
   useColumnSortState,
   useColumnVisibilityState,
@@ -51,6 +52,7 @@ export default function ReactiveHooksGrid<Row extends RowWithId>(
   const columnSizing = useColumnSizingState(gridRef);
   const columnOrder = useColumnOrderState(gridRef);
   const columnVisibility = useColumnVisibilityState(gridRef);
+  const columnPinning = useColumnPinningState(gridRef);
   const { filter, setFilter } = useFilterState(gridRef);
 
   return (
@@ -70,6 +72,7 @@ export default function ReactiveHooksGrid<Row extends RowWithId>(
           columnSizing,
           columnOrder,
           columnVisibility,
+          columnPinning,
           filter,
         })}
       </pre>
@@ -114,6 +117,17 @@ export default function ReactiveHooksGrid<Row extends RowWithId>(
         }}
       >
         reactive-hide-last-column
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          const last = gridRef.current?.getColumns().at(-1);
+          if (last !== undefined) {
+            gridRef.current?.pinColumn(last.id, "start");
+          }
+        }}
+      >
+        reactive-pin-last-column
       </button>
       <button
         type="button"

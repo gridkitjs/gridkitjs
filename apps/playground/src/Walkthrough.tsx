@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from "react";
+import { PinnedColumnsGrid } from "./demos/PinnedColumnsGrid";
 import { WalkthroughGrid } from "./demos/WalkthroughGrid";
 import { WalkthroughGroupedGrid } from "./demos/WalkthroughGroupedGrid";
 
@@ -22,6 +23,10 @@ const demos: Readonly<Record<string, WalkthroughDemo>> = {
   grouped: {
     title: "Grouped orders grid",
     render: () => <WalkthroughGroupedGrid />,
+  },
+  pinned: {
+    title: "Pinned columns",
+    render: () => <PinnedColumnsGrid />,
   },
 };
 

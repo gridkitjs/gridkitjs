@@ -7,6 +7,7 @@ import { GroupedGrid } from "./demos/GroupedGrid";
 import { InfiniteScrollGrid } from "./demos/InfiniteScrollGrid";
 import { LiveMetricsGrid } from "./demos/LiveMetricsGrid";
 import { PaginatedGrid } from "./demos/PaginatedGrid";
+import { PinnedColumnsGrid } from "./demos/PinnedColumnsGrid";
 import { PropsTable } from "./demos/PropsTable";
 import { ReactiveToolbarGrid } from "./demos/ReactiveToolbarGrid";
 import { ResizableSelectableGrid } from "./demos/ResizableSelectableGrid";
@@ -161,6 +162,19 @@ export default function App() {
       </p>
       <div className="mt-2">
         <VirtualizedGrid />
+      </div>
+      <h2 className="mt-8 text-lg font-bold">
+        <code>pinned</code>, columns at both edges
+      </h2>
+      <p className="mt-2 text-sm text-gray-600">
+        Id and Name are pinned to the start and Amount to the end; scroll
+        sideways and the rest pass under them, in the header, the rows and the
+        footer. Right-click a header to pin or unpin it. Also on a page of its
+        own: <a href="?demo=pinned">?demo=pinned</a>, and right to left with{" "}
+        <a href="?demo=pinned&amp;dir=rtl">&amp;dir=rtl</a>.
+      </p>
+      <div className="mt-2">
+        <PinnedColumnsGrid />
       </div>
       <h2 className="mt-8 text-lg font-bold">
         <code>infiniteScroll</code>, paired with <code>virtualized</code>
