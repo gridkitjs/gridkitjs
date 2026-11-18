@@ -444,7 +444,7 @@
   .gridkit-data-grid .gridkit-header-resize-handle {
     position: absolute;
     top: 0;
-    right: 0;
+    inset-inline-end: 0;
     bottom: 0;
     width: 6px;
     cursor: col-resize;
@@ -456,13 +456,20 @@
   /*
    * A resize colours the edge being dragged on every cell in the column, so it
    * reads as one line down the grid rather than a stack of outlined cells.
-   * `box-shadow` rather than `border-right`: under `borders="none"` there is no
+   * `box-shadow` rather than a border: under `borders="none"` there is no
    * border to recolour, and adding one would shift the cell's content by a
    * pixel mid-drag.
    */
   .gridkit-data-grid .gridkit-header-cell.is-resizing,
   .gridkit-data-grid .gridkit-grid-cell.is-resizing {
     box-shadow: inset calc(var(--gridkit-indicator-width) * -1) 0 0 0
+      var(--gridkit-hover-line);
+  }
+
+  /* A shadow's offset is physical, so right-to-left moves it to the left edge. */
+  .gridkit-data-grid .gridkit-header-cell.is-resizing:dir(rtl),
+  .gridkit-data-grid .gridkit-grid-cell.is-resizing:dir(rtl) {
+    box-shadow: inset var(--gridkit-indicator-width) 0 0 0
       var(--gridkit-hover-line);
   }
 
@@ -525,6 +532,7 @@
   .gridkit-data-grid.gridkit-drag-ghost {
     position: fixed;
     top: 0;
+    /* Physical in either direction: the transform is a viewport x from the left. */
     left: 0;
     z-index: 50;
     padding: var(--gridkit-header-padding-y) var(--gridkit-header-padding-x);
@@ -567,14 +575,24 @@
       var(--gridkit-accent);
   }
 
+  /* Mirrored for the resize line's reason: a shadow's offset is physical. */
+  .gridkit-data-grid .gridkit-header-cell.is-drop-before:dir(rtl) {
+    box-shadow: inset calc(var(--gridkit-indicator-width) * -1) 0 0 0
+      var(--gridkit-accent);
+  }
+
+  .gridkit-data-grid .gridkit-header-cell.is-drop-after:dir(rtl) {
+    box-shadow: inset var(--gridkit-indicator-width) 0 0 0 var(--gridkit-accent);
+  }
+
   /*
-   * Docked to the header's own right edge, absolutely — like the resize
+   * Docked to the header's own inline-end edge, absolutely — like the resize
    * handle, and for the same reason: sitting in the label's normal flow, a
    * long label under `text-overflow: ellipsis` pushes the toggle out past
    * where `overflow: hidden` clips it, leaving it unclickable (a real click
    * there lands on the header cell instead and selects the column). Docked
    * to a fixed offset, it stays inside the clipped area — and clear of the
-   * resize handle's own 6px strip at `right: 0`, so a resizable, sortable
+   * resize handle's own 6px strip at the inline end, so a resizable, sortable
    * column keeps two independent hit targets rather than one shadowing the
    * other.
    */
@@ -582,7 +600,7 @@
     display: inline-flex;
     position: absolute;
     top: 50%;
-    right: calc(var(--gridkit-spacing) * 3);
+    inset-inline-end: calc(var(--gridkit-spacing) * 3);
     transform: translateY(-50%);
     align-items: center;
     gap: calc(var(--gridkit-spacing) * 0.5);
@@ -647,7 +665,7 @@
     display: inline-flex;
     align-items: center;
     vertical-align: middle;
-    margin-right: calc(var(--gridkit-spacing) * 1.5);
+    margin-inline-end: calc(var(--gridkit-spacing) * 1.5);
     cursor: pointer;
     color: var(--gridkit-fg-muted);
   }
@@ -689,7 +707,7 @@
     display: inline-flex;
     position: absolute;
     top: 50%;
-    right: calc(var(--gridkit-spacing) * 3);
+    inset-inline-end: calc(var(--gridkit-spacing) * 3);
     transform: translateY(-50%);
     align-items: center;
     cursor: pointer;
@@ -728,7 +746,9 @@
     .gridkit-header-cell:has(> .gridkit-header-filter-toggle)
     .gridkit-header-sort-toggle {
     /* The filter button's offset and width, then a gap. */
-    right: calc(var(--gridkit-spacing) * 4.5 + var(--gridkit-header-icon-size));
+    inset-inline-end: calc(
+      var(--gridkit-spacing) * 4.5 + var(--gridkit-header-icon-size)
+    );
   }
 
   .gridkit-data-grid .gridkit-grid-cell {
@@ -797,21 +817,29 @@
     font-weight: var(--gridkit-group-font-weight);
   }
 
-  /* A right-pointing triangle that rotates open on expand. */
+  /* A triangle pointing to the inline end that rotates open on expand. */
   .gridkit-data-grid .gridkit-grid-group-row .gridkit-group-toggle {
     display: inline-block;
     flex-shrink: 0;
     width: 0;
     height: 0;
     border-style: solid;
-    border-width: calc(var(--gridkit-icon-size) / 4) 0
-      calc(var(--gridkit-icon-size) / 4) calc(var(--gridkit-icon-size) * 0.4);
-    border-color: transparent transparent transparent var(--gridkit-fg-muted);
+    border-block-width: calc(var(--gridkit-icon-size) / 4);
+    border-inline-width: calc(var(--gridkit-icon-size) * 0.4) 0;
+    border-color: transparent;
+    border-inline-start-color: var(--gridkit-fg-muted);
     transition: transform var(--gridkit-transition-duration) ease;
   }
 
   .gridkit-data-grid .gridkit-grid-group-row .gridkit-group-toggle.is-expanded {
     transform: rotate(90deg);
+  }
+
+  /* Pointing left, the triangle turns the other way to point down. */
+  .gridkit-data-grid
+    .gridkit-grid-group-row
+    .gridkit-group-toggle.is-expanded:dir(rtl) {
+    transform: rotate(-90deg);
   }
 
   /*
@@ -994,7 +1022,7 @@
   /*
    * The last row's bottom edge has no row below it to collapse with, so
    * unlike every internal boundary it is a genuinely extra line — the same
-   * reason `gridkit-borders-vertical` drops its `:last-child` border-right below.
+   * reason `gridkit-borders-vertical` drops its `:last-child` end border below.
    * Matched against both row kinds: the last rendered row can just as well
    * be a collapsed group header as a data row.
    */
@@ -1017,8 +1045,8 @@
   .gridkit-data-grid.gridkit-borders-vertical .gridkit-grid-cell,
   .gridkit-data-grid.gridkit-borders-vertical .gridkit-grid-footer-cell,
   .gridkit-data-grid.gridkit-borders-vertical .gridkit-grid-group-summary-cell {
-    border-right: var(--gridkit-column-line-width) var(--gridkit-border-style)
-      var(--gridkit-line);
+    border-inline-end: var(--gridkit-column-line-width)
+      var(--gridkit-border-style) var(--gridkit-line);
   }
 
   .gridkit-data-grid.gridkit-borders-vertical
@@ -1029,7 +1057,7 @@
     .gridkit-grid-footer-cell:last-child,
   .gridkit-data-grid.gridkit-borders-vertical
     .gridkit-grid-group-summary-cell:last-child {
-    border-right: none;
+    border-inline-end: none;
   }
 
   /* Borders on all sides */
@@ -1041,17 +1069,17 @@
   .gridkit-data-grid.gridkit-borders-all .gridkit-grid-group-summary-cell {
     border-bottom: var(--gridkit-row-line-width) var(--gridkit-border-style)
       var(--gridkit-line);
-    border-right: var(--gridkit-column-line-width) var(--gridkit-border-style)
-      var(--gridkit-line);
+    border-inline-end: var(--gridkit-column-line-width)
+      var(--gridkit-border-style) var(--gridkit-line);
   }
 
   .gridkit-data-grid.gridkit-borders-all .gridkit-grid-footer-cell {
-    border-right: var(--gridkit-column-line-width) var(--gridkit-border-style)
-      var(--gridkit-line);
+    border-inline-end: var(--gridkit-column-line-width)
+      var(--gridkit-border-style) var(--gridkit-line);
   }
 
   /*
-   * The outer left/right edges have no neighbouring cell to collapse with, so
+   * The outer start and end edges have no neighbouring cell to collapse with, so
    * unlike every internal boundary they are a genuinely extra line — without
    * this the table would render two lines wider than the sum of its columns. A
    * group cell is both its row's first and last child at once (it is the
@@ -1065,7 +1093,7 @@
   .gridkit-data-grid.gridkit-borders-all .gridkit-grid-footer-cell:first-child,
   .gridkit-data-grid.gridkit-borders-all
     .gridkit-grid-group-summary-cell:first-child {
-    border-left: none;
+    border-inline-start: none;
   }
 
   .gridkit-data-grid.gridkit-borders-all
@@ -1076,7 +1104,7 @@
   .gridkit-data-grid.gridkit-borders-all .gridkit-grid-footer-cell:last-child,
   .gridkit-data-grid.gridkit-borders-all
     .gridkit-grid-group-summary-cell:last-child {
-    border-right: none;
+    border-inline-end: none;
   }
 
   .gridkit-data-grid.gridkit-borders-all
@@ -1326,13 +1354,13 @@
   }
 
   .gridkit-group-by-chip.is-drop-before::before {
-    left: calc(
+    inset-inline-start: calc(
       var(--gridkit-spacing) * -1 - var(--gridkit-indicator-width) / 2
     );
   }
 
   .gridkit-group-by-chip.is-drop-after::after {
-    right: calc(
+    inset-inline-end: calc(
       var(--gridkit-spacing) * -1 - var(--gridkit-indicator-width) / 2
     );
   }
@@ -1346,6 +1374,7 @@
   .gridkit-group-by-chip.gridkit-drag-ghost {
     position: fixed;
     top: 0;
+    /* Physical for the header ghost's reason. */
     left: 0;
     z-index: 50;
     border: var(--gridkit-border-width) dashed var(--gridkit-accent);
@@ -1676,6 +1705,10 @@
     display: inline-flex;
     margin-inline-end: calc(var(--gridkit-spacing) * -1);
     color: var(--gridkit-fg-muted);
+  }
+
+  .gridkit-menu-submenu-indicator:dir(rtl) svg {
+    transform: scaleX(-1);
   }
 
   .gridkit-menu-separator {
@@ -2028,6 +2061,11 @@
   /* The submenu's chevron, at the end of the line. */
   .gridkit-filter-menu-submenu-indicator {
     margin-inline-start: auto;
+  }
+
+  .gridkit-filter-menu-submenu-indicator:dir(rtl) svg,
+  .gridkit-filter-menu-back-icon:dir(rtl) svg {
+    transform: scaleX(-1);
   }
 
   .gridkit-filter-menu-search {
