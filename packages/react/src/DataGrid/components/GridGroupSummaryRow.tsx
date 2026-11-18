@@ -6,6 +6,7 @@ import type {
 } from "@gridkitjs/core";
 import type { ResolvedColumn } from "../DataGrid";
 import { classNames } from "../classNames";
+import { textAlignFor } from "../textAlign";
 import { renderAggregate } from "./renderAggregate";
 
 interface GridGroupSummaryRowProps<Row> {
@@ -79,7 +80,9 @@ function GridGroupSummaryRowComponent<Row>({
             role="gridcell"
             data-gridkit-column={entry.id}
             className="gridkit-grid-group-summary-cell"
-            style={{ textAlign: specs[0]?.alignment ?? entry.alignment }}
+            style={{
+              textAlign: textAlignFor(specs[0]?.alignment ?? entry.alignment),
+            }}
           >
             {entry.id === columns[0]?.id && (
               <span

@@ -9,6 +9,7 @@ import type { ResolvedColumn } from "../DataGrid";
 import { ariaAttr } from "../ariaAttr";
 import { classNames } from "../classNames";
 import type { RowAttributes } from "../rowProps";
+import { textAlignFor } from "../textAlign";
 import { tabIndexFor } from "../useGridNavigation";
 
 interface GridRowProps<Row> {
@@ -135,7 +136,7 @@ function GridRowComponent<Row>({
               column.wrap?.cells ? "is-wrapped" : "",
               column.cellClassName ?? "",
             )}
-            style={{ textAlign: alignment }}
+            style={{ textAlign: textAlignFor(alignment) }}
           >
             {column.cellTemplate
               ? column.cellTemplate({

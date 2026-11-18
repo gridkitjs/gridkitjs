@@ -4,6 +4,7 @@ import type {
   FormatLocale,
 } from "@gridkitjs/core";
 import type { ResolvedColumn } from "../DataGrid";
+import { textAlignFor } from "../textAlign";
 import { renderAggregate } from "./renderAggregate";
 
 interface GridFooterProps<Row> {
@@ -66,7 +67,9 @@ export default function GridFooter<Row>({
               role="gridcell"
               data-gridkit-column={entry.id}
               className="gridkit-grid-footer-cell"
-              style={{ textAlign: specs[0]?.alignment ?? entry.alignment }}
+              style={{
+                textAlign: textAlignFor(specs[0]?.alignment ?? entry.alignment),
+              }}
             >
               {specs
                 .map((spec) =>
