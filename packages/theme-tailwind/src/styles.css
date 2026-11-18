@@ -370,9 +370,23 @@
    * to scroll away. A consumer wanting a divider or shadow at the seam adds
    * their own CSS targeting `.gridkit-data-grid-header`/
    * `.gridkit-data-grid-footer`.
+   *
+   * As wide as its table, and never narrower than the viewport, so the row
+   * area has nothing to scroll sideways and the viewport alone does it, for
+   * the header, rows and footer at once. `overflow-y: auto` makes
+   * `overflow-x` compute to `auto`: a row area only as wide as the viewport
+   * would scroll its rows sideways under a header that stays put, on a
+   * wheel, a swipe or a focused cell, and the viewport's own scroll would
+   * slide its box away and cut the rows off. `overflow-x: hidden` passes a
+   * sideways gesture on to the viewport even if something still overflows.
+   * The vertical scrollbar under `height` sits at the row area's end edge,
+   * past the last column in a grid wider than its container.
    */
   .gridkit-data-grid-body {
+    overflow-x: hidden;
     overflow-y: auto;
+    width: max-content;
+    min-width: 100%;
     height: var(--gridkit-body-height, auto);
   }
 

@@ -34,7 +34,7 @@ The grid is a set of siblings rather than one table, so the header and footer ne
 | `.gridkit-data-grid-tables`   | `<div>`   | Holds the three tables and carries `role="grid"` (or `"treegrid"` while grouped), since the pattern needs one element around every row.                           |
 | `.gridkit-data-grid`          | `<table>` | Each of the grid's tables (header, rows and footer), not the grid's root. Carries the border, hover and selectable modifiers below.                               |
 | `.gridkit-data-grid-header`   | `<table>` | The header's table. Also a `.gridkit-data-grid`.                                                                                                                  |
-| `.gridkit-data-grid-body`     | `<div>`   | The scroll container around the rows' table, the one `height` bounds, through `--gridkit-body-height`.                                                            |
+| `.gridkit-data-grid-body`     | `<div>`   | The scroll container around the rows' table, the one `height` bounds, through `--gridkit-body-height`. Scrolls up and down only.                                  |
 | `.gridkit-data-grid-footer`   | `<table>` | The grand-total footer's table, while `aggregates` is non-empty. Also a `.gridkit-data-grid`.                                                                     |
 | `.gridkit-sr-only`            | `<div>`   | The live region announcements are read from, clipped to nothing but left in the accessibility tree. Usable on anything of your own that should be read, not seen. |
 

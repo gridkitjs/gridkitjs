@@ -227,6 +227,8 @@ Under the hood, the header, the rows, and (when `aggregates` is active) the gran
 }
 ```
 
+The row area scrolls up and down only. It is as wide as its table, so in a grid wider than its container, sideways scrolling belongs to `.gridkit-data-grid-viewport`, the grid's root, which moves the header, the rows and the footer together however it starts: a wheel or trackpad, a swipe, or focus moving to a column out of view. The row area's vertical scrollbar, under `height`, sits at its end edge, so in a grid wider than its container it sits past the last column and comes into view with it.
+
 Every class the grid renders starts with `gridkit-`, and states are `is-*` classes beside them. [Class names](/docs/theme-tailwind/class-names) lists them all, with the `data-gridkit-*` attributes a test or a script can find rows, cells and columns by.
 
 ## Server rendering
@@ -267,7 +269,6 @@ The [theme](/docs/theme-tailwind) adapts the header to a touch screen. Where the
 Limits:
 
 - A drag that starts on a reorderable header, or on one that drags into the group-by bar, moves the column rather than scrolling the grid. Swipe the rows to scroll instead.
-- Swiping the rows sideways scrolls the row area on its own, so the header and footer fall out of line with the columns until they are scrolled back.
 - There are no pinch, pull-to-refresh or swipe-to-act gestures.
 
 ## See also

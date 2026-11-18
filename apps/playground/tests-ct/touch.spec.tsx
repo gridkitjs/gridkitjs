@@ -6,6 +6,7 @@ import type { MountResult } from "@playwright/experimental-ct-react";
 import type { ColumnDefinition } from "@gridkitjs/core";
 import { DataGrid, type DataGridProps } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
+import RightToLeft from "./support/RightToLeft";
 import ToolbarGrid from "./support/ToolbarGrid";
 import { mountGrid } from "./support/mountGrid";
 import {
@@ -21,14 +22,6 @@ const MIN_TARGET = 24;
 
 /** A phone held upright: the width every overlay has to fit. */
 const PHONE = { width: 390, height: 844 };
-
-/**
- * Why the header falls out of line with rows dragged sideways: the row area
- * is a scroll container of its own on both axes, so a swipe on the rows
- * scrolls it alone and leaves the header where it was.
- */
-const ROWS_SCROLL_WITHOUT_HEADER =
-  "the row area scrolls sideways on its own, without the header";
 
 interface Row {
   id: string;
@@ -218,13 +211,38 @@ test.describe("touch", { tag: "@touch" }, () => {
   }) => {
     test.skip(!canDriveTouch(browserName), TOUCH_DRAG_UNAVAILABLE);
     const root = await mountGrid(mount, grid(), { width: 360 });
-    test.fixme(true, ROWS_SCROLL_WITHOUT_HEADER);
     const cell = bodyCell(root, 2, 2);
     const from = await centerOf(cell);
     await touchDrag(page, from, { x: from.x - 150, y: from.y });
     await expect
       .poll(async () => (await boxOf(cell)).x)
       .toBeCloseTo((await boxOf(header(root, "City"))).x, 0);
+  });
+
+  test("dragging the rows of a right-to-left grid with a height sideways keeps the header in line with them", async ({
+    mount,
+    page,
+    browserName,
+  }) => {
+    test.skip(!canDriveTouch(browserName), TOUCH_DRAG_UNAVAILABLE);
+    const root = await mountGrid(
+      mount,
+      <RightToLeft>{grid({ height: 200 })}</RightToLeft>,
+      { width: 360 },
+    );
+    const cell = bodyCell(root, 2, 2);
+    const before = await boxOf(cell);
+    const from = await centerOf(cell);
+    // The columns past the visible ones lie to the left, so the finger
+    // moves right to bring them in.
+    await touchDrag(page, from, { x: from.x + 150, y: from.y });
+    await expect
+      .poll(async () => (await boxOf(cell)).x)
+      .toBeGreaterThan(before.x);
+    expect((await boxOf(cell)).x).toBeCloseTo(
+      (await boxOf(header(root, "City"))).x,
+      2,
+    );
   });
 
   test("dragging a header that does not reorder scrolls the grid sideways", async ({
