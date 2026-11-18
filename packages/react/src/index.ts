@@ -40,6 +40,9 @@ export type {
   ColumnFilterMenuOptions,
   ColumnOrderEvent,
   ColumnOrderState,
+  ColumnPin,
+  ColumnPinningEvent,
+  ColumnPinningState,
   ColumnResizeEvent,
   ColumnSizeDefaults,
   ColumnSizingState,
@@ -115,6 +118,7 @@ export { default as useAggregateState } from "./DataGrid/hooks/useAggregateState
 export { default as useColumnSizingState } from "./DataGrid/hooks/useColumnSizingState";
 export { default as useColumnOrderState } from "./DataGrid/hooks/useColumnOrderState";
 export { default as useColumnVisibilityState } from "./DataGrid/hooks/useColumnVisibilityState";
+export { default as useColumnPinningState } from "./DataGrid/hooks/useColumnPinningState";
 export { default as useFilterState } from "./DataGrid/hooks/useFilterState";
 export type { FilterStateApi } from "./DataGrid/hooks/useFilterState";
 

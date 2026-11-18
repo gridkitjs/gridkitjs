@@ -46,6 +46,7 @@ That makes it yours to adjust, limit or ignore — keep at most two sort keys, r
 | Column widths            | `columnSizing`     | `defaultColumnSizing`     | `onColumnSizingChange`                                     |
 | Column order             | `columnOrder`      | `defaultColumnOrder`      | `onColumnOrderChange`                                      |
 | Shown and hidden columns | `columnVisibility` | `defaultColumnVisibility` | `onColumnVisibilityChange`                                 |
+| Pinned columns           | `columnPinning`    | `defaultColumnPinning`    | `onColumnPinningChange`                                    |
 | Group-by stack           | `groupBy`          | `defaultGroupBy`          | `onGroupByChange`                                          |
 | Expanded groups          | `groupExpansion`   | `defaultGroupExpansion`   | `onGroupExpansionChange`                                   |
 | Page and size            | `pagination`       | `defaultPagination`       | `onPaginationChange`                                       |
@@ -105,7 +106,7 @@ function restore() {
 }
 ```
 
-`restoreState` takes the whole state or any part of it — `{ columnSizing, columnOrder, columnVisibility }` restores just the column layout. Each slice that changes fires its own callback, as its setter would, and the grid re-renders once. A restored page is kept even when the same restore changes the sort or the filter, which would otherwise send it back to the first page.
+`restoreState` takes the whole state or any part of it — `{ columnSizing, columnOrder, columnVisibility, columnPinning }` restores just the column layout. Each slice that changes fires its own callback, as its setter would, and the grid re-renders once. A restored page is kept even when the same restore changes the sort or the filter, which would otherwise send it back to the first page.
 
 Everything in the state is plain data except the filter. `serializeGridState` writes a `Date` as its ISO string, which `restoreState` turns back into a `Date`. A predicate entry is a function and cannot be saved: it is left out, with a `console.error` naming its column. Write a filter you want saved with [operator entries](/docs/react/column-filtering#the-fifth-kind-operators) instead — a range, a list of values or a blank check needs no predicate. A filter saved by a release whose entries had no `kind` still restores: `restoreState` tells each entry's kind from its fields.
 

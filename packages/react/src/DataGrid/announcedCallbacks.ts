@@ -1,6 +1,8 @@
 import {
   isColumnVisible,
   isGroupExpanded,
+  resolveColumnPin,
+  type ColumnPinningEvent,
   type ColumnResizeEvent,
   type ColumnSortEvent,
   type ColumnVisibilityEvent,
@@ -21,6 +23,7 @@ type AnnouncedProps<Row> = Pick<
   DataGridProps<Row>,
   | "onColumnSizingChange"
   | "onColumnVisibilityChange"
+  | "onColumnPinningChange"
   | "onColumnSortChange"
   | "onGroupByChange"
   | "onGroupExpansionChange"
@@ -43,6 +46,7 @@ interface AnnouncedCallbacksOptions<Row> {
 export interface AnnouncedCallbacks<Row> {
   readonly onColumnSizingChange: (event: ColumnResizeEvent) => void;
   readonly onColumnVisibilityChange: (event: ColumnVisibilityEvent) => void;
+  readonly onColumnPinningChange: (event: ColumnPinningEvent) => void;
   readonly onColumnSortChange: (event: ColumnSortEvent) => void;
   readonly onGroupByChange: (event: GroupByEvent) => void;
   readonly onGroupExpansionChange: (event: GroupExpansionEvent) => void;
@@ -117,6 +121,29 @@ export function announcedCallbacks<Row>({
         shown
           ? messages.columnShown(columnName(columnId))
           : messages.columnHidden(columnName(columnId)),
+      );
+    },
+
+    /**
+     * Naming the one column pinned or unpinned and the edge it went to. A
+     * change touching several columns, as `setColumnPinning` or restoring a
+     * layout can, may pin some and unpin others, and says nothing.
+     */
+    onColumnPinningChange: (event) => {
+      callbacks.onColumnPinningChange?.(event);
+      const [columnId, ...others] = event.columnIds;
+      if (columnId === undefined || others.length > 0) {
+        return;
+      }
+      const column = columnOf(columnId);
+      if (column === undefined) {
+        return;
+      }
+      const pin = resolveColumnPin(column, event.pinning);
+      announce(
+        pin === "none"
+          ? messages.columnUnpinned(columnName(columnId))
+          : messages.columnPinned(columnName(columnId), pin),
       );
     },
 

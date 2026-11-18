@@ -22,6 +22,8 @@ import {
   type AggregateState,
   type Borders,
   type ColumnOrderState,
+  type ColumnPin,
+  type ColumnPinningState,
   type ColumnSizingState,
   type ColumnSortState,
   type ColumnVisibilityState,
@@ -174,6 +176,8 @@ export interface DataGridApi<Row>
   getColumnOrder(): ColumnOrderState;
   /** Columns shown or hidden since the grid mounted. A column absent from it follows its definition's `hidden`. */
   getColumnVisibility(): ColumnVisibilityState;
+  /** Columns pinned or unpinned since the grid mounted. A column absent from it follows its definition's `pinned`. */
+  getColumnPinning(): ColumnPinningState;
   getColumnSort(): ColumnSortState;
   /** The filter the rows are shown through — every entry, ANDed together. */
   getFilter(): FilterState<Row>;
@@ -261,6 +265,13 @@ export interface DataGridApi<Row>
    */
   hideColumns(columnIds: readonly string[]): void;
   /**
+   * Pins a column to the `"start"` or `"end"` edge, or unpins it with
+   * `"none"`, leaving the column order as it is: an unpinned column goes
+   * back to its place among the others. Reports one
+   * `onColumnPinningChange`, and none when the column is already there.
+   */
+  pinColumn(columnId: string, pin: ColumnPin): void;
+  /**
    * Replaces the filter, the way a filter UI would, and sends an uncontrolled
    * grid back to its first page. Reports one `onFilterChange`, and none when
    * `filter` is equal to the current one. With a controlled `filter` prop it
@@ -285,6 +296,8 @@ export interface DataGridApi<Row>
   setColumnOrder(order: ColumnOrderState): void;
   /** Replaces the column visibility state. Reports through `onColumnVisibilityChange`. */
   setColumnVisibility(visibility: ColumnVisibilityState): void;
+  /** Replaces the column pinning state. Reports through `onColumnPinningChange`. */
+  setColumnPinning(pinning: ColumnPinningState): void;
   /** Replaces the selected row ids as given, whatever `selectable` allows. Fires the row selection callbacks. */
   setRowSelection(selection: SelectionState): void;
   /** Replaces the selected column ids as given. Fires the column selection callbacks. */
@@ -912,6 +925,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     getColumnSizing: () => controller.getState().columnSizing,
     getColumnOrder: () => controller.getState().columnOrder,
     getColumnVisibility: () => controller.getState().columnVisibility,
+    getColumnPinning: () => controller.getState().columnPinning,
     getColumnSort: () => controller.getState().columnSort,
     getFilter: () => controller.getState().filter,
     getGroupBy: () => controller.getState().groupBy,
@@ -938,6 +952,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     setPageSize: controller.setPageSize,
     showColumns: controller.showColumns,
     hideColumns: controller.hideColumns,
+    pinColumn: controller.pinColumn,
     setFilter: controller.setFilter,
     setColumnSort: controller.setColumnSort,
     setGroupBy: controller.setGroupBy,
@@ -946,6 +961,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     setColumnSizing: controller.setColumnSizing,
     setColumnOrder: controller.setColumnOrder,
     setColumnVisibility: controller.setColumnVisibility,
+    setColumnPinning: controller.setColumnPinning,
     setRowSelection: controller.setRowSelection,
     setColumnSelection: controller.setColumnSelection,
     setCellSelection: controller.setCellSelection,

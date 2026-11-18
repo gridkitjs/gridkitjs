@@ -10,6 +10,9 @@ import type {
   ColumnFilterMenuOptions,
   ColumnOrderEvent,
   ColumnOrderState,
+  ColumnPin,
+  ColumnPinningEvent,
+  ColumnPinningState,
   ColumnSortEntry,
   ColumnSortEvent,
   ColumnSortState,
@@ -91,6 +94,17 @@ describe("the types DataGrid's props and api name", () => {
     expectTypeOf<
       ArgumentOf<Props["onColumnOrderChange"]>
     >().toEqualTypeOf<ColumnOrderEvent>();
+
+    expectTypeOf<Props["columnPinning"]>().toEqualTypeOf<
+      ColumnPinningState | undefined
+    >();
+    expectTypeOf<
+      ArgumentOf<Props["onColumnPinningChange"]>
+    >().toEqualTypeOf<ColumnPinningEvent>();
+    expectTypeOf<
+      ReturnType<Api["getColumnPinning"]>
+    >().toEqualTypeOf<ColumnPinningState>();
+    expectTypeOf<Parameters<Api["pinColumn"]>[1]>().toEqualTypeOf<ColumnPin>();
 
     expectTypeOf<Props["groupBy"]>().toEqualTypeOf<GroupByState | undefined>();
     expectTypeOf<GroupByState[number]>().toEqualTypeOf<GroupByEntry>();
