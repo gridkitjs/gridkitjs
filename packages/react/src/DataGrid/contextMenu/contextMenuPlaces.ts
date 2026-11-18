@@ -46,6 +46,8 @@ export interface GridParts<Row> {
   readonly footerTable: HTMLTableElement | null;
   /** The columns shown, in order — what a cell's column index counts. */
   readonly columns: readonly { readonly id: string }[];
+  /** How much of the view's width the pinned columns cover at each edge. */
+  readonly pinnedWidths: { readonly start: number; readonly end: number };
   /** The rows of the page, as `data-gridkit-row-index` counts them. */
   readonly pageRows: readonly DisplayRow<Row>[];
 }
@@ -72,16 +74,33 @@ function bodyCell(
 }
 
 /**
+ * Whether `element` is a cell that pinned columns can cover: one that
+ * scrolls sideways in a grid with columns pinned.
+ */
+function underPinnedColumns(
+  element: Element,
+  parts: GridParts<unknown>,
+): boolean {
+  return (
+    parts.pinnedWidths.start + parts.pinnedWidths.end > 0 &&
+    element instanceof HTMLTableCellElement &&
+    !element.matches(".is-pinned-start, .is-pinned-end")
+  );
+}
+
+/**
  * The part of the viewport where `element` can be seen: its grid's scrolled
- * view, and for a body cell only the part of it between the header and the
- * footer.
+ * view; for a body cell only the part of it between the header and the
+ * footer, and for a cell pinned columns can cover only the part of the
+ * scrollport between them.
  */
 function viewOf(element: Element, parts: GridParts<unknown>): DOMRect | null {
-  const view = parts.scroller?.getBoundingClientRect();
-  if (view === undefined) {
+  const { scroller } = parts;
+  const view = scroller?.getBoundingClientRect();
+  if (scroller == null || view === undefined) {
     return null;
   }
-  let { top, bottom } = view;
+  let { top, bottom, left, right } = view;
   if (parts.body?.contains(element) === true) {
     top = Math.max(
       top,
@@ -92,7 +111,20 @@ function viewOf(element: Element, parts: GridParts<unknown>): DOMRect | null {
       parts.footerTable?.getBoundingClientRect().top ?? bottom,
     );
   }
-  return new DOMRect(view.left, top, view.width, Math.max(0, bottom - top));
+  if (underPinnedColumns(element, parts)) {
+    // Pinned cells stick to the scrollport's edges, inside the scrollbar.
+    const { start, end } = parts.pinnedWidths;
+    const rtl = writingDirection(element) === "rtl";
+    const portLeft = view.left + scroller.clientLeft;
+    left = portLeft + (rtl ? end : start);
+    right = portLeft + scroller.clientWidth - (rtl ? start : end);
+  }
+  return new DOMRect(
+    left,
+    top,
+    Math.max(0, right - left),
+    Math.max(0, bottom - top),
+  );
 }
 
 function clamp(value: number, min: number, max: number): number {
