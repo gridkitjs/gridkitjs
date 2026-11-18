@@ -475,6 +475,45 @@ test.describe("the divider", () => {
       ).toBe(1);
     });
   }
+
+  test("is one line where the start and end edges meet", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mountGrid(
+      mount,
+      <PinnedColumnsGrid
+        height={300}
+        borders="vertical"
+        defaultColumnPinning={{
+          c2: "start",
+          c3: "start",
+          c4: "start",
+          c5: "start",
+          c6: "start",
+        }}
+      />,
+      // Wide enough for every column, so neither edge covers the other.
+      { width: 1100 },
+    );
+    const row = root.locator('[data-gridkit-row-id="r1"]');
+    const startEdge = row.locator('[data-gridkit-column="c6"]');
+    const endEdge = row.locator('[data-gridkit-column="c7"]');
+
+    await expect(startEdge).toHaveClass(/is-pinned-start is-pinned-edge/);
+    await expect(startEdge).toHaveCSS("border-inline-end-width", "0px");
+    await expect(endEdge).toHaveCSS("border-inline-start-width", "1px");
+    const box = await endEdge.boundingBox();
+    if (box === null) throw new Error("no end edge cell");
+    expect(
+      await lineColumns(page, {
+        x: Math.round(box.x) - 6,
+        y: Math.round(box.y) + 2,
+        width: 12,
+        height: 1,
+      }),
+    ).toBe(1);
+  });
 });
 
 test.describe("pinned cells stay at their edges", () => {
