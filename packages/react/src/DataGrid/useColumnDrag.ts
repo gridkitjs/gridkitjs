@@ -1,5 +1,9 @@
 import type { PointerEvent as ReactPointerEvent } from "react";
-import type { ColumnOrderState, GroupByState } from "@gridkitjs/core";
+import type {
+  ColumnOrderState,
+  ColumnPin,
+  GroupByState,
+} from "@gridkitjs/core";
 import { resolveKeyboardDropTarget } from "@gridkitjs/core/renderer";
 import { resolveColumnDropTarget, type ColumnDropTarget } from "@gridkitjs/dom";
 import type { ResolvedColumn } from "./DataGrid";
@@ -11,6 +15,8 @@ interface UseColumnDragOptions {
   groupBy: GroupByState;
   /** Column ids whose header may be dragged into the group-by bar at all. */
   groupByDraggableIds: ReadonlySet<string>;
+  /** The edge each column is pinned to, whose group a drag stays inside. */
+  pinOf: (columnId: string) => ColumnPin;
   onDrop: (target: ColumnDropTarget, movedId: string) => void;
 }
 
@@ -46,6 +52,7 @@ export default function useColumnDrag<Row>({
   order,
   groupBy,
   groupByDraggableIds,
+  pinOf,
   onDrop,
 }: UseColumnDragOptions): ColumnDragApi<Row> {
   const drag = useDragReorder<ColumnDropTarget>({
@@ -54,6 +61,7 @@ export default function useColumnDrag<Row>({
         order,
         groupBy,
         groupByDraggableIds,
+        pinOf,
       }),
     onDrop,
   });

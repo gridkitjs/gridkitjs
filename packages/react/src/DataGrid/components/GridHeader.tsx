@@ -108,13 +108,24 @@ export default function GridHeader<Row>({
           const resizing = resize.activeColumnId === entry.id;
           const dragging = drag.draggedColumnId === entry.id;
 
+          // A drag keeps its column in its pin group, so the other groups'
+          // headers say they won't take it for as long as it lasts.
+          const dragBlocked =
+            draggedEntry !== null && entry.pinned !== draggedEntry.pinned;
           /**
            * Drawn on the gap's own edge, so the one gap between two columns is
-           * marked once. No guard against the dragged column: the hook reports
-           * only gaps that would move it.
+           * marked once, and inside the dragged column's pin group: the gap
+           * at a group's end is drawn after its last column, not before the
+           * next group's first. No guard against the dragged column: the hook
+           * reports only gaps that would move it.
            */
-          const dropBefore = beforeId !== undefined && beforeId === entry.id;
-          const dropAfter = beforeId === null && index === columns.length - 1;
+          const next = columns[index + 1];
+          const dropBefore = beforeId === entry.id && !dragBlocked;
+          const dropAfter =
+            !dragBlocked &&
+            (next === undefined
+              ? beforeId === null
+              : beforeId === next.id && next.pinned !== entry.pinned);
           const selected = selection.selectedColumnIds.has(entry.id);
           const sortable = column.sortable ?? sortableColumns;
           const sortDirection = sortDirectionFor(columnSort, entry.id);
@@ -271,6 +282,7 @@ export default function GridHeader<Row>({
                 dragging ? "is-dragging" : "",
                 dropBefore ? "is-drop-before" : "",
                 dropAfter ? "is-drop-after" : "",
+                dragBlocked ? "is-drag-blocked" : "",
                 column.wrap?.header ? "is-wrapped" : "",
                 pinnedCellClassNames(entry),
                 column.headerClassName ?? "",

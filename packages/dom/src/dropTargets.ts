@@ -1,6 +1,10 @@
-import type { ColumnOrderState, GroupByState } from "@gridkitjs/core";
+import type {
+  ColumnOrderState,
+  ColumnPin,
+  GroupByState,
+} from "@gridkitjs/core";
 import {
-  movesColumn,
+  moveColumnInPinGroup,
   movesGroupBy,
   resolveDropBefore,
   type DropSide,
@@ -28,6 +32,16 @@ export interface ColumnDropContext {
   readonly groupBy: GroupByState;
   /** Column ids whose header may be dragged into the group-by bar at all. */
   readonly groupByDraggableIds: ReadonlySet<string>;
+  /**
+   * The edge each column is pinned to. A column stays in its pin group, so
+   * a header in another group is no target. Every column counts as unpinned
+   * when left out.
+   */
+  readonly pinOf?: ((columnId: string) => ColumnPin) | undefined;
+}
+
+function unpinned(): ColumnPin {
+  return "none";
 }
 
 /**
@@ -98,14 +112,16 @@ export function resolveGroupByDropTarget(
  * of it the pointer is over, or else in the group-by bar — or `null` for
  * nowhere a drop would change anything.
  *
- * A column already grouped never targets the bar: reordering it there is its
- * chip's job, not its header's.
+ * A header pinned to another edge than the moved column's is never a target:
+ * a column is pinned or unpinned on purpose, not by a drag. A column already
+ * grouped never targets the bar: reordering it there is its chip's job, not
+ * its header's.
  */
 export function resolveColumnDropTarget(
   clientX: number,
   clientY: number,
   movedId: string,
-  { order, groupBy, groupByDraggableIds }: ColumnDropContext,
+  { order, groupBy, groupByDraggableIds, pinOf = unpinned }: ColumnDropContext,
 ): ColumnDropTarget | null {
   const over = elementAt(clientX, clientY, "th[data-gridkit-column]");
   const overId = over?.getAttribute("data-gridkit-column");
@@ -114,10 +130,13 @@ export function resolveColumnDropTarget(
       ? resolveDropBefore(order, overId, sideOf(over, clientX))
       : undefined;
 
-  if (beforeId !== undefined) {
+  if (overId && beforeId !== undefined) {
+    if (pinOf(overId) !== pinOf(movedId)) {
+      return null;
+    }
     // A gap the column already sits in would promise a move that
-    // `moveColumnBefore` then declines to make.
-    return movesColumn(order, movedId, beforeId)
+    // `moveColumnInPinGroup` then declines to make.
+    return moveColumnInPinGroup(order, pinOf, movedId, beforeId) !== order
       ? { kind: "column-order", beforeId }
       : null;
   }

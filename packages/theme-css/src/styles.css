@@ -557,6 +557,17 @@
   }
 
   /*
+   * The headers of the other pin groups while a header is dragged: a column
+   * stays in its own group, so they take no drop. Muted rather than faded,
+   * since a pinned header's background must stay opaque over the cells
+   * scrolled under it.
+   */
+  .gridkit-data-grid .gridkit-header-cell.is-drag-blocked {
+    cursor: not-allowed;
+    color: var(--gridkit-fg-muted);
+  }
+
+  /*
    * A header, cell or group row that opens the grid's context menu — its
    * `aria-keyshortcuts` names Shift+F10 then — takes a long-press for that
    * menu, so iOS must not show its own callout, or start selecting the text

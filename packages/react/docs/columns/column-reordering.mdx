@@ -19,6 +19,10 @@ description: "Dragging a column into a new position with reorderableColumns."
 | `onColumnOrderChange` | `(event: ColumnOrderEvent) => void` |         | Called once when the user drops a column somewhere new. A drop that leaves the order unchanged does not call it.                                  |
 | `column.reorderable`  | `boolean`                           |         | Per-column override of reorderableColumns. A column that cannot move can still be moved past.                                                     |
 
+## Pinned columns
+
+A column moves only within its pin group: among the columns pinned to the same edge, or among the unpinned ones. While a header is dragged, the headers of the other groups are marked `is-drag-blocked` and take no drop, and a drop past the end of the group lands at that end. The keyboard stops at the group's edge the same way. A column changes group only when it is pinned or unpinned, through `pinned`, `columnPinning` or the header's context menu, never by a drag.
+
 ## Keyboard & pointer interactions
 
 - Drag a header to reorder columns.
