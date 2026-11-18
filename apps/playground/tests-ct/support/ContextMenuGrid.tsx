@@ -50,7 +50,7 @@ export interface ContextMenuGridProps extends Omit<
  *
  * - The header menu puts "Hide column" first, drops both autofits and adds a
  *   "View" submenu of checkable "Compact rows" and "Wrap text", then a
- *   checkable "Pin column" of its own.
+ *   checkable "Highlight column" of its own.
  * - The cell menu adds "Open row" before the defaults, and gives the Id
  *   column no grid menu at all.
  * - The group row menu is off; the body's empty space has a "Refresh" item.
@@ -63,7 +63,7 @@ export default function ContextMenuGrid({
   const [heard, setHeard] = useState<readonly string[]>([]);
   const [compact, setCompact] = useState(false);
   const [wrap, setWrap] = useState(false);
-  const [pinned, setPinned] = useState<readonly string[]>([]);
+  const [highlighted, setHighlighted] = useState<readonly string[]>([]);
 
   function note(entry: string): void {
     setLog((current) => [...current, entry]);
@@ -129,11 +129,11 @@ export default function ContextMenuGrid({
       },
       {
         type: "item",
-        id: "pin",
-        label: "Pin column",
-        checked: pinned.includes(target.columnId),
+        id: "highlight",
+        label: "Highlight column",
+        checked: highlighted.includes(target.columnId),
         onSelect: () => {
-          setPinned((current) =>
+          setHighlighted((current) =>
             current.includes(target.columnId)
               ? current.filter((id) => id !== target.columnId)
               : [...current, target.columnId],

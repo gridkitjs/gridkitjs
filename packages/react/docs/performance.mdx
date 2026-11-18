@@ -150,7 +150,7 @@ export default function App() {
 
 ## Large datasets
 
-Filtering, sorting, row grouping and aggregates run in the browser over every row in `dataSource`, and run again only when one of their inputs changes: a sort click sorts once, while scrolling, selecting and resizing a column re-sort nothing. A column resize runs only the column layout stage.
+Filtering, sorting, row grouping and aggregates run in the browser over every row in `dataSource`, and run again only when one of their inputs changes: a sort click sorts once, while scrolling, selecting and resizing a column re-sort nothing. A column resize, or pinning and unpinning a column, runs only the column layout stage. [Pinned columns](/docs/react/column-pinning) stay at their edge through CSS alone: no script moves a cell as the grid scrolls sideways.
 
 A `cellTemplate` runs for each mounted cell every time its row renders, so its cost multiplies by the rows on screen. Keep templates to reading and formatting; do lookups and calculations once, ahead of the grid, into the row objects.
 

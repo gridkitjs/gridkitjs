@@ -5,6 +5,7 @@
     "column-templates",
     "column-resizing",
     "column-reordering",
+    "column-pinning",
     "column-sorting",
     "column-filtering",
     "column-filter-menu",

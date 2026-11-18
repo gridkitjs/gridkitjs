@@ -931,7 +931,7 @@ test.describe("menus worked out per request", () => {
       "Pin to start",
       "Pin to end",
       "View",
-      "Pin column",
+      "Highlight column",
     ]);
     await expect(menu.getByRole("separator")).toHaveCount(4);
   });
@@ -1057,9 +1057,9 @@ test.describe("menus worked out per request", () => {
     await page.keyboard.press("ArrowRight");
     await expect(item(submenu, "Compact rows")).toBeFocused();
 
-    await item(menu, "Pin column").hover();
+    await item(menu, "Highlight column").hover();
     await expect(submenu).toHaveCount(0);
-    await expect(item(menu, "Pin column")).toBeFocused();
+    await expect(item(menu, "Highlight column")).toBeFocused();
   });
 
   test("a checkable item in a submenu toggles, closing every menu", async ({
@@ -1102,13 +1102,13 @@ test.describe("menus worked out per request", () => {
     await expect(menu).toHaveCount(0);
 
     menu = await openOn(root, page, "Name");
-    await expect(item(menu, "Pin column")).toHaveAttribute(
+    await expect(item(menu, "Highlight column")).toHaveAttribute(
       "aria-checked",
       "true",
     );
     await page.keyboard.press("Escape");
     menu = await openOn(root, page, "Score");
-    await expect(item(menu, "Pin column")).toHaveAttribute(
+    await expect(item(menu, "Highlight column")).toHaveAttribute(
       "aria-checked",
       "false",
     );

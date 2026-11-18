@@ -299,12 +299,12 @@ const headerMenu: readonly MenuEntry<Order>[] = [
   "separator",
   {
     type: "item",
-    id: "orders.pin",
-    label: "Pin column",
-    checked: ({ column }) => column !== null && pinned.has(column.id),
+    id: "orders.highlight",
+    label: "Highlight column",
+    checked: ({ column }) => column !== null && highlighted.has(column.id),
     onSelect: ({ column }) => {
       if (column !== null) {
-        togglePin(column.id);
+        toggleHighlight(column.id);
       }
     },
   },

@@ -143,7 +143,7 @@ An area also takes a function, asked each time its menu opens with a `GridContex
   dataSource={orders}
   sortableColumns
   contextMenu={{
-    // "Hide column" first, no autofit, and a "Pin column" of your own.
+    // "Hide column" first, no autofit, and a "Highlight column" of your own.
     header: ({ target, defaults }) => [
       "column.hide",
       "separator",
@@ -156,10 +156,10 @@ An area also takes a function, asked each time its menu opens with a `GridContex
       "separator",
       {
         type: "item",
-        id: "pin",
-        label: "Pin column",
-        checked: pinned.includes(target.columnId),
-        onSelect: () => togglePin(target.columnId),
+        id: "highlight",
+        label: "Highlight column",
+        checked: highlighted.includes(target.columnId),
+        onSelect: () => toggleHighlight(target.columnId),
       },
     ],
     // No grid menu on the Id column.

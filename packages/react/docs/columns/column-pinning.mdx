@@ -1,0 +1,230 @@
+---
+title: "Pinned columns"
+description: "Keeping columns at the grid's start or end edge while the rest scroll sideways, with pinned, columnPinning and the header's context menu."
+---
+
+A column's `pinned: "start"` or `pinned: "end"` keeps it at that edge of the grid while the other columns scroll sideways under it. The `columnPinning` state lets the user pin and unpin columns at run time, from the header's context menu or from the `ref`.
+
+Pin a column when it identifies the row, an id or a name, or sums it up, a total or an action, and the grid is wider than its container: with `resizeMode="fixed"`, or with columns whose widths add up to more than the grid has. In a grid that fits its container nothing scrolls sideways, so a pinned column only changes where it sits.
+
+## Pin a column in its definition
+
+```tsx title="App.tsx"
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
+
+interface Order {
+  id: number;
+  customer: string;
+  region: string;
+  status: string;
+  notes: string;
+  amount: number;
+}
+
+const orders: Order[] = [
+  {
+    id: 1,
+    customer: "Northwind",
+    region: "West",
+    status: "Shipped",
+    notes: "Leave at the side door",
+    amount: 1250,
+  },
+  {
+    id: 2,
+    customer: "Contoso",
+    region: "East",
+    status: "Pending",
+    notes: "Call before delivery",
+    amount: 480,
+  },
+];
+
+const columns: readonly ColumnDefinition<Order>[] = [
+  { field: "id", header: "Id", width: 80, pinned: "start" },
+  { field: "customer", header: "Customer", width: 160, pinned: "start" },
+  { field: "region", header: "Region", width: 200 },
+  { field: "status", header: "Status", width: 200 },
+  { field: "notes", header: "Notes", width: 480 },
+  {
+    field: "amount",
+    header: "Amount",
+    width: 140,
+    type: "currency",
+    pinned: "end",
+  },
+];
+
+export default function App() {
+  return (
+    <div style={{ maxWidth: 640 }}>
+      <DataGrid
+        columns={columns}
+        dataSource={orders}
+        getRowId={(row) => String(row.id)}
+        label="Orders"
+        resizeMode="fixed"
+        contextMenu
+      />
+    </div>
+  );
+}
+```
+
+The columns pinned to the start come first, in their column order, then the unpinned ones, then those pinned to the end. "Start" and "end" follow the page's direction: in a right-to-left page the start edge is the right one.
+
+## Props
+
+| Prop                    | Type                                  | Default | Description                                                                                                                                                                    |
+| ----------------------- | ------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `column.pinned`         | `"start" \| "end"`                    |         | The edge this column is pinned to, until the user or the `ref` pins or unpins it. See [column definitions](/docs/react/column-definition).                                     |
+| `defaultColumnPinning`  | `ColumnPinningState`                  |         | Columns pinned (`"start"`, `"end"`) or unpinned (`"none"`) to start with, keyed by column id, over each column's own `pinned`. Uncontrolled.                                   |
+| `columnPinning`         | `ColumnPinningState`                  |         | Which columns are pinned, controlled: a menu item or the ref's `pinColumn` asks through `onColumnPinningChange` instead of pinning. See [controlled state](/docs/react/state). |
+| `onColumnPinningChange` | `(event: ColumnPinningEvent) => void` |         | Called once when columns are pinned or unpinned, with every column that change touched.                                                                                        |
+
+The state is a `ColumnPinningState`: column id to `"start"`, `"end"` or `"none"`, holding only the columns pinned or unpinned since the grid started. A column absent from it follows its definition's `pinned`, and `"none"` unpins a column its definition pins. Like [column visibility](/docs/react/column-definition#column-visibility), it is saved and restored with the rest of the grid's state: `restoreState({ columnPinning })` puts a saved pinning back.
+
+## Pinning and the column order
+
+Pinning never changes the column order. A pinned column is drawn at its edge, and unpinning it puts it back in the place it held among the unpinned columns. `columnOrder` and `onColumnOrderChange` see no change when a column is pinned or unpinned.
+
+A column moves only within its pin group: a header drag or <Kbd>Ctrl</Kbd>+<Kbd>ArrowLeft</Kbd> / <Kbd>Ctrl</Kbd>+<Kbd>ArrowRight</Kbd> keeps it among the columns pinned to the same edge, or among the unpinned ones. See [column reordering](/docs/react/column-reordering#pinned-columns).
+
+## Pin and unpin from the header's context menu
+
+With [`contextMenu`](/docs/react/context-menu) on, a header's menu ends with the pin commands, each shown only where it changes something:
+
+| Item         | Command           | Shown when                             |
+| ------------ | ----------------- | -------------------------------------- |
+| Pin to start | `column.pinStart` | The column is not pinned to the start. |
+| Pin to end   | `column.pinEnd`   | The column is not pinned to the end.   |
+| Unpin        | `column.unpin`    | The column is pinned.                  |
+
+They are built-in commands, so a header menu of your own lists them by id, and a [command of your own](/docs/react/context-menu#commands-of-your-own) with one of those ids replaces it. To leave them out, filter them from `defaults` in the header menu's function.
+
+## Pin and unpin from code
+
+The `ref`'s `pinColumn(columnId, pin)` pins one column to `"start"` or `"end"`, or unpins it with `"none"`. `setColumnPinning(pinning)` replaces the whole state at once. Each fires `onColumnPinningChange` once, naming every column whose pin changed, and fires nothing when nothing does: a column pinned where it already is, or an id naming no column.
+
+## What pinning changes
+
+- **The header, the rows and the footer.** Every cell of a pinned column stays at its edge: the header cell, the data cells, the group subtotals and the grand total.
+- **Row virtualization.** Pinned cells stay at their edge in a [virtualized](/docs/react/row-virtualization) grid as its rows are mounted and unmounted.
+- **Resizing.** Resizing or autofitting a pinned column moves the pinned columns beyond it, and the divider, with it. See [column resizing](/docs/react/column-resizing).
+- **Hidden columns.** A hidden pinned column takes no room at its edge. Shown again, it returns to its edge.
+- **Row grouping.** Grouping by a pinned column keeps it pinned and shown. A group row's label stays at the start edge as the columns scroll. See [row grouping](/docs/react/row-grouping).
+- **Selection.** A selected row, column or cell colours its pinned cells as it does the rest.
+- **Keyboard focus and scrolling.** Moving the focused cell, and the ref's `scrollToColumn`, scroll a cell wholly clear of the pinned columns, never under them. Focusing a pinned cell, with <Kbd>Home</Kbd> or <Kbd>End</Kbd> say, leaves the scroll position as it is, and so does `scrollToColumn` on a pinned column.
+- **Menus.** A cell's context menu opened on a cell scrolled under the pinned columns opens at their edge, and a pinned header's menu and filter menu open below that header.
+- **Printing.** A print puts every column back in its own place, with the pinned columns at the ends of the row, so nothing is printed over. See [printing](/docs/react/printing).
+
+## How pinned cells look
+
+Pinned cells are opaque, so the cells scrolling under them never show through: each sits on the theme's surface colour, `--gridkit-surface`, under its row's own colour in every row state, hovered and selected included. A line divides the pinned columns from the scrolling ones in every `borders` setting, drawn with the theme's border tokens (`--gridkit-line`, `--gridkit-border-width` and `--gridkit-border-style`, see [tokens](/docs/theme-tailwind/tokens)). Where the start and end pinned columns meet, it is one line, not two.
+
+The cells carry `is-pinned-start` or `is-pinned-end`, the one beside the scrolling columns also `is-pinned-edge`, and each sets `--gridkit-pin-offset`, its distance from its edge. While a column is pinned, the scroll area sets `--gridkit-pinned-start-width` and `--gridkit-pinned-end-width`. See [class names](/docs/theme-tailwind/class-names) to style them.
+
+## Limits
+
+- **Columns only.** Rows cannot be pinned; the header and footer stay in view on their own under a `height`.
+- **No drag across the boundary.** A drag never pins or unpins a column; pin it through `pinned`, `columnPinning`, the menu or the ref.
+- **Wider than the grid.** Pinned columns that together are wider than the grid overlap the scrolling columns, covering them. Pin few, narrow columns.
+- **Backgrounds.** A pinned cell sits on `--gridkit-surface`. On a page whose background is another colour, the scrolling body cells show that colour while the pinned ones show the surface. A row's `background-image` does not carry into its pinned cells.
+- **Group rows draw no divider.** A group row is one cell across the grid, so it has no pinned cells and no line between them.
+
+## Events
+
+`onColumnPinningChange` fires once per change, from the menu, `pinColumn`, `setColumnPinning` or `restoreState`, with `columnIds`, every column whose pin changed, and `pinning`, the whole state to persist. With a controlled `columnPinning`, it only asks: the grid draws the pinning it is given. See [events](/docs/react/events).
+
+## Reading pinning outside the grid's own tree
+
+`useColumnPinningState` subscribes to the grid's pinning through its `ref`, for a control living elsewhere on the page:
+
+```tsx title="App.tsx"
+import { useRef, type RefObject } from "react";
+import {
+  DataGrid,
+  useColumnPinningState,
+  type ColumnDefinition,
+  type DataGridApi,
+} from "@gridkitjs/react";
+
+interface Book {
+  id: number;
+  title: string;
+  author: string;
+  year: number;
+}
+
+const books: Book[] = [
+  { id: 1, title: "Kindred", author: "Butler", year: 1979 },
+  { id: 2, title: "The Dispossessed", author: "Le Guin", year: 1974 },
+];
+
+const columns: readonly ColumnDefinition<Book>[] = [
+  { field: "title", header: "Title", width: 240 },
+  { field: "author", header: "Author", width: 240 },
+  { field: "year", header: "Year", width: 120, type: "number" },
+];
+
+function PinTitle({
+  gridRef,
+}: {
+  gridRef: RefObject<DataGridApi<Book> | null>;
+}) {
+  const pinning = useColumnPinningState(gridRef);
+  const pinned = pinning.title === "start";
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        gridRef.current?.pinColumn("title", pinned ? "none" : "start")
+      }
+    >
+      {pinned ? "Unpin title" : "Pin title"}
+    </button>
+  );
+}
+
+export default function App() {
+  const gridRef = useRef<DataGridApi<Book>>(null);
+  return (
+    <>
+      <PinTitle gridRef={gridRef} />
+      <DataGrid
+        ref={gridRef}
+        columns={columns}
+        dataSource={books}
+        getRowId={(row) => String(row.id)}
+        label="Books"
+        resizeMode="fixed"
+      />
+    </>
+  );
+}
+```
+
+`useColumnPinningState` only reads, and holds only what changed: a column pinned by its definition alone is absent from it. Before the grid mounts, it reads as an empty object. See [imperative handle](/docs/react/imperative-handle) for `getColumnPinning` and `subscribe`.
+
+## Accessibility
+
+A pinned column moves in the markup as well as on screen, so a screen reader meets the columns in the order they are drawn, and the arrow keys move through them in that order. Pinning or unpinning one column is announced, "Region, pinned to start" or "Region, unpinned"; a change to several at once, such as a `setColumnPinning` call, announces nothing. See [accessibility](/docs/react/accessibility).
+
+## Messages
+
+Every string pinning shows or announces is a message, see [localization](/docs/react/localization):
+
+| Key              | Default                                                            |
+| ---------------- | ------------------------------------------------------------------ |
+| `pinToStart`     | "Pin to start": `column.pinStart`'s label.                         |
+| `pinToEnd`       | "Pin to end": `column.pinEnd`'s label.                             |
+| `unpinColumn`    | "Unpin": `column.unpin`'s label.                                   |
+| `columnPinned`   | "Name, pinned to start", "Name, pinned to end": one column pinned. |
+| `columnUnpinned` | "Name, unpinned": one column unpinned.                             |
+
+## See also
+
+- [Column reordering](/docs/react/column-reordering#pinned-columns) for moving columns within a pin group.
+- [Controlled and uncontrolled state](/docs/react/state) for `columnPinning`.
+- [Class names](/docs/theme-tailwind/class-names) for the pinned cells' classes and custom properties.
+- [core: The view pipeline](/docs/core/view#pinned-columns) for how pinned columns are ordered and placed, framework-free.

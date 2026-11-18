@@ -101,7 +101,9 @@ Columns can be inferred from the data with `defineColumnsFromRows`, or declared
 outright — a column's `type` drives its default alignment. With
 `resizableColumns`, a column edge can be dragged to resize or double-clicked to
 fit its content. `resizeMode="fit"` keeps columns filling the grid; `"fixed"`
-lets each keep its own width.
+lets each keep its own width. A column's `pinned: "start"` or `pinned: "end"`
+keeps it at that edge of the grid while the other columns scroll sideways, and
+the header's context menu pins and unpins columns at run time.
 
 ### Selection
 
@@ -147,8 +149,6 @@ Not in GridKit yet:
       `cellTemplate` can render inputs of your own that write back to your
       rows meanwhile.
 - [ ] **Master-detail**: a detail row or panel that expands under a row.
-- [ ] **Frozen columns**: pinned columns that stay put while the rest scroll
-      sideways.
 - [ ] **Column groups and spanning**: grouped headers over several columns,
       and row or column spanning of cells.
 - [ ] **Row drag**: dragging rows to reorder them or to move them between
