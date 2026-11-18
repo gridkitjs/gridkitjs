@@ -693,6 +693,37 @@ const scans: readonly Scan[] = [
     name: "a grouped grid with row subtotals",
     grid: () => groupedGrid("row"),
   },
+  {
+    name: "a grid with columns pinned to both edges, scrolled sideways",
+    grid: () =>
+      scanGrid({
+        height: 200,
+        resizeMode: "fixed",
+        defaultColumnPinning: { amount: "start", name: "end" },
+      }),
+    // Narrower than the columns, so the unpinned one scrolls under the others.
+    width: 260,
+    prepare: async (root) => {
+      const area = root.locator(".gridkit-data-grid-tables");
+      await area.evaluate((element) => {
+        element.scrollLeft = (element.scrollWidth - element.clientWidth) / 2;
+      });
+      await expect(area).not.toHaveJSProperty("scrollLeft", 0);
+      // Pinning moves columns in the DOM; their indexes follow.
+      for (const row of [
+        root.locator(".gridkit-grid-header"),
+        root.locator(".gridkit-grid-row").first(),
+      ]) {
+        expect(
+          await row
+            .locator("[aria-colindex]")
+            .evaluateAll((cells) =>
+              cells.map((cell) => cell.getAttribute("aria-colindex")),
+            ),
+        ).toEqual(["1", "2", "3"]);
+      }
+    },
+  },
   { name: "a grid with no rows", grid: () => scanGrid({ dataSource: [] }) },
   {
     name: "a grid loading more rows by infinite scroll",
