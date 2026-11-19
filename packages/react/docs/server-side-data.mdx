@@ -404,7 +404,7 @@ For infinite scroll, `useInfiniteQuery` fits the same way: its `fetchNextPage` i
 
 ## Messages
 
-While `isLoadingMore` is `true`, infinite scroll shows a "Loading more…" row, the `loadingMore` message; `infiniteScroll.loadingTemplate` replaces it. The grid has no loading overlay of its own: while a page or a first load is in flight, show your own indicator, as the pager above does. With no rows it shows its [empty message](/docs/react/data-grid#an-empty-grid), which `emptyTemplate` replaces; a page of your own that loads empty while a filter is active reads "No rows match the current filter". See [localization](/docs/react/localization) to translate the grid's messages.
+While `isLoadingMore` is `true`, infinite scroll shows a "Loading more…" row, the `loadingMore` message; `infiniteScroll.loadingTemplate` replaces it. While a page or a first load is in flight, set `loading`: the grid covers the rows it shows with a "Loading…" overlay, marks itself busy and announces it, and `loadingTemplate` replaces the message (see [a loading grid](/docs/react/data-grid#a-loading-grid)). With no rows it shows its [empty message](/docs/react/data-grid#an-empty-grid), which `emptyTemplate` replaces; a page of your own that loads empty while a filter is active reads "No rows match the current filter". See [localization](/docs/react/localization) to translate the grid's messages.
 
 ## See also
 

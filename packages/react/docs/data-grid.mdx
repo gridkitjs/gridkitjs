@@ -49,7 +49,7 @@ See the [quick start](/docs/react) for installing the package and importing its 
 
 ## Props
 
-`DataGridProps<Row>` is @gridkitjs/core's [`GridOptions<Row>`](/docs/core#grid-options), plus `ReactRenderSlots<Row>` — the props that name a React type: `columns`, `pager`, `infiniteScroll`, `emptyTemplate` and `renderToolbarItem` — plus the selection callbacks and `ref`.
+`DataGridProps<Row>` is @gridkitjs/core's [`GridOptions<Row>`](/docs/core#grid-options), plus `ReactRenderSlots<Row>` — the props that name a React type: `columns`, `pager`, `infiniteScroll`, `emptyTemplate`, `loadingTemplate` and `renderToolbarItem` — plus the selection callbacks and `ref`.
 
 | Prop                                                                                                | Type                                                               | Default                          | Description                                                                                                                                                                                                                                                                                                                                                                                                  |
 | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -69,6 +69,8 @@ See the [quick start](/docs/react) for installing the package and importing its 
 | `toolbar`                                                                                           | `boolean \| GridToolbarOptions<Row>`                               | `false`                          | A toolbar above the grid: commands, a search box over every column, dropdowns and content of your own. `true` shows the defaults — the search box, then "Clear filters" and "Choose columns" at the end; `{ items, label }` lists your own. See [toolbar](/docs/react/toolbar).                                                                                                                              |
 | `renderToolbarItem`                                                                                 | `(id: string) => ReactNode`                                        |                                  | Draws the toolbar's custom entries, `{ type: "custom", id }`, by id. See [content of your own](/docs/react/toolbar#content-of-your-own).                                                                                                                                                                                                                                                                     |
 | `emptyTemplate`                                                                                     | `(context: EmptyTemplateContext) => ReactNode`                     |                                  | Replaces the message shown in place of the rows when there are none to show. See [an empty grid](#an-empty-grid).                                                                                                                                                                                                                                                                                            |
+| `loading`                                                                                           | `boolean`                                                          | `false`                          | The app is fetching rows: the grid shows an overlay over them and marks itself busy. See [a loading grid](#a-loading-grid).                                                                                                                                                                                                                                                                                  |
+| `loadingTemplate`                                                                                   | `() => ReactNode`                                                  |                                  | Replaces the loading overlay's message. See [a loading grid](#a-loading-grid).                                                                                                                                                                                                                                                                                                                               |
 | `height`                                                                                            | `number \| string`                                                 |                                  | Bounds the row area's height; the rows scroll under a header and footer that stay in view, and the toolbar and pager stay outside. A number is pixels; a string is a CSS length (e.g. `"60vh"`). Omitted, the row area's height stays content-driven.                                                                                                                                                        |
 | `virtualized`                                                                                       | `boolean`                                                          | `false`                          | Renders only the rows near the current scroll position rather than every row at once. Requires `height`. See [row virtualization](/docs/react/row-virtualization).                                                                                                                                                                                                                                           |
 | `overscan`                                                                                          | `number`                                                           | `4`                              | Rows rendered outside the visible range on each side. Only meaningful with `virtualized` on.                                                                                                                                                                                                                                                                                                                 |
@@ -237,6 +239,82 @@ export default function App() {
 A template returning `null` leaves the body blank. A button or link in the template is reached by <Kbd>Tab</Kbd> like any other on the page; the grid's own keyboard navigation skips the message, which takes no focus of its own.
 
 The message is one row spanning every column, `tr.gridkit-grid-empty-row` with its `div.gridkit-grid-empty-content`, so a screen reader reading the grid reaches it, but it is not a data row: `aria-rowcount` leaves it out, and selection, navigation and the row events never address it. The stylesheet centres it in the part of the grid in view, however far a wide grid is scrolled sideways.
+
+## A loading grid
+
+`loading` tells the grid your app is fetching rows. While it is `true`, a translucent overlay covers the body with the `loading` message, "Loading…", and the rows already drawn stay where they are underneath it, so the grid does not jump when the new rows arrive. The header, toolbar and pager are not covered. The grid never sets `loading` itself and never fetches: set it while your request is in flight, and clear it when the rows arrive or the request fails.
+
+```tsx title="App.tsx"
+import { useEffect, useState } from "react";
+import {
+  DataGrid,
+  type ColumnDefinition,
+  type ColumnSortState,
+} from "@gridkitjs/react";
+
+interface Order {
+  id: number;
+  customer: string;
+}
+
+const columns: readonly ColumnDefinition<Order>[] = [
+  { field: "id", header: "#", type: "number", width: 80 },
+  { field: "customer", header: "Customer" },
+];
+
+async function fetchOrders(sort: ColumnSortState): Promise<Order[]> {
+  const order = sort[0]?.direction ?? "asc";
+  const response = await fetch(`/api/orders?order=${order}`);
+  return (await response.json()) as Order[];
+}
+
+export default function App() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [sort, setSort] = useState<ColumnSortState>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let current = true;
+    fetchOrders(sort)
+      .then((rows) => {
+        if (current) setOrders(rows);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (current) setLoading(false);
+      });
+    return () => {
+      current = false;
+    };
+  }, [sort]);
+
+  return (
+    <DataGrid
+      columns={columns}
+      dataSource={orders}
+      getRowId={(row) => String(row.id)}
+      label="Orders"
+      sortableColumns
+      columnSort={sort}
+      onColumnSortChange={(event) => {
+        setSort(event.sort);
+        setLoading(true);
+      }}
+      loading={loading}
+    />
+  );
+}
+```
+
+While loading:
+
+- The overlay takes pointer input on the body, so a click on a row underneath selects nothing and fires no row event. Keyboard focus stays where it was, and nothing in the header, toolbar or pager is disabled: a user can still sort, filter or change page, and your app decides what a change made mid-request does.
+- The [empty message](#an-empty-grid) waits: a grid loading with no rows shows the overlay in its place, and the message shows only if the rows are still none once `loading` is `false`.
+- The grid carries `aria-busy="true"`, and the `loading` message is announced once, as loading starts. Nothing is announced as it ends; the rows that arrive are described by the grid's usual announcements. See [accessibility](/docs/react/accessibility).
+
+`loadingTemplate` replaces the overlay's message with your own, a spinner for example: `loadingTemplate={() => <Spinner />}`. It is unrelated to `infiniteScroll.loadingTemplate`, which draws the row [infinite scroll](/docs/react/infinite-scroll) shows while it loads more; both can show at once. The grid adds no delay before the overlay shows; to avoid a flash on a fast request, set `loading` a moment after the request starts.
+
+The overlay is `div.gridkit-grid-loading-overlay` with its `div.gridkit-grid-loading-overlay-content`, a row the grid owns but not a data row: `aria-rowcount` leaves it out, and navigation never moves to it. The stylesheet keeps the message centred in the rows in view, however the body is scrolled. See [class names](/docs/theme-tailwind/class-names).
 
 ## Scrollable layout
 

@@ -43,6 +43,11 @@ export interface GridMessages {
   pageStatus: (page: number, pageCount: number) => string;
   /** The row shown while `infiniteScroll` loads more. */
   loadingMore: string;
+  /**
+   * Shown over the rows while the grid's `loading` option is on, and
+   * announced as it turns on.
+   */
+  loading: string;
   /** Shown in place of the rows when the grid has none and no filter is active. */
   noRows: string;
   /**
@@ -437,6 +442,7 @@ export function createDefaultMessages(locale?: FormatLocale): GridMessages {
     pageButtonLabel: (page) => `Page ${n(page)}`,
     pageStatus: (page, pageCount) => `Page ${n(page)} of ${n(pageCount)}`,
     loadingMore: "Loading more…",
+    loading: "Loading…",
     noRows: "No rows to show",
     noMatchingRows: "No rows match the current filter",
     booleanTrue: "true",
