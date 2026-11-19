@@ -14,7 +14,7 @@ import type {
   PaginationChangeEvent,
 } from "../types";
 import { createGridController } from "./createGridController";
-import type { GridControllerOptions } from "./gridController";
+import type { GridController, GridControllerOptions } from "./gridController";
 
 /** The global core's `lib` leaves out — see `util/report.ts`. */
 declare const console: { error: (message: string) => void };
@@ -796,6 +796,24 @@ describe('createGridController: dataMode "server"', () => {
 
     expect(controller.getState().pagination.pageIndex).toBe(0);
     expect(onPaginationChange).not.toHaveBeenCalled();
+  });
+
+  test("a sort or filter callback already reads the page to fetch", () => {
+    const pagesRead: number[] = [];
+    const controller: GridController<SampleRow> = server({
+      onColumnSortChange: () => {
+        pagesRead.push(controller.getState().pagination.pageIndex);
+      },
+      onFilterChange: () => {
+        pagesRead.push(controller.getState().pagination.pageIndex);
+      },
+    });
+
+    controller.toggleColumnSort("Amount");
+    controller.goToPage(2);
+    controller.setFilter([{ kind: "text", columnId: "Region", query: "East" }]);
+
+    expect(pagesRead).toEqual([0, 0]);
   });
 });
 
