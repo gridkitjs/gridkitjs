@@ -11,6 +11,7 @@ import { PinnedColumnsGrid } from "./demos/PinnedColumnsGrid";
 import { PropsTable } from "./demos/PropsTable";
 import { ReactiveToolbarGrid } from "./demos/ReactiveToolbarGrid";
 import { ResizableSelectableGrid } from "./demos/ResizableSelectableGrid";
+import { ServerDataGrid } from "./demos/ServerDataGrid";
 import { ToolbarGrid } from "./demos/ToolbarGrid";
 import { VirtualizedGrid } from "./demos/VirtualizedGrid";
 import { PresetSwitcher } from "./PresetSwitcher";
@@ -187,6 +188,20 @@ export default function App() {
       </p>
       <div className="mt-2">
         <InfiniteScrollGrid />
+      </div>
+      <h2 className="mt-8 text-lg font-bold">
+        <code>dataMode="server"</code>, pages from a server
+      </h2>
+      <p className="mt-2 text-sm text-gray-600">
+        The grid holds the sort, the filter and the page, and a pretend server
+        answers each change after 600ms with one page of 95 orders and the
+        total, <code>rowCount</code>, which the pager counts its pages from. The
+        overlay shows while a request is in flight; an answer a newer request
+        replaced is dropped. Also on a page of its own:{" "}
+        <a href="?demo=server">?demo=server</a>.
+      </p>
+      <div className="mt-2">
+        <ServerDataGrid />
       </div>
       <h2 className="mt-8 text-lg font-bold">Fast-changing async data</h2>
       <p className="mt-2 text-sm text-gray-600">

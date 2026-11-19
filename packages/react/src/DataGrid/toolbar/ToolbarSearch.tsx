@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { GridMessages, ToolbarItemAttributes } from "@gridkitjs/core";
 import { searchTextOf, setSearchText } from "@gridkitjs/core/renderer";
-import useAnnounceWhenDrawn from "../useAnnounceWhenDrawn";
+import useAnnounceWhenDrawn, { resultCount } from "../useAnnounceWhenDrawn";
 import type { DataGridController } from "../useGridController";
 
 /** How long typing has to rest before the search applies. */
@@ -36,7 +36,8 @@ interface ToolbarSearchProps<Row> {
  *
  * Typing applies once it rests for a moment; Enter applies at once, and
  * Escape empties the box. A search the box applied is announced as the
- * number of rows it found, once the grid has drawn them.
+ * number of rows it found, once the grid has drawn them; under
+ * `dataMode: "server"`, the server's `rowCount`, once its rows arrive.
  */
 export default function ToolbarSearch<Row>({
   itemKey,
@@ -48,7 +49,7 @@ export default function ToolbarSearch<Row>({
   const applied = searchTextOf(controller.getState().filter);
   const [draft, setDraft] = useState<Draft | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const announceWhenDrawn = useAnnounceWhenDrawn(announce);
+  const announceWhenDrawn = useAnnounceWhenDrawn(announce, controller);
   const text = draft !== null && draft.over === applied ? draft.text : applied;
 
   /** Applies `next`, typed over the search `over`, unless that has changed since. */
@@ -63,7 +64,7 @@ export default function ToolbarSearch<Row>({
     if (searched !== filter) {
       announceWhenDrawn({
         drawn: () => searchTextOf(controller.getState().filter) === next,
-        text: () => messages.searchResults(controller.getView().rows.length),
+        text: () => messages.searchResults(resultCount(controller)),
       });
       controller.setFilter(searched);
     }
