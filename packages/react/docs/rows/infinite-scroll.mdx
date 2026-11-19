@@ -77,6 +77,10 @@ Both the loading row and the sentinel are presentational: neither counts toward 
 
 Unlike `paginated`, which returns to the first page when a filter, sort or group-by change shrinks the result, `infiniteScroll` never resets: it only appends what `onLoadMore` provides. If `dataSource` changes for another reason, the grid checks the new rows on the next render and loads again if the last row is still in range.
 
+## Rows a server sorts and filters
+
+When each `onLoadMore` fetches the next rows of a sort and filter your server applies, set `dataMode="server"`: the grid then keeps the rows in the order they arrive instead of sorting and filtering them again. Pass the server's total as `rowCount` and `aria-rowcount` counts every row the server has, not only those loaded. A new sort or filter is yours to start the list again from; see [server-side data](/docs/react/server-side-data#loading-more-as-the-user-scrolls).
+
 ## A load that fails
 
 The grid has no retry or backoff. A load that fails and sets `isLoadingMore` back to `false` while the last row is still in range is asked for again at once. To stop that, set `hasMore` to `false` until the user asks again, or keep `isLoadingMore` `true` while the failure is shown. [Server-side data](/docs/react/server-side-data#loading-more-as-the-user-scrolls) does the first.

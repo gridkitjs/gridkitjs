@@ -40,7 +40,7 @@ Give the grid a name with `label`, or with `labelledBy` pointing at a visible he
 
 ## Does the grid fetch data from a server?
 
-No. `dataSource` is an array, and the grid never fetches. To sort, filter and page on a server, hold that state with the controlled props and fetch with it. See [server-side data](/docs/react/server-side-data).
+No. `dataSource` is an array, and the grid never fetches. To sort, filter and page on a server, set `dataMode="server"`: the grid reports each sort, filter and page change through its callbacks, you fetch that page, and you pass it back with the server's total as `rowCount`. See [server-side data](/docs/react/server-side-data).
 
 ## Can users edit cells?
 
