@@ -4,7 +4,7 @@ import type { FormatLocale } from "./util/format";
 
 /**
  * Every string a grid shows or announces of its own — the pager, the group-by
- * bar, the loading row, the text of a boolean or missing value, the labels of
+ * bar, the loading row, an empty grid's message, the text of a boolean or missing value, the labels of
  * its built-in commands, the names of its menus, toolbar and column chooser,
  * and the live-region
  * announcements — so a grid can
@@ -38,11 +38,18 @@ export interface GridMessages {
   pageButtonLabel: (page: number) => string;
   /**
    * The compact pager's status, and what a page change announces. `page`
-   * counts from one, and is `0` while there are no pages.
+   * counts from one.
    */
   pageStatus: (page: number, pageCount: number) => string;
   /** The row shown while `infiniteScroll` loads more. */
   loadingMore: string;
+  /** Shown in place of the rows when the grid has none and no filter is active. */
+  noRows: string;
+  /**
+   * Shown in place of the rows when the filter, the toolbar's search
+   * included, hides every row.
+   */
+  noMatchingRows: string;
   /** A boolean cell's text. */
   booleanTrue: string;
   booleanFalse: string;
@@ -430,6 +437,8 @@ export function createDefaultMessages(locale?: FormatLocale): GridMessages {
     pageButtonLabel: (page) => `Page ${n(page)}`,
     pageStatus: (page, pageCount) => `Page ${n(page)} of ${n(pageCount)}`,
     loadingMore: "Loading more…",
+    noRows: "No rows to show",
+    noMatchingRows: "No rows match the current filter",
     booleanTrue: "true",
     booleanFalse: "false",
     blankGroupValue: "(blank)",

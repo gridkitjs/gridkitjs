@@ -252,6 +252,10 @@ Arrow-key navigation and <Kbd>Shift</Kbd>+click range selection both operate on 
 
 A user looking at page 7 of a result that filtering, sorting, or regrouping just shrank to 2 pages is not silently stranded on an empty page — under uncontrolled pagination, any of the three resets `pageIndex` back to `0`, as does a change of `paginationUnit`. That reset fires no `onPaginationChange` of its own. Rows that shrink under a later page without such a change (a collapsed group, a shorter `dataSource`) leave the grid on the last page that exists, and an uncontrolled pagination stores that page, just as silently, so expanding the group again stays on the page shown. A controlled `pagination` is yours to reset; until you do, the grid shows the last page that exists. See [controlled state](/docs/react/state#the-page-goes-back-to-the-first-page).
 
+## A grid with no rows
+
+With no rows to show, the built-in pager reads "Page 1 of 1", and every one of its buttons is unavailable; the body shows its [empty message](/docs/react/data-grid#an-empty-grid). The count itself stays `0`: `getPageCount()`, `usePaginationState`'s `pageCount`, `onPaginationChange`'s `pageCount` and a `pager.template`'s `pageCount` and `currentPage` all read `0`, so a pager of your own can tell "no pages" from "one page".
+
 ## Keyboard
 
 The pager is native controls: <Kbd>Tab</Kbd> moves through First, Previous, the page buttons (numbered variant only), Next, Last and the page-size `<select>`, and <Kbd>Enter</Kbd> or <Kbd>Space</Kbd> presses a button. The grid's own keys act on the current page only: <Kbd>PageUp</Kbd> and <Kbd>PageDown</Kbd> move by the rows that fit the viewport, not by pages, and <Kbd>Ctrl</Kbd>+<Kbd>Home</Kbd> and <Kbd>Ctrl</Kbd>+<Kbd>End</Kbd> go to the first and last row of the page. See [accessibility](/docs/react/accessibility#keyboard-navigation) for the full keyboard model.

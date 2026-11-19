@@ -21,6 +21,7 @@ import type {
   DataGridApi,
   DataGridProps,
   DisplayRow,
+  EmptyTemplateContext,
   ExportScalar,
   FieldPath,
   FooterTemplateContext,
@@ -78,6 +79,9 @@ describe("the types DataGrid's props and api name", () => {
     expectTypeOf<
       ReturnType<NonNullable<Column["exportValue"]>>
     >().toEqualTypeOf<ExportScalar>();
+    expectTypeOf<
+      ArgumentOf<Props["emptyTemplate"]>
+    >().toEqualTypeOf<EmptyTemplateContext>();
 
     expectTypeOf<Props["columnSort"]>().toEqualTypeOf<
       ColumnSortState | undefined

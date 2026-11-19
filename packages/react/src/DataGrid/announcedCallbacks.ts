@@ -210,8 +210,12 @@ export function announcedCallbacks<Row>({
 
     onPaginationChange: (event) => {
       callbacks.onPaginationChange?.(event);
+      // As the pager shows it: a grid with no rows reads page 1 of 1.
       announce(
-        messages.pageStatus(event.pagination.pageIndex + 1, event.pageCount),
+        messages.pageStatus(
+          event.pagination.pageIndex + 1,
+          Math.max(1, event.pageCount),
+        ),
       );
     },
 

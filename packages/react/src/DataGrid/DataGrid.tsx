@@ -33,6 +33,7 @@ import {
   type GridContextMenuTarget,
   type GridOptions,
   type GridState,
+  type GridView,
   type GroupByBarVisibility,
   type GroupByState,
   type GroupExpansionState,
@@ -458,11 +459,21 @@ export interface InfiniteScrollConfig {
   readonly loadingTemplate?: (() => ReactNode) | undefined;
 }
 
+/** What an `emptyTemplate` is handed when the grid has no rows to show. */
+export interface EmptyTemplateContext {
+  /**
+   * Whether a filter or the toolbar's search is active: the rows may be
+   * hidden by it rather than missing. It is how the built-in message picks
+   * `messages.noMatchingRows` over `messages.noRows`.
+   */
+  readonly filtered: boolean;
+}
+
 /**
  * The props that name a React type, and so have no place in the
  * framework-free `GridOptions`: columns whose templates return `ReactNode`,
- * the pager and infinite-scroll configs whose templates do too, and the
- * toolbar's custom entries.
+ * the pager and infinite-scroll configs whose templates do too, the empty
+ * grid's template and the toolbar's custom entries.
  */
 export interface ReactRenderSlots<Row> {
   columns?: readonly ColumnDefinition<Row>[] | undefined;
@@ -476,6 +487,13 @@ export interface ReactRenderSlots<Row> {
    * bound, so the mounted row count never grows with it either.
    */
   infiniteScroll?: InfiniteScrollConfig | undefined;
+  /**
+   * Replaces the content of the message shown in place of the rows when
+   * there are none to show (`messages.noRows`, or `messages.noMatchingRows`
+   * while a filter hides every row). One that returns `null` leaves the
+   * body blank.
+   */
+  emptyTemplate?: ((context: EmptyTemplateContext) => ReactNode) | undefined;
   /** Draws the toolbar's custom entries — `{ type: "custom", id }` — by id. */
   renderToolbarItem?: ((id: string) => ReactNode) | undefined;
 }
@@ -552,6 +570,28 @@ function tablesStyle(
         };
   const style = { ...heights, ...widths };
   return Object.keys(style).length === 0 ? undefined : (style as CSSProperties);
+}
+
+/**
+ * What the empty message is handed, or `null` while it does not show: while
+ * there are rows, in a grid with no columns for it to span, and while
+ * infinite scroll can still load more. The sentinel of an empty body is in
+ * view, so that load is already starting, and its loading row is what the
+ * body shows meanwhile.
+ */
+function emptyContext<Row>(
+  view: GridView<Row, ReactNode>,
+  filter: FilterState<Row>,
+  infiniteScroll: InfiniteScrollConfig | undefined,
+): EmptyTemplateContext | null {
+  if (
+    view.pageRows.length > 0 ||
+    view.columns.length === 0 ||
+    infiniteScroll?.hasMore === true
+  ) {
+    return null;
+  }
+  return { filtered: filter.length > 0 };
 }
 
 export function DataGrid<Row>(props: DataGridProps<Row>) {
@@ -673,6 +713,14 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     sentinelRef,
     config: infiniteScroll,
   });
+
+  const empty = emptyContext(view, state.filter, infiniteScroll);
+  // A `"fit"` grid measures the scroll area already; another measures it
+  // only while the empty message needs it.
+  const emptyWidth = useElementWidth(
+    gridRef,
+    empty !== null && resizeMode !== "fit",
+  );
 
   /** A column's definition by id, hidden ones included. */
   function columnOf(columnId: string): ColumnDefinition<Row> | undefined {
@@ -1257,6 +1305,9 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
               virtualRange={virtualized ? virtualizer : null}
               infiniteScroll={infiniteScroll}
               sentinelRef={sentinelRef}
+              empty={empty}
+              emptyTemplate={props.emptyTemplate}
+              viewportWidth={viewportWidth ?? emptyWidth}
               locale={locale}
               getRowProps={getRowProps}
               onRowClick={onRowClick}

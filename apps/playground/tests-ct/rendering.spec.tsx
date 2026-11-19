@@ -52,7 +52,7 @@ test.describe("structural rendering", () => {
     await expect(table).toHaveAttribute("aria-colcount", "2");
   });
 
-  test("an empty dataSource renders only the header row, not a crash", async ({
+  test("an empty dataSource renders the header and the empty message, which aria-rowcount leaves out", async ({
     mount,
   }) => {
     const root = await mountGrid(
@@ -61,7 +61,10 @@ test.describe("structural rendering", () => {
     );
     const table = root.getByRole("grid");
     await expect(table).toHaveAttribute("aria-rowcount", "1");
-    await expect(table.locator("tbody tr")).toHaveCount(0);
+    await expect(table.locator("tbody tr")).toHaveCount(1);
+    await expect(table.locator("tbody tr")).toHaveClass(
+      "gridkit-grid-empty-row",
+    );
   });
 
   test("a single-row grid gives its one row aria-rowindex 2", async ({

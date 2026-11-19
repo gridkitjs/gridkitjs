@@ -24,7 +24,9 @@ import {
 } from "@gridkitjs/dom";
 import type {
   ColumnDefinition,
+  EmptyTemplateContext,
   InfiniteScrollConfig,
+  ReactRenderSlots,
   ResolvedColumn,
 } from "../DataGrid";
 import {
@@ -39,6 +41,7 @@ import {
   keyboardSelectIntent,
   type GridSelectionApi,
 } from "../useGridSelection";
+import GridEmptyRow from "./GridEmptyRow";
 import GridGroupRow from "./GridGroupRow";
 import GridGroupSummaryRow from "./GridGroupSummaryRow";
 import GridRow from "./GridRow";
@@ -64,6 +67,11 @@ interface GridBodyProps<Row> {
   infiniteScroll: InfiniteScrollConfig | undefined;
   /** Ref the sentinel row attaches to — owned and observed by `DataGrid.tsx`'s `useInfiniteScroll`, not by this component. */
   sentinelRef: RefObject<HTMLTableRowElement | null>;
+  /** Draws the empty message in place of the rows when set; `null` while there are rows to show, or infinite scroll can still load some. */
+  empty: EmptyTemplateContext | null;
+  emptyTemplate: ReactRenderSlots<Row>["emptyTemplate"];
+  /** The scroll area's inner width, for the empty message; `null` until measured. */
+  viewportWidth: number | null;
   /** The grid's `locale`, which every cell and aggregate without a template is formatted for. */
   locale: FormatLocale;
   getRowProps: GridOptions<Row>["getRowProps"];
@@ -94,6 +102,9 @@ export default function GridBody<Row>({
   virtualRange,
   infiniteScroll,
   sentinelRef,
+  empty,
+  emptyTemplate,
+  viewportWidth,
   locale,
   getRowProps,
   onRowClick,
@@ -382,6 +393,18 @@ export default function GridBody<Row>({
             return entry satisfies never;
         }
       })}
+      {empty !== null && (
+        <GridEmptyRow
+          columnCount={columns.length}
+          viewportWidth={viewportWidth}
+        >
+          {emptyTemplate
+            ? emptyTemplate(empty)
+            : empty.filtered
+              ? messages.noMatchingRows
+              : messages.noRows}
+        </GridEmptyRow>
+      )}
       {virtualRange !== null && virtualRange.offsetAfter > 0 && (
         <tr aria-hidden="true">
           <td
