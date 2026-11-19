@@ -20,6 +20,7 @@ import type {
   ColumnWrapConfig,
   DataGridApi,
   DataGridProps,
+  DataMode,
   DisplayRow,
   EmptyTemplateContext,
   ExportScalar,
@@ -122,6 +123,8 @@ describe("the types DataGrid's props and api name", () => {
     expectTypeOf<
       ArgumentOf<Props["onGroupExpansionChange"]>
     >().toEqualTypeOf<GroupExpansionEvent>();
+
+    expectTypeOf<Props["dataMode"]>().toEqualTypeOf<DataMode | undefined>();
 
     expectTypeOf<Props["pagination"]>().toEqualTypeOf<
       PaginationState | undefined

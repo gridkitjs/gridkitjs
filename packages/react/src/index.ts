@@ -11,6 +11,7 @@ export {
   type DataColumn,
   type DataGridApi,
   type DataGridProps,
+  type DataMode,
   type EmptyTemplateContext,
   type GroupByBarVisibility,
   type HoverableConfig,

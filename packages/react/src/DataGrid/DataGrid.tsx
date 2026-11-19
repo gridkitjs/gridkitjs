@@ -27,6 +27,7 @@ import {
   type ColumnSizingState,
   type ColumnSortState,
   type ColumnVisibilityState,
+  type DataMode,
   type DisplayRow,
   type FilterState,
   type GridCommandTarget,
@@ -363,6 +364,7 @@ export interface DataGridApi<Row>
  */
 export type {
   Borders,
+  DataMode,
   GroupByBarVisibility,
   HoverableConfig,
   PaginationUnit,
