@@ -345,9 +345,11 @@
    * The rows' rowgroup. As wide as its table, and never narrower than the
    * scroll area, so its box covers every row however far the area scrolls
    * sideways; and at least `height` tall, so under a few rows the space
-   * down to the footer is the body's.
+   * down to the footer is the body's. Positioned, as the box the loading
+   * overlay covers.
    */
   .gridkit-data-grid-body {
+    position: relative;
     width: max-content;
     min-width: 100%;
     min-height: var(--gridkit-body-height, 0);
@@ -1100,6 +1102,59 @@
     padding: calc(var(--gridkit-spacing) * 4) var(--gridkit-cell-padding-x);
     color: var(--gridkit-fg-muted);
     text-align: center;
+  }
+
+  /*
+   * The layer over the body while the grid is loading: translucent, so the
+   * rows beneath stay in view and in place, and catching the pointer, so
+   * they take no clicks. Above the pinned cells (1, and before it in the
+   * document) and under the header and footer (2), which the rows scroll
+   * under.
+   *
+   * The content sticks under the header at the start edge, as wide as the
+   * scroll area's inside (`--gridkit-loading-width`, set by the grid) and,
+   * with `height`, as tall as the rows' part of it, so the message stays
+   * centred in the rows in view however the body scrolls. Over a body with
+   * no rows (`.is-empty`) the layer is in the flow instead, as tall as the
+   * empty message, which takes its place when loading ends.
+   */
+  .gridkit-data-grid-body .gridkit-grid-loading-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background-color: color-mix(
+      in oklab,
+      var(--gridkit-surface) 70%,
+      transparent
+    );
+  }
+
+  .gridkit-data-grid-body .gridkit-grid-loading-overlay.is-empty {
+    position: relative;
+  }
+
+  .gridkit-data-grid-body .gridkit-grid-loading-overlay-content {
+    position: sticky;
+    inset-block-start: var(--gridkit-header-height, 0px);
+    inset-inline-start: 0;
+    width: min(100%, var(--gridkit-loading-width, 100%));
+    height: min(100%, var(--gridkit-body-height, 100%));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: calc(var(--gridkit-spacing) * 2);
+    padding: calc(var(--gridkit-spacing) * 4) var(--gridkit-cell-padding-x);
+    color: var(--gridkit-fg);
+    font-weight: 500;
+    text-align: center;
+  }
+
+  .gridkit-data-grid-body
+    .gridkit-grid-loading-overlay.is-empty
+    .gridkit-grid-loading-overlay-content {
+    height: auto;
+    min-height: calc(var(--gridkit-spacing) * 24);
   }
 
   /*
@@ -2645,7 +2700,8 @@
     .gridkit-data-grid-viewport .gridkit-data-grid-header,
     .gridkit-data-grid-viewport .gridkit-data-grid-footer,
     .gridkit-data-grid-viewport .gridkit-grid-group-cell-content,
-    .gridkit-data-grid-viewport .gridkit-grid-empty-content {
+    .gridkit-data-grid-viewport .gridkit-grid-empty-content,
+    .gridkit-data-grid-viewport .gridkit-grid-loading-overlay-content {
       position: static;
     }
 
