@@ -33,17 +33,18 @@ view.grandTotal.get("Amount"); // the sum over every filtered row, on every page
 
 ## `GridView`
 
-| Field             | Type                             | Description                                                                                                                         |
-| ----------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `dataColumns`     | `readonly DataColumn<Row>[]`     | Every column, hidden ones included, ordered, as `{ id, column }` — no width. What filtering, sorting, grouping and aggregates read. |
-| `columns`         | `readonly ResolvedColumn<Row>[]` | The columns as rendered: visible, ordered and sized, with the columns pinned to the start first and those pinned to the end last.   |
-| `rows`            | `readonly ResolvedRow<Row>[]`    | The rows, filtered then sorted.                                                                                                     |
-| `displayRows`     | `readonly DisplayRow<Row>[]`     | `rows` grouped, each group header carrying its aggregates — every page.                                                             |
-| `pageRows`        | `readonly DisplayRow<Row>[]`     | The current page of `displayRows`. All of it when not paginated. What a page holds follows `paginationUnit`.                        |
-| `displayDataRows` | `readonly ResolvedRow<Row>[]`    | `pageRows` without group headers or summary rows — the data rows on screen, in display order.                                       |
-| `pageCount`       | `number`                         | `1` when not paginated.                                                                                                             |
-| `pageIndex`       | `number`                         | The page shown, clamped into range. `0` when not paginated.                                                                         |
-| `grandTotal`      | `AggregateResults`               | Every aggregate over all of `rows`, ignoring grouping and pagination.                                                               |
+| Field             | Type                             | Description                                                                                                                                |
+| ----------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `dataColumns`     | `readonly DataColumn<Row>[]`     | Every column, hidden ones included, ordered, as `{ id, column }` — no width. What filtering, sorting, grouping and aggregates read.        |
+| `columns`         | `readonly ResolvedColumn<Row>[]` | The columns as rendered: visible, ordered and sized, with the columns pinned to the start first and those pinned to the end last.          |
+| `rows`            | `readonly ResolvedRow<Row>[]`    | The rows, filtered then sorted. Under `dataMode: "server"`, as given.                                                                      |
+| `displayRows`     | `readonly DisplayRow<Row>[]`     | `rows` grouped, each group header carrying its aggregates: every page, or under `dataMode: "server"` the one page given.                   |
+| `pageRows`        | `readonly DisplayRow<Row>[]`     | The current page of `displayRows`. All of it when not paginated or under `dataMode: "server"`. What a page holds follows `paginationUnit`. |
+| `displayDataRows` | `readonly ResolvedRow<Row>[]`    | `pageRows` without group headers or summary rows — the data rows on screen, in display order.                                              |
+| `pageCount`       | `number`                         | `1` when not paginated. Counted from `rowCount` under `dataMode: "server"`.                                                                |
+| `pageIndex`       | `number`                         | The page shown, clamped into range. `0` when not paginated.                                                                                |
+| `rowCount`        | `number`                         | How many rows the grid has across every page, as `aria-rowcount` counts them: see [row count](#row-count).                                 |
+| `grandTotal`      | `AggregateResults`               | Every aggregate over all of `rows`, ignoring grouping and pagination.                                                                      |
 
 ## Input
 
@@ -63,20 +64,51 @@ view.grandTotal.get("Amount"); // the sum over every filtered row, on every page
 
 `options` is a `GridViewOptions<Row>`; every field is optional and defaults the way DataGrid's prop of the same name does:
 
-| Option                                                              | Default    | Description                                                                                                                                               |
-| ------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `paginated`                                                         | `false`    | Whether `pageRows` is one page rather than every row.                                                                                                     |
-| `paginationUnit`                                                    | `"group"`  | What a page's `pageSize` counts once grouped: top-level groups, or `"row"` for data rows. See [what a page counts](/docs/core/paging#what-a-page-counts). |
-| `aggregates`                                                        | `[]`       | The aggregates to compute, per group and in `grandTotal`.                                                                                                 |
-| `groupAggregateDisplay`                                             | `"inline"` | `"row"` adds a summary row after each group.                                                                                                              |
-| `columnSizeDefaults`                                                | —          | Width and bounds for a column that sets none.                                                                                                             |
-| `resizableColumns`, `reorderableColumns`, `groupByDraggableColumns` | `false`    | Grid-level defaults a column's own setting overrides.                                                                                                     |
-| `resizeMode`                                                        | `"fit"`    | `"fit"` stretches or squeezes columns to fill `viewportWidth`; `"fixed"` keeps their widths.                                                              |
-| `viewportWidth`                                                     | `null`     | The width to fit. Leave it out where there is no viewport, such as an export.                                                                             |
+| Option                                                              | Default    | Description                                                                                                                                                                                   |
+| ------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dataMode`                                                          | `"client"` | `"server"` when the app's server sorts, filters and pages the rows. See [server data mode](#server-data-mode).                                                                                |
+| `rowCount`                                                          | —          | Under `dataMode: "server"`, how many rows the server has for the current filter. The rows given when left out.                                                                                |
+| `paginated`                                                         | `false`    | Whether `pageRows` is one page rather than every row.                                                                                                                                         |
+| `paginationUnit`                                                    | `"group"`  | What a page's `pageSize` counts once grouped: top-level groups, or `"row"` for data rows. See [what a page counts](/docs/core/paging#what-a-page-counts). Ignored under `dataMode: "server"`. |
+| `aggregates`                                                        | `[]`       | The aggregates to compute, per group and in `grandTotal`.                                                                                                                                     |
+| `groupAggregateDisplay`                                             | `"inline"` | `"row"` adds a summary row after each group.                                                                                                                                                  |
+| `columnSizeDefaults`                                                | —          | Width and bounds for a column that sets none.                                                                                                                                                 |
+| `resizableColumns`, `reorderableColumns`, `groupByDraggableColumns` | `false`    | Grid-level defaults a column's own setting overrides.                                                                                                                                         |
+| `resizeMode`                                                        | `"fit"`    | `"fit"` stretches or squeezes columns to fill `viewportWidth`; `"fixed"` keeps their widths.                                                                                                  |
+| `viewportWidth`                                                     | `null`     | The width to fit. Leave it out where there is no viewport, such as an export.                                                                                                                 |
 
 A column hidden by its definition's `hidden` or by `columnVisibility` leaves `columns` but stays in `dataColumns`, so a sort, filter or grouping on it still applies, and it keeps its slot in the column order for when it is shown again. `isColumnVisible(column, visibility)` answers for one column, `applyColumnVisibility(dataColumns, visibility)` drops the hidden ones, and `setColumnVisibility(dataColumns, visibility, columnIds, visible)` returns the next state, or the same one when nothing changes.
 
 `columns` is used as given: inferring columns from the rows when a grid is given none is the [controller](/docs/core/controller)'s job, done before it resolves the view.
+
+## Server data mode
+
+`dataMode`, a `DataMode`, says who sorts, filters and pages the rows. Under `"client"`, the default, the pipeline does, over every row it is given. Under `"server"` the app's server already has, and `rows` is the result as it came back:
+
+- The rows are neither filtered nor sorted: they show in the order given. `columnSort` and `filter` still describe what the user asked for, so the app sends them with its next request.
+- With `paginated` on, `rows` is the page `pagination.pageIndex` names. Every row given is shown, `pageCount` is `countPages(rowCount, pageSize)`, and `pageIndex` is clamped into it. Without `rowCount`, pages are counted from the rows given.
+- Each row on the page has its `datasetIndex` offset by `pageIndex * pageSize`, so it is still the row's place in the whole result; `rowIndex` numbers the rows on the page.
+- Row grouping groups the rows given, and group headers add nothing to the page count. `paginationUnit` is ignored. Aggregates and `grandTotal` cover the rows given.
+- With `paginated` off, as for infinite scroll, the rows given are one page numbered from `0`.
+
+```ts
+import { resolveGridView } from "@gridkitjs/core";
+
+// The server's answer for page 4 at 25 a page: 25 of its 230 rows.
+const view = resolveGridView({
+  rows: response.rows,
+  columns,
+  state: { pagination: { pageIndex: 3, pageSize: 25 } },
+  options: { dataMode: "server", paginated: true, rowCount: response.total },
+});
+
+view.pageCount; // 10
+view.pageRows[0]?.datasetIndex; // 75
+```
+
+## Row count
+
+`rowCount` on the view is the number of rows a renderer puts in `aria-rowcount` and announces, besides its header and footer rows. Under `"client"` it is every entry of `displayRows` across every page: data rows, group headers and summary rows, without the rows a collapsed group hides. Under `"server"` it is the `rowCount` option, or the rows given without one, plus the group headers and summary rows among the rows given, less the rows a collapsed group hides there. Group headers on other pages are never seen, so a grouped server grid counts only this page's.
 
 ## Pinned columns
 
