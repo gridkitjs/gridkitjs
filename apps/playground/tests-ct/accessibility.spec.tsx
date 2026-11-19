@@ -607,6 +607,21 @@ const scans: readonly Scan[] = [
     },
   },
   {
+    name: "a server grid on its third page",
+    grid: () =>
+      scanGrid({
+        dataMode: "server",
+        rowCount: 50,
+        paginated: true,
+        defaultPagination: { pageIndex: 2, pageSize: teamRows.length },
+      }),
+    prepare: async (root) => {
+      await expect(root.locator(".gridkit-grid-pager-status")).toHaveText(
+        "Page 3 of 10",
+      );
+    },
+  },
+  {
     name: "a grid with row, column and cell selection on and a cell selected",
     grid: () =>
       scanGrid({
