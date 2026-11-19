@@ -162,13 +162,13 @@ export function paginateRows<Row>(
 ): PaginatedRows<Row> {
   const pageSize = Math.max(1, pagination.pageSize);
   const units = options.unit === "row" ? rowUnitsOf(rows) : groupUnitsOf(rows);
-  const pageCount = Math.ceil(units.length / pageSize);
+  const pageCount = countPages(units.length, pageSize);
 
   if (pageCount === 0) {
     return { rows: [], pageCount: 0, pageIndex: 0 };
   }
 
-  const pageIndex = Math.min(Math.max(pagination.pageIndex, 0), pageCount - 1);
+  const pageIndex = clampPageIndex(pagination.pageIndex, pageCount);
   const firstUnit = units[pageIndex * pageSize];
   const lastUnit =
     units[Math.min(pageIndex * pageSize + pageSize, units.length) - 1];
@@ -185,4 +185,19 @@ export function paginateRows<Row>(
   );
 
   return { rows: renumbered, pageCount, pageIndex };
+}
+
+/**
+ * How many pages `count` rows or units fill at `pageSize` a page — the one
+ * rule every page count in the grid follows, for a pager of the app's own
+ * to follow too. `pageSize` below `1` reads as `1`, and `count` below `0`
+ * as none.
+ */
+export function countPages(count: number, pageSize: number): number {
+  return Math.ceil(Math.max(0, count) / Math.max(1, pageSize));
+}
+
+/** `pageIndex` held inside `[0, pageCount - 1]`, or `0` when there are no pages. */
+function clampPageIndex(pageIndex: number, pageCount: number): number {
+  return pageCount === 0 ? 0 : Math.min(Math.max(pageIndex, 0), pageCount - 1);
 }

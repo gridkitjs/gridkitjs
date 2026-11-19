@@ -9,7 +9,7 @@ import type {
 } from "../types";
 import { withGroupAggregates } from "./aggregation";
 import { ALL_EXPANDED, groupRowId, groupRows } from "./grouping";
-import { paginateRows } from "./paging";
+import { countPages, paginateRows } from "./paging";
 
 interface SampleRow {
   Id: number;
@@ -487,5 +487,18 @@ describe('paginateRows with unit "row"', () => {
         paginateRows(rows, { pageIndex, pageSize: 4 }),
       );
     }
+  });
+});
+
+describe("countPages", () => {
+  test("counts a last partial page as a page", () => {
+    expect(countPages(0, 25)).toBe(0);
+    expect(countPages(25, 25)).toBe(1);
+    expect(countPages(26, 25)).toBe(2);
+  });
+
+  test("reads a pageSize below 1 as 1 and a negative count as none", () => {
+    expect(countPages(3, 0)).toBe(3);
+    expect(countPages(-4, 10)).toBe(0);
   });
 });

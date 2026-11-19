@@ -222,7 +222,7 @@ export {
   resolveShownRows,
 } from "./util/rows";
 export type { PaginatedRows, PaginateRowsOptions } from "./util/paging";
-export { paginateRows } from "./util/paging";
+export { countPages, paginateRows } from "./util/paging";
 export { computeAggregates, withGroupAggregates } from "./util/aggregation";
 export {
   applyColumnVisibility,
