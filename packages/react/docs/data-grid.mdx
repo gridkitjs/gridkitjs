@@ -49,7 +49,7 @@ See the [quick start](/docs/react) for installing the package and importing its 
 
 ## Props
 
-`DataGridProps<Row>` is @gridkitjs/core's [`GridOptions<Row>`](/docs/core#grid-options), plus `ReactRenderSlots<Row>` — the props that name a React type: `columns`, `pager`, `infiniteScroll` and `renderToolbarItem` — plus the selection callbacks and `ref`.
+`DataGridProps<Row>` is @gridkitjs/core's [`GridOptions<Row>`](/docs/core#grid-options), plus `ReactRenderSlots<Row>` — the props that name a React type: `columns`, `pager`, `infiniteScroll`, `emptyTemplate` and `renderToolbarItem` — plus the selection callbacks and `ref`.
 
 | Prop                                                                                                | Type                                                               | Default                          | Description                                                                                                                                                                                                                                                                                                                                                                                                  |
 | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -68,6 +68,7 @@ See the [quick start](/docs/react) for installing the package and importing its 
 | `onContextMenuOpenChange`                                                                           | `(event: ContextMenuOpenChangeEvent) => void`                      |                                  | Called as the context menu opens or closes, with `{ open, target }`. See [open state](/docs/react/context-menu#open-state).                                                                                                                                                                                                                                                                                  |
 | `toolbar`                                                                                           | `boolean \| GridToolbarOptions<Row>`                               | `false`                          | A toolbar above the grid: commands, a search box over every column, dropdowns and content of your own. `true` shows the defaults — the search box, then "Clear filters" and "Choose columns" at the end; `{ items, label }` lists your own. See [toolbar](/docs/react/toolbar).                                                                                                                              |
 | `renderToolbarItem`                                                                                 | `(id: string) => ReactNode`                                        |                                  | Draws the toolbar's custom entries, `{ type: "custom", id }`, by id. See [content of your own](/docs/react/toolbar#content-of-your-own).                                                                                                                                                                                                                                                                     |
+| `emptyTemplate`                                                                                     | `(context: EmptyTemplateContext) => ReactNode`                     |                                  | Replaces the message shown in place of the rows when there are none to show. See [an empty grid](#an-empty-grid).                                                                                                                                                                                                                                                                                            |
 | `height`                                                                                            | `number \| string`                                                 |                                  | Bounds the row area's height; the rows scroll under a header and footer that stay in view, and the toolbar and pager stay outside. A number is pixels; a string is a CSS length (e.g. `"60vh"`). Omitted, the row area's height stays content-driven.                                                                                                                                                        |
 | `virtualized`                                                                                       | `boolean`                                                          | `false`                          | Renders only the rows near the current scroll position rather than every row at once. Requires `height`. See [row virtualization](/docs/react/row-virtualization).                                                                                                                                                                                                                                           |
 | `overscan`                                                                                          | `number`                                                           | `4`                              | Rows rendered outside the visible range on each side. Only meaningful with `virtualized` on.                                                                                                                                                                                                                                                                                                                 |
@@ -183,6 +184,59 @@ export default function App() {
 It runs for each data row as the row renders, so keep it cheap. A row whose class and attributes read the same as last time is not redrawn for them, so an inline arrow returning a fresh object every time is fine.
 
 Every data row also carries `data-gridkit-row-id`, its id as `getRowId` resolves it, whether or not `getRowProps` is given — `tr[data-gridkit-row-id="42"]` finds a row however it has been sorted or paged. The grid's own `data-gridkit-*` attributes win over one of the same name from `getRowProps`.
+
+## An empty grid
+
+When there are no rows to show, the grid says so under its header: "No rows match the current filter" while a filter or the toolbar's search is active, since the rows may only be hidden, and "No rows to show" otherwise. The two are the `noMatchingRows` and `noRows` messages, so a translation changes them (see [localization](/docs/react/localization)). A grid with no columns shows neither, and neither shows while [infinite scroll](/docs/react/infinite-scroll) can still load more rows: its loading row stands in for them.
+
+`emptyTemplate` replaces the message's content with your own. It is handed an `EmptyTemplateContext`, `{ filtered: boolean }`, whether a filter or search is active:
+
+```tsx title="App.tsx"
+import { useState } from "react";
+import { DataGrid, type ColumnDefinition } from "@gridkitjs/react";
+
+interface Task {
+  id: number;
+  title: string;
+}
+
+const columns: readonly ColumnDefinition<Task>[] = [
+  { field: "id", header: "#", type: "number", width: 80 },
+  { field: "title", header: "Title" },
+];
+
+export default function App() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+
+  return (
+    <DataGrid
+      columns={columns}
+      dataSource={tasks}
+      getRowId={(row) => String(row.id)}
+      label="Tasks"
+      toolbar={{ items: ["search", "filter.clearAll"] }}
+      emptyTemplate={({ filtered }) =>
+        filtered ? (
+          "No task matches your search."
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setTasks([{ id: 1, title: "Write the first task" }]);
+            }}
+          >
+            Add a task
+          </button>
+        )
+      }
+    />
+  );
+}
+```
+
+A template returning `null` leaves the body blank. A button or link in the template is reached by <Kbd>Tab</Kbd> like any other on the page; the grid's own keyboard navigation skips the message, which takes no focus of its own.
+
+The message is one row spanning every column, `tr.gridkit-grid-empty-row` with its `div.gridkit-grid-empty-content`, so a screen reader reading the grid reaches it, but it is not a data row: `aria-rowcount` leaves it out, and selection, navigation and the row events never address it. The stylesheet centres it in the part of the grid in view, however far a wide grid is scrolled sideways.
 
 ## Scrollable layout
 

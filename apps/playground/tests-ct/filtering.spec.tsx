@@ -171,7 +171,7 @@ test("two entries of different variants AND together, narrower than either alone
   expect(await names(root)).toEqual(["Alice", "Charlie"]);
 });
 
-test("a defaultFilter matching nothing renders zero body rows, not a crash", async ({
+test("a defaultFilter matching nothing renders no data rows, only the empty message", async ({
   mount,
 }) => {
   const filter: FilterState<Row> = [
@@ -187,7 +187,8 @@ test("a defaultFilter matching nothing renders zero body rows, not a crash", asy
     />,
   );
 
-  await expect(root.locator("tbody tr")).toHaveCount(0);
+  await expect(root.locator("tbody tr")).toHaveCount(1);
+  await expect(root.locator("tbody tr")).toHaveClass("gridkit-grid-empty-row");
   await expect(root.getByRole("grid")).toHaveAttribute("aria-rowcount", "1");
 });
 

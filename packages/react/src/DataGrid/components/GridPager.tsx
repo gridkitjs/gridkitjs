@@ -77,13 +77,17 @@ function PagerNavButton({
  * this component's own.
  */
 export default function GridPager({ pager, config, messages }: GridPagerProps) {
-  const { pagination, pageCount, currentPage } = pager;
+  const { pagination } = pager;
+  // A grid with no rows has no pages, but shows one, empty: page 1 of 1 with
+  // nowhere to go.
+  const pageCount = Math.max(1, pager.pageCount);
+  const currentPage = Math.max(1, pager.currentPage);
   const variant = config?.variant ?? "compact";
   const sizeOptions = config?.sizeOptions;
   const atFirst = pagination.pageIndex <= 0;
   const atLast = pagination.pageIndex >= pageCount - 1;
   const barStyle = {
-    "--gridkit-pager-digits": String(String(Math.max(1, pageCount)).length),
+    "--gridkit-pager-digits": String(String(pageCount).length),
   } as CSSProperties;
 
   return (
@@ -144,10 +148,7 @@ export default function GridPager({ pager, config, messages }: GridPagerProps) {
         ) : (
           <span className="gridkit-grid-pager-status-slot">
             <span className="gridkit-grid-pager-status">
-              {messages.pageStatus(
-                pageCount === 0 ? 0 : currentPage,
-                pageCount,
-              )}
+              {messages.pageStatus(currentPage, pageCount)}
             </span>
             {/* The widest the status gets, invisible, so the slot never resizes as the page changes. */}
             <span

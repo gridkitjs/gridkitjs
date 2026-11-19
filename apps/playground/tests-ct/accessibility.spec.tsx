@@ -577,6 +577,22 @@ async function openViewSubmenu(
 const scans: readonly Scan[] = [
   { name: "a plain grid", grid: () => scanGrid() },
   {
+    name: "an empty grid, showing its message",
+    grid: () => scanGrid({ dataSource: [] }),
+    prepare: async (root) => {
+      await expect(root.locator(".gridkit-grid-empty-row")).toBeVisible();
+    },
+  },
+  {
+    name: "an empty grouped grid, a treegrid showing its message",
+    grid: () =>
+      scanGrid({ dataSource: [], defaultGroupBy: [{ columnId: "region" }] }),
+    prepare: async (root) => {
+      await expect(root.getByRole("treegrid")).toBeVisible();
+      await expect(root.locator(".gridkit-grid-empty-row")).toBeVisible();
+    },
+  },
+  {
     name: "a grid with row, column and cell selection on and a cell selected",
     grid: () =>
       scanGrid({
