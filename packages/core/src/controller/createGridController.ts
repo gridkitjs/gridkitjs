@@ -20,7 +20,7 @@ import {
 } from "../util/grouping";
 import { memoizeLast } from "../util/memoize";
 import { moveColumnInPinGroup } from "../util/ordering";
-import { paginateRows, type PaginatedRows } from "../util/paging";
+import type { PaginatedRows } from "../util/paging";
 import { resolveColumnPin, setColumnPin } from "../util/pinning";
 import { reportError } from "../util/report";
 import { NO_CELL_SELECTED } from "../util/selection";
@@ -32,7 +32,11 @@ import {
 } from "../util/serialize";
 import { resolveColumnWidths, revertColumnSize } from "../util/sizing";
 import { toggleColumnSort as toggledColumnSort } from "../util/sorting";
-import { createGridViewResolver, STARTING_VIEW_STATE } from "../util/view";
+import {
+  createGridViewResolver,
+  resolvePage,
+  STARTING_VIEW_STATE,
+} from "../util/view";
 import { setColumnVisibility as withColumnVisibility } from "../util/visibility";
 import {
   changedEntryColumnId,
@@ -413,6 +417,8 @@ export function createGridController<Row, Node = string>(
       columns: resolveColumns(options.columns, options.dataSource),
       state,
       options: {
+        dataMode: options.dataMode,
+        rowCount: options.rowCount,
         paginated: options.paginated,
         paginationUnit: options.paginationUnit,
         aggregates: options.aggregates,
@@ -527,8 +533,8 @@ export function createGridController<Row, Node = string>(
   }
 
   /**
-   * The page count reported is over every display row whether or not the
-   * grid is paginated, which is what a pager built on the event shows. A
+   * The page count reported is `pageOf`'s whether or not the grid is
+   * paginated, which is what a pager built on the event shows. A
    * pagination equal to the current one — `nextPage` on the last page,
    * `goToPage` to the page shown — reports nothing.
    *
@@ -559,14 +565,14 @@ export function createGridController<Row, Node = string>(
   }
 
   /**
-   * The page `pagination` names, over every display row and in the grid's
-   * `paginationUnit`. Page counts and clamping all go through this rather
-   * than by hand, so none can disagree with the page the view shows.
+   * The page `pagination` names, over every display row and by the grid's
+   * `dataMode` and `paginationUnit` — see `resolvePage`. Page counts and
+   * clamping all go through this rather than by hand, so none can disagree
+   * with the page the view shows.
    */
   function pageOf(pagination: PaginationState): PaginatedRows<Row> {
-    return paginateRows(getView().displayRows, pagination, {
-      unit: options.paginationUnit,
-    });
+    const { displayRows, rows } = getView();
+    return resolvePage(displayRows, rows, pagination, options);
   }
 
   /** `pageIndex` clamped into the pages that exist. */

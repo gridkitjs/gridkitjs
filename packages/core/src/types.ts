@@ -294,6 +294,15 @@ export interface PaginationState {
  */
 export type PaginationUnit = "group" | "row";
 
+/**
+ * Who sorts, filters and pages the rows. `"client"`: the grid does, over
+ * every row it holds. `"server"`: the app's server already has, so the grid
+ * shows the rows it is given in the order given, and counts pages from the
+ * total the app supplies. A minor release may add a mode, so a `switch` over
+ * it needs a `default`.
+ */
+export type DataMode = "client" | "server";
+
 /** Reports a user page/page-size change whole — the one to persist from, mirroring ColumnSortEvent. */
 export interface PaginationChangeEvent {
   readonly pagination: PaginationState;
@@ -1122,9 +1131,21 @@ export type GridViewState<Row> = Omit<
  * the React grid's matching prop does.
  */
 export interface GridViewOptions<Row> {
+  /**
+   * Defaults to `"client"`. Under `"server"` the rows are neither filtered
+   * nor sorted, and a paginated view shows every row it is given as the
+   * page `pagination.pageIndex` names, counting pages from `rowCount`.
+   */
+  readonly dataMode?: DataMode | undefined;
+  /**
+   * The total number of rows the server has for the current filter. Read
+   * only under `dataMode: "server"`, which falls back to the rows given
+   * when it is left out.
+   */
+  readonly rowCount?: number | undefined;
   /** Whether `pageRows` is one page of `displayRows` rather than all of it. Defaults to `false`. */
   readonly paginated?: boolean | undefined;
-  /** What a page's `pageSize` counts once grouped. Defaults to `"group"`. */
+  /** What a page's `pageSize` counts once grouped. Defaults to `"group"`; ignored under `dataMode: "server"`. */
   readonly paginationUnit?: PaginationUnit | undefined;
   readonly aggregates?: AggregateState<Row> | undefined;
   /** Defaults to `"inline"`. */
@@ -1173,18 +1194,35 @@ export interface GridView<Row, Node = string> {
    * pinned to the start first and those pinned to the end last.
    */
   readonly columns: readonly ResolvedColumn<Row, Node>[];
-  /** The rows, filtered then sorted. */
+  /** The rows, filtered then sorted; under `dataMode: "server"`, as given. */
   readonly rows: readonly ResolvedRow<Row>[];
-  /** `rows` grouped, with each group's aggregates attached — every page of it. */
+  /**
+   * `rows` grouped, with each group's aggregates attached — every page of
+   * it, or under `dataMode: "server"` the one page given.
+   */
   readonly displayRows: readonly DisplayRow<Row>[];
-  /** The current page of `displayRows`; all of it when not paginated. */
+  /**
+   * The current page of `displayRows`; all of it when not paginated or under
+   * `dataMode: "server"`. Under `"server"`, paginated, each row's
+   * `datasetIndex` is offset by the pages before it.
+   */
   readonly pageRows: readonly DisplayRow<Row>[];
   /** `pageRows` narrowed to its data rows, in display order — what a range selection spans. */
   readonly displayDataRows: readonly ResolvedRow<Row>[];
-  /** `1` when not paginated. */
+  /** `1` when not paginated. Under `dataMode: "server"`, counted from `rowCount`. */
   readonly pageCount: number;
   /** `state.pagination.pageIndex` clamped into range; `0` when not paginated. */
   readonly pageIndex: number;
+  /**
+   * How many rows the grid has across every page: what `aria-rowcount`
+   * counts besides the header and footer rows. That is every entry of
+   * `displayRows` — data rows, group headers and summary rows, without the
+   * rows a collapsed group hides. Under `dataMode: "server"` it is the
+   * `rowCount` option (the rows given, without one), plus the group headers
+   * and summary rows among the rows given, less the rows a collapsed group
+   * hides there.
+   */
+  readonly rowCount: number;
   /** Every aggregate over all of `rows`, ungrouped and unpaginated. */
   readonly grandTotal: AggregateResults;
 }

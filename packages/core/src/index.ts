@@ -40,6 +40,7 @@ export type {
   ColumnVisibilityState,
   ColumnWrapConfig,
   DataColumn,
+  DataMode,
   DisplayRow,
   FilterChangeEvent,
   FilterEntry,
