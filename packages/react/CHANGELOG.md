@@ -1,5 +1,177 @@
 # @gridkitjs/react
 
+## 0.19.0
+
+### Minor Changes
+
+- abcf889: Breaking: the body's `rowgroup` role moves from its `<tbody>` to the element around
+  the body's table, `div.gridkit-data-grid-body`, and the `<tbody>` becomes
+  `role="presentation"`. That element scrolls under `height` and carries
+  `tabindex="-1"`, and a focusable element inside a grid must have a role the
+  grid allows. The grid still has three rowgroups, holding the same rows, so
+  `getByRole("rowgroup")` finds what it did. A test or selector that reads
+  the role from the `<tbody>` itself reads it from the `div` instead:
+
+  ```ts
+  // before
+  grid.locator("tbody[role=rowgroup]");
+  // after
+  grid.locator(".gridkit-data-grid-body[role=rowgroup]");
+  ```
+
+- abcf889: `ResolvedGroupRow` has two new fields, `position` and `setSize`: a group's
+  1-based place among the groups sharing its parent, and how many there are.
+  `groupRows` sets them over the whole grouped result. Code that builds a
+  `ResolvedGroupRow` by hand, such as a test fixture, needs to add them.
+
+  `DataGrid` draws a group row's `aria-posinset` and `aria-setsize` from them.
+  On a paginated grid they were counted over the current page only, so the
+  first group on page 2 read as "1 of 1" where it was the second of two; they
+  now count every group, whichever page is showing.
+
+- abcf889: A data row in a grouped grid now says where it sits. `groupRows` gives each
+  data row a `groupPosition` field, a new `RowGroupPosition` of `{ level,
+position, setSize }`: its depth (`1` under a top-level group), its 1-based
+  place among its group's rows, and how many rows the group holds. The field is
+  absent from an ungrouped result, and `@gridkitjs/react` re-exports the type.
+  No change is needed to existing code.
+
+  `DataGrid` draws it as `aria-level`, `aria-posinset` and `aria-setsize` on
+  each data row of a `treegrid`, as the WAI-ARIA treegrid pattern asks, so a
+  screen reader can say how deep a row is and where it falls in its group. The
+  set size is the whole group's, so a group split across pages by
+  `paginationUnit: "row"` reads the same on every page. An ungrouped grid's
+  rows are unchanged.
+
+- c32ea0d: Breaking: the header, the rows and the footer scroll in one element,
+  `.gridkit-data-grid-tables`, both up and down and sideways, with the header
+  and footer stuck to its top and bottom. Before, `.gridkit-data-grid-body`
+  scrolled the rows up and down under `height`, and
+  `.gridkit-data-grid-viewport`, which `DataGridApi.element` returns, scrolled
+  the tables sideways. No class, `data-gridkit-*` attribute or ARIA role moves,
+  and `element` and `table` are the same elements, but code that reads or sets
+  a scroll position, or listens for `scroll`, on the body or the viewport now
+  addresses `.gridkit-data-grid-tables`:
+
+  ```ts
+  // before
+  grid.querySelector(".gridkit-data-grid-body").scrollTop = 0;
+  api.element.scrollLeft = 0;
+
+  // after
+  const tables = grid.querySelector(".gridkit-data-grid-tables");
+  tables.scrollTop = 0;
+  tables.scrollLeft = 0;
+  ```
+
+  `--gridkit-body-height`, which `height` sets, is set on
+  `.gridkit-data-grid-tables` in place of `.gridkit-data-grid-body`; CSS that
+  sets it itself sets it there.
+
+  This fixes a grid wider than its container putting its column titles over the
+  wrong columns. The rows scrolled sideways on their own, without the header and
+  footer, on a horizontal wheel or trackpad over them, a swipe, or keyboard
+  focus moving to a column out of view, and scrolling the grid sideways by its
+  scrollbar cut the rows off at the container's width. Now the header, rows and
+  footer stay in line however the scroll starts, in left-to-right and
+  right-to-left pages, with or without `height`. Under `height` the vertical
+  scrollbar stays at the grid's visible edge wherever it is scrolled sideways.
+
+  What stays the same: `height` bounds the rows alone, as the scroll area grows
+  by the header's and footer's measured heights (a server-rendered grid shows the
+  rows that much shorter until it hydrates); the toolbar, group-by bar and pager
+  stay where they are; keyboard focus and `scrollToRow` bring a row into view
+  clear of the header and footer; and the browser's print of the page is
+  unchanged. Under `resizeMode: "fit"` the columns fill the scroll area, so a
+  vertical scrollbar no longer makes them overflow sideways by its width.
+
+  `@gridkitjs/dom`: `observeElementHeight` reports an element's height as it
+  changes. `measurePageSize(bodyTable, scrollElement?)` takes the element the
+  rows scroll in and leaves out their block `scroll-margin`. `createGridFocus`
+  scrolls a body cell that focus leaves partly in view the rest of the way
+  (`block` and `inline` `"nearest"`). `createRowVirtualizer` works on a scroll
+  element whose rows follow a header stuck to its top.
+
+- f502536: Dragging a header shows where it can go when columns are pinned. A column
+  only moves within its pin group, and the drop line, the drop, the keyboard
+  move and its announcement now agree with that:
+
+  - `ColumnDropContext` takes an optional `pinOf(columnId)`, the edge each
+    column is pinned to. With it, `resolveColumnDropTarget` returns `null` over
+    a header in another pin group, and only targets that would move the column
+    within its own group.
+  - While a header is dragged, the headers of the other pin groups carry
+    `is-drag-blocked`, which the theme draws with a muted label and a
+    `not-allowed` cursor. The gap at the end of a group is marked
+    `is-drop-after` on its last header rather than `is-drop-before` on the next
+    group's first.
+  - Ctrl+Arrow on a header at its group's edge does
+    nothing; it announced a move that never happened. A move within a group
+    announces the column's position on screen.
+
+- a39e9d6: A column's `alignment`, and an `AggregateSpec.alignment` in the footer or a
+  group's summary row, follow the reading direction: `"left"` and `"right"`
+  are the reading-start and reading-end sides, so under `dir="rtl"` text
+  columns align right and number columns left. Cells now carry
+  `text-align: start` or `end` in their inline style where they carried
+  `left` or `right`; `"center"` is unchanged. Left-to-right pages are
+  unaffected: they render exactly as before, though a test reading the
+  computed `text-align` sees `start` or `end`.
+- e4bb289: `DataGrid` pins columns. Its props take `defaultColumnPinning`, a controlled `columnPinning` and `onColumnPinningChange`, over each column definition's `pinned: "start" | "end"`. The ref gains `getColumnPinning()`, `pinColumn(columnId, pin)` and `setColumnPinning(pinning)`, and the new `useColumnPinningState(gridRef)` hook reads the state reactively outside the grid. Pinning or unpinning one column announces it in the grid's live region, with the new `columnPinned` and `columnUnpinned` messages. `ColumnPin`, `ColumnPinningState` and `ColumnPinningEvent` are exported from `@gridkitjs/react`.
+
+  Every grid now draws its tables with separate borders, so a body row is half a pixel taller; see the theme's changelog.
+
+- e4bb289: `DataGrid` marks pinned columns for the stylesheet to stick. Each header,
+  body, footer and group summary cell of a column pinned to the start or end
+  carries `is-pinned-start` or `is-pinned-end`, plus `is-pinned-edge` on the
+  pinned column beside the scrolling ones, and `--gridkit-pin-offset` in its
+  `style`: the summed widths of the columns pinned between it and its edge.
+  While a column is pinned, `.gridkit-data-grid-tables` carries
+  `--gridkit-pinned-start-width` and `--gridkit-pinned-end-width`, the width
+  pinned to each edge. A grid with no pinned column renders as before.
+- a39e9d6: `DataGrid` follows the writing direction of the page it is in, with no new
+  prop. Inside `dir="rtl"`, the left and right arrows move focus the way they
+  point in the body, the header, the group-by bar, the toolbar and menus
+  (`ArrowLeft` moves to the next column), `Ctrl` and `Alt` with an arrow
+  reorder and resize toward where the arrow points, dragging a column's resize
+  handle outward grows it, a header dropped on another's right half lands
+  before it, and menus and panels open aligned with their anchor's right edge,
+  with submenus opening to the left. Menus and panels take the grid's
+  direction as they open, through a `dir` attribute on the overlay, even when
+  only an element around the grid sets `dir="rtl"`. The direction is read when
+  a key is pressed, a drag starts or an overlay opens, so a page that switches
+  direction is followed. Left-to-right pages are unaffected.
+
+### Patch Changes
+
+- f502536: `openContextMenu`, and Shift+F10 on a focused cell, open a cell's menu at
+  the edge of the pinned columns when the cell is scrolled under them, as they
+  already did for a cell scrolled out of view. The menu opened below a cell
+  nobody could see.
+- abcf889: `DataGrid` gives its two scroll containers, `.gridkit-data-grid-body` and
+  `.gridkit-data-grid-viewport`, `tabindex="-1"`. In Chromium and Firefox,
+  which make an element that scrolls focusable, a grid with a `height` had an
+  extra Tab stop on its body between the header and the next control on the
+  page, and in Firefox a grid wider than its container had another on the
+  viewport before the header. Tab now reaches the grid once, on its roving
+  cell, in every browser.
+- Updated dependencies [e625820]
+- Updated dependencies [42c8dc2]
+- Updated dependencies [e4bb289]
+- Updated dependencies [42c8dc2]
+- Updated dependencies [42c8dc2]
+- Updated dependencies [a39e9d6]
+- Updated dependencies [a39e9d6]
+- Updated dependencies [f502536]
+- Updated dependencies [abcf889]
+- Updated dependencies [abcf889]
+- Updated dependencies [f502536]
+- Updated dependencies [c32ea0d]
+- Updated dependencies [f502536]
+- Updated dependencies [e625820]
+  - @gridkitjs/dom@0.8.0
+  - @gridkitjs/core@0.19.0
+
 ## 0.18.0
 
 ### Minor Changes
