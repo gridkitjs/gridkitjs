@@ -1217,14 +1217,12 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
          * an internal detail for an ungrouped grid, ARIA role included.
          */
         role={state.groupBy.length > 0 ? "treegrid" : "grid"}
-        // The header is a row too, and counted from one; group headers (and,
-        // under `groupAggregateDisplay: "row"`, each group's own summary
-        // row) count as rows here too, the same way they do in `nav`'s
-        // `rowCount`, and so does the grand-total footer. `view.displayRows`,
-        // not `view.pageRows`: the total dataset count, not the current
-        // page's, so this stays the true row count per the WAI-ARIA grid
-        // pattern even while paged.
-        aria-rowcount={view.displayRows.length + (hasFooter ? 2 : 1)}
+        // The header is a row too, and counted from one, and so is the
+        // grand-total footer. `view.rowCount` counts every row on every page,
+        // group headers and summary rows included, and under
+        // `dataMode: "server"` the rows the server has, so this stays the
+        // true row count per the WAI-ARIA grid pattern even while paged.
+        aria-rowcount={view.rowCount + (hasFooter ? 2 : 1)}
         aria-colcount={view.columns.length}
         // The one element that scrolls the rows, both ways, with the header
         // and footer sticking to its top and bottom: a Tab stop of its own
@@ -1368,7 +1366,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
               results={view.grandTotal}
               rows={view.rows.map((entry) => entry.row)}
               locale={locale}
-              ariaRowIndex={view.displayRows.length + 2}
+              ariaRowIndex={view.rowCount + 2}
             />
           </table>
         )}
