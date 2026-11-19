@@ -141,6 +141,16 @@ announced through a live region.
 Give the grid an accessible name with `label`, or `labelledBy` for a heading
 already on the page — without one a screen reader announces only "grid".
 
+### Server data
+
+The grid never fetches. With `dataMode="server"`, your server sorts, filters
+and pages: the grid reports each change through `onColumnSortChange`,
+`onFilterChange` and `onPaginationChange`, you fetch that page, and you pass it
+back as `dataSource` with the server's total as `rowCount`. The built-in pager,
+row numbers and screen reader counts then cover every row the server has.
+`loading` covers the rows with an overlay while a request is in flight, and a
+grid with no rows shows a message, which `emptyTemplate` replaces.
+
 ## Roadmap
 
 Not in GridKit yet:
@@ -153,8 +163,10 @@ Not in GridKit yet:
       and row or column spanning of cells.
 - [ ] **Row drag**: dragging rows to reorder them or to move them between
       grids.
-- [ ] **A server-side data adapter**: today server-side sorting, filtering and
-      pagination work through controlled state.
+- [ ] **A server-side data adapter**: a ready-made adapter that fetches, and
+      server-supplied filter values, group counts and totals. Today
+      `dataMode="server"` takes the page your app fetches, and the filter
+      checklist, row grouping and aggregates cover the rows of that page.
 - [ ] **Tree data**: hierarchical rows from a parent id or a path.
 - [ ] **Cell ranges**: selecting more than one cell at a time.
 - [ ] **PDF export**: a built-in `pdf` export writer. Printing to the

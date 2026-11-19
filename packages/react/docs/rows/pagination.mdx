@@ -252,6 +252,10 @@ Arrow-key navigation and <Kbd>Shift</Kbd>+click range selection both operate on 
 
 A user looking at page 7 of a result that filtering, sorting, or regrouping just shrank to 2 pages is not silently stranded on an empty page — under uncontrolled pagination, any of the three resets `pageIndex` back to `0`, as does a change of `paginationUnit`. That reset fires no `onPaginationChange` of its own. Rows that shrink under a later page without such a change (a collapsed group, a shorter `dataSource`) leave the grid on the last page that exists, and an uncontrolled pagination stores that page, just as silently, so expanding the group again stays on the page shown. A controlled `pagination` is yours to reset; until you do, the grid shows the last page that exists. See [controlled state](/docs/react/state#the-page-goes-back-to-the-first-page).
 
+## Pages from a server
+
+Under `dataMode="server"` your server cuts the pages: `dataSource` is the one page `pagination` names, and every row in it shows. The built-in pager counts its pages from `rowCount`, the rows the server has for the current filter, and holds the page shown inside that count; `aria-rowindex` and `datasetIndex` continue from the pages before it. Pass `rowCount={0}` until the first answer arrives: a `paginated` server grid without `rowCount` counts only the rows it holds, one page, and logs a dev warning. See [server-side data](/docs/react/server-side-data).
+
 ## A grid with no rows
 
 With no rows to show, the built-in pager reads "Page 1 of 1", and every one of its buttons is unavailable; the body shows its [empty message](/docs/react/data-grid#an-empty-grid). The count itself stays `0`: `getPageCount()`, `usePaginationState`'s `pageCount`, `onPaginationChange`'s `pageCount` and a `pager.template`'s `pageCount` and `currentPage` all read `0`, so a pager of your own can tell "no pages" from "one page".
@@ -370,4 +374,5 @@ The pagination methods on `DataGridApi`:
 - [Column sorting](/docs/react/column-sorting) and [column filtering](/docs/react/column-filtering) for the transforms that run ahead of pagination in the pipeline.
 - [Accessibility](/docs/react/accessibility) for the WAI-ARIA grid pattern `aria-rowindex`/`aria-rowcount` follow.
 - [Imperative handle](/docs/react/imperative-handle) for the full `DataGridApi` surface.
+- [Server-side data](/docs/react/server-side-data) for pages a server sorts, filters and cuts.
 - [core: Pagination](/docs/core/paging) for the framework-free logic.
