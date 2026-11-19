@@ -96,6 +96,13 @@ export interface RowProps {
 export interface GridOptions<Row> {
   dataSource?: readonly Row[] | undefined;
   /**
+   * The app is fetching rows; the grid shows it and changes nothing else. A
+   * renderer draws `messages.loading` over the rows it already shows, marks
+   * the grid busy and announces it once. The grid never sets it itself, and
+   * never fetches.
+   */
+  loading?: boolean | undefined;
+  /**
    * A row's stable identity, for state keyed by it. Defaults to the row's
    * position, which is enough for a static grid but ties that state to where a
    * row sits rather than to the row — so anything sorting, filtering or paging
