@@ -1,27 +1,24 @@
 ---
 title: "Server-side data"
-description: "Sort, filter and page on your server: hold the grid's state, send it with each request, and pass back the rows that return."
+description: "Sort, filter and page on your server with dataMode: the grid reports each change, you fetch the page, and the grid shows it with the server's total."
 ---
 
-`DataGrid` sorts, filters and pages the rows in `dataSource` itself. To do that work on a server instead, hold the sort and filter in your own state with the controlled `columnSort` and `filter` props, send them with each request, and give the grid only the rows that come back.
+`dataMode="server"` tells `DataGrid` that your server sorts, filters and pages the rows. Your app fetches the page the grid's sort, filter and `pagination` name, and passes it as `dataSource` with the server's total as `rowCount`. The grid shows that page as given, and its built-in pager, row numbers and screen reader counts cover every row the server has.
 
 ## When to use it
 
 Fetch from a server when the rows are too many to send to the browser, or when the server has to decide which rows a user may see. For a few thousand rows, sending them all and letting the grid sort and filter them is simpler and answers instantly; [row virtualization](/docs/react/row-virtualization) keeps a long list fast.
 
-<Callout type="note" title="What the grid does and does not do here">
-  The grid has no server mode and no data adapter: it never fetches. It always
-  applies the sort and filter it holds to the rows it is given, so return rows
-  sorted and filtered the same way, or the grid reorders them or hides the ones
-  its filter rejects. `paginated` pages only the rows the grid holds, and knows
-  of no rows beyond them, so for pages from a server leave it off and draw a
-  pager of your own, as below. Row grouping, aggregates and "select all" cover
-  only the rows passed in.
+<Callout type="note" title="The grid never fetches">
+  Server mode is a mode of the grid, not a data adapter. Your app owns the
+  requests, caching, retries and errors; the grid reports what the user asked
+  for and draws what it is given. It has no error state of its own: show a
+  failed request through `emptyTemplate`, as below, or outside the grid.
 </Callout>
 
 ## A stand-in server
 
-The examples on this page call `fetchOrders`, which stands in for your API. It answers from an array in memory with `@gridkitjs/core`'s `resolveGridView`, the function the grid itself sorts, filters and pages with, so its answers agree with the grid exactly. Your version sends the same query over HTTP; `@gridkitjs/core` runs in Node too, so a Node server can answer it the same way.
+The examples on this page call `fetchOrders`, which stands in for your API. It answers from an array in memory with `@gridkitjs/core`'s `resolveGridView`, the function the grid itself sorts, filters and pages with, so its answers agree with a grid in client mode exactly. Your version sends the same query over HTTP; `@gridkitjs/core` runs in Node too, so a Node server can answer it the same way.
 
 ```ts title="api.ts"
 import {
@@ -92,34 +89,41 @@ export async function fetchOrders(
 
 Importing from `@gridkitjs/core` needs it in your own dependencies; see [choosing packages](/docs/react/choosing-packages#importing-from-core). Over HTTP, send `sort` and `filter` as JSON. Both are plain data: a sort is a list of `{ columnId, direction }`, and the filter the toolbar's search box and the filter menus build is a list of entries such as `{ kind: "text", query: "%north%" }` or `{ kind: "operator", columnId: "total", operator: "gt", value: 500 }`. The one exception is a predicate entry, a function, which only your own code adds. See [column filtering](/docs/react/column-filtering) for every entry kind.
 
-## Sorting, filtering and pages on the server
+## A paged grid from a server
 
-Hold the sort, the filter and the page in state, fetch whenever one changes, and draw a pager below the grid. `useOrders` is a small fetch hook in the shape of a query library's `useQuery`: it keeps the last rows on screen while the next ones load, and drops the answer to a request a newer one has replaced.
+Hold the query in state, fetch whenever it changes, and give the grid the page and the total that come back. The built-in pager counts its pages from `rowCount`.
 
-```ts title="useOrders.ts"
+```tsx title="App.tsx"
 import { useEffect, useState } from "react";
-import { fetchOrders, type OrderPage, type OrderQuery } from "./api";
+import { DataGrid } from "@gridkitjs/react";
+import { fetchOrders, orderColumns, type Order, type OrderQuery } from "./api";
 
-interface Result {
+interface Answer {
   query: OrderQuery;
-  data: OrderPage | undefined;
-  error: unknown;
+  rows: readonly Order[];
+  total: number;
+  failed: boolean;
 }
 
-export function useOrders(query: OrderQuery) {
-  const [result, setResult] = useState<Result>();
+const noOrders: readonly Order[] = [];
+
+export default function App() {
+  const [query, setQuery] = useState<OrderQuery>({
+    sort: [],
+    filter: [],
+    page: { pageIndex: 0, pageSize: 25 },
+  });
+  const [answer, setAnswer] = useState<Answer>();
 
   useEffect(() => {
     const controller = new AbortController();
     fetchOrders(query, controller.signal).then(
-      (data) => {
-        if (!controller.signal.aborted) {
-          setResult({ query, data, error: undefined });
-        }
+      (page) => {
+        setAnswer({ query, rows: page.rows, total: page.total, failed: false });
       },
-      (error: unknown) => {
+      () => {
         if (!controller.signal.aborted) {
-          setResult((last) => ({ query, data: last?.data, error }));
+          setAnswer({ query, rows: [], total: 0, failed: true });
         }
       },
     );
@@ -128,101 +132,166 @@ export function useOrders(query: OrderQuery) {
     };
   }, [query]);
 
-  return {
-    data: result?.data, // the last answer, kept while the next one loads
-    error: result?.error,
-    isFetching: result?.query !== query,
-  };
-}
-```
-
-```tsx title="App.tsx"
-import { useMemo, useState } from "react";
-import {
-  DataGrid,
-  type ColumnSortState,
-  type FilterState,
-  type PaginationState,
-} from "@gridkitjs/react";
-import { orderColumns, type Order } from "./api";
-import { useOrders } from "./useOrders";
-
-const noOrders: readonly Order[] = [];
-
-export default function App() {
-  const [sort, setSort] = useState<ColumnSortState>([]);
-  const [filter, setFilter] = useState<FilterState<Order>>([]);
-  const [page, setPage] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 25,
-  });
-
-  const query = useMemo(() => ({ sort, filter, page }), [sort, filter, page]);
-  const { data, isFetching, error } = useOrders(query);
-  const pageCount = Math.max(1, Math.ceil((data?.total ?? 0) / page.pageSize));
-
-  const goToPage = (pageIndex: number) => {
-    setPage((current) => ({ ...current, pageIndex }));
-  };
-
   return (
-    <>
-      <DataGrid
-        columns={orderColumns}
-        dataSource={data?.rows ?? noOrders}
-        getRowId={(row) => String(row.id)}
-        label="Orders"
-        height={400}
-        toolbar
-        sortableColumns
-        filterableColumns
-        columnSort={sort}
-        onColumnSortChange={(event) => {
-          setSort(event.sort);
-          goToPage(0);
-        }}
-        filter={filter}
-        onFilterChange={(event) => {
-          setFilter(event.filter);
-          goToPage(0);
-        }}
-      />
-      <nav aria-label="Orders pages">
-        <button
-          disabled={page.pageIndex === 0}
-          onClick={() => {
-            goToPage(page.pageIndex - 1);
-          }}
-        >
-          Previous
-        </button>
-        <span>
-          Page {page.pageIndex + 1} of {pageCount}
-          {isFetching ? " (loading)" : ""}
-        </span>
-        <button
-          disabled={page.pageIndex + 1 >= pageCount}
-          onClick={() => {
-            goToPage(page.pageIndex + 1);
-          }}
-        >
-          Next
-        </button>
-      </nav>
-      {error !== undefined && <p role="alert">The orders did not load.</p>}
-    </>
+    <DataGrid
+      columns={orderColumns}
+      dataSource={answer?.rows ?? noOrders}
+      getRowId={(row) => String(row.id)}
+      label="Orders"
+      height={400}
+      dataMode="server"
+      rowCount={answer?.total ?? 0}
+      loading={answer?.query !== query}
+      toolbar
+      sortableColumns
+      filterableColumns
+      paginated
+      columnSort={query.sort}
+      filter={query.filter}
+      pagination={query.page}
+      onColumnSortChange={(event) => {
+        setQuery((last) => ({
+          ...last,
+          sort: event.sort,
+          page: { ...last.page, pageIndex: 0 },
+        }));
+      }}
+      onFilterChange={(event) => {
+        setQuery((last) => ({
+          ...last,
+          filter: event.filter,
+          page: { ...last.page, pageIndex: 0 },
+        }));
+      }}
+      onPaginationChange={(event) => {
+        setQuery((last) => ({ ...last, page: event.pagination }));
+      }}
+      emptyTemplate={({ filtered }) => {
+        if (answer?.failed) return "The orders did not load.";
+        return filtered ? "No orders match the filter." : "No orders yet.";
+      }}
+    />
   );
 }
 ```
 
-- A header click, a filter menu or the toolbar's search box asks for a change through `onColumnSortChange` or `onFilterChange`; the grid shows the new sort or filter once you pass it back, and the new rows once they arrive. The search box waits for a pause in typing before it reports, so a fetch does not run on every key.
-- A new sort or filter sends the page back to the first one, as the grid does for its own pages.
-- `useMemo` keeps `query` the same object until a slice changes, so the effect fetches only then.
-- `getRowId` keeps a selection on the right rows across fetches. A selected row on another page keeps its id in the selection; the ref's `getSelectedRows()` returns only the selected rows in the current `dataSource`.
+- `loading` is on from the moment the query changes until its answer arrives. The rows already shown stay under the overlay, so the grid does not jump, and the first load shows the overlay in place of the empty message.
+- Aborting the request a newer query replaced drops its answer, so a slow answer never overwrites a newer one.
+- `rowCount={0}` before the first answer counts no pages yet. A `paginated` server grid without `rowCount` logs a dev warning, since it could count only the rows it holds: one page.
+- `getRowId` keeps a selection on the right rows across fetches.
+
+## Props
+
+| Prop                 | Type                                           | Default    | Description                                                                                                                                         |
+| -------------------- | ---------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dataMode`           | `"client" \| "server"`                         | `"client"` | `"server"`: the server sorts, filters and pages, and the grid shows `dataSource` as given.                                                          |
+| `rowCount`           | `number`                                       |            | The rows the server has for the current filter. Sets the pager's page count and `aria-rowcount`.                                                    |
+| `dataSource`         | `readonly Row[]`                               |            | The rows the server returned for the current query: one page when `paginated`.                                                                      |
+| `getRowId`           | `(row: Row, index: number) => string`          |            | A row's stable id. Needed so that a selection follows its rows across fetches.                                                                      |
+| `loading`            | `boolean`                                      | `false`    | A request is in flight: the grid covers its rows with an overlay and marks itself busy. See [a loading grid](/docs/react/data-grid#a-loading-grid). |
+| `emptyTemplate`      | `(context: EmptyTemplateContext) => ReactNode` |            | Replaces the message shown when there are no rows. See [an empty grid](/docs/react/data-grid#an-empty-grid).                                        |
+| `onColumnSortChange` | `(event: ColumnSortEvent) => void`             |            | Called when the user asks for a new sort, with the whole new `sort` to fetch with.                                                                  |
+| `onFilterChange`     | `(event: FilterChangeEvent<Row>) => void`      |            | Called when the user changes the filter, with the whole new `filter` to fetch with.                                                                 |
+| `onPaginationChange` | `(event: PaginationChangeEvent) => void`       |            | Called when the user changes the page or the page size, with the `pagination` to fetch with.                                                        |
+| `infiniteScroll`     | `InfiniteScrollConfig`                         |            | `{ hasMore, onLoadMore, isLoadingMore }` to fetch the next rows as the user scrolls. Not with `paginated`.                                          |
+
+`DataMode`, `ColumnSortState`, `PaginationState` and `FilterState` are defined in `@gridkitjs/core` and exported from `@gridkitjs/react` as well, so the component imports them from `react` alone.
+
+## How a change reaches your app
+
+Everything that changes the sort, the filter or the page reports through the same callbacks as in client mode: a header click, a filter menu, the toolbar's search box, the pager, its page-size select, and the ref's methods such as `goToPage` and `setColumnSort`. In server mode the grid then shows the new sort in the headers and the new filter in its menus, but never applies either to `dataSource`: it shows the rows in the order the server sends them, and every row it is given, even rows its own filter would reject. Send rows sorted and filtered as asked.
+
+- The search box waits for a pause in typing before it reports, so a fetch does not run on every key.
+- The page count is `rowCount` divided by the page size, rounded up, and the page shown is held inside it: a `rowCount` that shrinks under the last page moves the grid to the new last page.
+- A filter the server finds nothing for shows the empty message, "No rows match the current filter", and the pager reads "Page 1 of 1".
+
+## Controlled or uncontrolled state
+
+The sample above controls the sort, the filter and the page: it passes them back as `columnSort`, `filter` and `pagination`, so the query is always what the grid shows. A controlled page is yours to reset, which is why both callbacks set `pageIndex` to `0`.
+
+Left uncontrolled, the grid holds them, and a new sort or filter sends its page back to the first one without an `onPaginationChange` of its own. It does that before it calls `onColumnSortChange` or `onFilterChange`, so the ref's `getState().pagination`, read in either callback, is already the page to fetch:
+
+```tsx title="App.tsx"
+import { useEffect, useRef, useState } from "react";
+import { DataGrid, type DataGridApi } from "@gridkitjs/react";
+import {
+  fetchOrders,
+  orderColumns,
+  type Order,
+  type OrderPage,
+  type OrderQuery,
+} from "./api";
+
+const noOrders: readonly Order[] = [];
+
+export default function App() {
+  const grid = useRef<DataGridApi<Order>>(null);
+  const [query, setQuery] = useState<OrderQuery>({
+    sort: [],
+    filter: [],
+    page: { pageIndex: 0, pageSize: 25 },
+  });
+  const [answer, setAnswer] = useState<{
+    query: OrderQuery;
+    page: OrderPage;
+  }>();
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchOrders(query, controller.signal).then(
+      (page) => {
+        setAnswer({ query, page });
+      },
+      () => {
+        // An aborted request; a real app also handles a failed one.
+      },
+    );
+    return () => {
+      controller.abort();
+    };
+  }, [query]);
+
+  // The page the grid holds, already back on the first after a sort or filter.
+  const gridPage = () => grid.current?.getState().pagination ?? query.page;
+
+  return (
+    <DataGrid
+      ref={grid}
+      columns={orderColumns}
+      dataSource={answer?.page.rows ?? noOrders}
+      getRowId={(row) => String(row.id)}
+      label="Orders"
+      height={400}
+      dataMode="server"
+      rowCount={answer?.page.total ?? 0}
+      loading={answer?.query !== query}
+      sortableColumns
+      filterableColumns
+      paginated
+      defaultPagination={query.page}
+      onColumnSortChange={(event) => {
+        setQuery((last) => ({ ...last, sort: event.sort, page: gridPage() }));
+      }}
+      onFilterChange={(event) => {
+        setQuery((last) => ({
+          ...last,
+          filter: event.filter,
+          page: gridPage(),
+        }));
+      }}
+      onPaginationChange={(event) => {
+        setQuery((last) => ({ ...last, page: event.pagination }));
+      }}
+    />
+  );
+}
+```
+
+Control the state when something besides the grid changes it too, such as the page's URL; leave it uncontrolled when the grid is the only thing that does.
 
 ## Loading more as the user scrolls
 
-For one long list instead of pages, give `infiniteScroll` an `onLoadMore` that fetches the next page and appends it. A new sort or filter starts the list again from the first page.
+For one long list instead of pages, leave `paginated` off and give `infiniteScroll` an `onLoadMore` that fetches the next page and appends it. In server mode the grid keeps the rows in the order the server sends them, and `rowCount` makes `aria-rowcount` count every row the server has, not just those loaded. A new sort or filter starts the list again from the first page.
 
 ```tsx title="App.tsx"
 import { useEffect, useMemo, useState } from "react";
@@ -290,6 +359,8 @@ export default function App() {
         label="Orders"
         height={400}
         virtualized
+        dataMode="server"
+        rowCount={total ?? rows.length}
         toolbar
         sortableColumns
         columnSort={sort}
@@ -321,7 +392,7 @@ The grid calls `onLoadMore` once as the last row nears the bottom of the body, t
 
 ## With TanStack Query
 
-A query library slots into the same place as `useOrders`. With [TanStack Query](https://tanstack.com/query), the query is the key, and `keepPreviousData` keeps the last page on screen while the next one loads. Only the fetching changes, so this sample leaves out the pager, which is the same as in the `useOrders` example above:
+A query library slots into the place of the effect. With [TanStack Query](https://tanstack.com/query), the query is the key, `keepPreviousData` keeps the last page on screen while the next one loads, and `isFetching` is `loading`:
 
 ```tsx title="App.tsx"
 import { useState } from "react";
@@ -331,28 +402,22 @@ import {
   QueryClientProvider,
   useQuery,
 } from "@tanstack/react-query";
-import {
-  DataGrid,
-  type ColumnSortState,
-  type FilterState,
-  type PaginationState,
-} from "@gridkitjs/react";
-import { fetchOrders, orderColumns, type Order } from "./api";
+import { DataGrid } from "@gridkitjs/react";
+import { fetchOrders, orderColumns, type Order, type OrderQuery } from "./api";
 
 const queryClient = new QueryClient();
 const noOrders: readonly Order[] = [];
 
 function Orders() {
-  const [sort, setSort] = useState<ColumnSortState>([]);
-  const [filter, setFilter] = useState<FilterState<Order>>([]);
-  const [page, setPage] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 25,
+  const [query, setQuery] = useState<OrderQuery>({
+    sort: [],
+    filter: [],
+    page: { pageIndex: 0, pageSize: 25 },
   });
 
-  const { data } = useQuery({
-    queryKey: ["orders", sort, filter, page],
-    queryFn: ({ signal }) => fetchOrders({ sort, filter, page }, signal),
+  const { data, isFetching } = useQuery({
+    queryKey: ["orders", query],
+    queryFn: ({ signal }) => fetchOrders(query, signal),
     placeholderData: keepPreviousData,
   });
 
@@ -362,16 +427,22 @@ function Orders() {
       dataSource={data?.rows ?? noOrders}
       getRowId={(row) => String(row.id)}
       label="Orders"
+      dataMode="server"
+      rowCount={data?.total ?? 0}
+      loading={isFetching}
       sortableColumns
-      columnSort={sort}
+      paginated
+      columnSort={query.sort}
+      pagination={query.page}
       onColumnSortChange={(event) => {
-        setSort(event.sort);
-        setPage((current) => ({ ...current, pageIndex: 0 }));
+        setQuery((last) => ({
+          ...last,
+          sort: event.sort,
+          page: { ...last.page, pageIndex: 0 },
+        }));
       }}
-      filter={filter}
-      onFilterChange={(event) => {
-        setFilter(event.filter);
-        setPage((current) => ({ ...current, pageIndex: 0 }));
+      onPaginationChange={(event) => {
+        setQuery((last) => ({ ...last, page: event.pagination }));
       }}
     />
   );
@@ -388,30 +459,126 @@ export default function App() {
 
 For infinite scroll, `useInfiniteQuery` fits the same way: its `fetchNextPage` is `onLoadMore`, `hasNextPage` is `hasMore`, and `isFetchingNextPage` is `isLoadingMore`.
 
-## Props
+## What works differently in server mode
 
-| Prop                 | Type                                      | Description                                                                                                |
-| -------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `dataSource`         | `readonly Row[]`                          | The rows the server returned for the current query.                                                        |
-| `getRowId`           | `(row: Row, index: number) => string`     | A row's stable id. Needed so that a selection follows its rows across fetches.                             |
-| `columnSort`         | `ColumnSortState`                         | The sort, controlled. The grid shows it in the headers and applies it to `dataSource`.                     |
-| `onColumnSortChange` | `(event: ColumnSortEvent) => void`        | Called when the user asks for a new sort, with the whole new `sort` to fetch with.                         |
-| `filter`             | `FilterState<Row>`                        | The filter, controlled. The grid shows it in the toolbar and filter menus and applies it to `dataSource`.  |
-| `onFilterChange`     | `(event: FilterChangeEvent<Row>) => void` | Called when the user changes the filter, with the whole new `filter` to fetch with.                        |
-| `infiniteScroll`     | `InfiniteScrollConfig`                    | `{ hasMore, onLoadMore, isLoadingMore }` to fetch the next page as the user scrolls. Not with `paginated`. |
+The grid holds only the rows you pass, so everything that reads rows reads those:
 
-`ColumnSortState`, `PaginationState` and `FilterState` are defined in `@gridkitjs/core` and exported from `@gridkitjs/react` as well, so the component imports them from `react` alone.
+| Feature                                                        | In server mode                                                                                                                                                                                                     |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [Row grouping](/docs/react/row-grouping)                       | Groups the rows of the page held, so a group's count covers that page. Group headers add rows to the page but not to the page count, and `paginationUnit` is ignored.                                              |
+| [Aggregates](/docs/react/aggregate-functions)                  | Group subtotals and the grand-total footer sum the page held, not every row on the server.                                                                                                                         |
+| [Excel-style filter checklist](/docs/react/column-filter-menu) | Lists only the values in the page held. Applying it filters on the values checked, so rows on other pages with a value it did not list drop out. The condition editor and the search box are not limited this way. |
+| [Select all](/docs/react/row-selection)                        | Selects the rows of the page held.                                                                                                                                                                                 |
+| `getSelectedRows()`                                            | Returns the selected rows in the page held. A row selected on another page keeps its id in `rowSelection`, and is selected again when its page comes back.                                                         |
+| [Export](/docs/react/export)                                   | `scope: "all"` exports the rows held, not every row on the server.                                                                                                                                                 |
+| `scrollToRow(rowId)`                                           | Does nothing for a row that is not in the page held.                                                                                                                                                               |
+
+## Row counts and announcements
+
+- `aria-rowcount` counts `rowCount`, plus the header row, and the grand-total footer while `aggregates` is set. Each row's `aria-rowindex` continues from the pages before it: the first row of page 3 at 10 a page is row 22, after the header. See [accessibility](/docs/react/accessibility).
+- While `loading` turns on, "Loading…" is announced once, and the grid carries `aria-busy="true"`.
+- A filter menu or the toolbar's search announces how many rows the server found, "24 rows found", read from `rowCount`. It waits for the server's rows: the announcement is made at the first render after the change whose `dataSource` is a new array, while `loading` is off. Pass each answer as a new array, which a fetch gives you anyway.
+
+## Pages of your own
+
+When the server cannot count the rows that match, leave `paginated` off and draw a pager of your own below the grid. With no total there is no last page to show, so this pager offers "Next" while the last answer filled a page. It keeps `dataMode="server"`, so the grid shows the rows as given, and leaves out `rowCount`, so the grid counts the rows it holds.
+
+```tsx title="App.tsx"
+import { useEffect, useState } from "react";
+import { DataGrid } from "@gridkitjs/react";
+import { fetchOrders, orderColumns, type Order, type OrderQuery } from "./api";
+
+const noOrders: readonly Order[] = [];
+
+export default function App() {
+  const [query, setQuery] = useState<OrderQuery>({
+    sort: [],
+    filter: [],
+    page: { pageIndex: 0, pageSize: 25 },
+  });
+  const [answer, setAnswer] = useState<{
+    query: OrderQuery;
+    rows: readonly Order[];
+  }>();
+
+  useEffect(() => {
+    const controller = new AbortController();
+    // This server sends no total, so only the rows are kept.
+    fetchOrders(query, controller.signal).then(
+      (page) => {
+        setAnswer({ query, rows: page.rows });
+      },
+      () => {
+        // An aborted request; a real app also handles a failed one.
+      },
+    );
+    return () => {
+      controller.abort();
+    };
+  }, [query]);
+
+  const rows = answer?.rows ?? noOrders;
+  const { pageIndex, pageSize } = query.page;
+  const goToPage = (next: number) => {
+    setQuery((last) => ({ ...last, page: { ...last.page, pageIndex: next } }));
+  };
+
+  return (
+    <>
+      <DataGrid
+        columns={orderColumns}
+        dataSource={rows}
+        getRowId={(row) => String(row.id)}
+        label="Orders"
+        height={400}
+        dataMode="server"
+        loading={answer?.query !== query}
+        sortableColumns
+        columnSort={query.sort}
+        onColumnSortChange={(event) => {
+          setQuery((last) => ({
+            ...last,
+            sort: event.sort,
+            page: { ...last.page, pageIndex: 0 },
+          }));
+        }}
+      />
+      <nav aria-label="Orders pages">
+        <button
+          disabled={pageIndex === 0}
+          onClick={() => {
+            goToPage(pageIndex - 1);
+          }}
+        >
+          Previous
+        </button>
+        <span>Page {pageIndex + 1}</span>
+        <button
+          disabled={rows.length < pageSize}
+          onClick={() => {
+            goToPage(pageIndex + 1);
+          }}
+        >
+          Next
+        </button>
+      </nav>
+    </>
+  );
+}
+```
+
+Here each page's rows are numbered from 1 for assistive technology, since the grid knows neither the page nor the total.
 
 ## Messages
 
-While `isLoadingMore` is `true`, infinite scroll shows a "Loading more…" row, the `loadingMore` message; `infiniteScroll.loadingTemplate` replaces it. While a page or a first load is in flight, set `loading`: the grid covers the rows it shows with a "Loading…" overlay, marks itself busy and announces it, and `loadingTemplate` replaces the message (see [a loading grid](/docs/react/data-grid#a-loading-grid)). With no rows it shows its [empty message](/docs/react/data-grid#an-empty-grid), which `emptyTemplate` replaces; a page of your own that loads empty while a filter is active reads "No rows match the current filter". See [localization](/docs/react/localization) to translate the grid's messages.
+While `loading` is on, the overlay shows the `loading` message, "Loading…", which `loadingTemplate` replaces (see [a loading grid](/docs/react/data-grid#a-loading-grid)). With no rows it shows its [empty message](/docs/react/data-grid#an-empty-grid), which `emptyTemplate` replaces; while a filter is active it reads "No rows match the current filter". While `isLoadingMore` is `true`, infinite scroll shows a "Loading more…" row, the `loadingMore` message, which `infiniteScroll.loadingTemplate` replaces. The count a filter or search announces is the `searchResults` message. See [localization](/docs/react/localization) to translate them.
 
 ## See also
 
+- [The view pipeline](/docs/core/view#server-data-mode) for `dataMode` in `@gridkitjs/core`, and `resolveGridView`, the function the stand-in server answers with.
 - [Controlled state](/docs/react/state) for every controlled prop and how a slice is held.
+- [Pagination](/docs/react/pagination) for the built-in pager.
 - [Column filtering](/docs/react/column-filtering) for the filter entries a query carries.
 - [Column sorting](/docs/react/column-sorting) for the sort a header click asks for.
 - [Infinite scroll](/docs/react/infinite-scroll) for `infiniteScroll` in depth.
-- [Pagination](/docs/react/pagination) for the grid's own pages, over the rows it holds.
-- [The view pipeline](/docs/core/view) for `resolveGridView`, the function the stand-in server answers with.
 - [Live data](/docs/react/live-data) for rows that change on their own, from a poll or a WebSocket.
