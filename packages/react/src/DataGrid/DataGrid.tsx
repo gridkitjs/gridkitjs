@@ -65,6 +65,7 @@ import GridColgroup from "./components/GridColgroup";
 import GridHeader from "./components/GridHeader";
 import GridBody from "./components/GridBody";
 import GridFooter from "./components/GridFooter";
+import GridLoadingOverlay from "./components/GridLoadingOverlay";
 import GridPager from "./components/GridPager";
 import GroupByBar from "./components/GroupByBar";
 import { announcedCallbacks } from "./announcedCallbacks";
@@ -473,7 +474,7 @@ export interface EmptyTemplateContext {
  * The props that name a React type, and so have no place in the
  * framework-free `GridOptions`: columns whose templates return `ReactNode`,
  * the pager and infinite-scroll configs whose templates do too, the empty
- * grid's template and the toolbar's custom entries.
+ * and loading templates and the toolbar's custom entries.
  */
 export interface ReactRenderSlots<Row> {
   columns?: readonly ColumnDefinition<Row>[] | undefined;
@@ -494,6 +495,12 @@ export interface ReactRenderSlots<Row> {
    * body blank.
    */
   emptyTemplate?: ((context: EmptyTemplateContext) => ReactNode) | undefined;
+  /**
+   * Replaces the content of the overlay shown over the body while `loading`
+   * is on (`messages.loading`). Unrelated to `infiniteScroll.loadingTemplate`,
+   * the row shown while infinite scroll loads more.
+   */
+  loadingTemplate?: (() => ReactNode) | undefined;
   /** Draws the toolbar's custom entries — `{ type: "custom", id }` — by id. */
   renderToolbarItem?: ((id: string) => ReactNode) | undefined;
 }
@@ -574,19 +581,21 @@ function tablesStyle(
 
 /**
  * What the empty message is handed, or `null` while it does not show: while
- * there are rows, in a grid with no columns for it to span, and while
- * infinite scroll can still load more. The sentinel of an empty body is in
- * view, so that load is already starting, and its loading row is what the
- * body shows meanwhile.
+ * there are rows, in a grid with no columns for it to span, while the app
+ * says it is loading, and while infinite scroll can still load more. The
+ * sentinel of an empty body is in view, so that load is already starting,
+ * and its loading row is what the body shows meanwhile.
  */
 function emptyContext<Row>(
   view: GridView<Row, ReactNode>,
   filter: FilterState<Row>,
+  loading: boolean,
   infiniteScroll: InfiniteScrollConfig | undefined,
 ): EmptyTemplateContext | null {
   if (
     view.pageRows.length > 0 ||
     view.columns.length === 0 ||
+    loading ||
     infiniteScroll?.hasMore === true
   ) {
     return null;
@@ -605,6 +614,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     groupableColumns = false,
     groupToggleIconColumns = true,
     groupByBarVisibility = "auto",
+    loading = false,
     paginated = false,
     pager,
     infiniteScroll,
@@ -714,13 +724,22 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     config: infiniteScroll,
   });
 
-  const empty = emptyContext(view, state.filter, infiniteScroll);
+  const empty = emptyContext(view, state.filter, loading, infiniteScroll);
   // A `"fit"` grid measures the scroll area already; another measures it
-  // only while the empty message needs it.
-  const emptyWidth = useElementWidth(
+  // only while the empty message or the loading overlay needs it.
+  const messageWidth = useElementWidth(
     gridRef,
-    empty !== null && resizeMode !== "fit",
+    (empty !== null || loading) && resizeMode !== "fit",
   );
+  const bodyViewportWidth = viewportWidth ?? messageWidth;
+
+  // Once per load, as it starts: the rows that arrive announce themselves
+  // through the result announcements already in place.
+  useEffect(() => {
+    if (loading) {
+      announce(messages.loading);
+    }
+  }, [loading, announce, messages.loading]);
 
   /** A column's definition by id, hidden ones included. */
   function columnOf(columnId: string): ColumnDefinition<Row> | undefined {
@@ -1216,6 +1235,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
           pinnedWidths(view.columns),
         )}
         {...ariaAttr(multiselectable, "aria-multiselectable", true)}
+        {...ariaAttr(loading, "aria-busy", true)}
         {...ariaAttr(labelledBy !== undefined, "aria-labelledby", labelledBy)}
         {...ariaAttr(
           labelledBy === undefined && label !== undefined,
@@ -1307,7 +1327,7 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
               sentinelRef={sentinelRef}
               empty={empty}
               emptyTemplate={props.emptyTemplate}
-              viewportWidth={viewportWidth ?? emptyWidth}
+              viewportWidth={bodyViewportWidth}
               locale={locale}
               getRowProps={getRowProps}
               onRowClick={onRowClick}
@@ -1317,6 +1337,16 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
               groupMenu={contextMenu.opens("group")}
             />
           </table>
+          {loading && (
+            <GridLoadingOverlay
+              empty={view.pageRows.length === 0}
+              viewportWidth={bodyViewportWidth}
+            >
+              {props.loadingTemplate
+                ? props.loadingTemplate()
+                : messages.loading}
+            </GridLoadingOverlay>
+          )}
         </div>
 
         {hasFooter && (

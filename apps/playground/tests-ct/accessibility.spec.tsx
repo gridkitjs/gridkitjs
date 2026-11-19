@@ -593,6 +593,20 @@ const scans: readonly Scan[] = [
     },
   },
   {
+    name: "a loading grid, busy, its overlay over the rows",
+    grid: () => scanGrid({ loading: true }),
+    prepare: async (root) => {
+      await expect(root.locator(".gridkit-grid-loading-overlay")).toBeVisible();
+    },
+  },
+  {
+    name: "a loading grid with no rows",
+    grid: () => scanGrid({ dataSource: [], loading: true }),
+    prepare: async (root) => {
+      await expect(root.locator(".gridkit-grid-loading-overlay")).toBeVisible();
+    },
+  },
+  {
     name: "a grid with row, column and cell selection on and a cell selected",
     grid: () =>
       scanGrid({
