@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { PinnedColumnsGrid } from "./demos/PinnedColumnsGrid";
+import { ServerDataGrid } from "./demos/ServerDataGrid";
 import { WalkthroughGrid } from "./demos/WalkthroughGrid";
 import { WalkthroughGroupedGrid } from "./demos/WalkthroughGroupedGrid";
 
@@ -27,6 +28,10 @@ const demos: Readonly<Record<string, WalkthroughDemo>> = {
   pinned: {
     title: "Pinned columns",
     render: () => <PinnedColumnsGrid />,
+  },
+  server: {
+    title: "Orders from a server",
+    render: () => <ServerDataGrid />,
   },
 };
 

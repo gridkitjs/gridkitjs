@@ -6,16 +6,16 @@ published, so it needs no changeset.
 
 ## Layout
 
-| Path                      | What it holds                                                                |
-| ------------------------- | ---------------------------------------------------------------------------- |
-| `src/App.tsx`             | The demo page `pnpm dev` serves, built from the grids in `src/demos/`.       |
-| `src/index.css`           | Tailwind plus `@gridkitjs/theme-tailwind/styles.css`, shared with the tests. |
-| `src/PresetSwitcher.tsx`  | Loads a theme preset after the stylesheet; `?preset=<id>` links to one.      |
-| `src/Walkthrough.tsx`     | One grid alone on a page: `/?demo=tour`, `grouped` or `pinned`, `&dir=rtl`.  |
-| `tests-ct/`               | Playwright component tests, one spec file per area.                          |
-| `tests-ct/support/`       | Test-only grids and harnesses the specs mount, plus coverage setup.          |
-| `playwright/index.tsx`    | The component-test entry; it imports `src/index.css`.                        |
-| `playwright-ct.config.ts` | The suite's config: the browsers and phones, the Vite plugins, coverage.     |
+| Path                      | What it holds                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------------- |
+| `src/App.tsx`             | The demo page `pnpm dev` serves, built from the grids in `src/demos/`.                |
+| `src/index.css`           | Tailwind plus `@gridkitjs/theme-tailwind/styles.css`, shared with the tests.          |
+| `src/PresetSwitcher.tsx`  | Loads a theme preset after the stylesheet; `?preset=<id>` links to one.               |
+| `src/Walkthrough.tsx`     | One grid alone on a page: `/?demo=tour`, `grouped`, `pinned` or `server`, `&dir=rtl`. |
+| `tests-ct/`               | Playwright component tests, one spec file per area.                                   |
+| `tests-ct/support/`       | Test-only grids and harnesses the specs mount, plus coverage setup.                   |
+| `playwright/index.tsx`    | The component-test entry; it imports `src/index.css`.                                 |
+| `playwright-ct.config.ts` | The suite's config: the browsers and phones, the Vite plugins, coverage.              |
 
 Packages resolve to source, so editing a package hot-reloads the app; run it
 from the repo root with `pnpm dev` (see the root
