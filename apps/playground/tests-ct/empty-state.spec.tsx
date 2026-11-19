@@ -99,6 +99,41 @@ test.describe("an empty grid", () => {
     await expect(root.locator("tbody tr[data-gridkit-row-id]")).toHaveCount(3);
   });
 
+  test("stays in view and centred while a wide grid scrolls sideways", async ({
+    mount,
+  }) => {
+    const wideColumns: readonly ColumnDefinition<Row>[] = [
+      { field: "id", header: "Id", width: 400 },
+      { field: "name", header: "Name", width: 400 },
+    ];
+    const root = await mountGrid(
+      mount,
+      <DataGrid
+        columns={wideColumns}
+        dataSource={[]}
+        label="Wide"
+        resizeMode="fixed"
+      />,
+      { width: 400 },
+    );
+    const scrollArea = root.locator(".gridkit-data-grid-tables");
+    const content = root.locator(".gridkit-grid-empty-content");
+
+    await scrollArea.evaluate((element: HTMLElement) => {
+      element.scrollLeft = element.scrollWidth;
+    });
+    await expect
+      .poll(() => scrollArea.evaluate((element) => element.scrollLeft))
+      .toBeGreaterThan(0);
+
+    const area = await scrollArea.boundingBox();
+    const box = await content.boundingBox();
+    if (area === null || box === null) throw new Error("not laid out");
+    const inner = await scrollArea.evaluate((element) => element.clientWidth);
+    expect(Math.round(box.x)).toBe(Math.round(area.x));
+    expect(Math.round(box.width)).toBe(inner);
+  });
+
   test("shows a grid's own translation", async ({ mount }) => {
     const root = await mountGrid(
       mount,

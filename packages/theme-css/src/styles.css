@@ -1076,6 +1076,33 @@
   }
 
   /*
+   * The message standing in for the rows of an empty grid. Padding lives on
+   * the content rather than the cell, as the group label's does. The content
+   * sticks to the start edge and is as wide as the scroll area's inside
+   * (`--gridkit-empty-width`, set by the grid), or the cell if that is
+   * narrower, so it stays in view and centred however far a wide grid
+   * scrolls sideways.
+   */
+  .gridkit-data-grid .gridkit-grid-empty-cell {
+    padding: 0;
+  }
+
+  .gridkit-data-grid .gridkit-grid-empty-content {
+    position: sticky;
+    inset-inline-start: 0;
+    width: min(100%, var(--gridkit-empty-width, 100%));
+    min-height: calc(var(--gridkit-spacing) * 24);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: calc(var(--gridkit-spacing) * 2);
+    padding: calc(var(--gridkit-spacing) * 4) var(--gridkit-cell-padding-x);
+    color: var(--gridkit-fg-muted);
+    text-align: center;
+  }
+
+  /*
    * Indents only the first cell, matching how `GridGroupRow`'s own
    * `paddingInlineStart` indents just the one spanning cell it has — an
    * empty, `aria-hidden` inline spacer rather than padding on the `<td>`
@@ -2617,7 +2644,8 @@
 
     .gridkit-data-grid-viewport .gridkit-data-grid-header,
     .gridkit-data-grid-viewport .gridkit-data-grid-footer,
-    .gridkit-data-grid-viewport .gridkit-grid-group-cell-content {
+    .gridkit-data-grid-viewport .gridkit-grid-group-cell-content,
+    .gridkit-data-grid-viewport .gridkit-grid-empty-content {
       position: static;
     }
 
