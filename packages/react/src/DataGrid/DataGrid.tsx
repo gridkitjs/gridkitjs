@@ -720,6 +720,16 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
     }
   }, [paginated, hasInfiniteScroll]);
 
+  const serverPagesUncounted =
+    props.dataMode === "server" && paginated && props.rowCount === undefined;
+  useEffect(() => {
+    if (serverPagesUncounted) {
+      console.error(
+        'DataGrid: a `paginated` grid under `dataMode: "server"` needs `rowCount` — without it the pager counts only the rows given, one page. Pass `0` until the first response.',
+      );
+    }
+  }, [serverPagesUncounted]);
+
   useInfiniteScroll({
     rootRef: gridRef,
     sentinelRef,
