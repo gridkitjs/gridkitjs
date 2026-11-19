@@ -3,7 +3,7 @@ title: "Pagination"
 description: "The pagination logic underneath paginated and the numbered pager."
 ---
 
-`paginateRows` slices the grid's rows into pages, and `paginationWindow` works out which page numbers a numbered pager shows. The [view pipeline](/docs/core/view) pages for you under `paginated`; reach for these directly in a custom adapter or a pager of your own. `paginateRows` comes from `@gridkitjs/core`, and `paginationWindow`, which serves a pager's drawing, from `@gridkitjs/core/renderer`.
+`paginateRows` slices the grid's rows into pages, `countPages` counts them, and `paginationWindow` works out which page numbers a numbered pager shows. The [view pipeline](/docs/core/view) pages for you under `paginated`; reach for these directly in a custom adapter or a pager of your own. `paginateRows` and `countPages` come from `@gridkitjs/core`, and `paginationWindow`, which serves a pager's drawing, from `@gridkitjs/core/renderer`.
 
 A `PaginationState` is `{ pageIndex, pageSize }`, with `pageIndex` 0-based.
 
@@ -12,6 +12,7 @@ A `PaginationState` is `{ pageIndex, pageSize }`, with `pageIndex` 0-based.
 | Function                                             | Type                               | Description                                                                                                                                                                                                                    |
 | ---------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `paginateRows(rows, pagination, options?)`           | `PaginatedRows<Row>`               | The page `pagination` names, from rows already filtered, sorted, grouped and aggregated. A `pageIndex` out of range is clamped, and a `pageSize` below `1` is taken as `1`. `options` is `{ unit? }`, see below.               |
+| `countPages(count, pageSize)`                        | `number`                           | How many pages `count` rows or units fill at `pageSize` a page, the rule every page count in the grid follows. A `pageSize` below `1` is taken as `1`, and a negative `count` as none.                                         |
 | `paginationWindow(currentPage, pageCount, options?)` | `readonly PaginationWindowEntry[]` | The 1-based page numbers a numbered pager shows for `currentPage` of `pageCount`, always the same number of entries once there are more pages than fit. `options` is `{ boundaryCount?, siblingCount? }`, both `1` by default. |
 
 A page counts **units**: a top-level group with everything under it by default, or a data row, as [what a page counts](#what-a-page-counts) sets out.
@@ -68,6 +69,19 @@ const page = paginateRows(
 ```
 
 The view pipeline and the controller take the unit from the `paginationUnit` option, so the page shown, the page count and a clamped `pageIndex` always agree.
+
+## Pages a server cuts
+
+Under `dataMode: "server"` the server pages the rows, and the rows a grid holds are the one page `pagination` names. The view pipeline and the controller then cut nothing: every row held is shown, the page count is `countPages(rowCount, pageSize)` from the `rowCount` option, and `pageIndex` is clamped into it. Group headers add nothing to the count, and `paginationUnit` is ignored. See [server data mode](/docs/core/view#server-data-mode).
+
+A pager of the app's own counts its pages the same way:
+
+```ts
+import { countPages } from "@gridkitjs/core";
+
+countPages(230, 25); // 10
+countPages(0, 25); // 0
+```
 
 ## In the React grid
 

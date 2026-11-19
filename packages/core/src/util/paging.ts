@@ -162,13 +162,13 @@ export function paginateRows<Row>(
 ): PaginatedRows<Row> {
   const pageSize = Math.max(1, pagination.pageSize);
   const units = options.unit === "row" ? rowUnitsOf(rows) : groupUnitsOf(rows);
-  const pageCount = Math.ceil(units.length / pageSize);
+  const pageCount = countPages(units.length, pageSize);
 
   if (pageCount === 0) {
     return { rows: [], pageCount: 0, pageIndex: 0 };
   }
 
-  const pageIndex = Math.min(Math.max(pagination.pageIndex, 0), pageCount - 1);
+  const pageIndex = clampPageIndex(pagination.pageIndex, pageCount);
   const firstUnit = units[pageIndex * pageSize];
   const lastUnit =
     units[Math.min(pageIndex * pageSize + pageSize, units.length) - 1];
@@ -185,4 +185,50 @@ export function paginateRows<Row>(
   );
 
   return { rows: renumbered, pageCount, pageIndex };
+}
+
+/**
+ * `rows` taken whole as the page a server already cut out of `rowCount`
+ * rows: nothing is sliced off, pages are counted from `rowCount`, and
+ * `pagination.pageIndex` is clamped into them as `paginateRows` clamps it.
+ * Each row's `datasetIndex` is offset by the pages before it, so it stays
+ * the row's place in the whole result; `rowIndex` keeps numbering the rows
+ * given, as on a page `paginateRows` cuts.
+ *
+ * The offset counts `pageSize` rows a page, so with group headers among
+ * `rows` a position is the server's row position plus the headers on this
+ * page: the headers on earlier pages are never seen.
+ */
+export function paginateServerRows<Row>(
+  rows: readonly DisplayRow<Row>[],
+  pagination: PaginationState,
+  rowCount: number,
+): PaginatedRows<Row> {
+  const pageSize = Math.max(1, pagination.pageSize);
+  const pageCount = countPages(rowCount, pageSize);
+  const pageIndex = clampPageIndex(pagination.pageIndex, pageCount);
+  const offset = pageIndex * pageSize;
+  const offsetRows =
+    offset === 0
+      ? rows
+      : rows.map((entry) => ({
+          ...entry,
+          datasetIndex: entry.datasetIndex + offset,
+        }));
+  return { rows: offsetRows, pageCount, pageIndex };
+}
+
+/**
+ * How many pages `count` rows or units fill at `pageSize` a page — the one
+ * rule every page count in the grid follows, for a pager of the app's own
+ * to follow too. `pageSize` below `1` reads as `1`, and `count` below `0`
+ * as none.
+ */
+export function countPages(count: number, pageSize: number): number {
+  return Math.ceil(Math.max(0, count) / Math.max(1, pageSize));
+}
+
+/** `pageIndex` held inside `[0, pageCount - 1]`, or `0` when there are no pages. */
+function clampPageIndex(pageIndex: number, pageCount: number): number {
+  return pageCount === 0 ? 0 : Math.min(Math.max(pageIndex, 0), pageCount - 1);
 }

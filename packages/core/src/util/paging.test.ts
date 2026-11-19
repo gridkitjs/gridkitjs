@@ -9,7 +9,7 @@ import type {
 } from "../types";
 import { withGroupAggregates } from "./aggregation";
 import { ALL_EXPANDED, groupRowId, groupRows } from "./grouping";
-import { paginateRows } from "./paging";
+import { countPages, paginateRows, paginateServerRows } from "./paging";
 
 interface SampleRow {
   Id: number;
@@ -487,5 +487,66 @@ describe('paginateRows with unit "row"', () => {
         paginateRows(rows, { pageIndex, pageSize: 4 }),
       );
     }
+  });
+});
+
+describe("countPages", () => {
+  test("counts a last partial page as a page", () => {
+    expect(countPages(0, 25)).toBe(0);
+    expect(countPages(25, 25)).toBe(1);
+    expect(countPages(26, 25)).toBe(2);
+  });
+
+  test("reads a pageSize below 1 as 1 and a negative count as none", () => {
+    expect(countPages(3, 0)).toBe(3);
+    expect(countPages(-4, 10)).toBe(0);
+  });
+});
+
+describe("paginateServerRows", () => {
+  // The page a server sent for page 3 at 3 a page: rows 10 to 12.
+  const held: readonly ResolvedRow<SampleRow>[] = [10, 11, 12].map(
+    (id, index) => resolvedRow(index, { Id: id, Region: "West" }),
+  );
+
+  test("shows every row given and counts pages from rowCount", () => {
+    const result = paginateServerRows(held, { pageIndex: 3, pageSize: 3 }, 20);
+
+    expect(result.pageCount).toBe(7);
+    expect(result.pageIndex).toBe(3);
+    expect(ids(result.rows)).toEqual([10, 11, 12]);
+  });
+
+  test("offsets datasetIndex by the pages before and keeps rowIndex on the page", () => {
+    const result = paginateServerRows(held, { pageIndex: 3, pageSize: 3 }, 20);
+
+    expect(result.rows.map((entry) => entry.datasetIndex)).toEqual([9, 10, 11]);
+    expect(result.rows.map((entry) => entry.rowIndex)).toEqual([0, 1, 2]);
+  });
+
+  test("hands the rows back as they are on the first page", () => {
+    const result = paginateServerRows(held, { pageIndex: 0, pageSize: 3 }, 20);
+
+    expect(result.rows).toBe(held);
+  });
+
+  test("reports no pages for a rowCount of 0", () => {
+    const result = paginateServerRows([], { pageIndex: 2, pageSize: 3 }, 0);
+
+    expect(result).toEqual({ rows: [], pageCount: 0, pageIndex: 0 });
+  });
+
+  test("counts one page for a rowCount of exactly one page", () => {
+    const result = paginateServerRows(held, { pageIndex: 0, pageSize: 3 }, 3);
+
+    expect(result.pageCount).toBe(1);
+  });
+
+  test("clamps a page index beyond the count to the last page", () => {
+    const result = paginateServerRows(held, { pageIndex: 9, pageSize: 3 }, 11);
+
+    expect(result.pageCount).toBe(4);
+    expect(result.pageIndex).toBe(3);
+    expect(result.rows.map((entry) => entry.datasetIndex)).toEqual([9, 10, 11]);
   });
 });

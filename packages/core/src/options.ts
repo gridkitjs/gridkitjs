@@ -17,6 +17,7 @@ import type {
   ColumnSortState,
   ColumnVisibilityEvent,
   ColumnVisibilityState,
+  DataMode,
   FilterChangeEvent,
   FilterState,
   GroupAggregateDisplay,
@@ -102,6 +103,28 @@ export interface GridOptions<Row> {
    * never fetches.
    */
   loading?: boolean | undefined;
+  /**
+   * Who sorts, filters and pages the rows. `"client"` (the default): the
+   * grid does, over every row in `dataSource`. `"server"`: the app's server
+   * already has, and `dataSource` holds the result as it came back.
+   *
+   * Under `"server"` the grid shows the rows in the order given, and keeps
+   * and reports sort, filter and pagination state exactly as it does under
+   * `"client"`, so the callbacks say what to fetch next. With `paginated`
+   * on, `dataSource` is the page `pagination` names: every row in it is
+   * shown, pages are counted from `rowCount`, and `paginationUnit` is
+   * ignored. Grouping, aggregates and the grand total cover only the rows
+   * given, and group headers add nothing to the page count. The grid never
+   * fetches.
+   */
+  dataMode?: DataMode | undefined;
+  /**
+   * The total number of rows the server has for the current filter, updated
+   * with each response. Read only under `dataMode: "server"`, where it sets
+   * the page count and the grid's row count; left out, both fall back to the
+   * rows in `dataSource`.
+   */
+  rowCount?: number | undefined;
   /**
    * A row's stable identity, for state keyed by it. Defaults to the row's
    * position, which is enough for a static grid but ties that state to where a
@@ -371,7 +394,8 @@ export interface GridOptions<Row> {
    * starts with that group's headers again, with a group's summary row on
    * the page holding its last row. An ungrouped grid pages by data rows
    * under either. Selection, export and aggregates behave the same under
-   * either unit.
+   * either unit. Ignored under `dataMode: "server"`, where the server cuts
+   * the pages.
    */
   paginationUnit?: PaginationUnit | undefined;
   /**
@@ -397,7 +421,8 @@ export interface GridOptions<Row> {
    * Aggregates to compute — a subtotal per group (rendered in that group's
    * header) plus a grand total over the whole filtered/grouped dataset
    * (rendered in a footer). Always computed over every row, never scoped to
-   * the current page. A plain controlled prop, unlike `sort`/`filter`/
+   * the current page — though under `dataMode: "server"` every row is the
+   * rows given. A plain controlled prop, unlike `sort`/`filter`/
    * `groupBy`/`pagination`: there is no built-in UI for a user to add or
    * remove an aggregate interactively, so there is no `defaultAggregates`/
    * `onAggregatesChange` pair to go with it.

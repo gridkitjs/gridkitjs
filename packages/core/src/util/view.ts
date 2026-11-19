@@ -5,9 +5,11 @@ import type {
   ColumnSizeDefaults,
   ColumnSizingState,
   DataColumn,
+  DataMode,
   DisplayRow,
   GridView,
   GridViewInput,
+  GridViewOptions,
   GridViewState,
   PaginationState,
   PaginationUnit,
@@ -20,7 +22,7 @@ import { resolveRowId } from "./grid";
 import { ALL_EXPANDED, groupRows } from "./grouping";
 import { memoizeLast } from "./memoize";
 import { resolveDataColumns } from "./ordering";
-import { paginateRows, type PaginatedRows } from "./paging";
+import { paginateRows, paginateServerRows, type PaginatedRows } from "./paging";
 import { applyColumnPinning } from "./pinning";
 import { resolveShownRows } from "./rows";
 import { fitColumnsToWidth, resolveColumnWidths } from "./sizing";
@@ -144,6 +146,46 @@ function totalAggregates<Row>(
   );
 }
 
+/** The options that decide how a page is cut and counted — see `resolvePage`. */
+export type PageOptions = Pick<
+  GridViewOptions<unknown>,
+  "dataMode" | "paginationUnit" | "rowCount"
+>;
+
+/** How many rows the server has: `rowCount`, or the rows given without one. */
+function serverRowCount(
+  rowCount: number | undefined,
+  rows: readonly ResolvedRow<unknown>[],
+): number {
+  return rowCount ?? rows.length;
+}
+
+/**
+ * The page `pagination` names. Under `dataMode: "client"` it is cut out of
+ * `displayRows` in `paginationUnit`s. Under `"server"`, `displayRows` is
+ * already the page, and pages are counted from the server's row count, so
+ * group headers add nothing to it. The view's page stage and the
+ * controller's page actions both go through this, so a pager never
+ * disagrees with the page shown.
+ *
+ * `rows` are the data rows `displayRows` was grouped from, which a server
+ * without a `rowCount` is counted by.
+ */
+export function resolvePage<Row>(
+  displayRows: readonly DisplayRow<Row>[],
+  rows: readonly ResolvedRow<Row>[],
+  pagination: PaginationState,
+  options: PageOptions,
+): PaginatedRows<Row> {
+  return options.dataMode === "server"
+    ? paginateServerRows(
+        displayRows,
+        pagination,
+        serverRowCount(options.rowCount, rows),
+      )
+    : paginateRows(displayRows, pagination, { unit: options.paginationUnit });
+}
+
 /**
  * Always last, after grouping and aggregation, so a page knows the groups
  * it holds and a subtotal never changes value depending on which page is
@@ -153,13 +195,35 @@ function totalAggregates<Row>(
  */
 function paginate<Row>(
   displayRows: readonly DisplayRow<Row>[],
+  rows: readonly ResolvedRow<Row>[],
   paginated: boolean,
   pagination: PaginationState,
-  unit: PaginationUnit,
+  dataMode: DataMode,
+  paginationUnit: PaginationUnit | undefined,
+  rowCount: number | undefined,
 ): PaginatedRows<Row> {
   return paginated
-    ? paginateRows(displayRows, pagination, { unit })
+    ? resolvePage(displayRows, rows, pagination, {
+        dataMode,
+        paginationUnit,
+        rowCount,
+      })
     : { rows: displayRows, pageCount: 1, pageIndex: 0 };
+}
+
+/**
+ * `GridView.rowCount`: every display row, or under `"server"` the server's
+ * row count with the rows given counted as they display.
+ */
+function countRows<Row>(
+  displayRows: readonly DisplayRow<Row>[],
+  rows: readonly ResolvedRow<Row>[],
+  dataMode: DataMode,
+  rowCount: number | undefined,
+): number {
+  return dataMode === "server"
+    ? serverRowCount(rowCount, rows) - rows.length + displayRows.length
+    : displayRows.length;
 }
 
 /**
@@ -223,6 +287,7 @@ export function createGridViewResolver<Row, Node = string>(): (
       displayDataRows: readonly ResolvedRow<Row>[],
       pageCount: number,
       pageIndex: number,
+      rowCount: number,
       grandTotal: AggregateResults,
     ): GridView<Row, Node> => ({
       dataColumns,
@@ -233,6 +298,7 @@ export function createGridViewResolver<Row, Node = string>(): (
       displayDataRows,
       pageCount,
       pageIndex,
+      rowCount,
       grandTotal,
     }),
   );
@@ -246,6 +312,7 @@ export function createGridViewResolver<Row, Node = string>(): (
   }) => {
     const state = fillViewState(given);
     const paginated = options.paginated ?? false;
+    const dataMode = options.dataMode ?? "client";
     const aggregates =
       options.aggregates ?? (NO_AGGREGATES as AggregateState<Row>);
 
@@ -270,12 +337,18 @@ export function createGridViewResolver<Row, Node = string>(): (
       options.viewportWidth ?? null,
     );
 
-    const rows = filterAndSort(
-      identify(data, getRowId),
-      state.filter,
-      state.columnSort,
-      dataColumns,
-    );
+    const identified = identify(data, getRowId);
+    // A server sends its rows already filtered and sorted. The slices stay
+    // in state all the same: they are what the app fetches by.
+    const rows =
+      dataMode === "server"
+        ? identified
+        : filterAndSort(
+            identified,
+            state.filter,
+            state.columnSort,
+            dataColumns,
+          );
     // `groupRows` and `withGroupAggregates` each hand back their input
     // untouched when there is nothing to do, so an ungrouped grid without
     // aggregates pays only those checks.
@@ -293,9 +366,12 @@ export function createGridViewResolver<Row, Node = string>(): (
       pageIndex,
     } = page(
       displayRows,
+      rows,
       paginated,
       state.pagination,
-      options.paginationUnit ?? "group",
+      dataMode,
+      options.paginationUnit,
+      options.rowCount,
     );
 
     return assemble(
@@ -307,6 +383,7 @@ export function createGridViewResolver<Row, Node = string>(): (
       narrow(pageRows, rows, state.groupBy.length > 0 || paginated),
       pageCount,
       pageIndex,
+      countRows(displayRows, rows, dataMode, options.rowCount),
       total(rows, aggregates, dataColumns),
     );
   };
@@ -316,9 +393,10 @@ export function createGridViewResolver<Row, Node = string>(): (
  * What the user is looking at, derived from the rows, the columns, the
  * grid's state and its options in one call: rows filtered → sorted →
  * grouped → aggregated → paginated, and columns ordered → hidden → pinned →
- * sized. The one function a renderer, an export or a toolbar calls instead of
- * composing the stages itself, so none of them can disagree about what is
- * shown.
+ * sized. Under `dataMode: "server"` the rows skip the filter and the sort,
+ * and the page is the rows given. The one function a renderer, an export or
+ * a toolbar calls instead of composing the stages itself, so none of them
+ * can disagree about what is shown.
  *
  * Unmemoised — a one-off resolver. A renderer that derives the view on every
  * change holds a `createGridViewResolver()` instead.

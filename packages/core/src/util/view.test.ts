@@ -412,6 +412,234 @@ describe("resolveGridView", () => {
   });
 });
 
+describe("resolveGridView: rowCount", () => {
+  test("counts the rows left after filtering", () => {
+    const view = resolveGridView(
+      input({ filter: [{ kind: "text", columnId: "Region", query: "West" }] }),
+    );
+
+    expect(view.rowCount).toBe(2);
+  });
+
+  test("counts every display row once grouped, as aria-rowcount does, across every page", () => {
+    const view = resolveGridView(
+      input(
+        {
+          groupBy: [{ columnId: "Region" }],
+          pagination: { pageIndex: 0, pageSize: 1 },
+        },
+        { paginated: true },
+      ),
+    );
+
+    expect(view.rowCount).toBe(8); // 3 group headers and 5 rows
+    expect(view.rowCount).toBe(view.displayRows.length);
+  });
+});
+
+describe('resolveGridView: dataMode "server"', () => {
+  const server = { dataMode: "server" } as const;
+  const serverPaged = { ...server, paginated: true, rowCount: 23 } as const;
+
+  function pagedAt(pageIndex: number, rowCount = 23) {
+    return resolveGridView(
+      input(
+        { pagination: { pageIndex, pageSize: 5 } },
+        { ...serverPaged, rowCount },
+      ),
+    );
+  }
+
+  test("keeps the rows in the order given, whatever the sort and filter say", () => {
+    const view = resolveGridView(
+      input(
+        {
+          columnSort: [{ columnId: "Amount", direction: "desc" }],
+          filter: [{ kind: "text", columnId: "Region", query: "West" }],
+        },
+        server,
+      ),
+    );
+
+    expect(idsOf(view.rows)).toEqual([1, 2, 3, 4, 5]);
+    expect(idsOf(view.displayDataRows)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  test("shows every row given as the page state names, counting pages from rowCount", () => {
+    const view = pagedAt(3);
+
+    expect(view.pageCount).toBe(5); // 23 rows at 5 a page
+    expect(view.pageIndex).toBe(3);
+    expect(view.pageRows).toHaveLength(5);
+  });
+
+  test("counts one page when rowCount fills exactly one", () => {
+    expect(pagedAt(0, 5).pageCount).toBe(1);
+  });
+
+  test("counts a last partial page and shows the rows given there", () => {
+    const lastPage = resolveGridView({
+      ...input({ pagination: { pageIndex: 4, pageSize: 5 } }, serverPaged),
+      rows: data.slice(0, 3),
+    });
+
+    expect(lastPage.pageCount).toBe(5);
+    expect(lastPage.pageIndex).toBe(4);
+    expect(idsOf(lastPage.displayDataRows)).toEqual([1, 2, 3]);
+  });
+
+  test("reports no pages for a rowCount of 0", () => {
+    const view = resolveGridView({
+      ...input({ pagination: { pageIndex: 2, pageSize: 5 } }, serverPaged),
+      rows: [],
+      options: { ...serverPaged, rowCount: 0 },
+    });
+
+    expect(view.pageCount).toBe(0);
+    expect(view.pageIndex).toBe(0);
+    expect(view.pageRows).toEqual([]);
+  });
+
+  test("clamps a page index beyond the count to the last page", () => {
+    const view = pagedAt(9);
+
+    expect(view.pageIndex).toBe(4);
+  });
+
+  test("follows a rowCount that shrinks while on the last page", () => {
+    expect(pagedAt(4).pageIndex).toBe(4);
+
+    const shrunk = pagedAt(4, 12);
+
+    expect(shrunk.pageCount).toBe(3);
+    expect(shrunk.pageIndex).toBe(2);
+  });
+
+  test("falls back to the rows given without a rowCount", () => {
+    const view = resolveGridView(
+      input(
+        { pagination: { pageIndex: 3, pageSize: 5 } },
+        { ...serverPaged, rowCount: undefined },
+      ),
+    );
+
+    expect(view.pageCount).toBe(1);
+    expect(view.pageIndex).toBe(0);
+    expect(view.rowCount).toBe(5);
+  });
+
+  test("numbers each row by its place in the whole result on page 0 and page 3", () => {
+    const first = pagedAt(0);
+    const fourth = pagedAt(3);
+
+    expect(first.pageRows.map((entry) => entry.datasetIndex)).toEqual([
+      0, 1, 2, 3, 4,
+    ]);
+    expect(fourth.pageRows.map((entry) => entry.datasetIndex)).toEqual([
+      15, 16, 17, 18, 19,
+    ]);
+    expect(fourth.pageRows.map((entry) => entry.rowIndex)).toEqual([
+      0, 1, 2, 3, 4,
+    ]);
+    expect(fourth.displayDataRows.map((entry) => entry.datasetIndex)).toEqual([
+      15, 16, 17, 18, 19,
+    ]);
+  });
+
+  test("not paginated, shows every row given as one page, numbered from 0", () => {
+    const view = resolveGridView(
+      input(
+        { pagination: { pageIndex: 3, pageSize: 5 } },
+        { ...server, rowCount: 23 },
+      ),
+    );
+
+    expect(view.pageCount).toBe(1);
+    expect(view.pageIndex).toBe(0);
+    expect(view.pageRows).toBe(view.displayRows);
+    expect(view.rowCount).toBe(23);
+  });
+
+  test("reports rowCount as the option's value", () => {
+    expect(pagedAt(0).rowCount).toBe(23);
+  });
+
+  test("groups the rows given, and group headers add nothing to the page count", () => {
+    const view = resolveGridView(
+      input(
+        {
+          groupBy: [{ columnId: "Region" }],
+          pagination: { pageIndex: 1, pageSize: 5 },
+        },
+        serverPaged,
+      ),
+    );
+
+    expect(view.pageCount).toBe(5);
+    expect(view.pageRows).toHaveLength(8); // 3 group headers and 5 rows
+    expect(view.pageRows.map((entry) => entry.datasetIndex)).toEqual([
+      5, 6, 7, 8, 9, 10, 11, 12,
+    ]);
+    // The server's 23 rows, with the 3 headers on this page added.
+    expect(view.rowCount).toBe(26);
+  });
+
+  test("leaves out the rows a collapsed group hides from rowCount", () => {
+    const view = resolveGridView(
+      input(
+        {
+          groupBy: [{ columnId: "Region" }],
+          groupExpansion: { mode: "allCollapsed", except: [] },
+        },
+        serverPaged,
+      ),
+    );
+
+    expect(view.displayRows).toHaveLength(3);
+    expect(view.rowCount).toBe(21); // 23 - 5 rows given + 3 headers
+  });
+
+  test("ignores paginationUnit", () => {
+    const state = {
+      groupBy: [{ columnId: "Region" }],
+      pagination: { pageIndex: 1, pageSize: 2 },
+    } satisfies Partial<GridViewState<SampleRow>>;
+    const byGroup = resolveGridView(
+      input(state, { ...serverPaged, paginationUnit: "group" }),
+    );
+    const byRow = resolveGridView(
+      input(state, { ...serverPaged, paginationUnit: "row" }),
+    );
+
+    expect(byRow).toEqual(byGroup);
+    expect(byRow.pageCount).toBe(12); // 23 rows at 2 a page
+  });
+
+  test("computes the grand total over the rows given", () => {
+    const view = resolveGridView(
+      input({}, { ...serverPaged, aggregates: amountTotal }),
+    );
+
+    expect(view.grandTotal).toEqual(
+      computeAggregates(data, amountTotal, view.dataColumns),
+    );
+  });
+
+  test("a rowCount change re-pages without regrouping", () => {
+    const resolve = createGridViewResolver<SampleRow>();
+    const base = input({ groupBy: [{ columnId: "Region" }] }, serverPaged);
+    const before = resolve(base);
+    const after = resolve({
+      ...base,
+      options: { ...serverPaged, rowCount: 40 },
+    });
+
+    expect(after.displayRows).toBe(before.displayRows);
+    expect(after.pageCount).toBe(2);
+    expect(before.pageCount).toBe(1);
+  });
+});
+
 describe("resolveGridView: pinned columns", () => {
   const wide: readonly ColumnDefinition<SampleRow>[] = [
     { field: "Id", width: 60 },

@@ -14,7 +14,7 @@ import type {
   PaginationChangeEvent,
 } from "../types";
 import { createGridController } from "./createGridController";
-import type { GridControllerOptions } from "./gridController";
+import type { GridController, GridControllerOptions } from "./gridController";
 
 /** The global core's `lib` leaves out — see `util/report.ts`. */
 declare const console: { error: (message: string) => void };
@@ -686,6 +686,134 @@ describe("createGridController: pagination", () => {
     expect(controller.getView().pageIndex).toBe(1);
     expect(controller.getState().pagination.pageIndex).toBe(2);
     expect(onPaginationChange).not.toHaveBeenCalled();
+  });
+});
+
+describe('createGridController: dataMode "server"', () => {
+  /** One server page of five rows, page 3 of 23 rows at 5 a page. */
+  function server(options: GridControllerOptions<SampleRow> = {}) {
+    return create({
+      dataMode: "server",
+      rowCount: 23,
+      paginated: true,
+      defaultPagination: { pageIndex: 3, pageSize: 5 },
+      ...options,
+    });
+  }
+
+  test("a sort change is kept and reported, and the rows stay as given", () => {
+    const onColumnSortChange = vi.fn<(event: ColumnSortEvent) => void>();
+    const controller = server({ onColumnSortChange });
+
+    controller.toggleColumnSort("Amount");
+    controller.toggleColumnSort("Amount");
+
+    const sort = [{ columnId: "Amount", direction: "desc" }];
+    expect(onColumnSortChange).toHaveBeenLastCalledWith({
+      columnId: "Amount",
+      sort,
+    });
+    expect(controller.getState().columnSort).toEqual(sort);
+    expect(controller.getView().rows.map((entry) => entry.rowId)).toEqual([
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+    ]);
+  });
+
+  test("a filter change is kept and reported, and every row given stays", () => {
+    const onFilterChange =
+      vi.fn<(event: FilterChangeEvent<SampleRow>) => void>();
+    const controller = server({ onFilterChange });
+    const filter: FilterState<SampleRow> = [
+      { kind: "text", columnId: "Region", query: "West" },
+    ];
+
+    controller.setFilter(filter);
+
+    expect(onFilterChange.mock.calls).toEqual([[{ filter }]]);
+    expect(controller.getState().filter).toBe(filter);
+    expect(controller.getView().rows).toHaveLength(5);
+  });
+
+  test("page actions count and clamp by rowCount", () => {
+    const onPaginationChange = vi.fn<(event: PaginationChangeEvent) => void>();
+    const controller = server({ onPaginationChange });
+
+    controller.nextPage();
+    controller.goToPage(9);
+    controller.previousPage();
+    controller.setPageSize(10);
+
+    expect(onPaginationChange.mock.calls.map(([event]) => event)).toEqual([
+      { pagination: { pageIndex: 4, pageSize: 5 }, pageCount: 5 },
+      { pagination: { pageIndex: 3, pageSize: 5 }, pageCount: 5 },
+      { pagination: { pageIndex: 0, pageSize: 10 }, pageCount: 3 },
+    ]);
+    expect(controller.getView().pageCount).toBe(3);
+  });
+
+  test("a rowCount that shrinks under the page shown stores the last page, without reporting it", () => {
+    const onPaginationChange = vi.fn();
+    const options: GridControllerOptions<SampleRow> = {
+      dataSource: data,
+      columns,
+      dataMode: "server",
+      rowCount: 23,
+      paginated: true,
+      defaultPagination: { pageIndex: 4, pageSize: 5 },
+      onPaginationChange,
+    };
+    const controller = createGridController(options);
+
+    controller.setOptions({ ...options, rowCount: 12 });
+
+    expect(controller.getView().pageIndex).toBe(2);
+    expect(controller.getState().pagination.pageIndex).toBe(2);
+    expect(onPaginationChange).not.toHaveBeenCalled();
+  });
+
+  test("keeps a page waiting for its first response", () => {
+    const controller = server({ dataSource: [], rowCount: undefined });
+
+    expect(controller.getView().pageCount).toBe(0);
+    expect(controller.getState().pagination.pageIndex).toBe(3);
+  });
+
+  test("a sort or filter change sends an uncontrolled page back to 0 without reporting it", () => {
+    const onPaginationChange = vi.fn();
+    const controller = server({ onPaginationChange });
+
+    controller.toggleColumnSort("Amount");
+
+    expect(controller.getState().pagination.pageIndex).toBe(0);
+
+    controller.goToPage(2);
+    onPaginationChange.mockClear();
+    controller.setFilter([{ kind: "text", columnId: "Region", query: "East" }]);
+
+    expect(controller.getState().pagination.pageIndex).toBe(0);
+    expect(onPaginationChange).not.toHaveBeenCalled();
+  });
+
+  test("a sort or filter callback already reads the page to fetch", () => {
+    const pagesRead: number[] = [];
+    const controller: GridController<SampleRow> = server({
+      onColumnSortChange: () => {
+        pagesRead.push(controller.getState().pagination.pageIndex);
+      },
+      onFilterChange: () => {
+        pagesRead.push(controller.getState().pagination.pageIndex);
+      },
+    });
+
+    controller.toggleColumnSort("Amount");
+    controller.goToPage(2);
+    controller.setFilter([{ kind: "text", columnId: "Region", query: "East" }]);
+
+    expect(pagesRead).toEqual([0, 0]);
   });
 });
 
