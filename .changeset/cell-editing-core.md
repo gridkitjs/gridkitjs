@@ -2,12 +2,27 @@
 "@gridkitjs/core": minor
 ---
 
-Columns can be made editable. `ColumnDefinition` gains `editable` (`true`,
-or a function of the row), `valueParser` (typed text to a value),
+Cells can be edited. A column opts in with `editable` (`true`, or a
+function of the row), and may add `valueParser` (typed text to a value),
 `validate` (a message refuses the value) and `editTemplate` (a custom
-editor, given an `EditTemplateContext`). `isCellEditable(view, cell)` says
-whether a cell may be edited: a data row on the current page, a shown
-column, and `editable` true for its row. `parseCellText` and
-`formatCellEditText` read an editor's text by column `type` and write it
-back, and the renderer entry gains `isColumnEditable`. A grid with no
-editable column is unchanged.
+editor, given an `EditTemplateContext`). The grid never writes the data: a
+committed edit is reported once through the new `onCellEditCommit` option,
+as a `CellEditCommitEvent` carrying the row, the column's `field`, the new
+value and the previous one, and the app passes the new rows.
+
+`GridController` holds the edit outside `GridState`, so `getState()` and the
+saved state never include it: `getCellEdit()` returns a `CellEditState`
+(`idle`, `editing` or `invalid`, with its `CellEditDraft`), and
+`startCellEdit`, `setCellEditDraft`, `commitCellEdit` and `cancelCellEdit`
+change it. A commit reads the draft, closes without a report when the value
+equals the cell's own, then asks `validate`; a refusal keeps the edit open
+as `invalid` with the message. `subscribe` also fires when the edit
+changes, and an edit whose cell leaves the page, is hidden or stops being
+editable is cancelled without a report.
+
+`isCellEditable(view, cell)` says whether a cell may be edited, and
+`parseCellText` and `formatCellEditText` read an editor's text by column
+`type` and write it back; the renderer entry gains `isColumnEditable`. The
+new message `cellEditUnreadable` asks for the column's kind of value
+("Enter a number"). `CellEditState` and `CellEditDraft` may gain members in
+a minor release. A grid with no editable column is unchanged.

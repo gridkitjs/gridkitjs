@@ -129,6 +129,7 @@ function rendered(messages: GridMessages): Record<keyof GridMessages, string> {
     copyFailed: messages.copyFailed,
     print: messages.print,
     printFailed: messages.printFailed,
+    cellEditUnreadable: messages.cellEditUnreadable("number"),
   };
 }
 
@@ -255,6 +256,7 @@ describe("defaultMessages", () => {
       copyFailed: "Copy failed",
       print: "Print",
       printFailed: "Print failed",
+      cellEditUnreadable: "Enter a number",
     });
   });
 
@@ -383,6 +385,14 @@ describe("defaultMessages", () => {
     expect(filterValueInvalid("number")).toBe("Enter a number");
     expect(filterValueInvalid("date")).toBe("Enter a date");
     expect(filterValueInvalid("boolean")).toBe("Choose a value");
+  });
+
+  test("asks for the kind of value an edited cell's column holds", () => {
+    const { cellEditUnreadable } = defaultMessages;
+    expect(cellEditUnreadable("text")).toBe("Enter a value");
+    expect(cellEditUnreadable("number")).toBe("Enter a number");
+    expect(cellEditUnreadable("date")).toBe("Enter a date");
+    expect(cellEditUnreadable("boolean")).toBe("Choose a value");
   });
 
   test("names the menu of conditions after the kind of value its column holds", () => {

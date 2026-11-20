@@ -1,5 +1,7 @@
 import type { GridOptions, SelectionCallbacks } from "../options";
 import type {
+  CellEditDraft,
+  CellEditState,
   CellSelectionState,
   ColumnDefinition,
   ColumnOrderState,
@@ -104,9 +106,9 @@ export interface GridController<Row, Node = string> {
   /** What the user is looking at — see `resolveGridView`. The same object until something in it changes. */
   readonly getView: () => GridView<Row, Node>;
   /**
-   * Calls `listener` after each action that changed the state, so
-   * `getState()` returns a new object whenever it runs. Returns the function
-   * that unsubscribes it.
+   * Calls `listener` after each action that changed the state or the cell
+   * edit, so `getState()` or `getCellEdit()` returns a new object whenever
+   * it runs. Returns the function that unsubscribes it.
    */
   readonly subscribe: (listener: () => void) => () => void;
   /**
@@ -329,4 +331,42 @@ export interface GridController<Row, Node = string> {
    * already on the first page, reports nothing.
    */
   readonly setPageSize: (pageSize: number) => void;
+
+  /**
+   * The cell being edited and its draft, or `{ kind: "idle" }`. The same
+   * object until the edit changes. Not part of `getState()`: an open editor
+   * is not state to save or restore.
+   *
+   * The edit actions below act at once, never held by a `transaction`, and
+   * call subscribers when the edit changes. After every other action and
+   * every `setOptions`, an edit whose cell `isCellEditable` no longer
+   * accepts (its row left the page or the data, its column was hidden or
+   * removed, `editable` turned false) is cancelled without a report.
+   */
+  readonly getCellEdit: () => CellEditState;
+  /**
+   * Opens an editor on `cell` with `draft`, `{ kind: "current" }` when left
+   * out. An edit open on another cell is committed first, and cancelled if
+   * its commit is refused, so another cell never blocks a start; one already
+   * open on `cell` is left as it is. Returns whether `cell` is being edited
+   * afterwards: `false` when `isCellEditable` rejects it.
+   */
+  readonly startCellEdit: (
+    cell: SelectedCellRef,
+    draft?: CellEditDraft,
+  ) => boolean;
+  /** Replaces the open edit's draft, clearing a refused commit's message. Does nothing with no edit open. */
+  readonly setCellEditDraft: (draft: CellEditDraft) => void;
+  /**
+   * Commits the open edit: reads the draft (text through the column's
+   * `valueParser` or `parseCellText`), closes without a report when the value
+   * equals the cell's own, then asks the column's `validate`. A value it
+   * accepts closes the edit and is reported through `onCellEditCommit`; a
+   * refusal, or text that does not read, keeps the edit open as `invalid`
+   * with the message. Returns whether an edit closed: `false` when refused
+   * or when none was open.
+   */
+  readonly commitCellEdit: () => boolean;
+  /** Closes the open edit without committing or reporting it. */
+  readonly cancelCellEdit: () => void;
 }
