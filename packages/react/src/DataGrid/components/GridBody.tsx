@@ -35,6 +35,7 @@ import {
 } from "../useGridNavigation";
 import type { DataGridController } from "../useGridController";
 import type { RowVirtualizerApi } from "../useRowVirtualizer";
+import { isControlKey, isKeyActivatedControl } from "../controlKeys";
 import { isOwnEvent } from "../isOwnEvent";
 import { createRowPropsResolver } from "../rowProps";
 import {
@@ -219,6 +220,7 @@ export default function GridBody<Row>({
         );
       }}
       onClick={(event) => {
+        if (isKeyActivatedControl(event)) return;
         const group = groupRowFrom(event.target);
         if (group !== null) {
           controller.toggleGroupExpansion(group.groupId);
@@ -236,7 +238,7 @@ export default function GridBody<Row>({
         reportRowPointer(event, onRowDoubleClick);
       }}
       onKeyDown={(event) => {
-        if (!isOwnEvent(event)) return;
+        if (!isOwnEvent(event) || isControlKey(event)) return;
         const group = groupRowFrom(event.target);
         if (group !== null) {
           // One cell spans every column, so there is nothing to move within —

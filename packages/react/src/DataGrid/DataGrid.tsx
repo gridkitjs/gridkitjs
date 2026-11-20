@@ -61,7 +61,7 @@ import {
   pinnedWidths,
   totalColumnWidth,
 } from "@gridkitjs/core/renderer";
-import type { ColumnDropTarget } from "@gridkitjs/dom";
+import { keyOrigin, type ColumnDropTarget } from "@gridkitjs/dom";
 import GridColgroup from "./components/GridColgroup";
 import GridHeader from "./components/GridHeader";
 import GridBody from "./components/GridBody";
@@ -77,6 +77,7 @@ import useGridCommands from "./commands/useGridCommands";
 import GridContextMenu from "./contextMenu/GridContextMenu";
 import useContextMenu from "./contextMenu/useContextMenu";
 import { exportApi, type GridExportApi } from "./export/exportApi";
+import { isControlKey } from "./controlKeys";
 import { isOwnEvent } from "./isOwnEvent";
 import useGridOverlay from "./overlay/useGridOverlay";
 import GridPanels from "./panels/GridPanels";
@@ -1256,15 +1257,25 @@ export function DataGrid<Row>(props: DataGridProps<Row>) {
           // The keys that address the grid rather than a cell, caught here
           // where everything bubbles to rather than in each of them.
           if (!isOwnEvent(event)) return;
-          handleCopyKey(event);
           if (event.key === "Escape") {
             // A gesture in flight has its own use for Escape — cancelling —
             // and gets it first.
             if (drag.draggedColumnId !== null || resize.activeColumnId !== null)
               return;
-            selection.clear();
+            if (keyOrigin(event.target) === "grid") {
+              selection.clear();
+              return;
+            }
+            // From a template's own control: back to the cell holding it,
+            // which focusing the control made the tab stop.
+            const cell = nav.tabStopCell();
+            if (event.target instanceof Node && cell?.contains(event.target)) {
+              cell.focus();
+            }
             return;
           }
+          if (isControlKey(event)) return;
+          handleCopyKey(event);
           if (
             (event.ctrlKey || event.metaKey) &&
             (event.key === "a" || event.key === "A")
