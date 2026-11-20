@@ -1,3 +1,5 @@
+import { keyOrigin } from "./keyOrigin";
+
 /** What `writeClipboard` puts on the clipboard: the same copy as plain text and as HTML. */
 export interface ClipboardContent {
   readonly text: string;
@@ -69,36 +71,18 @@ function copyThroughEvent({ text, html }: ClipboardContent): boolean {
   }
 }
 
-/** Input types with no text of their own to copy, whose copy key the page may take. */
-const TEXTLESS_INPUTS = new Set([
-  "button",
-  "checkbox",
-  "color",
-  "file",
-  "image",
-  "radio",
-  "range",
-  "reset",
-  "submit",
-]);
-
-function isTextField(target: EventTarget | null): boolean {
-  return (
-    target instanceof HTMLTextAreaElement ||
-    (target instanceof HTMLInputElement && !TEXTLESS_INPUTS.has(target.type)) ||
-    (target instanceof HTMLElement && target.isContentEditable)
-  );
-}
-
 /**
  * Whether a copy key pressed at `target` belongs to the browser: pressed in a
- * text field, or with text highlighted anywhere on the page. Either way the
- * user means the text in front of them, and a grid copying its own cell
- * instead would take that from them.
+ * text-entry control (see `keyOrigin`), or with text highlighted anywhere on
+ * the page. Either way the user means what is in front of them, and a grid
+ * copying its own cell instead would take that from them.
  */
 export function isNativeCopy(target: EventTarget | null): boolean {
   const selection = document.getSelection();
-  return isTextField(target) || (selection !== null && !selection.isCollapsed);
+  return (
+    keyOrigin(target) === "text-entry" ||
+    (selection !== null && !selection.isCollapsed)
+  );
 }
 
 /**
