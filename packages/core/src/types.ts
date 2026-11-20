@@ -88,6 +88,35 @@ export interface FooterTemplateContext<Row> {
 }
 
 /**
+ * What `editTemplate` receives: the cell being edited, the edit's draft and
+ * the functions that change and end it. An object for the same reason
+ * `CellTemplateContext` is one.
+ */
+export interface EditTemplateContext<Row> {
+  /** The cell's value as `dataSource` holds it now, read off the column's field path. */
+  readonly value: unknown;
+  readonly row: Row;
+  readonly rowId: string;
+  readonly columnId: string;
+  /** The column's header as text, to name the control by (`aria-label`). */
+  readonly label: string;
+  /** What the editor holds so far; `{ kind: "current" }` until it changes. */
+  readonly draft: CellEditDraft;
+  /** Why the last commit was refused, or `null` while none was. */
+  readonly error: string | null;
+  /** The id of the element showing `error`, for the control's `aria-describedby`. */
+  readonly errorId: string;
+  /** Makes `value` the draft, committed as it is. */
+  readonly setValue: (value: unknown) => void;
+  /** Makes `text` the draft, read through the column's parser on commit. */
+  readonly setText: (text: string) => void;
+  /** Commits the draft, as Enter does. */
+  readonly commit: () => void;
+  /** Ends the edit without committing, as Escape does. */
+  readonly cancel: () => void;
+}
+
+/**
  * @typeParam Node - What a header or cell renders to. This package is
  * framework-agnostic so it defaults to `string`; `@gridkitjs/react` binds it to
  * `ReactNode` so a template can return JSX.
@@ -263,6 +292,31 @@ export interface ColumnDefinition<Row, Node = string> {
    * is shown.
    */
   exportValue?: ((value: unknown, row: Row) => ExportScalar) | undefined;
+  /**
+   * Whether the user may edit this column's cells: for every row, or for
+   * the rows the function accepts. Off by default. The grid never writes
+   * the value itself: a commit is reported through `onCellEditCommit`, and
+   * the cell shows what `dataSource` holds until the app passes new rows.
+   */
+  editable?: boolean | ((row: Row) => boolean) | undefined;
+  /**
+   * Turns the text typed into an editor into the value to commit, the
+   * inverse of `valueFormatter`. It cannot refuse: text it cannot read
+   * becomes a value `validate` refuses, such as `NaN`. Absent, `type` picks
+   * the reading — see `parseCellText`.
+   */
+  valueParser?: ((text: string, row: Row) => unknown) | undefined;
+  /**
+   * Checks a value about to be committed: a message refuses it and keeps
+   * the editor open showing that message; `null` accepts it. Not called for
+   * a value equal to the cell's own, which closes the editor unreported.
+   */
+  validate?: ((value: unknown, row: Row) => string | null) | undefined;
+  /**
+   * Renders this column's editor in place of the built-in one for its
+   * `type`. Typing, Backspace and Delete on the cell do not start it.
+   */
+  editTemplate?: ((context: EditTemplateContext<Row>) => Node) | undefined;
 }
 
 /** Which parts of a column opt out of the grid's default single-line text. */
@@ -1076,6 +1130,62 @@ export interface CellSelectionChangeEvent<Row, Node = string> {
   readonly selected: SelectedCell<Row, Node> | null;
   readonly deselected: SelectedCell<Row, Node> | null;
   readonly selection: CellSelectionState;
+}
+
+/**
+ * What an open editor holds. `current` is the cell's value as the data holds
+ * it now, so an untouched edit follows a value the app changes underneath
+ * it and commits nothing. `text` is read through the column's parser on
+ * commit; `value` is committed as it is; `unreadable` is input the editor
+ * could not read (a half-typed date), which a commit refuses rather than
+ * committing as blank. A minor release may add a member, so a `switch`
+ * over `kind` needs a `default`.
+ */
+export type CellEditDraft =
+  | { readonly kind: "current" }
+  | { readonly kind: "text"; readonly text: string }
+  | { readonly kind: "value"; readonly value: unknown }
+  | { readonly kind: "unreadable" };
+
+/**
+ * The cell being edited, if any: none (`idle`), one cell and its draft
+ * (`editing`), or one whose last commit was refused (`invalid`), which stays
+ * open with the reason. Kept by the controller, outside `GridState`: an open
+ * editor is not layout to save. A minor release may add a member, so a
+ * `switch` over `kind` needs a `default`.
+ */
+export type CellEditState =
+  | { readonly kind: "idle" }
+  | {
+      readonly kind: "editing";
+      readonly rowId: string;
+      readonly columnId: string;
+      readonly draft: CellEditDraft;
+    }
+  | {
+      readonly kind: "invalid";
+      readonly rowId: string;
+      readonly columnId: string;
+      readonly draft: CellEditDraft;
+      /** Why the last commit was refused. */
+      readonly message: string;
+    };
+
+/**
+ * Reports a committed edit: the value the user entered, parsed and
+ * validated, for the app to write into its data. `field` is the column's,
+ * so one handler can write any column back (`{ ...row, [field]: value }`).
+ */
+export interface CellEditCommitEvent<Row> {
+  readonly rowId: string;
+  readonly columnId: string;
+  /** The edited column's `field`. */
+  readonly field: string;
+  /** The row as `dataSource` holds it at commit time. */
+  readonly row: Row;
+  readonly value: unknown;
+  /** The cell's value at commit time, which may differ from when the edit started. */
+  readonly previousValue: unknown;
 }
 
 /**

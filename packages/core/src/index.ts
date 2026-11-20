@@ -11,6 +11,9 @@ export type {
   AggregateSpec,
   AggregateState,
   BuiltInAggregate,
+  CellEditCommitEvent,
+  CellEditDraft,
+  CellEditState,
   CellTemplateContext,
   ColumnDefinition,
   FieldPath,
@@ -42,6 +45,7 @@ export type {
   DataColumn,
   DataMode,
   DisplayRow,
+  EditTemplateContext,
   FilterChangeEvent,
   FilterEntry,
   FilterOperator,
@@ -237,6 +241,9 @@ export {
 } from "./util/pinning";
 export { createGridViewResolver, resolveGridView } from "./util/view";
 export { serializeGridState } from "./util/serialize";
+export { isCellEditable } from "./util/cellEdit";
+export type { CellTextParse } from "./util/cellText";
+export { formatCellEditText, parseCellText } from "./util/cellText";
 export { isColumnFiltered } from "./util/filterEditor";
 export type {
   ColumnFilterMenuOptions,
