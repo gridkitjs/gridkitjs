@@ -1,0 +1,184 @@
+---
+title: "Cell editing"
+description: "Editable columns, the edit lifecycle the controller holds, parsing and validating typed text, and the commit event."
+---
+
+A column opts into editing with `editable`; the [controller](/docs/core/controller) then holds the cell being edited and its draft, reads the draft through the column's `valueParser` (or its `type`), asks its `validate`, and reports a committed value through `onCellEditCommit`. The grid never writes the value: the app does, and passes the new rows in `dataSource`, as [live data](/docs/react/live-data) already does. A renderer only draws an editor and forwards what the user does; a grid with no editable column behaves exactly as one without this feature.
+
+## When to use it
+
+Use it when a user changes one value at a time in place, and the app saves each change. For controls that act on a row rather than change one value (a button, a toggle that calls the server), a `cellTemplate` with the control in it is the better fit.
+
+## Example
+
+```ts
+import { createGridController } from "@gridkitjs/core";
+
+interface Task {
+  id: string;
+  title: string;
+  estimate: number;
+}
+
+let tasks: readonly Task[] = [
+  { id: "t1", title: "Write the spec", estimate: 3 },
+  { id: "t2", title: "Review it", estimate: 1 },
+];
+
+const controller = createGridController<Task>({
+  dataSource: tasks,
+  getRowId: (task) => task.id,
+  columns: [
+    { field: "title", editable: true },
+    {
+      field: "estimate",
+      type: "number",
+      editable: true,
+      validate: (value) =>
+        typeof value === "number" && value > 0
+          ? null
+          : "Enter a positive number",
+    },
+  ],
+  onCellEditCommit: ({ rowId, field, value }) => {
+    tasks = tasks.map((task) =>
+      task.id === rowId ? { ...task, [field]: value } : task,
+    );
+    controller.setOptions({ ...controller.getOptions(), dataSource: tasks });
+  },
+});
+
+controller.startCellEdit({ rowId: "t1", columnId: "estimate" });
+controller.setCellEditDraft({ kind: "text", text: "5" });
+controller.commitCellEdit(); // true: onCellEditCommit gets { value: 5, previousValue: 3, … }
+```
+
+Give `getRowId` with an editable column: without it a row's id is its position, so an edit follows a position as rows move.
+
+## Column options
+
+| Prop           | Type                                           | Default | Description                                                                                                                               |
+| -------------- | ---------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `editable`     | `boolean \| ((row: Row) => boolean)`           | `false` | Whether the user may edit this column's cells: every row, or the rows the function accepts.                                               |
+| `valueParser`  | `(text: string, row: Row) => unknown`          |         | Turns an editor's text into the value to commit. It cannot refuse: text it cannot read becomes a value `validate` refuses, such as `NaN`. |
+| `validate`     | `(value: unknown, row: Row) => string \| null` |         | A message refuses the value and keeps the editor open showing it; `null` accepts it. Not called for a value equal to the cell's own.      |
+| `editTemplate` | `(context: EditTemplateContext<Row>) => Node`  |         | Renders this column's editor in place of the built-in one for its `type`. The context is below.                                           |
+
+## Which cells are editable
+
+`isCellEditable(view, cell)` answers both "may an edit start here" and "may this edit stay open": the cell's row is a data row on the current page (`view.displayDataRows`), its column is shown (`view.columns`), and the column's `editable` is true for that row. Group headers and summary rows never are. `isColumnEditable(column, row)`, in `@gridkitjs/core/renderer`, reads `editable` alone, for a renderer drawing one cell.
+
+## The edit state
+
+`getCellEdit()` returns a `CellEditState`, tagged by `kind`:
+
+| `kind`    | Fields                                  | Means                                                      |
+| --------- | --------------------------------------- | ---------------------------------------------------------- |
+| `idle`    |                                         | No cell is being edited.                                   |
+| `editing` | `rowId`, `columnId`, `draft`            | One cell is being edited.                                  |
+| `invalid` | `rowId`, `columnId`, `draft`, `message` | Its last commit was refused, for `message`; it stays open. |
+
+The draft is a `CellEditDraft`, also tagged by `kind`:
+
+| `kind`       | Fields  | Commits                                                                                                                  |
+| ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `current`    |         | Nothing: it is the cell's value as the data holds it now, so an untouched edit follows a value the app changes under it. |
+| `text`       | `text`  | The text read through the column's `valueParser`, or `parseCellText` by its `type`.                                      |
+| `value`      | `value` | The value as it is, unparsed: a checkbox's or a custom editor's choice.                                                  |
+| `unreadable` |         | Nothing: input the editor could not read, such as a half-typed date, which a commit refuses rather than writing a blank. |
+
+The edit is held by the controller, outside `GridState`, so `getState()`, `restoreState` and `serializeGridState` never see it: an open editor is not layout to save. Both unions may gain a member in a minor release, so a `switch` over either needs a `default`.
+
+## Starting, committing and cancelling
+
+`startCellEdit(cell, draft?)` opens an editor, `setCellEditDraft(draft)` changes what it holds, and `cancelCellEdit()` closes it. Starting on a cell while another is being edited commits that one first, and cancels it if the commit is refused, so another cell never blocks a start. `startCellEdit` returns `false`, starting nothing, on a cell `isCellEditable` rejects.
+
+`commitCellEdit()` goes in three steps:
+
+1. **Read the draft.** `current` closes the edit, reporting nothing. `text` goes through `valueParser`, or `parseCellText`; `value` is taken as it is; text the column cannot read, and an `unreadable` draft, refuse the commit with `messages.cellEditUnreadable`.
+2. **Compare it with the cell's value now.** Equal values close the edit without asking `validate`, so committing an editor the user only looked at always closes it. Two values are equal when both are blank (`null`, `undefined` or `""`), both name the same instant on a date column, or are the same by `Object.is`.
+3. **Validate it.** A message from `validate` keeps the edit open as `invalid`; `null` closes it and reports the commit.
+
+It returns `true` when an edit closed, and `false` when the commit was refused or no edit was open.
+
+## Parsing and edit text
+
+`parseCellText(text, type)` reads an editor's text the way the [filter menu](/docs/core/filtering) reads a typed value, returning a `CellTextParse`: `{ kind: "value", value }` or `{ kind: "unreadable" }`. `formatCellEditText(value, type)` is its inverse, the text an editor starts with.
+
+| `type`                                     | Text for a value                     | Text read as                                       |
+| ------------------------------------------ | ------------------------------------ | -------------------------------------------------- |
+| none, `string`                             | `String(value)`, `""` for blank      | The text as typed; `""` stays `""`.                |
+| `number`, `decimal`, `currency`, `percent` | `String(value)`, a fraction for `%`  | A number with a `.` for decimals; empty is `null`. |
+| `date`                                     | `yyyy-mm-dd`                         | That local day as a `Date`; empty is `null`.       |
+| `dateTime`, `time`                         | `yyyy-mm-ddThh:mm`, seconds when set | That local moment as a `Date`; empty is `null`.    |
+| `boolean`                                  | `"true"` or `"false"`                | `"true"` or `"false"`; empty is `null`.            |
+
+On every column but text, anything else is unreadable: `"12abc"` or `"1,5"` on a number column, `"2024-02-30"` on a date column. Numbers and dates are read in one form whatever the `locale`. A date column commits a `Date`; an app storing dates as strings converts in its `onCellEditCommit` handler, or gives the column a `valueParser`. A `yyyy-mm-dd` string in the data reads as that local day, both for its edit text and when comparing, where `new Date("2024-03-01")` would read midnight in UTC.
+
+## When an edit ends on its own
+
+An edit stays open while `isCellEditable` accepts its cell, and is cancelled, unreported, the moment it does not. The controller checks after every action and every `setOptions`, and once at the end of a `restoreState`:
+
+| Change during an edit                                          | The edit            |
+| -------------------------------------------------------------- | ------------------- |
+| A sort or filter that keeps the row on the page                | Kept                |
+| A page change, filter or sort that takes the row off the page  | Cancelled           |
+| Collapsing the row's group                                     | Cancelled           |
+| Hiding the column, or `columns` dropping it                    | Cancelled           |
+| Hiding another column; reordering, pinning or resizing any     | Kept                |
+| New `dataSource` with the row in it, its `editable` still true | Kept, draft and all |
+| The row gone from `dataSource`, or `editable(row)` now false   | Cancelled           |
+
+A `current` draft shows the new value when the data changes under it, and a commit reports the cell's value at commit time as `previousValue`. A cancel from an action calls the subscribers; one from `setOptions` does not, as nothing `setOptions` changes does.
+
+## The commit event
+
+`onCellEditCommit` is a `GridOptions` callback, called once per committed edit, after the edit has closed. It receives a `CellEditCommitEvent<Row>`:
+
+| Field           | Type      | Description                                                       |
+| --------------- | --------- | ----------------------------------------------------------------- |
+| `rowId`         | `string`  | The edited row's id.                                              |
+| `columnId`      | `string`  | The edited column's id.                                           |
+| `field`         | `string`  | The column's `field`, so one handler writes any column back.      |
+| `row`           | `Row`     | The row as `dataSource` holds it at commit time.                  |
+| `value`         | `unknown` | The value committed, parsed and validated.                        |
+| `previousValue` | `unknown` | The cell's value at commit time, which may differ from its start. |
+
+Until the app passes new rows the cell shows what `dataSource` holds: there is no pending value.
+
+## Custom editors
+
+A column's `editTemplate` replaces the built-in editor. It receives an `EditTemplateContext<Row>`:
+
+| Field      | Type                       | Description                                                         |
+| ---------- | -------------------------- | ------------------------------------------------------------------- |
+| `value`    | `unknown`                  | The cell's value as `dataSource` holds it now.                      |
+| `row`      | `Row`                      | The edited row.                                                     |
+| `rowId`    | `string`                   | Its id.                                                             |
+| `columnId` | `string`                   | The edited column's id.                                             |
+| `label`    | `string`                   | The column's header as text, to name the control by (`aria-label`). |
+| `draft`    | `CellEditDraft`            | What the editor holds so far.                                       |
+| `error`    | `string \| null`           | Why the last commit was refused, or `null`.                         |
+| `errorId`  | `string`                   | The id of the element showing `error`, for `aria-describedby`.      |
+| `setValue` | `(value: unknown) => void` | Makes `value` the draft, committed as it is.                        |
+| `setText`  | `(text: string) => void`   | Makes `text` the draft, read through the column's parser on commit. |
+| `commit`   | `() => void`               | Commits the draft, as <Kbd>Enter</Kbd> does.                        |
+| `cancel`   | `() => void`               | Ends the edit without committing, as <Kbd>Escape</Kbd> does.        |
+
+## The edit command
+
+The built-in command `edit.cell` ("Edit cell") starts an edit on the cell its menu opened on, and shows only where `isCellEditable` accepts that cell. It carries the shortcut hint `F2` and is first in `defaultContextMenu.cell`, followed by a separator, so a grid with no editable column shows the same cell menu as before. See [built-in commands](/docs/core/commands#built-in-commands).
+
+## Messages
+
+| Key                  | Default                                                                                                                     |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `editCell`           | "Edit cell", the `edit.cell` command's label.                                                                               |
+| `cellEditUnreadable` | `(family) => string`: "Enter a number", "Enter a date", "Enter a value" or "Choose a value", by the column's kind of value. |
+
+## See also
+
+- [Controller](/docs/core/controller) for the actions beside the edit's.
+- [Column definitions](/docs/core/column-definitions) for every column option.
+- [Commands](/docs/core/commands) for `edit.cell` and the cell menu.
+- [Live data](/docs/react/live-data) for how a grid takes the rows an app writes.
