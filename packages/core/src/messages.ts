@@ -276,6 +276,8 @@ export interface GridMessages {
    * download, so no file is saved.
    */
   exportFailed: string;
+  /** `edit.cell` */
+  editCell: string;
   /** `copy.cell` */
   copyCell: string;
   /** `copy.row` */
@@ -561,6 +563,7 @@ export function createDefaultMessages(locale?: FormatLocale): GridMessages {
     exportSelectionJson: "Export selection to JSON",
     exportSelectionXlsx: "Export selection to Excel",
     exportFailed: "Export failed",
+    editCell: "Edit cell",
     copyCell: "Copy cell",
     copyRow: "Copy row",
     copySelection: "Copy selection",

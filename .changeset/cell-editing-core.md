@@ -25,4 +25,10 @@ editable is cancelled without a report.
 `type` and write it back; the renderer entry gains `isColumnEditable`. The
 new message `cellEditUnreadable` asks for the column's kind of value
 ("Enter a number"). `CellEditState` and `CellEditDraft` may gain members in
-a minor release. A grid with no editable column is unchanged.
+a minor release.
+
+The new built-in command `edit.cell` ("Edit cell", the new `editCell`
+message, with an `F2` shortcut hint) starts an edit, and shows only on a
+cell `isCellEditable` accepts. `defaultContextMenu.cell` now starts with it
+and a separator. A grid with no editable column is unchanged, its cell menu
+included.

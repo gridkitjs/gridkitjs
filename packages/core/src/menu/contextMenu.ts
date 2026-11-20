@@ -101,6 +101,8 @@ export const defaultContextMenu: {
     "column.unpin",
   ],
   cell: [
+    "edit.cell",
+    "separator",
     "copy.cell",
     "copy.row",
     "copy.selection",

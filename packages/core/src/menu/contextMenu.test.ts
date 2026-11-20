@@ -75,7 +75,7 @@ describe("contextMenuEntries", () => {
       {
         cell: (request) => {
           requests.push(request);
-          return ["separator", ...request.defaults.slice(0, 1)];
+          return ["separator", ...request.defaults.slice(2, 3)];
         },
       },
       cell,
@@ -147,8 +147,10 @@ describe("defaultContextMenu", () => {
     ]);
   });
 
-  test("a cell copies, selects and expands or collapses, a group row also ungroups", () => {
+  test("a cell edits, copies, selects and expands or collapses, a group row also ungroups", () => {
     expect(defaultContextMenu.cell).toEqual([
+      "edit.cell",
+      "separator",
       "copy.cell",
       "copy.row",
       "copy.selection",
