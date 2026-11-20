@@ -1,5 +1,38 @@
 # @gridkitjs/react
 
+## 0.20.0
+
+### Minor Changes
+
+- c5d32e7: A grid with no rows to show now says so: under the header, one row spanning every column reads `messages.noMatchingRows` ("No rows match the current filter") while a filter or the toolbar's search is active, and `messages.noRows` ("No rows to show") otherwise. Before, the body was blank. The row (`tr.gridkit-grid-empty-row`, holding `td.gridkit-grid-empty-cell` and `div.gridkit-grid-empty-content`) is not counted in `aria-rowcount` and takes no focus. It is not drawn in a grid with no columns, or while `infiniteScroll.hasMore` is `true`.
+
+  The new `emptyTemplate` prop replaces the message's content. It receives an `EmptyTemplateContext`, `{ filtered: boolean }`, exported from the package entry; a template returning `null` leaves the body blank.
+
+  The built-in pager of a grid with no rows reads "Page 1 of 1" with every button unavailable, where it read "Page 0 of 0", and a page-size change there announces page 1 of 1. `getPageCount()`, `onPaginationChange` and `pager.template` still report a page count of `0`.
+
+- a2ab69d: `DataMode`, the type of the `dataMode` prop (`"client" | "server"`), is exported from `@gridkitjs/react`, so typing a server grid needs no import from `@gridkitjs/core`.
+- b292ac6: `DataGrid` takes `loading`: while it is `true`, a translucent overlay covers the body with `messages.loading` ("Loading…"), over the rows already drawn, which keep their places, so the grid does not jump when the new rows arrive. The header, toolbar and pager are not covered and stay usable; a click on the body selects nothing and fires no row event, and keyboard focus stays where it was. The grid element carries `aria-busy="true"`, and the message is announced once as loading starts. While loading, the empty message does not show. A grid that never sets `loading` renders as before.
+
+  The new `loadingTemplate` prop replaces the overlay's message. It is separate from `infiniteScroll.loadingTemplate`, which still draws infinite scroll's own loading row.
+
+  The overlay is `div.gridkit-grid-loading-overlay[role=row]`, `.is-empty` while there are no rows beneath it, holding `div.gridkit-grid-loading-overlay-content[role=gridcell]`, which carries `--gridkit-loading-width`. Like the empty row, it has no `aria-rowindex` and is not counted in `aria-rowcount`.
+
+- a2ab69d: Under `dataMode: "server"`, the result of a toolbar search or a filter menu is announced once the server's rows arrive: at the first render after the change whose `dataSource` is a new array, while `loading` is off, with the count from `rowCount`. A filter menu announces the count alone there, the `searchResults` message ("12 rows found"), since the grid knows no total without the filter. Client grids announce as before, as soon as the rows are drawn.
+- a2ab69d: `DataGrid` under `dataMode: "server"` counts the server's rows for assistive technology: the grid's `aria-rowcount` is `rowCount` plus the header (and the grand-total footer), and each row's `aria-rowindex` continues from the pages before it, so a screen reader on page 3 hears the row's place in the whole result. With `paginated`, the built-in pager counts its pages from `rowCount` too. A client grid's counts are unchanged.
+
+  A server grid holds one page, and a few features cover only the rows it holds: the Excel-style filter checklist lists the values in those rows, select-all selects them (a selected row on another page keeps its id, and `getSelectedRows()` returns only the held ones), export scope `"all"` exports them, and `scrollToRow` does nothing for a row on another page.
+
+- a2ab69d: A `paginated` `DataGrid` under `dataMode: "server"` without `rowCount` logs a `console.error`: without the total, the pager counts only the rows given, one page. Pass `rowCount={0}` until the first response arrives.
+
+### Patch Changes
+
+- Updated dependencies [bfca9ed]
+- Updated dependencies [c5d32e7]
+- Updated dependencies [b292ac6]
+- Updated dependencies [bfca9ed]
+  - @gridkitjs/core@0.20.0
+  - @gridkitjs/dom@0.8.1
+
 ## 0.19.0
 
 ### Minor Changes

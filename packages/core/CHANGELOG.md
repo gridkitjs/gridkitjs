@@ -1,5 +1,18 @@
 # @gridkitjs/core
 
+## 0.20.0
+
+### Minor Changes
+
+- bfca9ed: Adds `countPages(count, pageSize)`, the rule every page count in the grid follows (`Math.ceil(count / pageSize)`, reading a `pageSize` below 1 as 1 and a negative `count` as none), for a pager of the app's own to count pages the same way.
+- c5d32e7: `GridMessages` adds `noRows` ("No rows to show") and `noMatchingRows` ("No rows match the current filter"), the message a renderer shows in place of the rows when the grid has none to show: `noMatchingRows` while a filter or search is active, `noRows` otherwise. A translation without them shows the English defaults.
+- b292ac6: `GridOptions` adds `loading`, for the app to say it is fetching rows: a renderer shows it over the rows it already draws, marks the grid busy and announces it, and changes nothing else. The grid never sets it itself. `GridMessages` adds `loading` ("Loading…"), the text shown and announced; a translation without it shows the English default.
+- bfca9ed: `GridOptions` and `GridViewOptions` add `dataMode` (`"client" | "server"`, exported as `DataMode`) and `rowCount`, for data a server sorts, filters and pages. Under `dataMode: "server"` the view shows the rows it is given in the order given, without filtering or sorting them, and the sort, filter and pagination state are kept and reported through the same callbacks as before, so the app learns what to fetch. With `paginated` on, the rows given are the page `pagination` names: pages are counted from `rowCount`, the page index is clamped into them, each row's `datasetIndex` is offset by the pages before it, and `paginationUnit` is ignored. Grouping, aggregates and the grand total cover the rows given.
+
+  `GridView` adds `rowCount`, the number of rows the grid has across every page, as `aria-rowcount` counts them: in client mode every display row, in server mode the `rowCount` option (or the rows given, without one).
+
+  A grid that sets neither option behaves as before.
+
 ## 0.19.0
 
 ### Minor Changes
