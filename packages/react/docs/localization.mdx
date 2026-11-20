@@ -187,6 +187,7 @@ Functions are called with numbers that count from one, and receive a column by i
 | `exportSelectionJson`      | `string`                                           | "Export selection to JSON" — `exportSelection.json`.                                                                                                                |
 | `exportSelectionXlsx`      | `string`                                           | "Export selection to Excel" — `exportSelection.xlsx`.                                                                                                               |
 | `exportFailed`             | `string`                                           | "Export failed" — announced when an export's writer fails or the browser refuses its download, so no file is saved.                                                 |
+| `editCell`                 | `string`                                           | "Edit cell", `edit.cell`.                                                                                                                                           |
 | `copyCell`                 | `string`                                           | "Copy cell" — `copy.cell`.                                                                                                                                          |
 | `copyRow`                  | `string`                                           | "Copy row" — `copy.row`.                                                                                                                                            |
 | `copySelection`            | `string`                                           | "Copy selection" — `copy.selection`.                                                                                                                                |
@@ -194,6 +195,7 @@ Functions are called with numbers that count from one, and receive a column by i
 | `copyFailed`               | `string`                                           | "Copy failed" — announced when the browser refuses the clipboard, so nothing was copied.                                                                            |
 | `print`                    | `string`                                           | "Print" — `print`, the toolbar's Print button and the [printing](/docs/react/printing) menu item.                                                                   |
 | `printFailed`              | `string`                                           | "Print failed" — announced when the browser fails to print, so nothing is printed.                                                                                  |
+| `cellEditUnreadable`       | `(family) => string`                               | "Enter a number", "Enter a date", "Enter a value" or "Choose a value", by its column's kind: shown and announced when a cell edit's text doesn't read.              |
 
 ## What messages don't cover
 
