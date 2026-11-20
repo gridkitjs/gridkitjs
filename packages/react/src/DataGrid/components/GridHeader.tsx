@@ -24,6 +24,7 @@ import {
   FilterIcon,
   GroupIcon,
 } from "../icons";
+import { isControlKey, isKeyActivatedControl } from "../controlKeys";
 import { isOwnEvent } from "../isOwnEvent";
 import { pinnedCellClassNames, pinnedCellStyle } from "../pinnedCell";
 import type { GridPanelsApi } from "../panels/useGridPanels";
@@ -181,9 +182,13 @@ export default function GridHeader<Row>({
                  * resize in one on the handle inside it. Neither is the press
                  * that selects a column, so both are shown the door here —
                  * the drag by the distance it travelled, the resize by where
-                 * it began.
+                 * it began. Nor is the click a key fires on a template's own
+                 * control.
                  */
-                if (drag.justDragged(entry.id)) {
+                if (
+                  drag.justDragged(entry.id) ||
+                  isKeyActivatedControl(event)
+                ) {
                   return;
                 }
                 if (
@@ -202,7 +207,7 @@ export default function GridHeader<Row>({
                 selection.selectColumn(entry.id, intentOf(event));
               }}
               onKeyDown={(event) => {
-                if (!isOwnEvent(event)) return;
+                if (!isOwnEvent(event) || isControlKey(event)) return;
                 // Toward the next column moves it later and grows it, its
                 // resize handle being on that side.
                 const step = inlineStep(

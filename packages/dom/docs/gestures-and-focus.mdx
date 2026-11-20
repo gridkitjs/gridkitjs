@@ -1,9 +1,9 @@
 ---
 title: "Gestures and focus"
-description: "Body event targets, column resize and reorder drags, focus movement in the grid and in a checklist, and the live announcer in @gridkitjs/dom."
+description: "Body event targets, column resize and reorder drags, focus movement and keys from controls in cells, checklists and the live announcer in @gridkitjs/dom."
 ---
 
-These are the behaviours a renderer attaches to the grid's own table: reading which cell or row a body event addressed (`bodyCellFrom`, `groupRowFrom`, `bodyRowFrom`), the pointer gestures that resize and reorder columns (`startColumnResizeGesture`, `startDragReorder`), the single tab stop the keyboard moves through the grid (`createGridFocus`) and through a long list of values (`attachChecklist`), the live region that reports what changed (`createLiveAnnouncer`), and the writing direction the keys and gestures follow (`writingDirection`). Each follows [the contract](/docs/dom#the-contract): it attaches to markup the renderer drew and hands back the way to stop it.
+These are the behaviours a renderer attaches to the grid's own table: reading which cell or row a body event addressed (`bodyCellFrom`, `groupRowFrom`, `bodyRowFrom`), the pointer gestures that resize and reorder columns (`startColumnResizeGesture`, `startDragReorder`), the single tab stop the keyboard moves through the grid (`createGridFocus`), whom a key pressed in a cell's own control belongs to (`keyOrigin`), and through a long list of values (`attachChecklist`), the live region that reports what changed (`createLiveAnnouncer`), and the writing direction the keys and gestures follow (`writingDirection`). Each follows [the contract](/docs/dom#the-contract): it attaches to markup the renderer drew and hands back the way to stop it.
 
 ## Body event targets
 
@@ -130,7 +130,7 @@ A grid is one tab stop: <Kbd>Tab</Kbd> reaches it and passes it by, and the arro
 | `attach({ getHeaderRow, getBodyRow }, root?)`     | Connects it to the rendered rows, and to `root`, the grid element holding them, when given; returns the function that disconnects them.                                                                                                                                     |
 | `focusCell(focus)`                                | Moves the tab stop to `focus`, a `GridFocus` such as `bodyFocus(rowIndex, columnIndex)` or `headerFocus(columnIndex)` from @gridkitjs/core. Moving to the focused cell does nothing.                                                                                        |
 | `handleKey(key, modifiers, pageSize, direction?)` | Moves the tab stop as a navigation key does, and returns `true` — prevent the key's default then — or returns `false` for any other key. `direction` is the grid's [writing direction](#writing-direction), which the left and right arrows follow; it defaults to `"ltr"`. |
-| `focusDrawnCell(drawn)`                           | Called after drawing `drawn`, a value `getFocus()` returned: moves the browser's focus to that cell if a move to it is pending.                                                                                                                                             |
+| `focusDrawnCell(drawn)`                           | Called after drawing `drawn`, a value `getFocus()` returned: moves the browser's focus to that cell if a move to it is pending, unless focus is already on a control inside it.                                                                                             |
 
 ```ts
 import {
@@ -165,6 +165,33 @@ grid.addEventListener("keydown", (event) => {
 ```
 
 The browser's focus follows only once the move is drawn, so it lands on the cell in the new markup — after a column moves, the header now at that index. A virtualized row outside the drawn window is scrolled into it with `virtualRange.scrollToIndex` and focused when a later drawing mounts it. Given a `root`, the user can take over from that wait: focus leaving `root`, or a wheel or a press inside it, drops the move, so the row mounting later neither scrolls the grid back to it nor pulls focus back in. `findBodyRow(bodyTable, rowIndex)` finds a body row by its `data-gridkit-row-index`, not its position, which under virtualization is off by the rows not mounted; `measurePageSize(bodyTable, scrollElement?)` is how many rows a page key moves: as many as fit `scrollElement`, or the body table's parent without one, less the block `scroll-margin` of the rows, which is what a header and footer stuck over them cover. A cell a key moves focus to, in the body or the header, that focus finds only partly in view is scrolled the rest of the way, to the `nearest` edge, so it is never left under a header or footer stuck over the rows or a pinned column stuck over the others. Give the rows a block `scroll-margin` of the header's and footer's heights, and the unpinned cells an inline `scroll-margin` of the pinned columns' widths at each edge.
+
+### Keys from controls in cells
+
+A cell can hold controls of its own, an input or a button a template drew, and keys pressed in one bubble up to the grid's handlers. `keyOrigin(target)` says whom such a key belongs to, from the event's `target`:
+
+| Result         | When `target` is                                                                                                                                                                                                                                                           |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `"text-entry"` | A control that uses every key, the navigation keys included: an `input` of a text-like type (`range` and `number` too), a `textarea`, a `select`, editable content, or an element with the role `textbox`, `searchbox`, `combobox`, `spinbutton` or `slider`.              |
+| `"control"`    | Another interactive element, which uses <Kbd>Space</Kbd> and <Kbd>Enter</Kbd>: any other `input` (a checkbox, a radio, a button), a `button`, a link, a `summary`, media with controls, or an element with a button, checkbox, radio, switch, link, tab or menu item role. |
+| `"grid"`       | Anything else: a cell, the grid's own element, or a focusable element of a template that is no control.                                                                                                                                                                    |
+
+A renderer leaves every key from text entry to it, and <Kbd>Space</Kbd> and <Kbd>Enter</Kbd> from another control, so a button activates rather than selecting its row, while the arrows still move the tab stop. The click a key's activation fires has a `detail` of `0`, which tells it apart from a pointer's click on the same control. `focusDrawnCell` leaves focus on a control inside the cell it would focus, so Tab or a click into a control keeps it there while the tab stop moves to its cell.
+
+```ts
+import { keyOrigin } from "@gridkitjs/dom";
+
+grid.addEventListener("keydown", (event) => {
+  const origin = keyOrigin(event.target);
+  if (
+    origin === "text-entry" ||
+    (origin === "control" && (event.key === " " || event.key === "Enter"))
+  ) {
+    return;
+  }
+  // the grid's own keys
+});
+```
 
 ## Writing direction
 
@@ -272,6 +299,7 @@ A live region speaks only when its text changes, so `announce` makes a repeat of
 | `FocusVirtualRange`           | `{ startIndex, endIndex, scrollToIndex }`: the window of rows a virtualizer drew, and how to bring a row into it.                                                                                                                                                                                                    |
 | `ChecklistOptions`            | `{ onToggle, onFocusChange?, scrollToIndex }` for `attachChecklist`, tabled under [checklist](#checklist).                                                                                                                                                                                                           |
 | `AttachedChecklist`           | `{ setCount, focusItem, detach }`, what `attachChecklist` returns.                                                                                                                                                                                                                                                   |
+| `KeyOrigin`                   | `"text-entry" \| "control" \| "grid"`, what `keyOrigin` returns. See [keys from controls in cells](#keys-from-controls-in-cells).                                                                                                                                                                                    |
 | `LiveAnnouncer`               | `{ announce, destroy }`, what `createLiveAnnouncer` returns.                                                                                                                                                                                                                                                         |
 
 ## See also

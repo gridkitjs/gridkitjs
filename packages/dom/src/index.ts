@@ -61,6 +61,7 @@ export {
   type InfiniteScroll,
   type InfiniteScrollOptions,
 } from "./infiniteScroll";
+export { keyOrigin, type KeyOrigin } from "./keyOrigin";
 export {
   attachMenu,
   type AttachedMenu,

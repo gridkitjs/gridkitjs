@@ -48,7 +48,7 @@ It tries each way a browser offers, best first:
 2. Its `writeText`, plain text alone, where `ClipboardItem` is missing or refused.
 3. The legacy `copy` event, for a page outside a secure context where the async API is missing: a one-shot listener sets both types on the event's `clipboardData`, fired by `document.execCommand("copy")` from an off-screen field, and focus goes back where it was.
 
-`isNativeCopy(target)` says whether a copy key pressed at `target` belongs to the browser: pressed in a text field (a text `input`, a `textarea` or editable content), or with text highlighted anywhere on the page. A grid that copies on <Kbd>Ctrl</Kbd>+<Kbd>C</Kbd> checks it first and leaves such a press alone, so the user gets the text they highlighted rather than the cell.
+`isNativeCopy(target)` says whether a copy key pressed at `target` belongs to the browser: pressed in a text-entry control (what [`keyOrigin`](/docs/dom/gestures-and-focus#keys-from-controls-in-cells) calls `"text-entry"`: a text `input`, a `textarea`, a `select` or editable content, among others), or with text highlighted anywhere on the page. A grid that copies on <Kbd>Ctrl</Kbd>+<Kbd>C</Kbd> checks it first and leaves such a press alone, so the user gets the text they highlighted rather than the cell.
 
 ## Print
 

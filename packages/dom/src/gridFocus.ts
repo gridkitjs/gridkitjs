@@ -5,6 +5,7 @@ import {
   type NavigationModifiers,
   type WritingDirection,
 } from "@gridkitjs/core/renderer";
+import { keyOrigin } from "./keyOrigin";
 
 /** Rows a page key moves when the viewport cannot be measured. */
 const FALLBACK_PAGE = 10;
@@ -99,7 +100,9 @@ export interface GridFocusController {
   /**
    * Called by the renderer once it has drawn `drawn` — a value `getFocus`
    * returned — so the browser's focus follows a move to the cell now in the
-   * markup. Does nothing unless a move to exactly that drawing is pending.
+   * markup. Does nothing unless a move to exactly that drawing is pending,
+   * and leaves focus where it is when it is already on a control inside
+   * that cell (see `keyOrigin`), as when Tab or a click lands on one.
    */
   readonly focusDrawnCell: (drawn: GridFocus) => void;
 }
@@ -344,7 +347,15 @@ export function createGridFocus(
         // Focusing the cell the browser already sits on is a no-op, which is
         // what makes one method serve both a key press and a cell reporting
         // a click.
-        const moving = cell.ownerDocument.activeElement !== cell;
+        const active = cell.ownerDocument.activeElement;
+        if (
+          active !== cell &&
+          cell.contains(active) &&
+          keyOrigin(active) !== "grid"
+        ) {
+          return;
+        }
+        const moving = active !== cell;
         cell.focus();
         if (moving) {
           // A browser leaves a cell that focus finds partly in view where it
