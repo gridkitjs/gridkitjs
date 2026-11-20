@@ -12,6 +12,7 @@
     "paging",
     "aggregation",
     "column-definitions",
+    "editing",
     "resizing",
     "ordering",
     "selection",

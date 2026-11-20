@@ -37,6 +37,7 @@ public function or type needs a doc page either way (see [Docs](#docs)).
 | --------------------- | ---------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | `ControllerMode`      | `src/controller/createGridController.ts` | `idle`, `transaction` (commits held and reported as one change) | `src/controller/createGridController.test.ts`, `selectionActions.test.ts` |
 | `filterEditorReducer` | `src/util/filterEditor.ts`               | a `FilterEditorDraft`: `values` or `conditions`, by its `kind`  | `src/util/filterEditor.test.ts`                                           |
+| `cellEditReducer`     | `src/util/cellEdit.ts`                   | a `CellEditState`: `idle`, `editing` or `invalid`               | `src/util/cellEdit.test.ts`, `src/controller/cellEditActions.test.ts`     |
 
 The convention is in the root [State](../../AGENTS.md#state) section.
 

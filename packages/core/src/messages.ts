@@ -276,6 +276,8 @@ export interface GridMessages {
    * download, so no file is saved.
    */
   exportFailed: string;
+  /** `edit.cell` */
+  editCell: string;
   /** `copy.cell` */
   copyCell: string;
   /** `copy.row` */
@@ -290,6 +292,12 @@ export interface GridMessages {
   print: string;
   /** Announced when the browser fails to print, so nothing is printed. */
   printFailed: string;
+  /**
+   * Shown under a cell editor, and announced, when a commit is refused
+   * because the text does not read as its column's `family`
+   * (`filterOperatorFamily`): "Enter a number" on a number column.
+   */
+  cellEditUnreadable: (family: FilterOperatorFamily) => string;
 }
 
 /** Prints a count — "1,204" under `"en"`, "1.204" under `"de-DE"`. */
@@ -397,7 +405,10 @@ function filterResults(n: CountFormat, shown: number, total: number): string {
   return `${n(shown)} of ${n(total)} ${total === 1 ? "row" : "rows"}`;
 }
 
-/** What a condition's value box asks for, by the kind of value its column holds. */
+/**
+ * What a condition's value box, or a cell editor, asks for, by the kind of
+ * value its column holds.
+ */
 const filterValueRequests: Readonly<Record<FilterOperatorFamily, string>> = {
   text: "Enter a value",
   number: "Enter a number",
@@ -552,6 +563,7 @@ export function createDefaultMessages(locale?: FormatLocale): GridMessages {
     exportSelectionJson: "Export selection to JSON",
     exportSelectionXlsx: "Export selection to Excel",
     exportFailed: "Export failed",
+    editCell: "Edit cell",
     copyCell: "Copy cell",
     copyRow: "Copy row",
     copySelection: "Copy selection",
@@ -559,6 +571,7 @@ export function createDefaultMessages(locale?: FormatLocale): GridMessages {
     copyFailed: "Copy failed",
     print: "Print",
     printFailed: "Print failed",
+    cellEditUnreadable: (family) => filterValueRequests[family],
   };
 }
 

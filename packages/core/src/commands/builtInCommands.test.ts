@@ -140,6 +140,7 @@ describe("builtInCommands", () => {
       "exportSelection.csv",
       "exportSelection.json",
       "exportSelection.xlsx",
+      "edit.cell",
       "copy.cell",
       "copy.row",
       "copy.selection",
@@ -1239,6 +1240,63 @@ function copied(host: GridCommandHost): unknown {
   expect(write).toHaveBeenCalledOnce();
   return write.mock.calls[0]?.[0];
 }
+
+describe("edit.cell", () => {
+  const editable = (options: GridControllerOptions<Order> = {}) =>
+    create({
+      columns: [
+        { field: "Id", type: "number" },
+        { field: "Region", editable: (row) => row.Id !== 2 },
+        { field: "Notes", editable: true, hidden: true },
+      ],
+      ...options,
+    });
+
+  test("shows on an editable cell, labelled and hinting F2", () => {
+    const command = builtIn("edit.cell", editable(), cell("1", "Region"));
+
+    expect(command.label()).toBe("Edit cell");
+    expect(command.visible()).toBe(true);
+    expect(command.enabled()).toBe(true);
+    expect(
+      builtInCommands<Order>().find((entry) => entry.id === "edit.cell")
+        ?.shortcut,
+    ).toBe("F2");
+  });
+
+  test("is hidden on a cell that cannot be edited, and off cells", () => {
+    const controller = editable();
+    for (const target of [
+      cell("1", "Id"),
+      cell("2", "Region"),
+      cell("1", "Notes"),
+      cell("9", "Region"),
+      GRID,
+      TOOLBAR,
+      BODY,
+      header("Region"),
+      group("Region"),
+    ]) {
+      expect(builtIn("edit.cell", controller, target).visible()).toBe(false);
+    }
+    expect(builtIn("edit.cell", create(), cell("1", "Region")).visible()).toBe(
+      false,
+    );
+  });
+
+  test("starts an edit on the cell", () => {
+    const controller = editable();
+    const command = builtIn("edit.cell", controller, cell("3", "Region"));
+
+    expect(command.run()).toBe(true);
+    expect(controller.getCellEdit()).toEqual({
+      kind: "editing",
+      rowId: "3",
+      columnId: "Region",
+      draft: { kind: "current" },
+    });
+  });
+});
 
 describe("copy.cell", () => {
   test("shows on a cell only, and hands the host the cell's text", () => {

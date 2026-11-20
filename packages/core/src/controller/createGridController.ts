@@ -46,6 +46,7 @@ import {
   sameGroupExpansion,
   samePagination,
 } from "./changes";
+import { createCellEditActions } from "./cellEditActions";
 import type { GridController, GridControllerOptions } from "./gridController";
 import { createSelectionActions } from "./selectionActions";
 
@@ -207,6 +208,11 @@ export function createGridController<Row, Node = string>(
   /** Slices already reported as given both ways, so each is reported once. */
   const reportedConflicts = new Set<SliceKey>();
   let mode: ControllerMode = IDLE;
+  const cellEdit = createCellEditActions<Row, Node>({
+    getOptions: () => options,
+    getView,
+    notify,
+  });
 
   let state = resolveSlices();
   let pagingInputs = pagingInputsOf(state, options);
@@ -269,8 +275,9 @@ export function createGridController<Row, Node = string>(
 
   /**
    * Re-resolves every slice after a change, keeping the previous state object
-   * when none differs, so a snapshot read twice is the same object. Returns
-   * whether the state changed: a commit to a controlled slice is only a
+   * when none differs, so a snapshot read twice is the same object, then
+   * drops a cell edit the change left with no editable cell. Returns whether
+   * the state or the edit changed: a commit to a controlled slice is only a
    * request, and leaves subscribers nothing new to read. For `keepPage`, see
    * `followPagingInputs`.
    */
@@ -279,7 +286,8 @@ export function createGridController<Row, Node = string>(
     const next = followPagingInputs(resolveSlices(), keepPage);
     state = SLICE_KEYS.every((key) => next[key] === state[key]) ? state : next;
     storeShownPage();
-    return state !== before;
+    const editDropped = cellEdit.dropUneditable();
+    return state !== before || editDropped;
   }
 
   /**
@@ -597,6 +605,7 @@ export function createGridController<Row, Node = string>(
 
   const controller: GridController<Row, Node> = {
     ...selection,
+    ...cellEdit.actions,
     getOptions: () => options,
     setOptions(next) {
       options = next;

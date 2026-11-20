@@ -8,7 +8,7 @@ description: "The column definition shape, formatting values as text, and inferr
 ## Column definition shape
 
 | Prop               | Type                                                     | Description                                                                                                                                                                                            |
-| ------------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ------------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `field`            | `FieldPath<Row> \| string`                               | Path to this column's value, e.g. "Application.Id".                                                                                                                                                    |
 | `id`               | `string`                                                 | Stable identity for sizing/order state. Defaults to field.                                                                                                                                             |
 | `header`           | `string`                                                 | The column name as plain text. Shown when there is no headerTemplate, and used for announcements either way.                                                                                           |
@@ -38,6 +38,10 @@ description: "The column definition shape, formatting values as text, and inferr
 | `pinned`           | `"start" \| "end"`                                       | Pins the column to the grid's inline start or end edge, where it stays while the rest scroll sideways. `columnPinning` state overrides it. See [the view pipeline](/docs/core/view#pinned-columns).    |
 | `exportable`       | `boolean`                                                | Whether the column is written to an export, a clipboard copy or a print. Defaults to `true`; `false` keeps it out of all of them, even when an export names it by id. See [export](/docs/core/export). |
 | `exportValue`      | `(value: unknown, row: Row) => ExportScalar`             | The typed value an export stores for a cell — a `string`, `number`, `boolean`, `Date` or `null` — where the raw value is not the one to keep. Text still comes from `formatCellValue`.                 |
+| `editable`         | `boolean                                                 | ((row: Row) => boolean)`                                                                                                                                                                               | Whether the user may edit this column's cells: every row, or the rows the function accepts. Off by default. See [cell editing](/docs/core/editing). |
+| `valueParser`      | `(text: string, row: Row) => unknown`                    | Turns an editor's text into the value to commit, the inverse of `valueFormatter`. Without it, `type` picks the reading, as `parseCellText` does.                                                       |
+| `validate`         | `(value: unknown, row: Row) => string                    | null`                                                                                                                                                                                                  | Checks a value about to be committed: a message refuses it, `null` accepts it. Not called for a value equal to the cell's own.                      |
+| `editTemplate`     | `(context: EditTemplateContext<Row>) => Node`            | Renders this column's editor in place of the built-in one. Typing on the cell does not start it.                                                                                                       |
 
 ## Formatting values
 
@@ -105,3 +109,4 @@ Formatters are built once per type, locale and `format` object and reused, so ke
 - [Column definitions](/docs/react/column-definition) for the React grid's column props.
 - [The view pipeline](/docs/core/view) for how the definitions become resolved columns.
 - [Resizing](/docs/core/resizing) and [ordering](/docs/core/ordering) for the column layout.
+- [Cell editing](/docs/core/editing) for `editable`, `valueParser`, `validate` and `editTemplate`.

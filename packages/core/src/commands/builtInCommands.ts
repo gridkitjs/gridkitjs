@@ -14,6 +14,7 @@ import type {
   SelectableConfig,
   SortDirection,
 } from "../types";
+import { isCellEditable } from "../util/cellEdit";
 import { isColumnFiltered, touchesColumn } from "../util/filterEditor";
 import { resolveColumnHeaderText } from "../util/grid";
 import { resolveColumnPin } from "../util/pinning";
@@ -57,6 +58,7 @@ export type BuiltInCommandId =
   | "exportSelection.csv"
   | "exportSelection.json"
   | "exportSelection.xlsx"
+  | "edit.cell"
   | "copy.cell"
   | "copy.row"
   | "copy.selection"
@@ -77,6 +79,7 @@ export type BuiltInCommandIcon =
   | "print";
 
 type Area = GridCommandTarget["area"];
+type CellTarget = Extract<GridCommandTarget, { readonly area: "cell" }>;
 type Column<Row> = DataColumn<Row, unknown>;
 type Context<Row> = GridCommandContext<Row>;
 
@@ -284,6 +287,14 @@ function exportCommand<Row>({
   };
 }
 
+/** A cell target that `isCellEditable` accepts, or `null`. */
+function editableCell<Row>(context: Context<Row>): CellTarget | null {
+  const { target } = context;
+  return target.area === "cell" && isCellEditable(context.view, target)
+    ? target
+    : null;
+}
+
 /** What a copy built-in says about itself. */
 interface CopyCommandSpec<Row> {
   readonly id: BuiltInCommandId;
@@ -382,7 +393,7 @@ function sortCommand<Row>(direction: SortDirection): GridCommand<Row> {
 /**
  * The grid's own commands, one per action its menus and toolbar offer —
  * sorting, grouping, hiding, pinning, fitting and choosing columns, selecting,
- * clearing, exporting, copying and printing.
+ * clearing, exporting, editing, copying and printing.
  * Labels come from `messages`, so they follow the grid's language.
  *
  * A function rather than a constant so each comes typed for the caller's
@@ -605,6 +616,20 @@ export function builtInCommands<Row>(): readonly GridCommand<Row>[] {
       label: ({ exportSelectionXlsx }) => exportSelectionXlsx,
       selection: true,
     }),
+    // Shown only on a cell an edit could start on, so a grid with no
+    // editable column lists nothing new.
+    {
+      id: "edit.cell",
+      label: ({ messages }) => messages.editCell,
+      shortcut: "F2",
+      isVisible: (context) => editableCell(context) !== null,
+      execute: (context) => {
+        const target = editableCell(context);
+        if (target !== null) {
+          context.actions.startCellEdit(target);
+        }
+      },
+    },
     copyCommand({
       id: "copy.cell",
       label: ({ copyCell }) => copyCell,

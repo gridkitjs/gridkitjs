@@ -1,5 +1,6 @@
 import type {
   AggregateState,
+  CellEditCommitEvent,
   CellSelectEvent,
   CellSelectionChangeEvent,
   CellSelectionState,
@@ -158,6 +159,14 @@ export interface GridOptions<Row> {
    * `onRowClick` and select as clicks do.
    */
   onRowDoubleClick?: ((event: RowPointerEvent<Row>) => void) | undefined;
+  /**
+   * Called once when the user commits an edit to a cell of an `editable`
+   * column with a value that differs from the cell's own and passes the
+   * column's `validate`. The grid never writes the value: the app does, and
+   * passes the new rows in `dataSource`, so until it does the cell shows
+   * what `dataSource` holds.
+   */
+  onCellEditCommit?: ((event: CellEditCommitEvent<Row>) => void) | undefined;
   borders?: Borders | undefined;
   hoverable?: HoverableConfig | undefined;
   /**

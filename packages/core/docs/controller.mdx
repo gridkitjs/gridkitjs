@@ -3,7 +3,7 @@ title: "Controller"
 description: "createGridController: a grid's state, view and actions, without a renderer."
 ---
 
-`createGridController` is a whole grid minus the drawing. It holds the grid's state, derives the view from it with [resolveGridView](/docs/core/view), and carries every action a user can take — sorting, filtering, row grouping, expanding, pagination, resizing, reordering, hiding and pinning columns, selecting. @gridkitjs/react's DataGrid creates one per grid, hands it its props on every render, draws its view and calls its actions from event handlers; a renderer for another framework does the same, so none of them decides anything the user can see.
+`createGridController` is a whole grid minus the drawing. It holds the grid's state, derives the view from it with [resolveGridView](/docs/core/view), and carries every action a user can take — sorting, filtering, row grouping, expanding, pagination, resizing, reordering, hiding and pinning columns, selecting, editing a cell. @gridkitjs/react's DataGrid creates one per grid, hands it its props on every render, draws its view and calls its actions from event handlers; a renderer for another framework does the same, so none of them decides anything the user can see.
 
 ```ts
 import { createGridController } from "@gridkitjs/core";
@@ -58,12 +58,13 @@ Under `dataMode: "server"` the page actions clamp to the pages `rowCount` makes,
 
 ## Reading
 
-| Method          | Type                               | Description                                                                                                          |
-| --------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `getState()`    | `GridState<Row>`                   | Every slice as the grid applies it — the controlled value where one is given. The same object until a slice changes. |
-| `getView()`     | `GridView<Row, Node>`              | What the user is looking at. The same object until something in it changes.                                          |
-| `getOptions()`  | `GridControllerOptions<Row, Node>` | The options last given.                                                                                              |
-| `subscribe(fn)` | `() => void`                       | Calls `fn` after every action that changed the state, synchronously. Returns the unsubscribe function.               |
+| Method          | Type                               | Description                                                                                                                                 |
+| --------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getState()`    | `GridState<Row>`                   | Every slice as the grid applies it — the controlled value where one is given. The same object until a slice changes.                        |
+| `getView()`     | `GridView<Row, Node>`              | What the user is looking at. The same object until something in it changes.                                                                 |
+| `getOptions()`  | `GridControllerOptions<Row, Node>` | The options last given.                                                                                                                     |
+| `getCellEdit()` | `CellEditState`                    | The cell being edited and its draft, or `{ kind: "idle" }`. The same object until the edit changes. See [cell editing](/docs/core/editing). |
+| `subscribe(fn)` | `() => void`                       | Calls `fn` after every action that changed the state or the cell edit, synchronously. Returns the unsubscribe function.                     |
 
 Because both snapshots keep their identity until something changes, either can serve as the snapshot of a subscription that compares by reference — React's `useSyncExternalStore`, an Angular signal, a Svelte store.
 
@@ -106,6 +107,19 @@ Every action works out the next value, stops if it is the value the slice alread
 
 Every `set*` action also stops for a value equal to the current one, so setting what is already there reports nothing. The page actions do the same: `nextPage()` on the last page, `previousPage()` on the first, `goToPage()` to the page already shown (or one that clamps to it) and `setPageSize()` with the current size on the first page leave the pagination as it is, so they neither fire `onPaginationChange` nor call subscribers.
 
+## Cell edits
+
+The controller also holds the cell being edited, apart from `GridState`: `getState()` and the saved state never include it. Its actions act at once, never held by a transaction, and call the subscribers when the edit changes. See [cell editing](/docs/core/editing) for the whole lifecycle.
+
+| Action                        | Callback           | Description                                                                                                                                                                                                                         |
+| ----------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `startCellEdit(cell, draft?)` |                    | Opens an editor on a cell, with the draft `{ kind: "current" }` unless given. An edit open on another cell is committed first, and cancelled if refused. Returns `false`, starting nothing, when `isCellEditable` rejects the cell. |
+| `setCellEditDraft(draft)`     |                    | Replaces the open edit's draft, clearing a refused commit's message.                                                                                                                                                                |
+| `commitCellEdit()`            | `onCellEditCommit` | Parses, compares and validates the draft. A changed, accepted value closes the edit and is reported; a refusal keeps it open as `invalid`. Returns whether an edit closed.                                                          |
+| `cancelCellEdit()`            |                    | Closes the open edit without committing it.                                                                                                                                                                                         |
+
+After every other action and every `setOptions`, an edit whose cell is no longer editable (its row left the page or the data, its column was hidden or removed, `editable` turned false) is cancelled without a report. From an action, the subscribers hear of it; from `setOptions`, as with every change it makes, they don't.
+
 ## Saving and restoring state
 
 `restoreState(saved)` puts back state read earlier with `getState()`. Every slice it is given is set as its own `set*` action would set it — each one that changes fires its callback, and a controlled one only asks — while slices left out keep their value. Subscribers are called once, after every slice is in place, if any changed, and a restored pagination is kept even when the same call changed the sort, filter or grouping.
@@ -136,4 +150,5 @@ A saved state may be partial — `{ columnSizing, columnOrder, columnVisibility,
 
 - [Controlled and uncontrolled state](/docs/react/state) for the React grid's view of the same slices.
 - [The view pipeline](/docs/core/view) for how the controller's state becomes rows and columns.
+- [Cell editing](/docs/core/editing) for the edit the controller holds beside its state.
 - [Imperative handle](/docs/react/imperative-handle) for the controller's surface on the React grid.
