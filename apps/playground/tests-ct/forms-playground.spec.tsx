@@ -185,6 +185,45 @@ test.describe("forms playground page", () => {
     await expect(rows.filter({ hasText: "onCommit" })).toContainText("clear");
   });
 
+  test("the checkbox section logs a flip and keeps the select-all mixed", async ({
+    mount,
+  }) => {
+    const root = await mount(<FormsPlayground />);
+    const rows = root
+      .getByRole("table", { name: "Event log" })
+      .locator("tbody tr");
+    const all = root.getByRole("checkbox", { name: /All columns/ });
+
+    await expect(all).toBeChecked({ indeterminate: true });
+    await root.getByRole("checkbox", { name: "City", exact: true }).click();
+    await root.getByRole("checkbox", { name: "Score", exact: true }).click();
+
+    await expect(all).toBeChecked();
+    await expect(
+      rows.filter({ hasText: "onCommitCheckbox: Score" }),
+    ).toContainText("toggle");
+  });
+
+  test("the switch section logs a flip and follows the page's mode", async ({
+    mount,
+  }) => {
+    const root = await mount(<FormsPlayground />);
+    const rows = root
+      .getByRole("table", { name: "Event log" })
+      .locator("tbody tr");
+
+    await root.getByRole("switch", { name: /^Off Email alerts/ }).click();
+    await expect(rows.filter({ hasText: "onChangeSwitch: Off" })).toContainText(
+      "true",
+    );
+
+    await root
+      .getByLabel("Page controls")
+      .getByLabel("Mode")
+      .selectOption("display");
+    await expect(root.getByRole("switch")).toHaveCount(0);
+  });
+
   test("the search input section reads the text once typing pauses", async ({
     mount,
   }) => {
