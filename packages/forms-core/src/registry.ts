@@ -19,21 +19,21 @@ export interface FieldRegistry<F extends RegisteredField> {
    * Adds `field`, in place of a field registered under the same id, and
    * returns what removes it again.
    */
-  register(field: F): () => void;
+  readonly register: (field: F) => () => void;
   /**
    * Adds what shows one field's messages, as a commit attempt would, and
    * returns what removes it again.
    */
-  addRevealer(reveal: () => void): () => void;
+  readonly addRevealer: (reveal: () => void) => () => void;
   /** Shows every field's messages, as a submit attempt does. */
-  revealAll(): void;
+  readonly revealAll: () => void;
   /**
    * Every registered field, in the order the registry was created with.
    * The same array until a field registers or unregisters.
    */
-  getFields(): readonly F[];
+  readonly getFields: () => readonly F[];
   /** Calls `listener` whenever the fields change, and returns what stops it. */
-  subscribe(listener: () => void): () => void;
+  readonly subscribe: (listener: () => void) => () => void;
 }
 
 /**
