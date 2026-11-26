@@ -37,6 +37,9 @@ holds on every exit, through the `detach` or `destroy` it returns.
 own lifecycle is the forms-core controller's. Its listeners share one
 `AbortController`, so `detach` removes them all at once.
 
+`attachEnterNavigation` (`src/form/formControls.ts`) holds one `keydown`
+listener on the form and no state; its `detach` removes it.
+
 ## Commands
 
 ```bash
