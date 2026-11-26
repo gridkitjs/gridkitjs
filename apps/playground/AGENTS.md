@@ -38,7 +38,8 @@ has, wired to the event log.** A section is a component in
 `FormsPlayground.tsx`. It reads the page controls with
 `usePlaygroundSettings()` (preset, colour scheme, right to left, density,
 mode, `disabled`, `readOnly`, locale) and passes them to what it shows; the
-page itself applies the preset, the colour scheme, `dir` and `lang` to the
+page itself applies the preset, the colour scheme, `dir`, `lang` and the
+floating label's look (the theme's `gridkit-forms-floating-above`) to the
 document, and gives every section the locale and density through a
 `FormsProvider`, so a section passes neither. It reports events through `useEventReporter("<component>")`:
 `onChange={reporter("onChange")}` logs each call with its `value`,

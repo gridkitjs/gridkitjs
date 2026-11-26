@@ -16,11 +16,13 @@ import {
 
 export type ColorScheme = "system" | "light" | "dark";
 export type Direction = "ltr" | "rtl";
+export type FloatingLabel = "border" | "above";
 
 /**
  * What the page controls set. `necessityIndicator` says which labels are
  * marked: required ones with a star, the others in words, or none. The
- * page applies `preset`, `colorScheme`, `direction` and `locale` to the
+ * page applies `preset`, `colorScheme`, `direction`, `locale` and
+ * `floatingLabel` (as the theme's `gridkit-forms-floating-above`) to the
  * document, and gives every forms component `locale` and `density`
  * through a `FormsProvider`; each section hands the rest to the
  * components it shows.
@@ -32,6 +34,8 @@ export interface PlaygroundSettings {
   readonly density: Density;
   readonly mode: FieldMode;
   readonly necessityIndicator: NecessityIndicator;
+  /** Where a raised floating label sits: on the control's border, or above it. */
+  readonly floatingLabel: FloatingLabel;
   readonly disabled: boolean;
   readonly readOnly: boolean;
   /** A BCP 47 tag, for the components' `locale` and the page's `lang`. */
@@ -66,6 +70,11 @@ export const NECESSITY_INDICATORS: readonly Option<NecessityIndicator>[] = [
   { value: "none", label: "None" },
 ];
 
+export const FLOATING_LABELS: readonly Option<FloatingLabel>[] = [
+  { value: "border", label: "On the border" },
+  { value: "above", label: "Above" },
+];
+
 const localeNames = new Intl.DisplayNames(["en"], { type: "language" });
 
 // Locales that differ in digits, separators, date order and script.
@@ -86,6 +95,7 @@ const DEFAULTS: PlaygroundSettings = {
   density: "standard",
   mode: "edit",
   necessityIndicator: "required",
+  floatingLabel: "border",
   disabled: false,
   readOnly: false,
   locale: "en-US",
@@ -98,6 +108,7 @@ const PARAMS: Readonly<Record<keyof PlaygroundSettings, string>> = {
   density: "density",
   mode: "mode",
   necessityIndicator: "necessity",
+  floatingLabel: "floating",
   disabled: "disabled",
   readOnly: "readonly",
   locale: "locale",
@@ -110,6 +121,7 @@ const TEXT_SETTINGS = [
   "density",
   "mode",
   "necessityIndicator",
+  "floatingLabel",
   "locale",
 ] as const;
 
@@ -139,6 +151,11 @@ function settingsFromUrl(): PlaygroundSettings {
       NECESSITY_INDICATORS,
       params.get(PARAMS.necessityIndicator),
       DEFAULTS.necessityIndicator,
+    ),
+    floatingLabel: optionOr(
+      FLOATING_LABELS,
+      params.get(PARAMS.floatingLabel),
+      DEFAULTS.floatingLabel,
     ),
     disabled: params.has(PARAMS.disabled),
     readOnly: params.has(PARAMS.readOnly),
@@ -183,7 +200,7 @@ export function PlaygroundSettingsProvider({
   readonly children: ReactNode;
 }) {
   const [settings, setSettings] = useState(settingsFromUrl);
-  const { colorScheme, direction, locale } = settings;
+  const { colorScheme, direction, locale, floatingLabel } = settings;
 
   usePresetStyle(settings.preset);
 
@@ -191,9 +208,13 @@ export function PlaygroundSettingsProvider({
     const root = document.documentElement;
     root.classList.toggle("gridkit-light", colorScheme === "light");
     root.classList.toggle("gridkit-dark", colorScheme === "dark");
+    root.classList.toggle(
+      "gridkit-forms-floating-above",
+      floatingLabel === "above",
+    );
     root.dir = direction;
     root.lang = locale;
-  }, [colorScheme, direction, locale]);
+  }, [colorScheme, direction, locale, floatingLabel]);
 
   useEffect(() => {
     window.history.replaceState(null, "", urlWithSettings(settings));

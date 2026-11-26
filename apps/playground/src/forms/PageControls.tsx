@@ -4,6 +4,7 @@ import {
   COLOR_SCHEMES,
   DENSITIES,
   FIELD_MODES,
+  FLOATING_LABELS,
   LOCALES,
   NECESSITY_INDICATORS,
   usePlaygroundSettings,
@@ -140,6 +141,14 @@ export function PageControls() {
         options={NECESSITY_INDICATORS}
         onChange={(necessityIndicator) => {
           change({ necessityIndicator });
+        }}
+      />
+      <SelectControl
+        label="Floating label"
+        value={settings.floatingLabel}
+        options={FLOATING_LABELS}
+        onChange={(floatingLabel) => {
+          change({ floatingLabel });
         }}
       />
       <SelectControl

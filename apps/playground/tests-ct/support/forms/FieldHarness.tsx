@@ -25,6 +25,7 @@ export interface FieldHarnessProps {
   readonly defaultValue?: string | null;
   readonly name?: string;
   readonly placeholder?: string;
+  readonly className?: string;
 }
 
 function keepFocus(event: MouseEvent): void {

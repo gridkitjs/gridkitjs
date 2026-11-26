@@ -5,6 +5,7 @@ import type { MountResult } from "@playwright/experimental-ct-react";
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./support/coverage";
 import { eventItems, loggedEvents } from "./support/forms/loggedEvents";
+import { floatingLabelPlace } from "./support/forms/floatingLabel";
 import TextInputHarness from "./support/forms/TextInputHarness";
 import { typeInto } from "./support/forms/typeInto";
 
@@ -198,6 +199,31 @@ test.describe("TextInput", () => {
       /is-label-raised/,
     );
   });
+
+  for (const { name, props } of [
+    { name: "compact", props: { density: "compact" } },
+    { name: "comfortable", props: { density: "comfortable" } },
+    { name: "multiline", props: { multiline: true, minRows: 3 } },
+  ] as const) {
+    test(`a ${name} box rests its floating label inside and raises it above, under gridkit-forms-floating-above`, async ({
+      mount,
+    }) => {
+      const root = await mount(
+        <div className="gridkit-forms-floating-above">
+          <TextInputHarness labelPosition="floating" {...props} />
+        </div>,
+      );
+      const field = root.locator(".gridkit-forms-field");
+      const resting = await floatingLabelPlace(field);
+      expect(resting.labelBottom).toBeGreaterThan(resting.controlTop);
+
+      await root.getByRole("textbox", { name: "Name" }).focus();
+      await expect(field).toHaveClass(/is-label-raised/);
+      const raised = await floatingLabelPlace(field);
+      expect(raised.labelBottom).toBeLessThanOrEqual(raised.controlTop);
+      expect(raised.fieldHeight).toBe(resting.fieldHeight);
+    });
+  }
 
   for (const severity of ["error", "warning", "info", "success"] as const) {
     test(`the box's border and focus ring take the ${severity} colour while one shows`, async ({
