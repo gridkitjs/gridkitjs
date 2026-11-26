@@ -846,7 +846,7 @@ for (const palette of ["gridkit-light", "gridkit-dark"]) {
       mount,
       page,
     }) => {
-      await mount(
+      const root = await mount(
         <div
           className={palette}
           style={{
@@ -857,6 +857,7 @@ for (const palette of ["gridkit-light", "gridkit-dark"]) {
           {field()}
         </div>,
       );
+      await expect(root.locator(".gridkit-forms-field")).toBeVisible();
       await expectNoAxeViolations(page, FORMS_SCOPE);
     });
   }
