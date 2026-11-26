@@ -53,7 +53,7 @@ A `Validator<V>` is `(value, { text, locale, messages }) => ValidationResult`: a
 | `patternRule(pattern, message?)` | The whole value must match, as the HTML `pattern` attribute reads it.                                 |
 | `checkedRule(pick)`              | Anything but `true` is the message `pick` takes from the catalogue (`requiredChecked`, `requiredOn`). |
 
-Lengths count code points, closer to "characters" than UTF-16 units and how databases count a `VARCHAR`. The rules other than `requiredRule` pass `null`.
+Lengths count code points, closer to "characters" than UTF-16 units and how databases count a `VARCHAR`. The rules other than `requiredRule` pass `null`. `countCharacters(text)` counts the same way, for a counter, and `counterAnnouncement(count, max, messages)` gives what the counter announces when typing pauses: `charactersLeft` once a tenth of `max` or fewer remain, `charactersOver` past it, else `null`.
 
 ## When messages show
 
