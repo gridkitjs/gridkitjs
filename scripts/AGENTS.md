@@ -96,9 +96,10 @@ CI runs it after lint, against `https://next.gridkitjs.com/mdx-tags.json`:
 the next site, which carries the examples for features merged here but not
 yet released (why is in
 [.claude/rules/docs.md](../.claude/rules/docs.md#tag-check)). While that
-list is missing (a 404, or the host not resolving before the next site is
-first deployed) it skips with a warning; any other failure to read the list
-fails it. To run it locally against the website's current tags, generate
+list is unavailable (a 404, the host not resolving before the next site is
+first deployed, or a 402 while the site's hosting has it suspended) it skips
+with a warning, so check locally as below before merging a docs change; any
+other failure to read the list fails it. To run it locally against the website's current tags, generate
 the list in the `gridkit-website` repo with
 `node scripts/export-mdx-tags.mjs` and point the check at it:
 
