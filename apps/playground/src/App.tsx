@@ -3,6 +3,7 @@ import { ContextMenuGrid } from "./demos/ContextMenuGrid";
 import { CustomPagerGrid } from "./demos/CustomPagerGrid";
 import { FilteredGrid } from "./demos/FilteredGrid";
 import { FilterMenuGrid } from "./demos/FilterMenuGrid";
+import { FormBesideGrid } from "./demos/FormBesideGrid";
 import { GroupedGrid } from "./demos/GroupedGrid";
 import { InfiniteScrollGrid } from "./demos/InfiniteScrollGrid";
 import { LiveMetricsGrid } from "./demos/LiveMetricsGrid";
@@ -42,6 +43,15 @@ export default function App() {
       </p>
       <div className="mt-4">
         <ResizableSelectableGrid />
+      </div>
+      <h2 className="mt-8 text-lg font-bold">A form beside a grid</h2>
+      <p className="mt-2 text-sm text-gray-600">
+        Select an order to edit it in the form, then save it back to the row.
+        The form and the grid share one palette, so switch the preset above to
+        compare them under each.
+      </p>
+      <div className="mt-2">
+        <FormBesideGrid />
       </div>
       <h2 className="mt-8 text-lg font-bold">
         Same data, <code>defaultFilter</code>-seeded
