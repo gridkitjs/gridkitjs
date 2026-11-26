@@ -88,14 +88,36 @@ export function App() {
 
 ## Label positions
 
-| Position     | Where the label is                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `"top"`      | Above the control, always.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `"floating"` | Inside the control, where its text would be, while the field is empty and not focused. It rises onto the control's top border on focus, when the field holds text or a value, when the browser autofills it, and in display mode, gliding there as it shrinks; under reduced motion (which Windows reports while its animation effects are off) it moves at once. A placeholder fades in once the label is up. Above a [checkbox](/docs/forms/checkbox) or [switch](/docs/forms/switch), which carries its own label beside it, it sits as `top` does. |
-| `"start"`    | Beside the control, in a column `labelWidth` wide, on its first line.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `"hidden"`   | Not shown, but still the control's name for a screen reader.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Position     | Where the label is                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `"top"`      | Above the control, always.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `"floating"` | Inside the control, where its text would be, while the field is empty and not focused. It rises onto the control's top border (or above the control, under [`gridkit-forms-floating-above`](#floating-label-looks)) on focus, when the field holds text or a value, when the browser autofills it, and in display mode, gliding there (and shrinking, on the border); under reduced motion (which Windows reports while its animation effects are off) it moves at once. A placeholder fades in once the label is up. Above a [checkbox](/docs/forms/checkbox) or [switch](/docs/forms/switch), which carries its own label beside it, it sits as `top` does. |
+| `"start"`    | Beside the control, in a column `labelWidth` wide, on its first line.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `"hidden"`   | Not shown, but still the control's name for a screen reader.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 The label is the same `<label for>` element in every position, so the control's name never changes. In display mode it becomes a `<span>` naming the field, which becomes a group: there is no control for a label to point at.
+
+## Floating label looks
+
+A raised floating label has two looks. By default it sits on the control's top border, across it. Under the class `gridkit-forms-floating-above` it sits above the control instead, full size and in line with the control's start, where a top label sits; the field keeps that room above the control at all times, so the label rising moves nothing else. At rest it lies inside the control either way.
+
+Put the class on any element around the fields, such as `<html>` or a `Form`, or on one `Field` through `className`:
+
+```tsx title="App.tsx"
+import { Field, Form, TextInput } from "@gridkitjs/forms";
+
+export function App() {
+  return (
+    <Form className="gridkit-forms-floating-above">
+      <Field label="Email" labelPosition="floating">
+        <TextInput />
+      </Field>
+    </Form>
+  );
+}
+```
+
+The look is a class rather than a prop because looks belong to the theme: the field only exposes its state (`is-label-floating`, `is-label-raised`), and the forms stylesheet decides where the label goes, so a theme of your own can style those states its own way.
 
 ## Required fields
 
@@ -139,6 +161,8 @@ Inputs built on [`useFieldInput`](/docs/forms/use-field-input) do all of this th
 | `.gridkit-forms-sr-only`           | `<span>`  | Read, not seen: a hidden label, a message's severity, "No value".                                                                                                                                                                                                                                                                       |
 
 The forms stylesheet reads the palette's `--gridkit-error`, `--gridkit-warning`, `--gridkit-info` and `--gridkit-success` for the icons, `--gridkit-forms-label-width` (set by `labelWidth`) for the label column, and `--gridkit-forms-label-transition-duration` (0.18s by default) for how long a floating label takes to rise or fall.
+
+One class is yours to set rather than the field's: `gridkit-forms-floating-above`, on the field or any element around it, raises a floating label above the control instead of onto its border (see [Floating label looks](#floating-label-looks)).
 
 ## Messages and localization
 
