@@ -25,12 +25,22 @@ and into the docs as described under [Docs](#docs).
 
 ## State and teardown
 
-| Machine | File | States | Tests |
-| ------- | ---- | ------ | ----- |
+| Machine        | File                                 | States                                                                                         | Tests                                                                                                 |
+| -------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `fieldReducer` | `src/field/fieldReducer.ts`          | a `FieldPhase`: `idle`, `editing`, `checking` (async `onBeforeCommit`), `leaving`              | `src/field/fieldReducer.test.ts`, `src/field/plan.test.ts`, `src/field/createFieldController.test.ts` |
+| `ReadWait`     | `src/field/createFieldController.ts` | `none`, `composing` (an input method owns the text), `delayed` (holds the `changeDelay` timer) | `src/field/createFieldController.test.ts`                                                             |
 
 The convention is in the root [State](../../AGENTS.md#state) section: a
 lifecycle is one union tagged `kind`, every transition in one reducer, tested
 in Vitest.
+
+`src/field/plan.ts` holds the event order: one function per request, which
+calls the app's handlers in order and dispatches `fieldReducer` actions
+between them. The controller adds what the plans must not touch: the request
+queue, the `ReadWait` timer and the pending check's promise. After every
+request it releases what the state no longer needs (a wait for text that is
+no longer unread, a check the field stopped waiting for); `destroy` releases
+both, and a check's answer that arrives after either is ignored.
 
 ## Commands
 

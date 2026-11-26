@@ -24,12 +24,18 @@ and into the docs as described under [Docs](#docs).
 
 ## State and teardown
 
-| Machine | File | States | Tests |
-| ------- | ---- | ------ | ----- |
+| Machine             | File                          | States                                                   | Tests                                                 |
+| ------------------- | ----------------------------- | -------------------------------------------------------- | ----------------------------------------------------- |
+| `TextPipelineState` | `src/text/attachTextInput.ts` | `ready`, `editing`, `composing`, `rewriting`, `detached` | `forms-events.spec.tsx`, `forms-field-input.spec.tsx` |
 
 The specs are in `apps/playground/tests-ct/`. The convention is in the root
 [State](../../AGENTS.md#state) section. Every behaviour releases what it
 holds on every exit, through the `detach` or `destroy` it returns.
+
+`attachTextInput` holds what the browser is in the middle of (an edit
+`onBeforeInput` allowed, a composition, an insert of its own); the field's
+own lifecycle is the forms-core controller's. Its listeners share one
+`AbortController`, so `detach` removes them all at once.
 
 ## Commands
 

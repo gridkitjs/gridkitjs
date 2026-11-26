@@ -41,6 +41,19 @@ at the top level.
 The specs are in `apps/playground/tests-ct/`. The convention is in the root
 [State](../../AGENTS.md#state) section.
 
+Every input is built on `useFieldInput` (`src/useFieldInput.tsx`), which
+holds no lifecycle of its own: the field's is the forms-core controller's,
+and what the browser is in the middle of is forms-dom's. The hook creates
+the controller once, hands it the latest props during render
+(`setOptions` is silent), passes a controlled `value` to `sync` in a
+layout effect after every render, attaches forms-dom to the control in a
+layout effect keyed on the element and calls `destroy` on unmount. The
+control's text is forms-dom's alone, so React renders it as `defaultValue`
+and never as a controlled `value`. StrictMode's second mount attaches again
+and leaves the controller usable. `forms-events.spec.tsx` and
+`forms-field-input.spec.tsx` cover it through the harness in
+`tests-ct/support/forms/`.
+
 ## Commands
 
 ```bash

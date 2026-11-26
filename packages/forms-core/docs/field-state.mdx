@@ -1,0 +1,111 @@
+---
+title: "Field state"
+description: "The field controller: one field's value, draft and lifecycle, the requests that move it, and the order its events fire in."
+---
+
+`createFieldController` holds one field: its value, the text being typed (the draft), its messages and where it is in an edit. A renderer calls its requests from the browser's events (`input`, `commit`, `blur`, ...) and the app's (`setValue`, `reset`, `sync`); the controller parses, validates and calls the app's handlers in one documented order. Every forms input runs on it, so values, drafts and events behave the same in each.
+
+<Callout type="note" title="First iteration">
+  This API is a first iteration and may change before the first release.
+</Callout>
+
+## When to use it
+
+Only to write a forms renderer of your own, or to drive a field without a DOM in a test. @gridkitjs/forms-dom attaches a controller to a native `<input>`, and the @gridkitjs/forms inputs create one for you.
+
+## Example
+
+```ts
+import {
+  createFieldController,
+  defaultFormsMessages,
+  formatText,
+  requiredRule,
+  textParser,
+} from "@gridkitjs/forms-core";
+
+const field = createFieldController<string>({
+  defaultParse: textParser({ trim: true }),
+  defaultFormat: formatText,
+  messages: defaultFormsMessages,
+  validators: [requiredRule()],
+  onChange: ({ value, previousValue }) => {
+    console.log(`changed from ${String(previousValue)} to ${String(value)}`);
+  },
+  onCommit: ({ value, changed, trigger }) => {
+    console.log(
+      `committed ${String(value)} by ${trigger}, changed: ${String(changed)}`,
+    );
+  },
+});
+
+field.focus(null);
+field.input({ text: "Ada ", source: "typing", nativeEvent: null, input: null }); // logs the change to "Ada"
+field.commit("enter", null); // logs the commit
+field.getText(); // "Ada": the commit normalized the text
+```
+
+## Options
+
+| Option                 | Type                                    | Default     | Description                                                                    |
+| ---------------------- | --------------------------------------- | ----------- | ------------------------------------------------------------------------------ |
+| `value`                | `V \| null`                             |             | Present means controlled: see [Controlled values](#controlled-values).         |
+| `defaultValue`         | `V \| null`                             | `null`      | The starting value of an uncontrolled field, and what `reset` returns to.      |
+| `defaultParse`         | `(text, context) => ParseResult<V>`     |             | The input's own reading of text. Required.                                     |
+| `defaultFormat`        | `(value, context) => string`            |             | The input's own writing of the value. Required.                                |
+| `parse`                | `Parser<V>`                             |             | The app's reading; `context.defaultParse` is the input's own, to fall back on. |
+| `format`               | `Formatter<V>`                          |             | The app's writing; `context.defaultFormat` is the input's own.                 |
+| `equals`               | `(a: V, b: V) => boolean`               | `Object.is` | When two values are one, so that typing a trailing zero fires no `onChange`.   |
+| `validators`           | `readonly Validator<V>[]`               | `[]`        | See [Validation](/docs/forms-core/validation).                                 |
+| `details`              | `(current, previous) => D`              |             | The input's own details, added to every event.                                 |
+| `changeDelay`          | `number`                                | `0`         | Milliseconds typing must pause before the text is read; needs `schedule`.      |
+| `schedule`             | `Schedule`                              |             | The timer `changeDelay` runs on (forms-dom passes the browser's).              |
+| `commitOnLeave`        | `boolean`                               | `true`      | False for a toggle, which commits as it flips.                                 |
+| `locale`, `messages`   | `Intl.LocalesArgument`, `FormsMessages` |             | For parsing, formatting and messages. `messages` is required.                  |
+| `onFocus` ... `onBlur` | handlers                                |             | The nine handlers below.                                                       |
+
+## The order events fire in
+
+While typing, per edit: `onBeforeInput`, the edit, `onInput`, then reading the text, `onBeforeChange`, `onChange` and `onValidate`. A commit: `onBeforeCommit` (waited for when it returns a promise), then `onCommit`. Leaving: the commit, then `onBlur`. A step with nothing to report is skipped, never reordered: text that reads as the value held fires no `onChange`, and text that cannot be read fires `onValidate` only when that changes. A request made from inside a handler runs after the current sequence. The [events page](/docs/forms/events) covers each event's fields.
+
+## Requests
+
+| Member                                      | Description                                                                                                                                               |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getState()`, `getText()`, `getMessages()`  | The state, the text on screen, and every message in display order (the same array until the state changes).                                               |
+| `subscribe(listener)`                       | Called once after each request that changed the state. Returns the unsubscribe function.                                                                  |
+| `setOptions(options)`                       | The latest options, silently.                                                                                                                             |
+| `beforeInput(edit)`                         | `onBeforeInput`; returns `allow`, `prevent` or `rewrite` with the data to insert.                                                                         |
+| `input(edit)`                               | The text changed. Read at once, after `changeDelay`, or when an input method ends composing. On an idle field it is autofill: read and committed at once. |
+| `endComposition(nativeEvent)`               | Composition ended: the text is read.                                                                                                                      |
+| `focus(nativeEvent)`, `blur(nativeEvent)`   | Focus came or went. A blur commits unless Tab already did.                                                                                                |
+| `commit(trigger, nativeEvent)`              | Reads unread text, then commits. Returns `accepted`, `refused`, `unreadable` or `checking`.                                                               |
+| `revert(nativeEvent)`                       | Escape: back to the last commit. False when there is nothing to put back.                                                                                 |
+| `clear(nativeEvent)`                        | Empties the field, then commits.                                                                                                                          |
+| `pick(value, source, trigger, nativeEvent)` | A value chosen whole (a toggle, an option), then a commit.                                                                                                |
+| `setValue(value)`, `reset()`                | The change chain with `source: "api"`; no commit.                                                                                                         |
+| `sync(value)`                               | The controlled value; see below.                                                                                                                          |
+| `reveal()`                                  | Messages show from now on.                                                                                                                                |
+| `destroy()`                                 | Cancels a waiting read and ignores a pending check's answer.                                                                                              |
+
+## The state
+
+`getState()` returns a `FieldState<V>`: `value` (the last valid value, `null` for empty), `draft`, `validation`, `refusal`, `revealed` and `phase`. `draft` is `current` (the value, formatted) or `text` (what the user typed, with its `reading`: `pending`, a `value`, or `unreadable` with a message). Text that cannot be read leaves `value` at its last valid value.
+
+| `phase.kind` | Means                                                                                                           |
+| ------------ | --------------------------------------------------------------------------------------------------------------- |
+| `idle`       | Not being edited.                                                                                               |
+| `editing`    | Focused. `initialValue` is the value at focus, `committedValue` the value at the last commit.                   |
+| `checking`   | An asynchronous `onBeforeCommit` is deciding. Typing or a change supersedes it, and its answer is then ignored. |
+| `leaving`    | Tab committed; the blur that follows commits nothing more.                                                      |
+
+Every transition is in `fieldReducer`, a pure reducer. `fieldText(state, format)`, `fieldMessages(state)` and `shownMessages(state)` derive the text and messages from a state.
+
+## Controlled values
+
+A renderer calls `sync(value)` with the app's value on every update. The field adopts it whenever the user is not typing, with no event (validation runs again, silently). While they type it is held, and the first `sync` after the edit ends adopts it, so an app that only listens to `onCommit` never has typing erased. `setValue` and `reset` fire the change chain with `source: "api"`; a `sync` never fires `onChange`.
+
+## See also
+
+- [Validation](/docs/forms-core/validation) for validators, messages and the catalogue.
+- [Forms events](/docs/forms/events) for every event's fields.

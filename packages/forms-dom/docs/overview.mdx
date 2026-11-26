@@ -27,11 +27,13 @@ cancel();
 
 Every export of `@gridkitjs/forms-dom`:
 
-| Export            | Kind     | Description                                                                                                                           |
-| ----------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `scheduleTimeout` | function | The browser's timers as a forms-core [`Schedule`](/docs/forms-core/overview#exports): runs a callback once after a delay, cancelable. |
+| Export                                                | Kind            | Description                                                                                                                           | Page                                           |
+| ----------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `attachTextInput`, `AttachedTextInput`, `TextControl` | function, types | Connects a native `<input>` or `<textarea>` to a forms-core field controller.                                                         | [Text pipeline](/docs/forms-dom/text-pipeline) |
+| `scheduleTimeout`                                     | function        | The browser's timers as a forms-core [`Schedule`](/docs/forms-core/overview#exports): runs a callback once after a delay, cancelable. | This page                                      |
 
 ## See also
 
+- [Text pipeline](/docs/forms-dom/text-pipeline) for connecting a text control to a field.
 - [Forms core overview](/docs/forms-core/overview) for the logic these behaviours attach to.
 - [Forms overview](/docs/forms/overview) for the React components built on them.

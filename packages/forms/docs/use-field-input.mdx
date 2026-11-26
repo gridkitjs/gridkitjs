@@ -1,0 +1,113 @@
+---
+title: "useFieldInput"
+description: "The hook every forms input is built on: binds a native text control to a field's value, events, validation and hidden input."
+---
+
+`useFieldInput(props, kind)` binds a native `<input>` or `<textarea>` to a field: the value and the text being typed, the [events](/docs/forms/events) in their order, controlled and imperative changes, validation, and a hidden input that submits the value under `name`. It renders nothing itself: spread `controlProps` on the control and draw `hiddenInput` beside it. `kind` says how the input reads, writes and submits its value.
+
+<Callout type="note" title="First iteration">
+  This hook is a first iteration and may change before the first release.
+</Callout>
+
+## When to use it
+
+To build an input of your own that behaves like the forms inputs, which are built on it. The control's text belongs to the field, never to React, so the control is uncontrolled: it gets `defaultValue`, and the field writes its text while keeping the caret where the user left it.
+
+## Example
+
+```tsx title="App.tsx"
+import { useId, useRef } from "react";
+import {
+  formatText,
+  textParser,
+  useFieldInput,
+  type FieldInputKind,
+  type InputHandle,
+} from "@gridkitjs/forms";
+
+const text: FieldInputKind<string> = {
+  defaultParse: textParser({ trim: true }),
+  defaultFormat: formatText,
+  serialize: (value) => value,
+};
+
+export function App() {
+  const id = useId();
+  const handle = useRef<InputHandle<string>>(null);
+  const field = useFieldInput(
+    {
+      name: "name",
+      defaultValue: "Ada",
+      validate: (value) => (value === null ? "Enter your name" : null),
+      handleRef: handle,
+    },
+    text,
+  );
+  return (
+    <form>
+      <label htmlFor={id}>Name</label>
+      <input id={id} {...field.controlProps} />
+      {field.hiddenInput}
+      {field.messages.map((message) => (
+        <p key={message.text}>{message.text}</p>
+      ))}
+      <button type="button" onClick={() => handle.current?.reset()}>
+        Reset
+      </button>
+    </form>
+  );
+}
+```
+
+## Props
+
+| Prop                   | Type                                           | Default | Description                                                                               |
+| ---------------------- | ---------------------------------------------- | ------- | ----------------------------------------------------------------------------------------- |
+| `value`                | `V \| null`                                    |         | Present, `null` included, means controlled.                                               |
+| `defaultValue`         | `V \| null`                                    | `null`  | The starting value of an uncontrolled field, and what `reset` returns to.                 |
+| `parse`, `format`      | `Parser<V>`, `Formatter<V>`                    |         | The app's reading and writing; the context holds the input's own, to wrap.                |
+| `validate`             | `Validator<V> \| Validator<V>[]`               |         | Checks the value after every change; a returned string is an error.                       |
+| `name`                 | `string`                                       |         | Submits the value through a hidden input. The visible control never has a `name`.         |
+| `form`                 | `string`                                       |         | The `id` of a `<form>` elsewhere that the value belongs to.                               |
+| `readOnly`, `disabled` | `boolean`                                      |         | Passed to the control; `disabled` disables the hidden input too, so nothing is submitted. |
+| `locale`               | `Intl.LocalesArgument`                         |         | For parsing, formatting and messages.                                                     |
+| `messages`             | `Partial<FormsMessages>`                       |         | Strings laid over the English defaults.                                                   |
+| `ref`                  | `Ref<HTMLInputElement \| HTMLTextAreaElement>` |         | The native control.                                                                       |
+| `handleRef`            | `Ref<InputHandle<V>>`                          |         | The handle below.                                                                         |
+| `onFocus` ... `onBlur` | handlers                                       |         | The nine [events](/docs/forms/events).                                                    |
+
+`kind` is a `FieldInputKind<V>`: `defaultParse` and `defaultFormat` (the input's own reading and writing, which `parse` and `format` can wrap) and `serialize` (the value as its hidden input submits it, the same in every locale; `null` submits `""`). `textParser` and `formatText` are a text input's.
+
+## What it returns
+
+| Field           | Description                                                                                                   |
+| --------------- | ------------------------------------------------------------------------------------------------------------- |
+| `controlProps`  | `ref`, `defaultValue`, `readOnly`, `disabled` and `aria-invalid`, to spread on the control.                   |
+| `hiddenInput`   | `<input type="hidden">` carrying `name`, or `null` without one.                                               |
+| `messages`      | The messages to show: none until the first commit attempt or `revealMessages()`, then live as the user types. |
+| `text`, `state` | The text on screen, and the whole field state (`value`, `draft`, `phase`, ...).                               |
+
+## Behaviour
+
+- **Validity.** The control's custom validity holds the field's first error from the start, shown or not, so a plain `<form>` refuses to submit while the field holds one.
+- **Server rendering.** The control's text and the hidden input's value render on the server, and hydrate without a mismatch.
+- **`StrictMode`** mounts the field twice in development; each event still fires once.
+
+## The handle
+
+`handleRef` gives an `InputHandle<V>`:
+
+| Member                     | Description                                                                    |
+| -------------------------- | ------------------------------------------------------------------------------ |
+| `element`                  | The control, while it is in the page.                                          |
+| `focus(options)`, `blur()` | Moves focus.                                                                   |
+| `getValue()`, `getText()`  | The value and the text on screen.                                              |
+| `setValue(value)`          | `onBeforeChange`, `onChange` and `onValidate` with `source: "api"`; no commit. |
+| `reset()`                  | Back to `defaultValue`, or `null`, the same way.                               |
+| `revealMessages()`         | Shows the field's messages from now on, as a commit attempt would.             |
+
+## See also
+
+- [Events](/docs/forms/events) for every event and its order.
+- [Field state](/docs/forms-core/field-state) for the controller underneath.
+- [Text pipeline](/docs/forms-dom/text-pipeline) for how the control's browser events reach it.
