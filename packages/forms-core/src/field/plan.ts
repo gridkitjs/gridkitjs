@@ -106,7 +106,7 @@ export interface CommitStep<N> {
 
 const ALLOW = { kind: "allow" } as const;
 const PREVENT = { kind: "prevent" } as const;
-export const ACCEPTED = { kind: "accepted" } as const;
+const ACCEPTED = { kind: "accepted" } as const;
 const REFUSED = { kind: "refused" } as const;
 const UNREADABLE = { kind: "unreadable" } as const;
 export const CHECKING = { kind: "checking" } as const;
