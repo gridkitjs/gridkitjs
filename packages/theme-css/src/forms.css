@@ -25,7 +25,6 @@
   --gridkit-font-size: 1em;
   --gridkit-hint-font-size: 0.75rem;
   --gridkit-spacing: 0.25rem;
-  --gridkit-transition-duration: 0.1s;
 
   --gridkit-surface-light: oklch(1 0 0);
   --gridkit-surface-dark: oklch(0.21 0.01 250);
@@ -308,6 +307,13 @@
    * stops at its text. It rises with the field's `is-label-raised`, and
    * while the browser's autofill shows a value it has not handed over yet.
    * In display mode it sits on top, as a top label does.
+   *
+   * It stays in one place, at the control's top, and only its transform
+   * changes: down to the middle of a single-line control at rest, onto the
+   * border and scaled to the hint size (0.75) when raised. A transform
+   * moves without laying the page out again, so the move stays smooth, and
+   * the padding, weight and size of its text never change, so nothing
+   * shifts mid-move; the colour and the background fade alongside.
    */
   .gridkit-forms-field.is-label-floating:not(.is-display)
     > .gridkit-forms-field-control {
@@ -318,20 +324,59 @@
     .gridkit-forms-field-label {
     position: absolute;
     z-index: 1;
-    inset-block-start: 50%;
-    inset-inline-start: calc(var(--gridkit-spacing) * 2);
-    max-inline-size: calc(100% - var(--gridkit-spacing) * 4);
+    inset-block-start: 0;
+    inset-inline-start: var(--gridkit-spacing);
+    max-inline-size: calc(100% - var(--gridkit-spacing) * 2);
     margin: 0;
+    padding-inline: var(--gridkit-spacing);
     overflow: hidden;
-    font-weight: normal;
     line-height: 1.25;
     color: var(--gridkit-fg-muted);
     text-overflow: ellipsis;
     white-space: nowrap;
+    background-color: transparent;
     pointer-events: none;
-    translate: 0 -50%;
-    transition-property: inset-block-start, inset-inline-start, font-size;
-    transition-duration: var(--gridkit-transition-duration);
+    transform: translateY(
+      calc(
+        var(--gridkit-forms-control-height, calc(var(--gridkit-spacing) * 8)) /
+          2 - 50%
+      )
+    );
+    transform-origin: 0 50%;
+    transition-property: transform, color, background-color;
+    transition-duration: var(--gridkit-forms-label-transition-duration, 0.18s);
+    transition-timing-function: ease-out;
+  }
+
+  .gridkit-forms-field.is-label-floating.is-compact:not(.is-display)
+    .gridkit-forms-field-label {
+    transform: translateY(
+      calc(
+        var(
+            --gridkit-forms-control-height-compact,
+            calc(var(--gridkit-spacing) * 6)
+          ) /
+          2 - 50%
+      )
+    );
+  }
+
+  .gridkit-forms-field.is-label-floating.is-comfortable:not(.is-display)
+    .gridkit-forms-field-label {
+    transform: translateY(
+      calc(
+        var(
+            --gridkit-forms-control-height-comfortable,
+            calc(var(--gridkit-spacing) * 10)
+          ) /
+          2 - 50%
+      )
+    );
+  }
+
+  .gridkit-forms-field.is-label-floating:not(.is-display)
+    .gridkit-forms-field-label:dir(rtl) {
+    transform-origin: 100% 50%;
   }
 
   .gridkit-forms-field.is-label-floating:not(.is-display):is(
@@ -339,13 +384,9 @@
       :has(:autofill)
     )
     .gridkit-forms-field-label {
-    inset-block-start: 0;
-    inset-inline-start: var(--gridkit-spacing);
-    padding-inline: var(--gridkit-spacing);
-    font-size: var(--gridkit-hint-font-size);
-    font-weight: 500;
     color: inherit;
     background-color: var(--gridkit-surface);
+    transform: translateY(-50%) scale(0.75);
   }
 
   /* The placeholder shows only once the label is out of its way. */
