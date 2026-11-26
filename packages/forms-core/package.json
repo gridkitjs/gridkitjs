@@ -1,0 +1,58 @@
+{
+  "name": "@gridkitjs/forms-core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Framework-free form-input logic for GridKit: values and drafts, events, parsing, validation and messages.",
+  "license": "MIT",
+  "author": "Blagoja Blazhevski",
+  "homepage": "https://github.com/gridkitjs/gridkitjs#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gridkitjs/gridkitjs.git",
+    "directory": "packages/forms-core"
+  },
+  "keywords": [
+    "forms",
+    "input",
+    "validation",
+    "headless",
+    "typescript",
+    "framework-agnostic"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "publishConfig": {
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
+  }
+}

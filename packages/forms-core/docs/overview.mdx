@@ -1,0 +1,36 @@
+---
+title: "Overview"
+description: "Framework-free form-input logic for GridKit: values and drafts, events, parsing, validation and messages, with no DOM."
+---
+
+@gridkitjs/forms-core holds the logic behind GridKit's form inputs: the value a field holds and the draft being typed, the events an input fires and their order, parsing and formatting, validation and the messages it produces. It has no DOM and no framework, so a field can be driven from a browser, a Node test or any renderer. @gridkitjs/forms-dom attaches it to real controls, and @gridkitjs/forms draws the React components on top.
+
+You only need this package to write a forms renderer of your own. @gridkitjs/forms depends on it, so installing that is enough to use the inputs.
+
+<Callout type="note" title="Not yet published">
+  The forms packages are under development and are not on npm yet.
+</Callout>
+
+## Example
+
+```ts
+import { mostSevere } from "@gridkitjs/forms-core";
+
+// A field showing an info note and an error takes the error's state.
+mostSevere(["info", "error"]); // "error"
+```
+
+## Exports
+
+Every export of `@gridkitjs/forms-core`:
+
+| Export       | Kind     | Description                                                                                                           |
+| ------------ | -------- | --------------------------------------------------------------------------------------------------------------------- |
+| `Severity`   | type     | How serious a message is: `"error"`, `"warning"`, `"info"` or `"success"`. Only `"error"` blocks. Growable.           |
+| `mostSevere` | function | `(severities: Iterable<Severity>) => Severity \| null`: the most serious of the given severities, or `null` for none. |
+| `Schedule`   | type     | `(callback, delay) => cancel`: runs a callback once after a delay. forms-core keeps no timers, so it is handed one.   |
+
+## See also
+
+- [Forms DOM overview](/docs/forms-dom/overview) for the browser behaviours built on this package.
+- [Forms overview](/docs/forms/overview) for the React components.

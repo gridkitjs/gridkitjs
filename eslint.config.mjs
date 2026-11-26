@@ -2,6 +2,17 @@
 import tseslint from "typescript-eslint";
 import reactHooks from "eslint-plugin-react-hooks";
 
+// The packages that make up the grid. No forms package may import one.
+const GRID_PACKAGES = [
+  "@gridkitjs/core",
+  "@gridkitjs/dom",
+  "@gridkitjs/react",
+  "@gridkitjs/export-xlsx",
+];
+
+/** Import patterns matching each package and every subpath of it. */
+const banned = (names) => names.flatMap((name) => [name, `${name}/*`]);
+
 export default tseslint.config(
   {
     // Generated output, plus config files that sit outside any tsconfig
@@ -85,6 +96,31 @@ export default tseslint.config(
                 "@gridkitjs/dom",
               ].flatMap((name) => [name, `${name}/*`]),
               message: "export-xlsx is framework- and DOM-free, see AGENTS.md",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // forms-core runs anywhere a field can be driven from: no DOM (its
+    // tsconfig's `lib`), no framework, and nothing from the workspace.
+    files: ["packages/forms-core/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: banned([
+                "react",
+                "react-dom",
+                ...GRID_PACKAGES,
+                "@gridkitjs/forms-dom",
+                "@gridkitjs/forms",
+              ]),
+              message:
+                "forms-core is framework-, DOM- and grid-free, see AGENTS.md",
             },
           ],
         },
