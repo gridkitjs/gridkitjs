@@ -1,0 +1,123 @@
+---
+title: "Form"
+description: "Form is a <form> whose fields share its settings, which refuses a submit while a field holds an error and focuses the problem."
+---
+
+`Form` draws a `<form>` whose fields share its `mode`, `density`, `labelPosition`, `labelWidth`, `necessityIndicator`, `readOnly` and `disabled`. On a submit it shows every field's messages and refuses the submit while any field holds an error, so neither `onSubmit` nor a React form `action` runs; focus moves to the problem. `enterMovesToNextField` makes Enter move from field to field.
+
+<Callout type="note" title="First iteration">
+  This component is a first iteration and may change before the first release.
+</Callout>
+
+## When to use it
+
+Around every form built from forms components. A plain `<form>` works too, since a field with an error makes its control invalid and the browser refuses the submit, but it shows the browser's own bubble instead of the fields' messages and focuses nothing in a collapsed section.
+
+## Example
+
+```tsx title="App.tsx"
+import { useMemo } from "react";
+import {
+  Field,
+  Form,
+  MessageSummary,
+  formatText,
+  textParser,
+  useField,
+  useFieldInput,
+  type FieldInputKind,
+} from "@gridkitjs/forms";
+import { requiredRule } from "@gridkitjs/forms-core";
+
+const text: FieldInputKind<string> = {
+  defaultParse: textParser(),
+  defaultFormat: formatText,
+  serialize: (value) => value,
+};
+
+function NameInput({ name }: { readonly name: string }) {
+  const { required } = useField();
+  const requireValue = useMemo(() => requiredRule<string>(), []);
+  const field = useFieldInput(
+    { name, required, validate: required ? requireValue : undefined },
+    text,
+  );
+  return (
+    <>
+      <input {...field.controlProps} />
+      {field.hiddenInput}
+    </>
+  );
+}
+
+export function App() {
+  return (
+    <Form
+      aria-label="Customer"
+      enterMovesToNextField
+      action={(formData) => {
+        console.log(formData.get("name"));
+      }}
+    >
+      <MessageSummary />
+      <Field label="Name" required>
+        <NameInput name="name" />
+      </Field>
+      <button type="submit">Save</button>
+    </Form>
+  );
+}
+```
+
+## Props
+
+| Prop                                                        | Type                                                      | Default      | Description                                                                                    |
+| ----------------------------------------------------------- | --------------------------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------- |
+| `mode`                                                      | `"edit" \| "display"`                                     | `"edit"`     | `"display"` shows every field as text.                                                         |
+| `density`                                                   | `"compact" \| "standard" \| "comfortable"`                | `"standard"` | For every field.                                                                               |
+| `labelPosition`, `labelWidth`, `necessityIndicator`         | as on [`Field`](/docs/forms/field#props)                  |              | For every field; `necessityIndicator="none"` removes every required star.                      |
+| `enterMovesToNextField`                                     | `boolean`                                                 | `false`      | Enter moves to the next field instead of submitting (below).                                   |
+| `readOnly`, `disabled`                                      | `boolean`                                                 | `false`      | For every field; a field can add either, never take one away.                                  |
+| `locale`, `messages`                                        | `Intl.LocalesArgument`, `Partial<FormsMessages>`          |              | For every field's strings and formatting.                                                      |
+| `noValidate`                                                | `boolean`                                                 | `false`      | Lets every submit through without checking, for a form library that validates itself.          |
+| `onSubmit`                                                  | `(event: SubmitEvent<HTMLFormElement>) => void`           |              | Called only for a submit the form lets through.                                                |
+| `action`                                                    | `string \| (formData: FormData) => void \| Promise<void>` |              | The form's action: a URL, or a React form action, run only for a submit the form lets through. |
+| `ref`                                                       | `Ref<HTMLFormElement>`                                    |              | The `<form>`.                                                                                  |
+| `id`, `className`, `style`, `aria-label`, `aria-labelledby` |                                                           |              | On the `<form>`.                                                                               |
+
+Settings resolve nearest first: a `Field`, `FormSection`, `Fieldset` or `FormLayout` inside the form overrides the form's, except that `readOnly` and `disabled` set anywhere above stay set.
+
+## Submitting
+
+On a submit, `Form`:
+
+1. Shows every field's messages, as if the user had tried to commit each one.
+2. Looks for the first invalid control in document order: a field showing an error, or a native constraint of a control of your own, such as `required` on an `<input>`.
+3. If it finds one, cancels the submit and moves focus to the form's [`MessageSummary`](/docs/forms/message-summary) if it shows one, or else to that control, opening a collapsed [`FormSection`](/docs/forms/layout#formsection) around it first.
+4. Otherwise lets the submit through to `onSubmit` and `action`.
+
+Warnings, information and success messages never stop a submit. The `<form>` always has `novalidate`, so the browser's own validation bubbles never show. The form's reset button resets every uncontrolled field.
+
+## Keyboard
+
+| Key              | Where                                            | Action                                                                                                                                                                                        |
+| ---------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <Kbd>Enter</Kbd> | A single-line text field, a checkbox or a switch | With `enterMovesToNextField`, moves to the next control a user can change, skipping read-only and disabled ones; from the last, submits. Without it, the browser's own: a text field submits. |
+| <Kbd>Enter</Kbd> | A textarea, a select, a button or a link         | Its own action, whatever the option.                                                                                                                                                          |
+
+Enter with <Kbd>Shift</Kbd>, <Kbd>Ctrl</Kbd>, <Kbd>Alt</Kbd> or <Kbd>Cmd</Kbd>, while an input method is composing, or after a field refused its commit, is left alone.
+
+## Class names
+
+| Class                 | Element  | Description                                                                   |
+| --------------------- | -------- | ----------------------------------------------------------------------------- |
+| `.gridkit-forms-form` | `<form>` | The root, stacking its parts. States: is-display, is-compact, is-comfortable. |
+
+The form's parts are spaced by `--gridkit-forms-row-gap` (four spacing units by default); fields, groups, fieldsets, sections, layouts and the summary take the full width, anything else, such as a button, its own.
+
+## See also
+
+- [Field](/docs/forms/field) for one input with its label and messages.
+- [Layout](/docs/forms/layout) for sections, fieldsets, groups and columns.
+- [Message summary](/docs/forms/message-summary) for a list of every problem.
+- [Form navigation](/docs/forms-dom/form-navigation) for the browser behaviours behind submitting and Enter.

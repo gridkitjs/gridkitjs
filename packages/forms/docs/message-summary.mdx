@@ -1,0 +1,91 @@
+---
+title: "Message summary"
+description: "MessageSummary lists every message the fields of a form show, each a link that focuses its field, with a count per severity."
+---
+
+`MessageSummary` lists every message the fields of its `Form` show, of the chosen `severities`, field by field in the order they come in the page. Each is a link that focuses its field, with a count per severity under a title. A refused submit moves focus to it, so a screen reader reads the number of problems first.
+
+<Callout type="note" title="First iteration">
+  This component is a first iteration and may change before the first release.
+</Callout>
+
+## When to use it
+
+At the top of a long form, where a problem further down, or inside a collapsed section, would otherwise go unseen. It works only inside a `Form`.
+
+## Example
+
+```tsx title="App.tsx"
+import {
+  Field,
+  Form,
+  MessageSummary,
+  formatText,
+  textParser,
+  useFieldInput,
+  type FieldInputKind,
+} from "@gridkitjs/forms";
+
+const text: FieldInputKind<string> = {
+  defaultParse: textParser(),
+  defaultFormat: formatText,
+  serialize: (value) => value,
+};
+
+function TextBox() {
+  const field = useFieldInput({}, text);
+  return <input {...field.controlProps} />;
+}
+
+export function App() {
+  return (
+    <Form aria-label="Credit">
+      <MessageSummary />
+      <Field
+        label="Credit limit"
+        message={{ text: "Above the usual credit limit", severity: "warning" }}
+      >
+        <TextBox />
+      </Field>
+    </Form>
+  );
+}
+```
+
+## Props
+
+| Prop           | Type                    | Default                               | Description                    |
+| -------------- | ----------------------- | ------------------------------------- | ------------------------------ |
+| `title`        | `ReactNode`             | "There are 2 problems with this form" | In place of the counted title. |
+| `headingLevel` | `2 \| 3 \| 4 \| 5 \| 6` | `2`                                   | The heading element.           |
+| `severities`   | `Severity[]`            | `["error", "warning"]`                | Which messages it lists.       |
+| `className`    | `string`                |                                       | On the summary.                |
+
+## Behaviour
+
+- It renders nothing while no field shows a message it lists, and follows every change: a message the user fixes leaves the summary at once.
+- Each link reads "Label: message" and points at its field's control (`href="#id"`). Following it focuses the control, opening a collapsed section around it first; a group's link focuses the group's first input. A field without a label is listed by its message alone.
+- It is a region its title names, and takes focus from code (`tabindex="-1"`), with a focus ring.
+- Its inline-start edge takes the colour of the most serious severity it lists.
+
+## Messages and localization
+
+From `FormsMessages`: `messageSummaryTitle` ("There is 1 problem with this form", "There are 3 problems with this form") and `severityCount` ("1 error", "2 warnings", "1 note", "3 confirmations").
+
+## Class names
+
+| Class                                   | Element       | Description                                                                                           |
+| --------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------- |
+| `.gridkit-forms-message-summary`        | `<div>`       | The region. States: is-error, is-warning, is-info, is-success (its most serious).                     |
+| `.gridkit-forms-message-summary-title`  | `<h2>`…`<h6>` | The title.                                                                                            |
+| `.gridkit-forms-message-summary-counts` | `<p>`         | The counts.                                                                                           |
+| `.gridkit-forms-message-summary-count`  | `<span>`      | One count. States: is-error, is-warning, is-info, is-success.                                         |
+| `.gridkit-forms-message-summary-list`   | `<ul>`        | The messages.                                                                                         |
+| `.gridkit-forms-message-summary-item`   | `<li>`        | One message, with a `.gridkit-forms-message-icon`. States: is-error, is-warning, is-info, is-success. |
+| `.gridkit-forms-message-summary-link`   | `<a>`         | Its link.                                                                                             |
+
+## See also
+
+- [Form](/docs/forms/form) for what a refused submit does.
+- [Field](/docs/forms/field#messages) for the messages a field shows.
+- [Validation](/docs/forms-core/validation) for severities, and the registry the summary reads.
