@@ -119,6 +119,13 @@ says why next to the difference. What the suite already handles:
 - **Pixel widths.** `getBoundingClientRect()` can differ in the fifth
   decimal place for boxes of the same computed width. A test comparing
   widths rounds them first.
+- **An input method.** Playwright drives one only in Chromium, through the
+  DevTools protocol. `support/forms/compose.ts` composes there for real and
+  dispatches the composition's events in Firefox and WebKit, so a forms
+  composition test runs in all three.
+- **Dropping text.** Playwright cannot drag a text selection, and a
+  dispatched `drop` inserts nothing, so a forms drop test dispatches the
+  `beforeinput` and `input` a drop fires.
 
 ### A touch test
 
