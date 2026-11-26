@@ -1236,14 +1236,39 @@
     outline-offset: 2px;
   }
 
+  /* The summary already takes `--gridkit-font-size`, so its title scales from it. */
   .gridkit-forms-message-summary-title {
     margin: 0;
-    font-size: var(
-      --gridkit-forms-section-title-font-size,
-      calc(var(--gridkit-font-size) * 1.125)
-    );
+    font-size: var(--gridkit-forms-section-title-font-size, 1.125em);
     font-weight: var(--gridkit-forms-section-title-font-weight, 600);
     line-height: 1.3;
+  }
+
+  /*
+   * `--gridkit-font-size` may be relative to the parent (a preset sets
+   * `0.875em`), so only the outermost forms element takes it: one inside
+   * another keeps the size it inherits rather than shrinking it again, and
+   * a section title inside a form scales from the form's size.
+   */
+  :where(
+      .gridkit-forms-form,
+      .gridkit-forms-field,
+      .gridkit-forms-text-input,
+      .gridkit-forms-search-input,
+      .gridkit-forms-message-summary
+    )
+    :is(
+      .gridkit-forms-form,
+      .gridkit-forms-field,
+      .gridkit-forms-text-input,
+      .gridkit-forms-search-input,
+      .gridkit-forms-message-summary
+    ) {
+    font-size: inherit;
+  }
+
+  .gridkit-forms-form .gridkit-forms-section-title {
+    font-size: var(--gridkit-forms-section-title-font-size, 1.125em);
   }
 
   .gridkit-forms-message-summary-counts {
