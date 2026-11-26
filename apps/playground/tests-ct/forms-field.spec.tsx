@@ -15,11 +15,12 @@ function email(root: MountResult) {
   return root.getByRole("textbox", { name: "Email" });
 }
 
-/** The label's font size in pixels: the hint size once a floating label rises. */
-async function labelFontSize(root: MountResult): Promise<string> {
-  return root
-    .locator(".gridkit-forms-field-label")
-    .evaluate((label) => getComputedStyle(label).fontSize);
+/** The label's scale, from its transform: 0.75 once a floating label rises. */
+async function labelScale(root: MountResult): Promise<number> {
+  return root.locator(".gridkit-forms-field-label").evaluate((label) => {
+    const { transform } = getComputedStyle(label);
+    return transform === "none" ? 1 : new DOMMatrixReadOnly(transform).a;
+  });
 }
 
 const POSITIONS: readonly LabelPosition[] = [
@@ -174,15 +175,25 @@ test.describe("A floating label", () => {
   }) => {
     const root = await mount(<FieldHarness labelPosition="floating" />);
     await expect(field(root)).not.toHaveClass(/\bis-label-raised\b/);
-    const resting = await labelFontSize(root);
+    expect(await labelScale(root)).toBe(1);
 
     await email(root).focus();
     await expect(field(root)).toHaveClass(/\bis-label-raised\b/);
-    await expect.poll(() => labelFontSize(root)).toBe("12px");
+    await expect.poll(() => labelScale(root)).toBe(0.75);
+    // Raised, it sits across the control's top edge.
+    const label = await root
+      .locator(".gridkit-forms-field-label")
+      .boundingBox();
+    const control = await email(root).boundingBox();
+    expect(label).not.toBeNull();
+    expect(control).not.toBeNull();
+    if (label !== null && control !== null) {
+      expect(Math.abs(label.y + label.height / 2 - control.y)).toBeLessThan(1);
+    }
 
     await root.getByRole("textbox", { name: "Next" }).focus();
     await expect(field(root)).not.toHaveClass(/\bis-label-raised\b/);
-    await expect.poll(() => labelFontSize(root)).toBe(resting);
+    await expect.poll(() => labelScale(root)).toBe(1);
   });
 
   test("stays up while the field holds typed text", async ({ mount }) => {
@@ -230,19 +241,29 @@ test.describe("A floating label", () => {
     await expect.poll(placeholderOpacity).not.toBe("0");
   });
 
-  test("moves with a transition, and without one under reduced motion", async ({
+  test("moves by a transition of its transform, and without one under reduced motion", async ({
     mount,
     page,
   }) => {
     const root = await mount(<FieldHarness labelPosition="floating" />);
-    const duration = () =>
-      root
-        .locator(".gridkit-forms-field-label")
-        .evaluate((label) => getComputedStyle(label).transitionDuration);
-    expect(await duration()).not.toBe("0s");
+    const transition = () =>
+      root.locator(".gridkit-forms-field-label").evaluate((label) => {
+        const style = getComputedStyle(label);
+        return {
+          properties: style.transitionProperty.split(/,\s*/),
+          seconds: Math.max(
+            ...style.transitionDuration
+              .split(/,\s*/)
+              .map((duration) => parseFloat(duration)),
+          ),
+        };
+      });
+    const moving = await transition();
+    expect(moving.properties).toContain("transform");
+    expect(moving.seconds).toBeGreaterThan(0);
 
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await expect.poll(duration).toBe("0s");
+    await expect.poll(async () => (await transition()).seconds).toBe(0);
   });
 });
 
