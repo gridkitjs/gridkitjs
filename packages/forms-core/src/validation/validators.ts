@@ -4,6 +4,7 @@ import {
   type FieldMessageInput,
 } from "../messages/fieldMessage";
 import type { FormsMessages } from "../messages/formsMessages";
+import { countCharacters } from "../text";
 
 /** What a validator knows beside the value. */
 export interface ValidatorContext {
@@ -28,15 +29,6 @@ export type Validator<V> = (
   context: ValidatorContext,
 ) => ValidationResult;
 
-/**
- * Counts code points: closer to "characters" than UTF-16 units, and how
- * databases count a `VARCHAR`. A simple emoji is one; a composed one (a
- * family, a flag) is several, as a database would count it.
- */
-function length(text: string): number {
-  return Array.from(text).length;
-}
-
 /** `null`, or a string of only whitespace, is `messages.required`. */
 export function requiredRule<V>(): Validator<V> {
   return (value, { messages }) =>
@@ -48,7 +40,7 @@ export function requiredRule<V>(): Validator<V> {
 /** Fewer than `min` code points is `messages.tooShort`. `null` passes. */
 export function minLengthRule(min: number): Validator<string> {
   return (value, { messages }) =>
-    value !== null && length(value) < min
+    value !== null && countCharacters(value) < min
       ? { text: messages.tooShort(min), code: "tooShort" }
       : null;
 }
@@ -56,7 +48,7 @@ export function minLengthRule(min: number): Validator<string> {
 /** More than `max` code points is `messages.tooLong`. `null` passes. */
 export function maxLengthRule(max: number): Validator<string> {
   return (value, { messages }) =>
-    value !== null && length(value) > max
+    value !== null && countCharacters(value) > max
       ? { text: messages.tooLong(max), code: "tooLong" }
       : null;
 }
