@@ -1,5 +1,31 @@
 // Form-input logic shared by every GridKit forms renderer: no DOM, no
 // framework, and nothing from the grid packages.
+export type {
+  ChangeSource,
+  CommitTrigger,
+  FieldBeforeChangeEvent,
+  FieldBeforeCommitEvent,
+  FieldBeforeInputEvent,
+  FieldChangeEvent,
+  FieldCommitEvent,
+  FieldEventBase,
+  FieldFocusEvent,
+  FieldHandlers,
+  FieldInputEvent,
+  FieldValidateEvent,
+  NoDetails,
+  TextInputDetails,
+} from "./field/events";
+export { fieldReducer, type FieldAction } from "./field/fieldReducer";
+export {
+  fieldMessages,
+  fieldText,
+  shownMessages,
+  type FieldDraft,
+  type FieldPhase,
+  type FieldState,
+  type TextReading,
+} from "./field/state";
 export {
   hasError,
   sortFieldMessages,

@@ -25,8 +25,9 @@ and into the docs as described under [Docs](#docs).
 
 ## State and teardown
 
-| Machine | File | States | Tests |
-| ------- | ---- | ------ | ----- |
+| Machine        | File                        | States                                                                            | Tests                            |
+| -------------- | --------------------------- | --------------------------------------------------------------------------------- | -------------------------------- |
+| `fieldReducer` | `src/field/fieldReducer.ts` | a `FieldPhase`: `idle`, `editing`, `checking` (async `onBeforeCommit`), `leaving` | `src/field/fieldReducer.test.ts` |
 
 The convention is in the root [State](../../AGENTS.md#state) section: a
 lifecycle is one union tagged `kind`, every transition in one reducer, tested
