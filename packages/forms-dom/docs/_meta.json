@@ -1,3 +1,9 @@
 {
-  "order": ["overview", "text-pipeline", "auto-grow", "form-navigation"]
+  "order": [
+    "overview",
+    "text-pipeline",
+    "auto-grow",
+    "toggles",
+    "form-navigation"
+  ]
 }

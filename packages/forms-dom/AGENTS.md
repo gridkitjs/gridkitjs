@@ -37,6 +37,11 @@ holds on every exit, through the `detach` or `destroy` it returns.
 own lifecycle is the forms-core controller's. Its listeners share one
 `AbortController`, so `detach` removes them all at once.
 
+`attachToggle` (`src/toggle/attachToggle.ts`) holds its listeners and the
+Space `keydown` whose `click` is coming, cleared by that click, a pointer
+press or blur; its `detach` removes the listeners. `forms-checkbox.spec.tsx`
+and `forms-switch.spec.tsx` cover it.
+
 `attachEnterNavigation` (`src/form/formControls.ts`) holds one `keydown`
 listener on the form and no state; its `detach` removes it.
 
