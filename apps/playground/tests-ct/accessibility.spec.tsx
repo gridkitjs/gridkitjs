@@ -6,10 +6,11 @@ import type React from "react";
 import type { Page } from "@playwright/test";
 import type { MountResult } from "@playwright/experimental-ct-react";
 import { DataGrid, type DataGridProps } from "@gridkitjs/react";
-import { expectNoAxeViolations } from "./support/axe";
+import { expectNoAxeViolations, FORMS_SCOPE } from "./support/axe";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
 import ContextMenuGrid from "./support/ContextMenuGrid";
+import FieldHarness from "./support/forms/FieldHarness";
 import HeaderTextGrid from "./support/HeaderTextGrid";
 import RightToLeft from "./support/RightToLeft";
 import ToolbarGrid from "./support/ToolbarGrid";
@@ -809,6 +810,54 @@ for (const palette of ["gridkit-light", "gridkit-dark"]) {
       );
       await prepare?.(root, page);
       await expectNoAxeViolations(page);
+    });
+  }
+}
+
+const fieldScans: readonly {
+  readonly name: string;
+  readonly field: () => React.JSX.Element;
+}[] = [
+  ...(["error", "warning", "info", "success"] as const).map((severity) => ({
+    name: `a field with ${severity === "info" ? "an" : "a"} ${severity} message`,
+    field: () => (
+      <FieldHarness
+        description="Your work address"
+        message={{ text: `A ${severity} message`, severity }}
+        required
+      />
+    ),
+  })),
+  {
+    name: "a field with a floating label, at rest",
+    field: () => <FieldHarness labelPosition="floating" />,
+  },
+  {
+    name: "a field in display mode",
+    field: () => (
+      <FieldHarness label="Name" mode="display" defaultValue="Ada Lovelace" />
+    ),
+  },
+];
+
+for (const palette of ["gridkit-light", "gridkit-dark"]) {
+  for (const { name, field } of fieldScans) {
+    test(`an axe scan of ${name} finds no violations under .${palette}`, async ({
+      mount,
+      page,
+    }) => {
+      await mount(
+        <div
+          className={palette}
+          style={{
+            color: "var(--gridkit-fg)",
+            backgroundColor: "var(--gridkit-surface)",
+          }}
+        >
+          {field()}
+        </div>,
+      );
+      await expectNoAxeViolations(page, FORMS_SCOPE);
     });
   }
 }

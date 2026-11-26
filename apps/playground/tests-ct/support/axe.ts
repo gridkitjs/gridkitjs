@@ -8,6 +8,9 @@ import { expect } from "./coverage";
  */
 const GRID_SCOPE = [".gridkit-data-grid-viewport", ".gridkit-overlay"];
 
+/** Every forms field on the page. */
+export const FORMS_SCOPE = [".gridkit-forms-field"];
+
 /**
  * Runs axe with its default rules over every element `scope` matches, and
  * fails naming each violated rule and the elements that break it. A selector
