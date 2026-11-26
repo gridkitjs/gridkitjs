@@ -54,9 +54,9 @@ export function useField(): UseFieldResult {
 
   const reportMessages = useCallback(
     (messages: FieldMessageInput | readonly FieldMessageInput[] | null) => {
-      setControlMessages?.(toFieldMessages(messages, "app"));
+      setControlMessages?.(ownId, toFieldMessages(messages, "app"));
     },
-    [setControlMessages],
+    [setControlMessages, ownId],
   );
   const reportControlState = useCallback(
     (state: FieldControlState) => {

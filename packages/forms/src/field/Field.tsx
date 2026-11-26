@@ -1,10 +1,4 @@
-import {
-  mostSevere,
-  sortFieldMessages,
-  toFieldMessages,
-  type FieldMessage,
-  type FieldMessageInput,
-} from "@gridkitjs/forms-core";
+import { mostSevere, type FieldMessageInput } from "@gridkitjs/forms-core";
 import {
   useEffect,
   useId,
@@ -15,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { warnOnce } from "../dev";
+import { useSummaryEntry } from "../form/formContext";
 import {
   FormSettingsProvider,
   useResolvedSettings,
@@ -25,10 +20,19 @@ import {
 } from "../settings";
 import {
   FieldContext,
+  useControlMessages,
   type FieldContextValue,
   type FieldControlState,
 } from "./fieldContext";
 import { FieldMessages } from "./FieldMessages";
+import {
+  classNames,
+  NecessityMarker,
+  spanClass,
+  useShownMessages,
+  withLabelWidth,
+  type FieldSpan,
+} from "./parts";
 
 export interface FieldProps {
   /**
@@ -51,6 +55,8 @@ export interface FieldProps {
   readonly mode?: FieldMode | undefined;
   readonly readOnly?: boolean | undefined;
   readonly disabled?: boolean | undefined;
+  /** Columns taken in a `FormLayout`. */
+  readonly span?: FieldSpan | undefined;
   /** The control's `id`; one is generated without it. */
   readonly id?: string | undefined;
   /** On the field's root. */
@@ -59,8 +65,6 @@ export interface FieldProps {
   /** One input: a forms input, or the app's own through `useField`. */
   readonly children?: ReactNode;
 }
-
-const NO_MESSAGES: readonly FieldMessage[] = [];
 
 /** Whether a floating label sits above the control rather than inside it. */
 function isRaised(state: FieldControlState | null, mode: FieldMode): boolean {
@@ -82,7 +86,8 @@ function isRaised(state: FieldControlState | null, mode: FieldMode): boolean {
  *
  * The messages shown are the app's (`message`) and the input's own shown
  * ones, most serious first; the most serious sets the field's severity
- * class. A disabled field shows only the app's.
+ * class. A disabled field shows only the app's. Inside a `Form` they are
+ * listed in its `MessageSummary`.
  */
 export function Field({
   label,
@@ -96,6 +101,7 @@ export function Field({
   mode,
   readOnly,
   disabled,
+  span,
   id,
   className,
   style,
@@ -117,19 +123,11 @@ export function Field({
   const hasLabel = label !== undefined && label !== null;
   const hasDescription = description !== undefined && description !== null;
 
-  const [controlMessages, setControlMessages] =
-    useState<readonly FieldMessage[]>(NO_MESSAGES);
+  const [controlMessages, setControlMessages] = useControlMessages();
   const [controlState, setControlState] = useState<FieldControlState | null>(
     null,
   );
-  const shown = useMemo(
-    () =>
-      sortFieldMessages([
-        ...(settings.disabled ? NO_MESSAGES : controlMessages),
-        ...toFieldMessages(message, "app"),
-      ]),
-    [settings.disabled, controlMessages, message],
-  );
+  const shown = useShownMessages(controlMessages, message, settings.disabled);
   const severity = mostSevere(
     shown.map((shownMessage) => shownMessage.severity),
   );
@@ -147,7 +145,7 @@ export function Field({
       setControlMessages,
       setControlState,
     }),
-    [controlId, settings, describedBy, required, severity],
+    [controlId, settings, describedBy, required, severity, setControlMessages],
   );
 
   // Marked when either the field or its input asks for a value.
@@ -158,6 +156,7 @@ export function Field({
     position === "floating" && isRaised(controlState, settings.mode);
 
   const root = useRef<HTMLDivElement>(null);
+  useSummaryEntry(controlId, hasLabel ? label : null, shown, root);
   useEffect(() => {
     if (hasLabel || display) {
       return;
@@ -176,20 +175,17 @@ export function Field({
     }
   }, [hasLabel, display, controlId]);
 
-  const marker =
-    marked && settings.necessityIndicator === "required" ? (
-      <span className="gridkit-forms-field-required" aria-hidden="true">
-        *
-      </span>
-    ) : !marked && settings.necessityIndicator === "optional" ? (
-      <span className="gridkit-forms-field-optional">
-        {` (${settings.messages.optional})`}
-      </span>
-    ) : null;
-  const labelClass =
-    position === "hidden"
-      ? "gridkit-forms-field-label gridkit-forms-sr-only"
-      : "gridkit-forms-field-label";
+  const marker = (
+    <NecessityMarker
+      required={marked}
+      indicator={settings.necessityIndicator}
+      strings={settings.messages}
+    />
+  );
+  const labelClass = classNames(
+    "gridkit-forms-field-label",
+    position === "hidden" && "gridkit-forms-sr-only",
+  );
   // In display mode there is no control for a <label> to point at.
   const labelElement = !hasLabel ? null : display ? (
     <span className={labelClass} id={labelId}>
@@ -204,33 +200,23 @@ export function Field({
   );
   const labelInside = position === "floating" && !display;
 
-  const classes = [
-    "gridkit-forms-field",
-    `is-label-${position}`,
-    raised && "is-label-raised",
-    marked && "is-required",
-    severity !== null && `is-${severity}`,
-    settings.disabled && "is-disabled",
-    settings.readOnly && "is-readonly",
-    display && "is-display",
-    settings.density !== "standard" && `is-${settings.density}`,
-    className,
-  ]
-    .filter(Boolean)
-    .join(" ");
-
   return (
     <div
       ref={root}
-      className={classes}
-      style={
-        labelWidth === undefined
-          ? style
-          : ({
-              ...style,
-              "--gridkit-forms-label-width": labelWidth,
-            } as CSSProperties)
-      }
+      className={classNames(
+        "gridkit-forms-field",
+        `is-label-${position}`,
+        raised && "is-label-raised",
+        marked && "is-required",
+        severity !== null && `is-${severity}`,
+        settings.disabled && "is-disabled",
+        settings.readOnly && "is-readonly",
+        display && "is-display",
+        settings.density !== "standard" && `is-${settings.density}`,
+        spanClass(span),
+        className,
+      )}
+      style={withLabelWidth(style, labelWidth)}
       role={display && hasLabel ? "group" : undefined}
       aria-labelledby={display && hasLabel ? labelId : undefined}
       aria-describedby={display ? describedBy : undefined}

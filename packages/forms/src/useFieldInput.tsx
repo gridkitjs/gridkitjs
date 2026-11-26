@@ -36,6 +36,8 @@ import {
 import { DisplayValue } from "./DisplayValue";
 import type { FieldHandlers } from "./events";
 import { useFieldContext } from "./field/fieldContext";
+import { useFormContext } from "./form/formContext";
+import { setRef } from "./refs";
 import { useFormSettings, type FieldMode } from "./settings";
 
 /** What an input does from code: focus it, read it, change it. */
@@ -170,25 +172,6 @@ function validatorsOf<V>(
   return typeof validate === "function" ? [validate] : validate;
 }
 
-/** Points `ref` at `element`, and returns what lets go of it again. */
-function setRef<T>(ref: Ref<T> | undefined, element: T): (() => void) | null {
-  if (typeof ref === "function") {
-    const cleanup = ref(element);
-    return typeof cleanup === "function"
-      ? cleanup
-      : () => {
-          ref(null);
-        };
-  }
-  if (ref === undefined || ref === null) {
-    return null;
-  }
-  ref.current = element;
-  return () => {
-    ref.current = null;
-  };
-}
-
 /**
  * Binds a native text control to a field: the value and draft model, the
  * events in their order, controlled and imperative changes, validation and
@@ -214,7 +197,9 @@ export function useFieldInput<
   D extends object = NoDetails,
 >(props: FieldInputProps<V, E, D>, kind: FieldInputKind<V>): FieldInput<V, E> {
   const field = useFieldContext();
+  const form = useFormContext();
   const formSettings = useFormSettings();
+  const ownId = useId();
   const settings = field?.settings ?? formSettings;
   const readOnly = props.readOnly === true || settings.readOnly;
   const disabled = props.disabled === true || settings.disabled;
@@ -271,6 +256,10 @@ export function useFieldInput<
     },
     [controller],
   );
+  useLayoutEffect(
+    () => form?.registry.addRevealer(controller.reveal),
+    [form, controller],
+  );
 
   // The control in state, not a ref, so that a new `ref` prop rebinds the
   // app's ref without detaching the pipeline mid-edit.
@@ -323,11 +312,11 @@ export function useFieldInput<
     if (setControlMessages === undefined) {
       return undefined;
     }
-    setControlMessages(shown);
+    setControlMessages(ownId, shown);
     return () => {
-      setControlMessages(NO_MESSAGES);
+      setControlMessages(ownId, NO_MESSAGES);
     };
-  }, [setControlMessages, shown]);
+  }, [setControlMessages, ownId, shown]);
 
   const setControlState = field?.setControlState;
   const focused = isFocused(state.phase);
@@ -343,7 +332,6 @@ export function useFieldInput<
     };
   }, [setControlState, focused, empty, required]);
 
-  const ownId = useId();
   return {
     state,
     text,
