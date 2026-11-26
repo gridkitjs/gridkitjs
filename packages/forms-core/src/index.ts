@@ -1,5 +1,10 @@
 // Form-input logic shared by every GridKit forms renderer: no DOM, no
 // framework, and nothing from the grid packages.
+export {
+  createFieldController,
+  type FieldController,
+  type FieldOptions,
+} from "./field/createFieldController";
 export type {
   ChangeSource,
   CommitTrigger,
@@ -17,6 +22,12 @@ export type {
   TextInputDetails,
 } from "./field/events";
 export { fieldReducer, type FieldAction } from "./field/fieldReducer";
+export type {
+  BeforeInputDecision,
+  ChangeCause,
+  CommitOutcome,
+  TextEdit,
+} from "./field/plan";
 export {
   fieldMessages,
   fieldText,
