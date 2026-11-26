@@ -111,7 +111,7 @@ While an input method composes (Chinese, Japanese, Korean, Vietnamese Telex), ev
 - **`onBeforeInput`**: `preventDefault()` stops the edit, and `setData(data)` inserts `data` in place of what was typed, pasted or dropped. An inserted rewrite stays undoable. Neither works while an input method composes (`cancelable` is false).
 - **`onBeforeChange`**: `preventDefault()` keeps the value, and the typed text is put back with its selection; `setValue(value)` changes to another value instead.
 - **`onBeforeCommit`**: `preventDefault(message)` refuses the commit and shows `message` as an error. It may return a promise: the commit waits for it, and so does the `onBlur` of a field being left. A refusal keeps focus only for <Kbd>Enter</Kbd>, and for <Kbd>Tab</Kbd> when it refuses at once; after a click elsewhere focus has gone, and the message shows on the field.
-- **`parse` and `format`** receive the input's own reading and writing in their context, to wrap:
+- **`parse` and `format`** receive the input's own reading and writing in their context, to wrap. `format`'s context also says what the text is for: `purpose` is `"edit"` while the field has focus and `"display"` otherwise, so a number input writes plain digits to type into and grouped digits to read. The events carry the text for their moment: `onFocus` and a commit by <Kbd>Enter</Kbd> the edit form, a commit by a click elsewhere and `onBlur` the display form.
 
 ```tsx title="App.tsx"
 import {
