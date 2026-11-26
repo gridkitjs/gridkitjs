@@ -16,7 +16,7 @@ To build an input of your own that behaves like the forms inputs, which are buil
 ## Example
 
 ```tsx title="App.tsx"
-import { useId, useRef } from "react";
+import { useRef } from "react";
 import {
   formatText,
   textParser,
@@ -32,7 +32,6 @@ const text: FieldInputKind<string> = {
 };
 
 export function App() {
-  const id = useId();
   const handle = useRef<InputHandle<string>>(null);
   const field = useFieldInput(
     {
@@ -45,8 +44,8 @@ export function App() {
   );
   return (
     <form>
-      <label htmlFor={id}>Name</label>
-      <input id={id} {...field.controlProps} />
+      <label htmlFor={field.controlProps.id}>Name</label>
+      <input {...field.controlProps} />
       {field.hiddenInput}
       {field.messages.map((message) => (
         <p key={message.text}>{message.text}</p>
@@ -61,34 +60,39 @@ export function App() {
 
 ## Props
 
-| Prop                   | Type                                           | Default | Description                                                                               |
-| ---------------------- | ---------------------------------------------- | ------- | ----------------------------------------------------------------------------------------- |
-| `value`                | `V \| null`                                    |         | Present, `null` included, means controlled.                                               |
-| `defaultValue`         | `V \| null`                                    | `null`  | The starting value of an uncontrolled field, and what `reset` returns to.                 |
-| `parse`, `format`      | `Parser<V>`, `Formatter<V>`                    |         | The app's reading and writing; the context holds the input's own, to wrap.                |
-| `validate`             | `Validator<V> \| Validator<V>[]`               |         | Checks the value after every change; a returned string is an error.                       |
-| `name`                 | `string`                                       |         | Submits the value through a hidden input. The visible control never has a `name`.         |
-| `form`                 | `string`                                       |         | The `id` of a `<form>` elsewhere that the value belongs to.                               |
-| `readOnly`, `disabled` | `boolean`                                      |         | Passed to the control; `disabled` disables the hidden input too, so nothing is submitted. |
-| `locale`               | `Intl.LocalesArgument`                         |         | For parsing, formatting and messages.                                                     |
-| `messages`             | `Partial<FormsMessages>`                       |         | Strings laid over the English defaults.                                                   |
-| `ref`                  | `Ref<HTMLInputElement \| HTMLTextAreaElement>` |         | The native control.                                                                       |
-| `handleRef`            | `Ref<InputHandle<V>>`                          |         | The handle below.                                                                         |
-| `onFocus` ... `onBlur` | handlers                                       |         | The nine [events](/docs/forms/events).                                                    |
+| Prop                   | Type                                           | Default   | Description                                                                                |
+| ---------------------- | ---------------------------------------------- | --------- | ------------------------------------------------------------------------------------------ |
+| `value`                | `V \| null`                                    |           | Present, `null` included, means controlled.                                                |
+| `defaultValue`         | `V \| null`                                    | `null`    | The starting value of an uncontrolled field, and what `reset` returns to.                  |
+| `parse`, `format`      | `Parser<V>`, `Formatter<V>`                    |           | The app's reading and writing; the context holds the input's own, to wrap.                 |
+| `validate`             | `Validator<V> \| Validator<V>[]`               |           | Checks the value after every change; a returned string is an error.                        |
+| `name`                 | `string`                                       |           | Submits the value through a hidden input. The visible control never has a `name`.          |
+| `form`                 | `string`                                       |           | The `id` of a `<form>` elsewhere that the value belongs to.                                |
+| `readOnly`, `disabled` | `boolean`                                      |           | Passed to the control; `disabled` disables the hidden input too, so nothing is submitted.  |
+| `mode`                 | `"edit" \| "display"`                          |           | `"display"` shows the value as text; a `Field` or form around the input sets it otherwise. |
+| `id`                   | `string`                                       | generated | The control's `id` outside a [`Field`](/docs/forms/field); inside one, the field's.        |
+| `locale`               | `Intl.LocalesArgument`                         |           | For parsing, formatting and messages.                                                      |
+| `messages`             | `Partial<FormsMessages>`                       |           | Strings laid over the English defaults.                                                    |
+| `ref`                  | `Ref<HTMLInputElement \| HTMLTextAreaElement>` |           | The native control.                                                                        |
+| `handleRef`            | `Ref<InputHandle<V>>`                          |           | The handle below.                                                                          |
+| `onFocus` ... `onBlur` | handlers                                       |           | The nine [events](/docs/forms/events).                                                     |
 
 `kind` is a `FieldInputKind<V>`: `defaultParse` and `defaultFormat` (the input's own reading and writing, which `parse` and `format` can wrap) and `serialize` (the value as its hidden input submits it, the same in every locale; `null` submits `""`). `textParser` and `formatText` are a text input's.
 
 ## What it returns
 
-| Field           | Description                                                                                                   |
-| --------------- | ------------------------------------------------------------------------------------------------------------- |
-| `controlProps`  | `ref`, `defaultValue`, `readOnly`, `disabled` and `aria-invalid`, to spread on the control.                   |
-| `hiddenInput`   | `<input type="hidden">` carrying `name`, or `null` without one.                                               |
-| `messages`      | The messages to show: none until the first commit attempt or `revealMessages()`, then live as the user types. |
-| `text`, `state` | The text on screen, and the whole field state (`value`, `draft`, `phase`, ...).                               |
+| Field                  | Description                                                                                                                            |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `controlProps`         | `ref`, `id`, `defaultValue`, `readOnly`, `disabled`, `aria-invalid`, `aria-describedby` and `aria-required`, to spread on the control. |
+| `mode`, `displayValue` | The mode in effect, and the value as text to draw in place of the control in display mode.                                             |
+| `hiddenInput`          | `<input type="hidden">` carrying `name`, or `null` without one.                                                                        |
+| `messages`             | The messages to show: none until the first commit attempt or `revealMessages()`, then live as the user types.                          |
+| `text`, `state`        | The text on screen, and the whole field state (`value`, `draft`, `phase`, ...).                                                        |
 
 ## Behaviour
 
+- **Inside a [`Field`](/docs/forms/field)** the control takes the field's `id`, description, and required and invalid states, `readOnly`, `disabled` and `mode` set on the field or the form win, and the field lists the input's messages and floats its label from the control's focus and text. Draw the messages yourself only outside a field.
+- **Disabled.** A disabled field is not validated: it shows none of its own messages.
 - **Validity.** The control's custom validity holds the field's first error from the start, shown or not, so a plain `<form>` refuses to submit while the field holds one.
 - **Server rendering.** The control's text and the hidden input's value render on the server, and hydrate without a mismatch.
 - **`StrictMode`** mounts the field twice in development; each event still fires once.

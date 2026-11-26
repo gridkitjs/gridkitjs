@@ -12,6 +12,19 @@ export type {
   FieldInputEvent,
   FieldValidateEvent,
 } from "./events";
+export { Field, type FieldProps } from "./field/Field";
+export type { FieldControlState } from "./field/fieldContext";
+export {
+  useField,
+  type FieldControlProps,
+  type UseFieldResult,
+} from "./field/useField";
+export type {
+  Density,
+  FieldMode,
+  LabelPosition,
+  NecessityIndicator,
+} from "./settings";
 export {
   useFieldInput,
   type FieldControlBinding,
