@@ -1,3 +1,4 @@
+import { localeKey } from "../localeKey";
 import type { Severity } from "./severity";
 
 /**
@@ -68,15 +69,6 @@ export interface FormsMessages {
 }
 
 type CountFormat = (count: number) => string;
-
-function localeKey(locale: Intl.LocalesArgument): string {
-  if (locale === undefined) {
-    return "";
-  }
-  return typeof locale === "string" || locale instanceof Intl.Locale
-    ? String(locale)
-    : locale.map(String).join(",");
-}
 
 /**
  * Count formats already built, one per locale: building an
