@@ -376,9 +376,10 @@ test.describe("Checkbox", () => {
       );
       await expect(box(root)).toHaveCSS("border-top-color", color);
 
-      await checkbox(root).focus();
+      // From the keyboard, so the ring shows as for :focus-visible.
+      await root.getByRole("textbox", { name: "Next" }).focus();
       await page.keyboard.press("Shift+Tab");
-      await page.keyboard.press("Tab");
+      await expect(checkbox(root)).toBeFocused();
       await expect(box(root)).toHaveCSS("outline-style", "solid");
       await expect(box(root)).toHaveCSS("outline-color", color);
     });
