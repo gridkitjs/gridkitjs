@@ -1,4 +1,5 @@
 import { FormsPlayground } from "../src/forms/FormsPlayground";
+import presetIndex from "@gridkitjs/theme-tailwind/presets/index.json" with { type: "json" };
 import { expect, test } from "./support/coverage";
 import { typeInto } from "./support/forms/typeInto";
 
@@ -258,6 +259,8 @@ test.describe("forms playground page", () => {
     await form.getByRole("button", { name: "Save" }).click();
     await expect(summary).toBeFocused();
     await expect(summary).toContainText("Contact: Enter a value");
+    await expect(summary).toContainText("Reference: Enter a reference");
+    await expect(rows.filter({ hasText: "onReveal" })).toHaveCount(1);
 
     await summary.getByRole("link", { name: /^Credit limit/ }).click();
     await expect(
@@ -270,6 +273,7 @@ test.describe("forms playground page", () => {
       form.getByRole("textbox", { name: "Email" }),
       "ada@example.com",
     );
+    await form.getByRole("textbox", { name: "Reference" }).fill("PO-7");
     await typeInto(form.getByRole("textbox", { name: "Street" }), "Main 1");
     await typeInto(form.getByRole("textbox", { name: "Postal code" }), "1011");
     await typeInto(form.getByRole("textbox", { name: "City" }), "Amsterdam");
@@ -278,5 +282,64 @@ test.describe("forms playground page", () => {
     await expect(rows.filter({ hasText: "onSubmit" })).toContainText(
       "Amsterdam",
     );
+  });
+
+  test("the page's locale and density reach every component", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<FormsPlayground />);
+    const title = root
+      .locator(".gridkit-forms-field")
+      .filter({ has: page.getByRole("textbox", { name: "Title" }) });
+
+    await root.getByLabel("Locale").selectOption("ar-EG");
+    await expect(title.locator(".gridkit-forms-text-input-counter")).toHaveText(
+      "١٦/٢٠",
+    );
+
+    await root.getByLabel("Density").selectOption("comfortable");
+    await expect(
+      root.getByRole("form", { name: "Customer order" }),
+    ).toHaveClass(/\bis-comfortable\b/);
+    // Every field takes the page's density but the "Each density" states,
+    // which fix their own: a compact and a standard one per input.
+    await expect(
+      root.locator(".gridkit-forms-field:not(.is-comfortable)"),
+    ).toHaveCount(6);
+  });
+
+  test("shows no console error under any preset, scheme, direction or mode", async ({
+    mount,
+    page,
+  }) => {
+    const errors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") {
+        errors.push(message.text());
+      }
+    });
+    page.on("pageerror", (error) => {
+      errors.push(error.message);
+    });
+    const root = await mount(<FormsPlayground />);
+    const controls = root.getByLabel("Page controls");
+
+    for (const preset of presetIndex.presets) {
+      await controls.getByLabel("Preset").selectOption(preset.id);
+      for (const scheme of ["light", "dark"]) {
+        await controls.getByLabel("Colour scheme").selectOption(scheme);
+        await expect(page.locator("html")).toContainClass(`gridkit-${scheme}`);
+      }
+    }
+    await controls.getByLabel("Right to left").check();
+    await controls.getByLabel("Mode").selectOption("display");
+    await controls.getByLabel("Mode").selectOption("edit");
+    await root
+      .getByRole("form", { name: "Customer order" })
+      .getByRole("button", { name: "Save" })
+      .click();
+
+    expect(errors).toEqual([]);
   });
 });
