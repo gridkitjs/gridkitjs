@@ -14,7 +14,9 @@ import FieldGroupHarness from "./support/forms/FieldGroupHarness";
 import FieldHarness from "./support/forms/FieldHarness";
 import FormHarness from "./support/forms/FormHarness";
 import LayoutHarness from "./support/forms/LayoutHarness";
+import SearchInputHarness from "./support/forms/SearchInputHarness";
 import SummaryHarness from "./support/forms/SummaryHarness";
+import TextInputHarness from "./support/forms/TextInputHarness";
 import HeaderTextGrid from "./support/HeaderTextGrid";
 import RightToLeft from "./support/RightToLeft";
 import ToolbarGrid from "./support/ToolbarGrid";
@@ -841,6 +843,61 @@ const fieldScans: readonly {
     field: () => (
       <FieldHarness label="Name" mode="display" defaultValue="Ada Lovelace" />
     ),
+  },
+  {
+    name: "a text input with a prefix, a suffix, a counter and a clear button",
+    field: () => (
+      <TextInputHarness
+        prefix="€"
+        suffix="net"
+        maxLength={20}
+        clearable
+        defaultValue="Ada"
+        placeholder="Ada Lovelace"
+      />
+    ),
+  },
+  {
+    name: "an invalid text input",
+    field: () => (
+      <TextInputHarness
+        fieldMessage="Enter a value"
+        required
+        placeholder="Ada Lovelace"
+      />
+    ),
+  },
+  {
+    name: "a disabled text input",
+    field: () => <TextInputHarness disabled defaultValue="Ada" />,
+  },
+  {
+    name: "a password input with its reveal button",
+    field: () => <TextInputHarness type="password" defaultValue="secret" />,
+  },
+  {
+    name: "a multiline text input with a floating label",
+    field: () => <TextInputHarness multiline labelPosition="floating" />,
+  },
+  {
+    name: "a text input in display mode",
+    field: () => <TextInputHarness mode="display" defaultValue="Ada" />,
+  },
+  {
+    name: "a search input",
+    field: () => <SearchInputHarness defaultValue="Ada" />,
+  },
+  {
+    name: "an invalid search input",
+    field: () => <SearchInputHarness message="Enter a search" />,
+  },
+  {
+    name: "a disabled search input",
+    field: () => <SearchInputHarness disabled defaultValue="Ada" />,
+  },
+  {
+    name: "a search input in display mode",
+    field: () => <SearchInputHarness mode="display" defaultValue="Ada" />,
   },
 ];
 
