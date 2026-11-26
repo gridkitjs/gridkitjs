@@ -1,0 +1,37 @@
+---
+title: "Overview"
+description: "Framework-free browser behaviours for GridKit form inputs: the text-input pipeline, toggles, Enter navigation and focus helpers."
+---
+
+@gridkitjs/forms-dom holds every browser behaviour a form input needs that is not drawing: reading what the user types and pastes into a control, toggles, auto-grow, Enter navigation and moving focus. @gridkitjs/forms-core decides what a field does and runs without a DOM; @gridkitjs/forms-dom connects it to real controls, with no framework; a renderer such as @gridkitjs/forms draws the markup and attaches these behaviours to it.
+
+You only need this package to write a forms renderer of your own. @gridkitjs/forms depends on it, so installing that is enough to use the inputs.
+
+<Callout type="note" title="Not yet published">
+  The forms packages are under development and are not on npm yet.
+</Callout>
+
+## Example
+
+```ts
+import { scheduleTimeout } from "@gridkitjs/forms-dom";
+
+const cancel = scheduleTimeout(() => {
+  console.log("300ms later");
+}, 300);
+// later, if it should not run after all:
+cancel();
+```
+
+## Exports
+
+Every export of `@gridkitjs/forms-dom`:
+
+| Export            | Kind     | Description                                                                                                                           |
+| ----------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `scheduleTimeout` | function | The browser's timers as a forms-core [`Schedule`](/docs/forms-core/overview#exports): runs a callback once after a delay, cancelable. |
+
+## See also
+
+- [Forms core overview](/docs/forms-core/overview) for the logic these behaviours attach to.
+- [Forms overview](/docs/forms/overview) for the React components built on them.

@@ -128,6 +128,29 @@ export default tseslint.config(
     },
   },
   {
+    // The forms behaviours are shared by every forms renderer, so they may
+    // use the DOM but no framework, and never reach into the grid.
+    files: ["packages/forms-dom/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: banned([
+                "react",
+                "react-dom",
+                ...GRID_PACKAGES,
+                "@gridkitjs/forms",
+              ]),
+              message: "forms-dom is framework- and grid-free, see AGENTS.md",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     languageOptions: {
       parserOptions: {
         // Resolves each file to its nearest tsconfig, which is what makes the
