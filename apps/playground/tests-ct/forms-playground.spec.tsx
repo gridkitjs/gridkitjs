@@ -79,14 +79,17 @@ test.describe("forms playground page", () => {
     // class stands in for the height it sets on the page.
     await expect(input).toHaveClass(/\bh-10\b/);
 
-    await root.getByLabel("Disabled").check();
+    await root.getByRole("checkbox", { name: "Disabled" }).check();
     await expect(input).toBeDisabled();
-    await root.getByLabel("Disabled").uncheck();
+    await root.getByRole("checkbox", { name: "Disabled" }).uncheck();
 
     await root.getByLabel("Read only").check();
     await expect(input).toHaveAttribute("readonly");
 
-    await root.getByLabel("Mode").selectOption("display");
+    await root
+      .getByLabel("Page controls")
+      .getByLabel("Mode")
+      .selectOption("display");
     await expect(root.getByRole("textbox")).toHaveCount(0);
 
     // The URL holds every choice, so a combination can be linked to.
@@ -101,5 +104,35 @@ test.describe("forms playground page", () => {
       readonly: "",
       mode: "display",
     });
+  });
+
+  test("the field section reports its inputs and follows the page controls", async ({
+    mount,
+  }) => {
+    const root = await mount(<FormsPlayground />);
+    const rows = root
+      .getByRole("table", { name: "Event log" })
+      .locator("tbody tr");
+    const topLabel = root.getByRole("textbox", { name: "Top label" });
+
+    await topLabel.click();
+    await topLabel.press("a");
+    await topLabel.press("Tab");
+    await expect(rows.filter({ hasText: "onCommit" })).toHaveCount(1);
+    await expect(rows.filter({ hasText: "onCommit" })).toContainText(
+      "Field: Top label",
+    );
+
+    await root.getByRole("checkbox", { name: "Disabled" }).check();
+    await expect(topLabel).toBeDisabled();
+    await root.getByRole("checkbox", { name: "Disabled" }).uncheck();
+
+    await root
+      .getByLabel("Page controls")
+      .getByLabel("Mode")
+      .selectOption("display");
+    await expect(root.getByRole("group", { name: "Top label" })).toHaveText(
+      /Top label\s*a/,
+    );
   });
 });
