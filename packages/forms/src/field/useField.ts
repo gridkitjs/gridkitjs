@@ -30,7 +30,9 @@ export interface UseFieldResult {
   ) => void;
   /**
    * Tells the field whether the control is focused and empty, which a
-   * floating label follows. Call it from an effect whenever either changes.
+   * floating label follows, and whether the input needs a value by a
+   * `required` of its own, which marks the label. Call it from an effect
+   * whenever any of them changes.
    */
   readonly reportControlState: (state: FieldControlState) => void;
 }

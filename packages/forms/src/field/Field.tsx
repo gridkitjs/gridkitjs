@@ -150,6 +150,8 @@ export function Field({
     [controlId, settings, describedBy, required, severity],
   );
 
+  // Marked when either the field or its input asks for a value.
+  const marked = required || controlState?.required === true;
   const display = settings.mode === "display";
   const position = settings.labelPosition;
   const raised =
@@ -175,11 +177,11 @@ export function Field({
   }, [hasLabel, display, controlId]);
 
   const marker =
-    required && settings.necessityIndicator === "required" ? (
+    marked && settings.necessityIndicator === "required" ? (
       <span className="gridkit-forms-field-required" aria-hidden="true">
         *
       </span>
-    ) : !required && settings.necessityIndicator === "optional" ? (
+    ) : !marked && settings.necessityIndicator === "optional" ? (
       <span className="gridkit-forms-field-optional">
         {` (${settings.messages.optional})`}
       </span>
@@ -206,7 +208,7 @@ export function Field({
     "gridkit-forms-field",
     `is-label-${position}`,
     raised && "is-label-raised",
-    required && "is-required",
+    marked && "is-required",
     severity !== null && `is-${severity}`,
     settings.disabled && "is-disabled",
     settings.readOnly && "is-readonly",

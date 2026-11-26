@@ -88,6 +88,11 @@ export interface FieldInputProps<
   /** The app's writing of the value; `context.defaultFormat` is the input's own. */
   readonly format?: Formatter<V> | undefined;
   readonly validate?: Validator<V> | readonly Validator<V>[] | undefined;
+  /**
+   * The control needs a value: it sets `aria-required` and marks the label
+   * of the `Field` around it. The input adds the check to `validate`.
+   */
+  readonly required?: boolean | undefined;
   /** Submits the value under this name, through a hidden input. */
   readonly name?: string | undefined;
   /** The `id` of a `<form>` elsewhere in the page that the value belongs to. */
@@ -201,7 +206,7 @@ function setRef<T>(ref: Ref<T> | undefined, element: T): (() => void) | null {
  * Inside a `Field` the control takes the field's `id`, description,
  * required and invalid states, and `readOnly`, `disabled` and `mode` from
  * the field and the form, and the hook tells the field its shown messages
- * and whether the control is focused and empty.
+ * and whether the control is focused, empty and required.
  */
 export function useFieldInput<
   V,
@@ -327,15 +332,16 @@ export function useFieldInput<
   const setControlState = field?.setControlState;
   const focused = isFocused(state.phase);
   const empty = text === "";
+  const required = props.required === true;
   useLayoutEffect(() => {
     if (setControlState === undefined) {
       return undefined;
     }
-    setControlState({ focused, empty });
+    setControlState({ focused, empty, required });
     return () => {
       setControlState(null);
     };
-  }, [setControlState, focused, empty]);
+  }, [setControlState, focused, empty, required]);
 
   const ownId = useId();
   return {
@@ -352,7 +358,7 @@ export function useFieldInput<
       disabled,
       "aria-invalid": hasError(shown) || field?.invalid === true || undefined,
       "aria-describedby": field?.describedBy,
-      "aria-required": field?.required === true || undefined,
+      "aria-required": required || field?.required === true || undefined,
     },
     hiddenInput:
       props.name === undefined ? null : (
