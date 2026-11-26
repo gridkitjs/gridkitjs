@@ -3,6 +3,12 @@ import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   Field,
+  FieldGroup,
+  Fieldset,
+  Form,
+  FormLayout,
+  FormSection,
+  MessageSummary,
   useFieldInput,
   type FieldInputKind,
   type FieldInputProps,
@@ -166,5 +172,56 @@ describe("a field on the server", () => {
     expect(html).toContain(
       '<span class="gridkit-forms-display-value gridkit-forms-display-empty"><span aria-hidden="true">—</span><span class="gridkit-forms-sr-only">No value</span></span>',
     );
+  });
+});
+
+describe("a form on the server", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("renders its structure, a collapsed section hidden and no summary", () => {
+    const error = vi.spyOn(console, "error");
+    const html = renderToString(
+      <Form aria-label="Order" density="compact" labelWidth="12rem">
+        <MessageSummary />
+        <FormSection
+          id="delivery"
+          title="Delivery"
+          collapsible
+          defaultExpanded={false}
+        >
+          <Fieldset legend="Address" span={2}>
+            <FormLayout columns={2}>
+              <Field id="city" label="City" span="full" message="Enter a city">
+                <FieldInput />
+              </Field>
+              <FieldGroup id="postal" label="Postal code">
+                <FieldInput />
+              </FieldGroup>
+            </FormLayout>
+          </Fieldset>
+        </FormSection>
+      </Form>,
+    );
+    expect(html).toContain(
+      '<form noValidate="" aria-label="Order" class="gridkit-forms-form is-compact" style="--gridkit-forms-label-width:12rem">',
+    );
+    expect(html).not.toContain("gridkit-forms-message-summary");
+    expect(html).toContain(
+      '<button type="button" class="gridkit-forms-section-toggle" aria-expanded="false" aria-controls="delivery-body">',
+    );
+    expect(html).toContain(
+      '<div class="gridkit-forms-section-body" id="delivery-body" hidden="">',
+    );
+    expect(html).toContain('class="gridkit-forms-fieldset is-span-2"');
+    expect(html).toContain('class="gridkit-forms-layout is-columns-2"');
+    expect(html).toContain(
+      'class="gridkit-forms-field is-label-top is-error is-compact is-span-full"',
+    );
+    expect(html).toContain(
+      '<div id="postal" role="group" aria-labelledby="postal-label" class="gridkit-forms-field gridkit-forms-field-group is-label-top is-compact">',
+    );
+    expect(error).not.toHaveBeenCalled();
   });
 });
