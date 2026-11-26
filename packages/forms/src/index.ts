@@ -21,7 +21,9 @@ export {
   type InputHandle,
 } from "./useFieldInput";
 export {
+  formatText,
   parsed,
+  textParser,
   unreadable,
   type ChangeSource,
   type CommitTrigger,
@@ -39,6 +41,7 @@ export {
   type Parser,
   type Severity,
   type TextInputDetails,
+  type TextParseOptions,
   type TextReading,
   type ValidationResult,
   type Validator,
