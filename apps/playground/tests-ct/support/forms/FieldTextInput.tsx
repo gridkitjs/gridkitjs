@@ -19,14 +19,19 @@ export interface FieldTextInputProps extends FieldInputProps<string> {
 
 /**
  * A text control on `useFieldInput` to put in a `Field`: the field names,
- * describes and lists the messages of it, and a required field makes it
- * check for a value. In display mode it shows its value as text.
+ * describes and lists the messages of it, and a required field, or a
+ * `required` of its own, makes it check for a value. In display mode it
+ * shows its value as text.
  */
 export function FieldTextInput({ placeholder, ...props }: FieldTextInputProps) {
   const { required } = useField();
   const requireValue = useMemo(() => requiredRule<string>(), []);
   const field = useFieldInput(
-    { ...props, validate: required ? requireValue : props.validate },
+    {
+      ...props,
+      validate:
+        required || props.required === true ? requireValue : props.validate,
+    },
     TEXT,
   );
   return (

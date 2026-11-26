@@ -18,6 +18,8 @@ export interface FieldHarnessProps {
   readonly necessityIndicator?: NecessityIndicator;
   readonly mode?: FieldMode;
   readonly required?: boolean;
+  /** A `required` on the input rather than on the field. */
+  readonly inputRequired?: boolean;
   readonly readOnly?: boolean;
   readonly disabled?: boolean;
   readonly defaultValue?: string | null;
@@ -39,6 +41,7 @@ export default function FieldHarness({
   defaultValue,
   name,
   placeholder,
+  inputRequired,
   ...fieldProps
 }: FieldHarnessProps) {
   const handle = useRef<InputHandle<string>>(null);
@@ -48,6 +51,7 @@ export default function FieldHarness({
         <FieldTextInput
           defaultValue={defaultValue}
           name={name}
+          required={inputRequired}
           handleRef={handle}
           {...(placeholder === undefined ? {} : { placeholder })}
         />

@@ -97,6 +97,77 @@ test.describe("Field labels", () => {
   });
 });
 
+/**
+ * Whether the required star is drawn whole inside its label, in the
+ * palette's error colour.
+ */
+async function starIsDrawn(root: MountResult): Promise<boolean> {
+  return root.locator(".gridkit-forms-field-required").evaluate((star) => {
+    const label = star.closest(".gridkit-forms-field-label");
+    if (label === null) {
+      return false;
+    }
+    const probe = document.createElement("span");
+    probe.style.color = "var(--gridkit-error)";
+    star.append(probe);
+    const errorColor = getComputedStyle(probe).color;
+    probe.remove();
+    const box = star.getBoundingClientRect();
+    const within = label.getBoundingClientRect();
+    return (
+      box.width > 0 &&
+      box.left >= within.left - 0.5 &&
+      box.right <= within.right + 0.5 &&
+      getComputedStyle(star).color === errorColor
+    );
+  });
+}
+
+test.describe("The required star", () => {
+  const visible: readonly LabelPosition[] = ["top", "floating", "start"];
+  for (const labelPosition of visible) {
+    test(`shows after a ${labelPosition} label, for the field's required and for the input's own`, async ({
+      mount,
+    }) => {
+      const byField = await mount(
+        <FieldHarness labelPosition={labelPosition} required />,
+      );
+      await expect(byField.locator(".gridkit-forms-field-required")).toHaveText(
+        "*",
+      );
+      expect(await starIsDrawn(byField)).toBe(true);
+      await byField.unmount();
+
+      const byInput = await mount(
+        <FieldHarness labelPosition={labelPosition} inputRequired />,
+      );
+      await expect(email(byInput)).toHaveAttribute("aria-required", "true");
+      await expect(email(byInput)).toHaveAccessibleName("Email");
+      expect(await starIsDrawn(byInput)).toBe(true);
+      await expect(field(byInput)).toHaveClass(/\bis-required\b/);
+    });
+  }
+
+  test("stays on a floating label once it has risen", async ({ mount }) => {
+    const root = await mount(
+      <FieldHarness labelPosition="floating" required />,
+    );
+    await email(root).focus();
+    await expect(field(root)).toHaveClass(/\bis-label-raised\b/);
+    expect(await starIsDrawn(root)).toBe(true);
+  });
+
+  test('goes with necessityIndicator="none", and aria-required stays', async ({
+    mount,
+  }) => {
+    const root = await mount(
+      <FieldHarness required inputRequired necessityIndicator="none" />,
+    );
+    await expect(root.locator(".gridkit-forms-field-required")).toHaveCount(0);
+    await expect(email(root)).toHaveAttribute("aria-required", "true");
+  });
+});
+
 test.describe("A floating label", () => {
   test("rises on focus and comes back down when the field is left empty", async ({
     mount,
