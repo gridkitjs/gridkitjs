@@ -50,7 +50,8 @@ a touch screen; see
 
 CI's `e2e` check (see [Standards](../../AGENTS.md#standards) in the root
 `AGENTS.md`) fails if line, statement or function coverage over
-`packages/react/src/DataGrid/` and `packages/dom/src/` drops below 80%.
+`packages/react/src/DataGrid/`, `packages/dom/src/`, `packages/forms-dom/src/`
+and `packages/forms/src/` drops below 80%, measured over all four together.
 Coverage is collected in the Chromium project only
 (`pnpm --filter playground test:e2e:coverage`); Firefox and WebKit run the
 same tests uninstrumented.

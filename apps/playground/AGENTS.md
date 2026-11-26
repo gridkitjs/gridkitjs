@@ -38,7 +38,7 @@ desktop projects leave out; `touch.spec.tsx` holds them.
 pnpm --filter playground test:e2e                     # run the suite in every project
 pnpm --filter playground test:e2e --project=firefox   # one browser
 pnpm --filter playground test:e2e:ui                  # same, with Playwright's UI
-pnpm --filter playground test:e2e:coverage            # Chromium, instrumented; enforces 80% line/statement/function coverage over DataGrid/ and dom
+pnpm --filter playground test:e2e:coverage            # Chromium, instrumented; enforces 80% line/statement/function coverage over DataGrid/, dom, forms-dom and forms
 pnpm --filter playground exec playwright install chromium firefox webkit   # once, on a fresh machine
 ```
 

@@ -53,6 +53,15 @@ importers:
       '@gridkitjs/export-xlsx':
         specifier: workspace:*
         version: link:../../packages/export-xlsx
+      '@gridkitjs/forms':
+        specifier: workspace:*
+        version: link:../../packages/forms
+      '@gridkitjs/forms-core':
+        specifier: workspace:*
+        version: link:../../packages/forms-core
+      '@gridkitjs/forms-dom':
+        specifier: workspace:*
+        version: link:../../packages/forms-dom
       '@gridkitjs/react':
         specifier: workspace:*
         version: link:../../packages/react
