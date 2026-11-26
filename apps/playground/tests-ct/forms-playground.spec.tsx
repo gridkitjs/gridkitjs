@@ -1,5 +1,6 @@
 import { FormsPlayground } from "../src/forms/FormsPlayground";
 import { expect, test } from "./support/coverage";
+import { typeInto } from "./support/forms/typeInto";
 
 test.describe("forms playground page", () => {
   test("logs the field input's events in order, until cleared", async ({
@@ -36,8 +37,8 @@ test.describe("forms playground page", () => {
   test("the toggles add a validator and a slow check", async ({ mount }) => {
     const root = await mount(<FormsPlayground />);
     const name = root.getByRole("textbox", { name: "Name" });
-    const messages = root.getByRole("list", { name: "Name messages" });
-    await root.getByLabel("Required").check();
+    const status = root.getByRole("status").filter({ hasText: "Checking" });
+    await root.getByLabel("Required", { exact: true }).check();
     await root.getByLabel(/^Slow check/).check();
 
     // Validators run on a change, so the empty value is checked once
@@ -46,13 +47,35 @@ test.describe("forms playground page", () => {
     await name.press("a");
     await name.press("Backspace");
     await name.press("Enter");
-    await expect(messages).toHaveText("Checking…");
-    await expect(messages).toHaveText("Enter a value");
+    await expect(status).toHaveText("Checking…");
+    await expect(name).toHaveAccessibleDescription("Error: Enter a value");
 
     await name.pressSequentially("taken");
     await name.press("Enter");
-    await expect(messages).toHaveText('"taken" is taken');
+    await expect(name).toHaveAccessibleDescription('Error: "taken" is taken');
     await expect(name).toHaveAttribute("aria-invalid", "true");
+  });
+
+  test("the Required toggle stars the field, until the page marks no fields", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<FormsPlayground />);
+    const nameField = root
+      .locator(".gridkit-forms-field")
+      .filter({ has: page.getByRole("textbox", { name: "Name" }) });
+    const star = nameField.locator(".gridkit-forms-field-required");
+    await expect(star).toHaveCount(0);
+
+    await root.getByLabel("Required", { exact: true }).check();
+    await expect(star).toBeVisible();
+    await expect(root.getByRole("textbox", { name: "Name" })).toHaveAttribute(
+      "aria-required",
+      "true",
+    );
+
+    await root.getByLabel("Marked fields").selectOption("none");
+    await expect(star).toHaveCount(0);
   });
 
   test("applies each page control", async ({ mount, page }) => {
@@ -79,14 +102,17 @@ test.describe("forms playground page", () => {
     // class stands in for the height it sets on the page.
     await expect(input).toHaveClass(/\bh-10\b/);
 
-    await root.getByLabel("Disabled").check();
+    await root.getByRole("checkbox", { name: "Disabled" }).check();
     await expect(input).toBeDisabled();
-    await root.getByLabel("Disabled").uncheck();
+    await root.getByRole("checkbox", { name: "Disabled" }).uncheck();
 
     await root.getByLabel("Read only").check();
     await expect(input).toHaveAttribute("readonly");
 
-    await root.getByLabel("Mode").selectOption("display");
+    await root
+      .getByLabel("Page controls")
+      .getByLabel("Mode")
+      .selectOption("display");
     await expect(root.getByRole("textbox")).toHaveCount(0);
 
     // The URL holds every choice, so a combination can be linked to.
@@ -101,5 +127,74 @@ test.describe("forms playground page", () => {
       readonly: "",
       mode: "display",
     });
+  });
+
+  test("the field section reports its inputs and follows the page controls", async ({
+    mount,
+  }) => {
+    const root = await mount(<FormsPlayground />);
+    const rows = root
+      .getByRole("table", { name: "Event log" })
+      .locator("tbody tr");
+    const topLabel = root.getByRole("textbox", { name: "Top label" });
+
+    await topLabel.click();
+    await topLabel.press("a");
+    await topLabel.press("Tab");
+    await expect(rows.filter({ hasText: "onCommit" })).toHaveCount(1);
+    await expect(rows.filter({ hasText: "onCommit" })).toContainText(
+      "Field: Top label",
+    );
+
+    await root.getByRole("checkbox", { name: "Disabled" }).check();
+    await expect(topLabel).toBeDisabled();
+    await root.getByRole("checkbox", { name: "Disabled" }).uncheck();
+
+    await root
+      .getByLabel("Page controls")
+      .getByLabel("Mode")
+      .selectOption("display");
+    await expect(root.getByRole("group", { name: "Top label" })).toHaveText(
+      /Top label\s*a/,
+    );
+  });
+
+  test("the form structure section refuses an empty save, then logs a save and each section toggle", async ({
+    mount,
+  }) => {
+    const root = await mount(<FormsPlayground />);
+    const form = root.getByRole("form", { name: "Customer order" });
+    const rows = root
+      .getByRole("table", { name: "Event log" })
+      .locator("tbody tr");
+    const summary = form.locator(".gridkit-forms-message-summary");
+
+    // The credit limit warning, in a collapsed section, is listed from the start.
+    await expect(summary).toContainText(
+      "Credit limit: Above the usual credit limit",
+    );
+    await form.getByRole("button", { name: "Save" }).click();
+    await expect(summary).toBeFocused();
+    await expect(summary).toContainText("Contact: Enter a value");
+
+    await summary.getByRole("link", { name: /^Credit limit/ }).click();
+    await expect(
+      form.getByRole("textbox", { name: "Credit limit" }),
+    ).toBeFocused();
+    await expect(rows.filter({ hasText: "onExpandedChange" })).toHaveCount(1);
+
+    await typeInto(form.getByRole("textbox", { name: "Contact" }), "Ada");
+    await typeInto(
+      form.getByRole("textbox", { name: "Email" }),
+      "ada@example.com",
+    );
+    await typeInto(form.getByRole("textbox", { name: "Street" }), "Main 1");
+    await typeInto(form.getByRole("textbox", { name: "Postal code" }), "1011");
+    await typeInto(form.getByRole("textbox", { name: "City" }), "Amsterdam");
+    await form.getByRole("button", { name: "Save" }).click();
+    await expect(rows.filter({ hasText: "onSubmit" })).toHaveCount(1);
+    await expect(rows.filter({ hasText: "onSubmit" })).toContainText(
+      "Amsterdam",
+    );
   });
 });

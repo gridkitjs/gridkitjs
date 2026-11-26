@@ -36,6 +36,14 @@ const AA = 4.5;
 const AAA = 7;
 const AAA_PRESETS = new Set(["high-contrast"]);
 
+/**
+ * The colours of a form message's severity icon, which have to stand out
+ * from the background as any icon does (WCAG 1.4.11): 3:1, or the body
+ * text's AA minimum in the presets held to AAA.
+ */
+const SEVERITY_COLORS = ["error", "warning", "info", "success"];
+const NON_TEXT = 3;
+
 const { tokens } = readManifest();
 const defaults = defaultDeclarations(tokens);
 const liveColors = new Set(
@@ -104,7 +112,8 @@ function contrast(foreground, background) {
 
 /**
  * A property's value with the preset loaded after the theme, following a
- * value that is only `var()` of another.
+ * value that is only `var()` of another, and working out a colour that
+ * turns another's hue, `oklch(from var(--other) l c H)`.
  *
  * @param {Map<string, string>} values
  * @param {string} name
@@ -116,7 +125,20 @@ function resolve(values, name) {
     throw new Error(`${name} is not set`);
   }
   const reference = /^var\((--[\w-]+)\)$/.exec(value);
-  return reference?.[1] === undefined ? value : resolve(values, reference[1]);
+  if (reference?.[1] !== undefined) {
+    return resolve(values, reference[1]);
+  }
+  const turned = /^oklch\(from var\((--[\w-]+)\) l c ([\d.]+)\)$/.exec(value);
+  if (turned?.[1] === undefined) {
+    return value;
+  }
+  const base = resolve(values, turned[1]);
+  const [, lightness, chroma] =
+    /^oklch\(\s*([\d.]+%?)\s+([\d.]+)\s/.exec(base) ?? [];
+  if (lightness === undefined || chroma === undefined) {
+    throw new Error(`Can't turn the hue of ${base}: not oklch(L C H)`);
+  }
+  return `oklch(${lightness} ${chroma} ${turned[2] ?? ""})`;
 }
 
 describe("presets/index.json", () => {
@@ -207,6 +229,26 @@ describe("presets", () => {
             );
             return ratio < minimum
               ? [`${side}: ${text} on ${background} is ${ratio.toFixed(2)}:1`]
+              : [];
+          }),
+        );
+        assert.deepEqual(problems, []);
+      });
+
+      const iconMinimum = AAA_PRESETS.has(entry.id) ? AA : NON_TEXT;
+      test(`keeps severity icons at ${iconMinimum}:1 contrast in light and dark`, () => {
+        const values = new Map([
+          ...defaults,
+          ...customProperties(presetRoot(entry)),
+        ]);
+        const problems = SIDES.flatMap((side) =>
+          SEVERITY_COLORS.flatMap((severity) => {
+            const ratio = contrast(
+              resolve(values, `--gridkit-${severity}-${side}`),
+              resolve(values, `--gridkit-surface-${side}`),
+            );
+            return ratio < iconMinimum
+              ? [`${side}: ${severity} on surface is ${ratio.toFixed(2)}:1`]
               : [];
           }),
         );

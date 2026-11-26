@@ -1,3 +1,11 @@
 {
-  "order": ["overview", "events", "use-field-input"]
+  "order": [
+    "overview",
+    "events",
+    "form",
+    "field",
+    "layout",
+    "message-summary",
+    "use-field-input"
+  ]
 }

@@ -1,4 +1,4 @@
-import { useId, useMemo } from "react";
+import { useMemo } from "react";
 import { formatText, textParser } from "@gridkitjs/forms-core";
 import {
   useFieldInput,
@@ -35,14 +35,13 @@ export function TextField({
     [uppercase],
   );
   const field = useFieldInput(props, kind);
-  const id = useId();
   return (
     <div>
-      <label htmlFor={id}>{label}</label>
+      <label htmlFor={field.controlProps.id}>{label}</label>
       {multiline ? (
-        <textarea id={id} {...field.controlProps} />
+        <textarea {...field.controlProps} />
       ) : (
-        <input id={id} {...field.controlProps} />
+        <input {...field.controlProps} />
       )}
       {field.hiddenInput}
       <ul aria-label={`${label} messages`}>

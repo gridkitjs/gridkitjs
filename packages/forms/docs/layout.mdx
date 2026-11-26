@@ -1,0 +1,147 @@
+---
+title: "Layout"
+description: "FormLayout lays fields out in responsive columns; FormSection, Fieldset and FieldGroup group them under a title, a legend or one label."
+---
+
+Four components arrange the fields of a form. `FormLayout` lays them out in up to four `columns` that drop to fewer as it narrows, with a `span` on each field. `FormSection` gives a part of a long form a title, and can be `collapsible`. `Fieldset` puts several fields under a `legend`. `FieldGroup` puts several inputs under one `label` and one message area. Each can set `mode`, `density`, `labelPosition` and the rest for the fields inside it.
+
+<Callout type="note" title="First iteration">
+  These components are a first iteration and may change before the first
+  release.
+</Callout>
+
+## Example
+
+```tsx title="App.tsx"
+import {
+  Field,
+  FieldGroup,
+  Fieldset,
+  Form,
+  FormLayout,
+  FormSection,
+  formatText,
+  textParser,
+  useFieldInput,
+  type FieldInputKind,
+} from "@gridkitjs/forms";
+
+const text: FieldInputKind<string> = {
+  defaultParse: textParser(),
+  defaultFormat: formatText,
+  serialize: (value) => value,
+};
+
+function TextBox({ label }: { readonly label?: string }) {
+  const field = useFieldInput({}, text);
+  return <input aria-label={label} {...field.controlProps} />;
+}
+
+export function App() {
+  return (
+    <Form aria-label="Order">
+      <FormSection title="Customer">
+        <FormLayout columns={3}>
+          <Field label="Name" span={2}>
+            <TextBox />
+          </Field>
+          <Field label="Customer number">
+            <TextBox />
+          </Field>
+          <Field label="Notes" span="full">
+            <TextBox />
+          </Field>
+        </FormLayout>
+      </FormSection>
+      <FormSection title="Delivery" collapsible defaultExpanded={false}>
+        <Fieldset legend="Delivery address">
+          <FormLayout columns={2}>
+            <Field label="Street">
+              <TextBox />
+            </Field>
+            <FieldGroup label="Postal code and city">
+              <TextBox label="Postal code" />
+              <TextBox label="City" />
+            </FieldGroup>
+          </FormLayout>
+        </Fieldset>
+      </FormSection>
+    </Form>
+  );
+}
+```
+
+## FormLayout
+
+| Prop                                     | Type                                     | Default | Description                                    |
+| ---------------------------------------- | ---------------------------------------- | ------- | ---------------------------------------------- |
+| `columns`                                | `1 \| 2 \| 3 \| 4`                       | `1`     | The most columns; fewer as the layout narrows. |
+| `labelPosition`, `labelWidth`, `density` | as on [`Field`](/docs/forms/field#props) |         | For the fields inside.                         |
+| `className`, `style`                     |                                          |         | On the layout.                                 |
+
+The columns follow the layout's own width, not the window's: one column below 32rem, at most two below 48rem, at most three below 64rem, and `columns` at most. A field, group or fieldset takes `span` columns (`1` to `4`, or `"full"` for the whole row), never more than the layout has at its width. Below 30rem, a field with its label at the start stacks the label on top. The columns run right to left under `dir="rtl"`.
+
+The layout measures its own width with a container query, so it needs a width of its own: it fills a block container, but inside a flex row or an inline element give it one.
+
+## FormSection
+
+| Prop                                                       | Type                                                | Default | Description                                                  |
+| ---------------------------------------------------------- | --------------------------------------------------- | ------- | ------------------------------------------------------------ |
+| `title`                                                    | `ReactNode`                                         |         | Required. The section's heading, which names it as a region. |
+| `headingLevel`                                             | `2 \| 3 \| 4 \| 5 \| 6`                             | `2`     | The heading element.                                         |
+| `description`                                              | `ReactNode`                                         |         | Under the title, describing the section.                     |
+| `collapsible`                                              | `boolean`                                           | `false` | The title becomes a button that shows and hides the body.    |
+| `expanded`, `defaultExpanded`, `onExpandedChange`          | `boolean`, `boolean`, `(expanded: boolean) => void` | `true`  | Whether it is open; `expanded` controls it.                  |
+| `mode`, `density`, `labelPosition`, `readOnly`, `disabled` |                                                     |         | For the fields inside.                                       |
+| `id`, `className`                                          |                                                     |         | On the `<section>`.                                          |
+
+A collapsible section follows the disclosure pattern: <Kbd>Enter</Kbd> or <Kbd>Space</Kbd> on its title toggles it, and the button's `aria-expanded` says whether it is open. A closed section's body is hidden but stays mounted, so its fields keep their values and still count on a submit. When focus has to reach a field inside a closed section of a `Form` (a refused submit, a summary link), the section opens first. The chevron turns with a short transition, none under reduced motion.
+
+## Fieldset
+
+| Prop                                                         | Type                         | Default | Description                                                               |
+| ------------------------------------------------------------ | ---------------------------- | ------- | ------------------------------------------------------------------------- |
+| `legend`                                                     | `ReactNode`                  |         | Required. Names the fields inside.                                        |
+| `description`                                                | `ReactNode`                  |         | Under the legend, describing the fieldset.                                |
+| `disabled`                                                   | `boolean`                    | `false` | Disables every control inside, natively and through the fields' settings. |
+| `mode`, `density`, `labelPosition`, `labelWidth`, `readOnly` |                              |         | For the fields inside.                                                    |
+| `span`                                                       | `1 \| 2 \| 3 \| 4 \| "full"` | `1`     | Columns taken in a `FormLayout`.                                          |
+| `className`, `style`                                         |                              |         | On the `<fieldset>`.                                                      |
+
+## FieldGroup
+
+| Prop                                                | Type                         | Default | Description                                                                            |
+| --------------------------------------------------- | ---------------------------- | ------- | -------------------------------------------------------------------------------------- |
+| `label`                                             | `ReactNode`                  |         | Required. Names the group; each input needs an `aria-label` of its own.                |
+| `description`, `message`, `required`                |                              |         | As on `Field`, for every input in the group.                                           |
+| `labelPosition`, `labelWidth`, `necessityIndicator` |                              |         | As on `Field`; `"floating"` is drawn as `"top"`, since the label names no one control. |
+| `span`                                              | `1 \| 2 \| 3 \| 4 \| "full"` | `1`     | Columns taken in a `FormLayout`.                                                       |
+| `id`, `className`, `style`                          |                              |         | On the group; a summary link points at its `id`.                                       |
+
+The group is a `role="group"` its label names. Every input in it is described by the group's description and messages, and lists its own messages in the group's one message area, each text once. An input's error marks only that input `aria-invalid`.
+
+## Class names
+
+| Class                                 | Element       | Description                                                                                     |
+| ------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------- |
+| `.gridkit-forms-layout`               | `<div>`       | The layout, the container its columns follow. States: is-columns-2, is-columns-3, is-columns-4. |
+| `.gridkit-forms-layout-grid`          | `<div>`       | The grid of fields inside it.                                                                   |
+| `.gridkit-forms-section`              | `<section>`   | A section. States: is-collapsible, is-collapsed.                                                |
+| `.gridkit-forms-section-header`       | `<div>`       | Its title and description.                                                                      |
+| `.gridkit-forms-section-title`        | `<h2>`…`<h6>` | The heading.                                                                                    |
+| `.gridkit-forms-section-toggle`       | `<button>`    | A collapsible section's title.                                                                  |
+| `.gridkit-forms-section-toggle-icon`  | `<span>`      | Its chevron.                                                                                    |
+| `.gridkit-forms-section-description`  | `<p>`         | The description.                                                                                |
+| `.gridkit-forms-section-body`         | `<div>`       | The section's fields.                                                                           |
+| `.gridkit-forms-fieldset`             | `<fieldset>`  | A fieldset. States: is-span-2, is-span-3, is-span-4, is-span-full.                              |
+| `.gridkit-forms-fieldset-legend`      | `<legend>`    | Its legend.                                                                                     |
+| `.gridkit-forms-fieldset-description` | `<p>`         | Its description.                                                                                |
+| `.gridkit-forms-field-group`          | `<div>`       | A group, beside `.gridkit-forms-field`, whose parts and states it shares.                       |
+| `.gridkit-forms-field-group-controls` | `<div>`       | Its inputs, side by side, wrapping.                                                             |
+
+A field takes the same `is-span-*` states as a fieldset. The forms stylesheet reads `--gridkit-forms-row-gap` and `--gridkit-forms-column-gap` for the gaps (four and six spacing units by default), and `--gridkit-forms-section-title-font-size` and `--gridkit-forms-section-title-font-weight` for section titles and legends.
+
+## See also
+
+- [Form](/docs/forms/form) for the settings every field shares and submitting.
+- [Field](/docs/forms/field) for one input with its label and messages.

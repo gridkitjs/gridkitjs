@@ -149,6 +149,16 @@
   /* The accent turned red, as light or dark as the accent. */
   --gridkit-error-light: oklch(from var(--gridkit-accent-light) l c 25);
   --gridkit-error-dark: oklch(from var(--gridkit-accent-dark) l c 25);
+  /*
+   * The other severities a message can have: the accent turned amber for a
+   * warning and green for a success, and the accent itself for information.
+   */
+  --gridkit-warning-light: oklch(from var(--gridkit-accent-light) l c 70);
+  --gridkit-warning-dark: oklch(from var(--gridkit-accent-dark) l c 70);
+  --gridkit-success-light: oklch(from var(--gridkit-accent-light) l c 150);
+  --gridkit-success-dark: oklch(from var(--gridkit-accent-dark) l c 150);
+  --gridkit-info-light: var(--gridkit-accent-light);
+  --gridkit-info-dark: var(--gridkit-accent-dark);
   --gridkit-scrollbar-thumb-light: color-mix(
     in oklch,
     var(--gridkit-fg-muted-light) 45%,
@@ -180,6 +190,9 @@
   --gridkit-focus-ring: var(--gridkit-focus-ring-light);
   --gridkit-accent-fg: var(--gridkit-accent-fg-light);
   --gridkit-error: var(--gridkit-error-light);
+  --gridkit-warning: var(--gridkit-warning-light);
+  --gridkit-success: var(--gridkit-success-light);
+  --gridkit-info: var(--gridkit-info-light);
   --gridkit-scrollbar-thumb: var(--gridkit-scrollbar-thumb-light);
   --gridkit-overlay-shadow-color: var(--gridkit-overlay-shadow-color-light);
 
@@ -202,21 +215,28 @@
     --gridkit-focus-ring: var(--gridkit-focus-ring-dark);
     --gridkit-accent-fg: var(--gridkit-accent-fg-dark);
     --gridkit-error: var(--gridkit-error-dark);
+    --gridkit-warning: var(--gridkit-warning-dark);
+    --gridkit-success: var(--gridkit-success-dark);
+    --gridkit-info: var(--gridkit-info-dark);
     --gridkit-scrollbar-thumb: var(--gridkit-scrollbar-thumb-dark);
     --gridkit-overlay-shadow-color: var(--gridkit-overlay-shadow-color-dark);
   }
 }
 
 /*
- * Without relative colour syntax the error default above is invalid, and a
- * declaration reading it would draw nothing at all, so there it is the text
- * colour instead. A theme's own error colour, set on `:root` after this
- * stylesheet, still wins.
+ * Without relative colour syntax the error, warning and success defaults
+ * above are invalid, and a declaration reading one would draw nothing at
+ * all, so there they are the text colour instead. A theme's own colours,
+ * set on `:root` after this stylesheet, still win.
  */
 @supports not (color: oklch(from red l c h)) {
   :root {
     --gridkit-error-light: var(--gridkit-fg-light);
     --gridkit-error-dark: var(--gridkit-fg-dark);
+    --gridkit-warning-light: var(--gridkit-fg-light);
+    --gridkit-warning-dark: var(--gridkit-fg-dark);
+    --gridkit-success-light: var(--gridkit-fg-light);
+    --gridkit-success-dark: var(--gridkit-fg-dark);
   }
 }
 
@@ -239,6 +259,9 @@
   --gridkit-focus-ring: var(--gridkit-focus-ring-light);
   --gridkit-accent-fg: var(--gridkit-accent-fg-light);
   --gridkit-error: var(--gridkit-error-light);
+  --gridkit-warning: var(--gridkit-warning-light);
+  --gridkit-success: var(--gridkit-success-light);
+  --gridkit-info: var(--gridkit-info-light);
   --gridkit-scrollbar-thumb: var(--gridkit-scrollbar-thumb-light);
   --gridkit-overlay-shadow-color: var(--gridkit-overlay-shadow-color-light);
 }
@@ -262,6 +285,9 @@
   --gridkit-focus-ring: var(--gridkit-focus-ring-dark);
   --gridkit-accent-fg: var(--gridkit-accent-fg-dark);
   --gridkit-error: var(--gridkit-error-dark);
+  --gridkit-warning: var(--gridkit-warning-dark);
+  --gridkit-success: var(--gridkit-success-dark);
+  --gridkit-info: var(--gridkit-info-dark);
   --gridkit-scrollbar-thumb: var(--gridkit-scrollbar-thumb-dark);
   --gridkit-overlay-shadow-color: var(--gridkit-overlay-shadow-color-dark);
 }
@@ -296,6 +322,9 @@
   --color-gridkit-focus-ring: var(--gridkit-focus-ring);
   --color-gridkit-accent-fg: var(--gridkit-accent-fg);
   --color-gridkit-error: var(--gridkit-error);
+  --color-gridkit-warning: var(--gridkit-warning);
+  --color-gridkit-success: var(--gridkit-success);
+  --color-gridkit-info: var(--gridkit-info);
   --color-gridkit-scrollbar-thumb: var(--gridkit-scrollbar-thumb);
   --color-gridkit-overlay-shadow-color: var(--gridkit-overlay-shadow-color);
 }

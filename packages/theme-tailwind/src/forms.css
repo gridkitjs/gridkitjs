@@ -28,6 +28,15 @@
  */
 
 :where(:root) {
+  --gridkit-font-size: 1em;
+  --gridkit-hint-font-size: 0.75rem;
+  --gridkit-spacing: 0.25rem;
+  --gridkit-border-width: 1px;
+  --gridkit-radius: 0.25rem;
+  --gridkit-control-radius: 0.25rem;
+  --gridkit-focus-ring-width: 2px;
+  --gridkit-transition-duration: 0.1s;
+
   --gridkit-surface-light: oklch(1 0 0);
   --gridkit-surface-dark: oklch(0.21 0.01 250);
   --gridkit-surface-muted-light: oklch(0.97 0.003 250);
@@ -46,6 +55,16 @@
   --gridkit-selected-dark: oklch(0.32 0.05 255);
   --gridkit-selected-strong-light: oklch(0.9 0.05 255);
   --gridkit-selected-strong-dark: oklch(0.38 0.07 255);
+  --gridkit-error-light: oklch(from var(--gridkit-accent-light) l c 25);
+  --gridkit-error-dark: oklch(from var(--gridkit-accent-dark) l c 25);
+  --gridkit-warning-light: oklch(from var(--gridkit-accent-light) l c 70);
+  --gridkit-warning-dark: oklch(from var(--gridkit-accent-dark) l c 70);
+  --gridkit-success-light: oklch(from var(--gridkit-accent-light) l c 150);
+  --gridkit-success-dark: oklch(from var(--gridkit-accent-dark) l c 150);
+  --gridkit-info-light: var(--gridkit-accent-light);
+  --gridkit-info-dark: var(--gridkit-accent-dark);
+  --gridkit-focus-ring-light: var(--gridkit-accent-light);
+  --gridkit-focus-ring-dark: var(--gridkit-accent-dark);
 
   color-scheme: light;
   --gridkit-surface: var(--gridkit-surface-light);
@@ -57,6 +76,11 @@
   --gridkit-accent: var(--gridkit-accent-light);
   --gridkit-selected: var(--gridkit-selected-light);
   --gridkit-selected-strong: var(--gridkit-selected-strong-light);
+  --gridkit-error: var(--gridkit-error-light);
+  --gridkit-warning: var(--gridkit-warning-light);
+  --gridkit-success: var(--gridkit-success-light);
+  --gridkit-info: var(--gridkit-info-light);
+  --gridkit-focus-ring: var(--gridkit-focus-ring-light);
 
   @variant dark {
     color-scheme: dark;
@@ -69,6 +93,26 @@
     --gridkit-accent: var(--gridkit-accent-dark);
     --gridkit-selected: var(--gridkit-selected-dark);
     --gridkit-selected-strong: var(--gridkit-selected-strong-dark);
+    --gridkit-error: var(--gridkit-error-dark);
+    --gridkit-warning: var(--gridkit-warning-dark);
+    --gridkit-success: var(--gridkit-success-dark);
+    --gridkit-info: var(--gridkit-info-dark);
+    --gridkit-focus-ring: var(--gridkit-focus-ring-dark);
+  }
+}
+
+/*
+ * Without relative colour syntax the error, warning and success defaults
+ * above are invalid, so there they are the text colour, as in `styles.css`.
+ */
+@supports not (color: oklch(from red l c h)) {
+  :where(:root) {
+    --gridkit-error-light: var(--gridkit-fg-light);
+    --gridkit-error-dark: var(--gridkit-fg-dark);
+    --gridkit-warning-light: var(--gridkit-fg-light);
+    --gridkit-warning-dark: var(--gridkit-fg-dark);
+    --gridkit-success-light: var(--gridkit-fg-light);
+    --gridkit-success-dark: var(--gridkit-fg-dark);
   }
 }
 
@@ -83,6 +127,11 @@
   --gridkit-accent: var(--gridkit-accent-light);
   --gridkit-selected: var(--gridkit-selected-light);
   --gridkit-selected-strong: var(--gridkit-selected-strong-light);
+  --gridkit-error: var(--gridkit-error-light);
+  --gridkit-warning: var(--gridkit-warning-light);
+  --gridkit-success: var(--gridkit-success-light);
+  --gridkit-info: var(--gridkit-info-light);
+  --gridkit-focus-ring: var(--gridkit-focus-ring-light);
 }
 
 .gridkit-dark {
@@ -96,6 +145,11 @@
   --gridkit-accent: var(--gridkit-accent-dark);
   --gridkit-selected: var(--gridkit-selected-dark);
   --gridkit-selected-strong: var(--gridkit-selected-strong-dark);
+  --gridkit-error: var(--gridkit-error-dark);
+  --gridkit-warning: var(--gridkit-warning-dark);
+  --gridkit-success: var(--gridkit-success-dark);
+  --gridkit-info: var(--gridkit-info-dark);
+  --gridkit-focus-ring: var(--gridkit-focus-ring-dark);
 }
 
 /*
@@ -113,4 +167,651 @@
   --color-gridkit-accent: var(--gridkit-accent);
   --color-gridkit-selected: var(--gridkit-selected);
   --color-gridkit-selected-strong: var(--gridkit-selected-strong);
+  --color-gridkit-error: var(--gridkit-error);
+  --color-gridkit-warning: var(--gridkit-warning);
+  --color-gridkit-success: var(--gridkit-success);
+  --color-gridkit-info: var(--gridkit-info);
+  --color-gridkit-focus-ring: var(--gridkit-focus-ring);
+}
+
+/*
+ * Forms styles.
+ */
+
+@layer base {
+  /*
+   * What the rules below take for granted from Tailwind's Preflight, set on
+   * every forms root, so they draw the same in an app without Preflight and
+   * in theme-css's plain CSS. `:where()` keeps each at no specificity, as
+   * Preflight's are.
+   */
+  :where(
+    .gridkit-forms-form,
+    .gridkit-forms-field,
+    .gridkit-forms-fieldset,
+    .gridkit-forms-section,
+    .gridkit-forms-layout,
+    .gridkit-forms-message-summary
+  ),
+  :where(
+      .gridkit-forms-form,
+      .gridkit-forms-field,
+      .gridkit-forms-fieldset,
+      .gridkit-forms-section,
+      .gridkit-forms-layout,
+      .gridkit-forms-message-summary
+    )
+    *,
+  :where(
+      .gridkit-forms-form,
+      .gridkit-forms-field,
+      .gridkit-forms-fieldset,
+      .gridkit-forms-section,
+      .gridkit-forms-layout,
+      .gridkit-forms-message-summary
+    )
+    ::before,
+  :where(
+      .gridkit-forms-form,
+      .gridkit-forms-field,
+      .gridkit-forms-fieldset,
+      .gridkit-forms-section,
+      .gridkit-forms-layout,
+      .gridkit-forms-message-summary
+    )
+    ::after {
+    box-sizing: border-box;
+  }
+
+  :where(
+      .gridkit-forms-form,
+      .gridkit-forms-field,
+      .gridkit-forms-fieldset,
+      .gridkit-forms-section,
+      .gridkit-forms-layout,
+      .gridkit-forms-message-summary
+    )
+    :where(button, input, textarea, select) {
+    font: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+  }
+
+  :where(
+      .gridkit-forms-form,
+      .gridkit-forms-field,
+      .gridkit-forms-fieldset,
+      .gridkit-forms-section,
+      .gridkit-forms-layout,
+      .gridkit-forms-message-summary
+    )
+    :where(svg) {
+    display: block;
+  }
+
+  /*
+   * Read but not seen: a hidden label, the severity read before a message,
+   * the "No value" beside a display-mode dash. Clipped to nothing rather
+   * than hidden, which would take it out of the accessibility tree too.
+   */
+  .gridkit-forms-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /*
+   * A field: its label, then the control, the description and the messages,
+   * one under the other. A disabled field's text is muted, its messages
+   * excepted.
+   */
+  .gridkit-forms-field {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    min-inline-size: 0;
+    font-size: var(--gridkit-font-size);
+    color: var(--gridkit-fg);
+  }
+
+  .gridkit-forms-field.is-disabled {
+    color: var(--gridkit-fg-muted);
+  }
+
+  .gridkit-forms-field-label {
+    margin-block-end: calc(var(--gridkit-spacing) * 1.5);
+    font-weight: 500;
+    overflow-wrap: anywhere;
+  }
+
+  .gridkit-forms-field-required {
+    margin-inline-start: 0.125em;
+    color: var(--gridkit-error);
+  }
+
+  .gridkit-forms-field-optional {
+    font-weight: normal;
+    color: var(--gridkit-fg-muted);
+  }
+
+  .gridkit-forms-field-description {
+    margin: var(--gridkit-spacing) 0 0;
+    font-size: var(--gridkit-hint-font-size);
+    color: var(--gridkit-fg-muted);
+  }
+
+  /*
+   * Always in the page, as a live region has to be, and taking no room
+   * while empty.
+   */
+  .gridkit-forms-field-messages {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--gridkit-spacing) * 0.5);
+  }
+
+  .gridkit-forms-field-messages:not(:empty) {
+    margin-block-start: var(--gridkit-spacing);
+  }
+
+  /*
+   * A message's text keeps the body colour, readable whatever the
+   * severity; its icon carries the severity's colour and shape.
+   */
+  .gridkit-forms-message {
+    display: flex;
+    align-items: flex-start;
+    gap: calc(var(--gridkit-spacing) * 1.5);
+    margin: 0;
+    font-size: var(--gridkit-hint-font-size);
+    color: var(--gridkit-fg);
+  }
+
+  .gridkit-forms-message-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    block-size: 1lh;
+  }
+
+  .gridkit-forms-message-icon svg {
+    inline-size: 1.25em;
+    block-size: 1.25em;
+  }
+
+  :is(.gridkit-forms-message, .gridkit-forms-message-summary-item).is-error
+    .gridkit-forms-message-icon {
+    color: var(--gridkit-error);
+  }
+
+  :is(.gridkit-forms-message, .gridkit-forms-message-summary-item).is-warning
+    .gridkit-forms-message-icon {
+    color: var(--gridkit-warning);
+  }
+
+  :is(.gridkit-forms-message, .gridkit-forms-message-summary-item).is-info
+    .gridkit-forms-message-icon {
+    color: var(--gridkit-info);
+  }
+
+  :is(.gridkit-forms-message, .gridkit-forms-message-summary-item).is-success
+    .gridkit-forms-message-icon {
+    color: var(--gridkit-success);
+  }
+
+  /*
+   * The label beside the control, in a column `--gridkit-forms-label-width`
+   * wide, its text on the control's first line; the description and the
+   * messages under the control.
+   */
+  .gridkit-forms-field.is-label-start {
+    grid-template-columns: var(--gridkit-forms-label-width, 10rem) minmax(
+        0,
+        1fr
+      );
+    align-items: baseline;
+    column-gap: calc(var(--gridkit-spacing) * 3);
+  }
+
+  .gridkit-forms-field.is-label-start > * {
+    grid-column: 2;
+  }
+
+  .gridkit-forms-field.is-label-start > .gridkit-forms-field-label {
+    grid-row: 1;
+    grid-column: 1;
+    margin-block-end: 0;
+  }
+
+  /*
+   * A floating label rests inside the control, where its text would be,
+   * and rises onto its top border, on the surface colour so the border
+   * stops at its text. It rises with the field's `is-label-raised`, and
+   * while the browser's autofill shows a value it has not handed over yet.
+   * In display mode it sits on top, as a top label does.
+   *
+   * It stays in one place, at the control's top, and only its transform
+   * changes: down to the middle of a single-line control at rest, onto the
+   * border and scaled to the hint size (0.75) when raised. A transform
+   * moves without laying the page out again, so the move stays smooth, and
+   * the padding, weight and size of its text never change, so nothing
+   * shifts mid-move; the colour and the background fade alongside.
+   */
+  .gridkit-forms-field.is-label-floating:not(.is-display)
+    > .gridkit-forms-field-control {
+    position: relative;
+  }
+
+  .gridkit-forms-field.is-label-floating:not(.is-display)
+    .gridkit-forms-field-label {
+    position: absolute;
+    z-index: 1;
+    inset-block-start: 0;
+    inset-inline-start: var(--gridkit-spacing);
+    max-inline-size: calc(100% - var(--gridkit-spacing) * 2);
+    margin: 0;
+    padding-inline: var(--gridkit-spacing);
+    overflow: hidden;
+    line-height: 1.25;
+    color: var(--gridkit-fg-muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    background-color: transparent;
+    pointer-events: none;
+    transform: translateY(
+      calc(
+        var(--gridkit-forms-control-height, calc(var(--gridkit-spacing) * 8)) /
+          2 - 50%
+      )
+    );
+    transform-origin: 0 50%;
+    transition-property: transform, color, background-color;
+    transition-duration: var(--gridkit-forms-label-transition-duration, 0.18s);
+    transition-timing-function: ease-out;
+  }
+
+  .gridkit-forms-field.is-label-floating.is-compact:not(.is-display)
+    .gridkit-forms-field-label {
+    transform: translateY(
+      calc(
+        var(
+            --gridkit-forms-control-height-compact,
+            calc(var(--gridkit-spacing) * 6)
+          ) /
+          2 - 50%
+      )
+    );
+  }
+
+  .gridkit-forms-field.is-label-floating.is-comfortable:not(.is-display)
+    .gridkit-forms-field-label {
+    transform: translateY(
+      calc(
+        var(
+            --gridkit-forms-control-height-comfortable,
+            calc(var(--gridkit-spacing) * 10)
+          ) /
+          2 - 50%
+      )
+    );
+  }
+
+  .gridkit-forms-field.is-label-floating:not(.is-display)
+    .gridkit-forms-field-label:dir(rtl) {
+    transform-origin: 100% 50%;
+  }
+
+  .gridkit-forms-field.is-label-floating:not(.is-display):is(
+      .is-label-raised,
+      :has(:autofill)
+    )
+    .gridkit-forms-field-label {
+    color: inherit;
+    background-color: var(--gridkit-surface);
+    transform: translateY(-50%) scale(0.75);
+  }
+
+  /*
+   * The placeholder shows only once the label is out of its way, fading in
+   * as the label rises.
+   */
+  .gridkit-forms-field.is-label-floating:not(.is-display)
+    .gridkit-forms-field-control
+    ::placeholder {
+    transition: opacity var(--gridkit-forms-label-transition-duration, 0.18s)
+      ease-out;
+  }
+
+  .gridkit-forms-field.is-label-floating:not(.is-display, .is-label-raised)
+    .gridkit-forms-field-control
+    ::placeholder {
+    opacity: 0;
+  }
+
+  /* A value in display mode, as text in a document. */
+  .gridkit-forms-display-value {
+    overflow-wrap: anywhere;
+  }
+
+  .gridkit-forms-display-empty {
+    color: var(--gridkit-fg-muted);
+  }
+
+  /*
+   * A form, a section's body and a fieldset stack their parts with
+   * `--gridkit-forms-row-gap` between them. Fields, groups, fieldsets,
+   * sections, layouts and the summary take the full width; anything else,
+   * such as a button, keeps its own.
+   */
+  .gridkit-forms-form,
+  .gridkit-forms-section-body:not([hidden]),
+  .gridkit-forms-fieldset {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--gridkit-forms-row-gap, calc(var(--gridkit-spacing) * 4));
+    align-content: start;
+    justify-items: start;
+  }
+
+  :is(.gridkit-forms-form, .gridkit-forms-section-body, .gridkit-forms-fieldset)
+    > :is(
+      .gridkit-forms-field,
+      .gridkit-forms-fieldset,
+      .gridkit-forms-section,
+      .gridkit-forms-layout,
+      .gridkit-forms-message-summary
+    ) {
+    justify-self: stretch;
+  }
+
+  .gridkit-forms-form {
+    font-size: var(--gridkit-font-size);
+    color: var(--gridkit-fg);
+  }
+
+  .gridkit-forms-fieldset {
+    min-inline-size: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .gridkit-forms-fieldset-legend {
+    margin-block-end: calc(var(--gridkit-spacing) * 3);
+    padding: 0;
+    font-weight: var(--gridkit-forms-section-title-font-weight, 600);
+  }
+
+  .gridkit-forms-fieldset-description,
+  .gridkit-forms-section-description {
+    margin: 0;
+    font-size: var(--gridkit-hint-font-size);
+    color: var(--gridkit-fg-muted);
+  }
+
+  /*
+   * A section: its title and description over a line, then its body. A
+   * collapsible one's title is a button the width of its text, whose
+   * chevron turns towards the inline start while the section is closed.
+   */
+  .gridkit-forms-section {
+    display: grid;
+    row-gap: calc(var(--gridkit-spacing) * 4);
+    min-inline-size: 0;
+  }
+
+  .gridkit-forms-section-header {
+    display: grid;
+    row-gap: var(--gridkit-spacing);
+    padding-block-end: calc(var(--gridkit-spacing) * 2);
+    border-block-end: var(--gridkit-border-width) solid var(--gridkit-line);
+  }
+
+  .gridkit-forms-section-title {
+    margin: 0;
+    font-size: var(
+      --gridkit-forms-section-title-font-size,
+      calc(var(--gridkit-font-size) * 1.125)
+    );
+    font-weight: var(--gridkit-forms-section-title-font-weight, 600);
+    line-height: 1.3;
+  }
+
+  .gridkit-forms-section-toggle {
+    display: inline-flex;
+    gap: calc(var(--gridkit-spacing) * 1.5);
+    align-items: center;
+    margin: 0;
+    padding: 0;
+    font-weight: inherit;
+    text-align: start;
+    cursor: pointer;
+    background: none;
+    border: 0;
+    border-radius: var(--gridkit-control-radius);
+  }
+
+  .gridkit-forms-section-toggle:focus-visible {
+    outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
+    outline-offset: 2px;
+  }
+
+  .gridkit-forms-section-toggle-icon {
+    display: inline-flex;
+    flex: none;
+    color: var(--gridkit-fg-muted);
+    transition: rotate var(--gridkit-transition-duration);
+  }
+
+  .gridkit-forms-section-toggle-icon svg {
+    inline-size: 1em;
+    block-size: 1em;
+  }
+
+  .gridkit-forms-section.is-collapsed .gridkit-forms-section-toggle-icon {
+    rotate: -90deg;
+  }
+
+  .gridkit-forms-section.is-collapsed
+    .gridkit-forms-section-toggle-icon:dir(rtl) {
+    rotate: 90deg;
+  }
+
+  /*
+   * A layout lays its fields out in columns that drop as it narrows (the
+   * container queries below). Its grid is an inner element, since a
+   * container query reads the width of an element around the one it
+   * styles.
+   */
+  .gridkit-forms-layout {
+    container: gridkit-forms-layout / inline-size;
+    min-inline-size: 0;
+  }
+
+  .gridkit-forms-layout-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--gridkit-forms-row-gap, calc(var(--gridkit-spacing) * 4))
+      var(--gridkit-forms-column-gap, calc(var(--gridkit-spacing) * 6));
+    align-items: start;
+  }
+
+  .gridkit-forms-layout-grid > .is-span-full {
+    grid-column: 1 / -1;
+  }
+
+  /* A group's inputs side by side, wrapping onto new lines as they need. */
+  .gridkit-forms-field-group-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(var(--gridkit-spacing) * 2) calc(var(--gridkit-spacing) * 3);
+    align-items: flex-start;
+  }
+
+  .gridkit-forms-field-group-controls > * {
+    flex: 1 1 8rem;
+    min-inline-size: 0;
+  }
+
+  /*
+   * The summary: a panel whose inline-start edge takes the colour of the
+   * most serious severity it lists, holding links in the body colour. A
+   * refused submit focuses it from code, so it shows its ring on any focus.
+   */
+  .gridkit-forms-message-summary {
+    display: grid;
+    row-gap: calc(var(--gridkit-spacing) * 2);
+    padding: calc(var(--gridkit-spacing) * 3) calc(var(--gridkit-spacing) * 4);
+    font-size: var(--gridkit-font-size);
+    color: var(--gridkit-fg);
+    background-color: var(--gridkit-surface);
+    border: var(--gridkit-border-width) solid var(--gridkit-line);
+    border-inline-start: calc(var(--gridkit-border-width) * 4) solid
+      var(--gridkit-error);
+    border-radius: var(--gridkit-radius);
+  }
+
+  .gridkit-forms-message-summary.is-warning {
+    border-inline-start-color: var(--gridkit-warning);
+  }
+
+  .gridkit-forms-message-summary.is-info {
+    border-inline-start-color: var(--gridkit-info);
+  }
+
+  .gridkit-forms-message-summary.is-success {
+    border-inline-start-color: var(--gridkit-success);
+  }
+
+  .gridkit-forms-message-summary:focus {
+    outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
+    outline-offset: 2px;
+  }
+
+  .gridkit-forms-message-summary-title {
+    margin: 0;
+    font-size: var(
+      --gridkit-forms-section-title-font-size,
+      calc(var(--gridkit-font-size) * 1.125)
+    );
+    font-weight: var(--gridkit-forms-section-title-font-weight, 600);
+    line-height: 1.3;
+  }
+
+  .gridkit-forms-message-summary-counts {
+    margin: 0;
+    font-size: var(--gridkit-hint-font-size);
+    color: var(--gridkit-fg-muted);
+  }
+
+  .gridkit-forms-message-summary-list {
+    display: grid;
+    row-gap: var(--gridkit-spacing);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .gridkit-forms-message-summary-item {
+    display: flex;
+    gap: calc(var(--gridkit-spacing) * 1.5);
+    align-items: flex-start;
+  }
+
+  .gridkit-forms-message-summary-link {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    border-radius: var(--gridkit-control-radius);
+  }
+
+  .gridkit-forms-message-summary-link:focus-visible {
+    outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
+    outline-offset: 2px;
+  }
+
+  /*
+   * A layout's columns: at most two from 32rem wide, three from 48rem and
+   * four from 64rem, as many as `is-columns-*` allows. A span takes at most
+   * the columns there are. Below 30rem a start label stacks on top of its
+   * control, as a top label does.
+   */
+  @container gridkit-forms-layout (width >= 32rem) {
+    :is(
+        .gridkit-forms-layout.is-columns-2,
+        .gridkit-forms-layout.is-columns-3,
+        .gridkit-forms-layout.is-columns-4
+      )
+      > .gridkit-forms-layout-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    :is(
+        .gridkit-forms-layout.is-columns-2,
+        .gridkit-forms-layout.is-columns-3,
+        .gridkit-forms-layout.is-columns-4
+      )
+      > .gridkit-forms-layout-grid
+      > :is(.is-span-2, .is-span-3, .is-span-4) {
+      grid-column: span 2;
+    }
+  }
+
+  @container gridkit-forms-layout (width >= 48rem) {
+    :is(.gridkit-forms-layout.is-columns-3, .gridkit-forms-layout.is-columns-4)
+      > .gridkit-forms-layout-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    :is(.gridkit-forms-layout.is-columns-3, .gridkit-forms-layout.is-columns-4)
+      > .gridkit-forms-layout-grid
+      > :is(.is-span-3, .is-span-4) {
+      grid-column: span 3;
+    }
+  }
+
+  @container gridkit-forms-layout (width >= 64rem) {
+    .gridkit-forms-layout.is-columns-4 > .gridkit-forms-layout-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .gridkit-forms-layout.is-columns-4
+      > .gridkit-forms-layout-grid
+      > .is-span-4 {
+      grid-column: span 4;
+    }
+  }
+
+  @container gridkit-forms-layout (width < 30rem) {
+    .gridkit-forms-field.is-label-start {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .gridkit-forms-field.is-label-start > * {
+      grid-column: 1;
+    }
+
+    .gridkit-forms-field.is-label-start > .gridkit-forms-field-label {
+      grid-row: auto;
+      grid-column: 1;
+      margin-block-end: calc(var(--gridkit-spacing) * 1.5);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gridkit-forms-field.is-label-floating:not(.is-display)
+      .gridkit-forms-field-label,
+    .gridkit-forms-field.is-label-floating:not(.is-display)
+      .gridkit-forms-field-control
+      ::placeholder,
+    .gridkit-forms-section-toggle-icon {
+      transition: none;
+    }
+  }
 }

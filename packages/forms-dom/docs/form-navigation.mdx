@@ -1,0 +1,61 @@
+---
+title: "Form navigation"
+description: "Enter moving from field to field, finding a form's first invalid control, and the focus helpers a forms renderer uses on submit."
+---
+
+The behaviours a form needs around its fields: `attachEnterNavigation` makes Enter move from field to field, `findFirstInvalidControl` finds where a refused submit should send focus, `focusTargetIn` picks the control a link to a field should focus, and `compareDocumentOrder` sorts elements as they come in the page.
+
+<Callout type="note" title="First iteration">
+  These functions are a first iteration and may change before the first release.
+</Callout>
+
+## When to use it
+
+In a forms renderer of your own. @gridkitjs/forms's `Form` and `MessageSummary` use them; an app using those needs nothing here.
+
+## Example
+
+```ts
+import {
+  attachEnterNavigation,
+  findFirstInvalidControl,
+} from "@gridkitjs/forms-dom";
+
+const form = document.querySelector("form");
+if (form !== null) {
+  const navigation = attachEnterNavigation(form);
+  form.addEventListener("submit", (event) => {
+    const invalid = findFirstInvalidControl(form);
+    if (invalid !== null) {
+      event.preventDefault();
+      invalid.focus();
+    }
+  });
+  // later, when the form goes:
+  navigation.detach();
+}
+```
+
+## Functions
+
+| Function                        | Returns                  | Description                                                                                                                                                                                                          |
+| ------------------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `attachEnterNavigation(form)`   | `{ detach: () => void }` | Makes Enter move to the next control (below). `detach` removes its one listener.                                                                                                                                     |
+| `findFirstInvalidControl(form)` | `HTMLElement \| null`    | The first control of the form, its `form`-attribute ones included, in document order, whose value is invalid: a custom validity (a field's error) or a native constraint. Disabled and read-only controls never are. |
+| `focusTargetIn(target)`         | `HTMLElement \| null`    | `target` when it can take focus, else the first control inside it, as for a group.                                                                                                                                   |
+| `compareDocumentOrder(a, b)`    | `number`                 | Negative when `a` comes first in the document, for `sort`.                                                                                                                                                           |
+
+## Keyboard
+
+With `attachEnterNavigation`:
+
+| Key              | Where                                                                                                | Action                                                                                                                                                          |
+| ---------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <Kbd>Enter</Kbd> | An `<input>` of type text, search, email, tel, url, password, number or checkbox (a switch included) | Moves to the next control a user can change, in document order: enabled, not read-only, drawn, and not a button. From the last, submits with `requestSubmit()`. |
+
+Enter with a modifier, while an input method is composing, or already handled (a field that refused its commit prevents the key) is left alone, as is Enter in a textarea, a select, a button or a link.
+
+## See also
+
+- [Form](/docs/forms/form) for the component built on these.
+- [Text pipeline](/docs/forms-dom/text-pipeline) for what a field does with Enter first.

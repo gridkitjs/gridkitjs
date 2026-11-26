@@ -60,6 +60,15 @@ export {
   type ParseResult,
   type Parser,
 } from "./parse";
+export {
+  createFieldRegistry,
+  summarizeMessages,
+  type FieldRegistry,
+  type MessageSummary,
+  type RegisteredField,
+  type SeverityCount,
+  type SummaryItem,
+} from "./registry";
 export type { Schedule } from "./schedule";
 export { formatText, textParser, type TextParseOptions } from "./text";
 export {

@@ -47,6 +47,12 @@
   --gridkit-accent-fg-dark: var(--gridkit-surface-dark);
   --gridkit-error-light: oklch(from var(--gridkit-accent-light) l c 25);
   --gridkit-error-dark: oklch(from var(--gridkit-accent-dark) l c 25);
+  --gridkit-warning-light: oklch(from var(--gridkit-accent-light) l c 70);
+  --gridkit-warning-dark: oklch(from var(--gridkit-accent-dark) l c 70);
+  --gridkit-success-light: oklch(from var(--gridkit-accent-light) l c 150);
+  --gridkit-success-dark: oklch(from var(--gridkit-accent-dark) l c 150);
+  --gridkit-info-light: var(--gridkit-accent-light);
+  --gridkit-info-dark: var(--gridkit-accent-dark);
   --gridkit-scrollbar-thumb-light: color-mix(
     in oklch,
     var(--gridkit-fg-muted-light) 45%,

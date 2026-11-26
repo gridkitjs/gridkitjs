@@ -4,6 +4,7 @@ import {
   resolveFormsMessages,
   type FieldMessage,
   type FieldOptions,
+  type FieldPhase,
   type FieldState,
   type FormatContext,
   type Formatter,
@@ -22,6 +23,7 @@ import {
 import {
   useCallback,
   useEffect,
+  useId,
   useImperativeHandle,
   useLayoutEffect,
   useMemo,
@@ -31,7 +33,12 @@ import {
   type Ref,
   type RefCallback,
 } from "react";
+import { DisplayValue } from "./DisplayValue";
 import type { FieldHandlers } from "./events";
+import { useFieldContext } from "./field/fieldContext";
+import { useFormContext } from "./form/formContext";
+import { setRef } from "./refs";
+import { useFormSettings, type FieldMode } from "./settings";
 
 /** What an input does from code: focus it, read it, change it. */
 export interface InputHandle<V> {
@@ -83,6 +90,11 @@ export interface FieldInputProps<
   /** The app's writing of the value; `context.defaultFormat` is the input's own. */
   readonly format?: Formatter<V> | undefined;
   readonly validate?: Validator<V> | readonly Validator<V>[] | undefined;
+  /**
+   * The control needs a value: it sets `aria-required` and marks the label
+   * of the `Field` around it. The input adds the check to `validate`.
+   */
+  readonly required?: boolean | undefined;
   /** Submits the value under this name, through a hidden input. */
   readonly name?: string | undefined;
   /** The `id` of a `<form>` elsewhere in the page that the value belongs to. */
@@ -90,6 +102,10 @@ export interface FieldInputProps<
   readonly readOnly?: boolean | undefined;
   /** Disabled, and not submitted. */
   readonly disabled?: boolean | undefined;
+  /** `"display"` shows the value as text; the `Field` or form around it sets it otherwise. */
+  readonly mode?: FieldMode | undefined;
+  /** The control's `id` outside a `Field`; inside one, the field's is used. */
+  readonly id?: string | undefined;
   readonly locale?: Intl.LocalesArgument;
   /** Strings laid over the default English ones. */
   readonly messages?: Partial<FormsMessages> | undefined;
@@ -101,11 +117,15 @@ export interface FieldInputProps<
 /** The props `useFieldInput` gives the native control. */
 export interface FieldControlBinding<E extends TextControl> {
   readonly ref: RefCallback<E>;
+  readonly id: string;
   /** The text on screen. The control's live text is forms-dom's, so it is never a controlled `value`. */
   readonly defaultValue: string;
   readonly readOnly: boolean | undefined;
   readonly disabled: boolean | undefined;
   readonly "aria-invalid": true | undefined;
+  /** The description and messages of the `Field` around it. */
+  readonly "aria-describedby": string | undefined;
+  readonly "aria-required": true | undefined;
 }
 
 /** What `useFieldInput` gives the input that calls it, to draw. */
@@ -113,8 +133,15 @@ export interface FieldInput<V, E extends TextControl = HTMLInputElement> {
   readonly state: FieldState<V>;
   /** The text on screen. */
   readonly text: string;
-  /** The messages to show: none until a commit attempt or `revealMessages`. */
+  /**
+   * The messages to show: none until a commit attempt or `revealMessages`,
+   * and none while disabled. A `Field` around the input lists them itself.
+   */
   readonly messages: readonly FieldMessage[];
+  /** The props', the `Field`'s or the form's. */
+  readonly mode: FieldMode;
+  /** The value as text, to draw in place of the control in display mode. */
+  readonly displayValue: ReactElement;
   /** Spread onto the native control. */
   readonly controlProps: FieldControlBinding<E>;
   /** The hidden input carrying `name`, to draw beside the control; `null` without one. */
@@ -123,6 +150,19 @@ export interface FieldInput<V, E extends TextControl = HTMLInputElement> {
 
 const NO_MESSAGES: readonly FieldMessage[] = [];
 
+/** Whether the control has focus, from where the field is in an edit. */
+function isFocused(phase: FieldPhase<unknown>): boolean {
+  switch (phase.kind) {
+    case "editing":
+    case "leaving":
+      return true;
+    case "checking":
+      return !phase.leaving;
+    default:
+      return false;
+  }
+}
+
 function validatorsOf<V>(
   validate: Validator<V> | readonly Validator<V>[] | undefined,
 ): readonly Validator<V>[] {
@@ -130,25 +170,6 @@ function validatorsOf<V>(
     return [];
   }
   return typeof validate === "function" ? [validate] : validate;
-}
-
-/** Points `ref` at `element`, and returns what lets go of it again. */
-function setRef<T>(ref: Ref<T> | undefined, element: T): (() => void) | null {
-  if (typeof ref === "function") {
-    const cleanup = ref(element);
-    return typeof cleanup === "function"
-      ? cleanup
-      : () => {
-          ref(null);
-        };
-  }
-  if (ref === undefined || ref === null) {
-    return null;
-  }
-  ref.current = element;
-  return () => {
-    ref.current = null;
-  };
 }
 
 /**
@@ -164,15 +185,35 @@ function setRef<T>(ref: Ref<T> | undefined, element: T): (() => void) | null {
  * passed on after every render and adopted whenever the user is not
  * typing, with no event; `handleRef`'s `setValue` and `reset` fire the
  * change events with `source: "api"`.
+ *
+ * Inside a `Field` the control takes the field's `id`, description,
+ * required and invalid states, and `readOnly`, `disabled` and `mode` from
+ * the field and the form, and the hook tells the field its shown messages
+ * and whether the control is focused, empty and required.
  */
 export function useFieldInput<
   V,
   E extends TextControl = HTMLInputElement,
   D extends object = NoDetails,
 >(props: FieldInputProps<V, E, D>, kind: FieldInputKind<V>): FieldInput<V, E> {
+  const field = useFieldContext();
+  const form = useFormContext();
+  const formSettings = useFormSettings();
+  const ownId = useId();
+  const settings = field?.settings ?? formSettings;
+  const readOnly = props.readOnly === true || settings.readOnly;
+  const disabled = props.disabled === true || settings.disabled;
+  const mode = props.mode ?? settings.mode;
+  const locale = props.locale ?? settings.locale;
   const messages = useMemo(
-    () => resolveFormsMessages(props.messages, props.locale),
-    [props.messages, props.locale],
+    () =>
+      props.messages === undefined && props.locale === undefined
+        ? settings.messages
+        : resolveFormsMessages(
+            { ...settings.messageOverrides, ...props.messages },
+            locale,
+          ),
+    [props.messages, props.locale, settings, locale],
   );
   const options: FieldOptions<V, D, Event> = {
     value: props.value,
@@ -183,7 +224,7 @@ export function useFieldInput<
     defaultFormat: kind.defaultFormat,
     validators: validatorsOf(props.validate),
     schedule: scheduleTimeout,
-    locale: props.locale,
+    locale,
     messages,
     onFocus: props.onFocus,
     onBeforeInput: props.onBeforeInput,
@@ -214,6 +255,10 @@ export function useFieldInput<
       controller.destroy();
     },
     [controller],
+  );
+  useLayoutEffect(
+    () => form?.registry.addRevealer(controller.reveal),
+    [form, controller],
   );
 
   // The control in state, not a ref, so that a new `ref` prop rebinds the
@@ -257,17 +302,51 @@ export function useFieldInput<
     [control, controller],
   );
 
-  const shown = state.revealed ? controller.getMessages() : NO_MESSAGES;
+  const text = controller.getText();
+  // A disabled field is not validated, so it shows none of its own messages.
+  const shown =
+    state.revealed && !disabled ? controller.getMessages() : NO_MESSAGES;
+
+  const setControlMessages = field?.setControlMessages;
+  useLayoutEffect(() => {
+    if (setControlMessages === undefined) {
+      return undefined;
+    }
+    setControlMessages(ownId, shown);
+    return () => {
+      setControlMessages(ownId, NO_MESSAGES);
+    };
+  }, [setControlMessages, ownId, shown]);
+
+  const setControlState = field?.setControlState;
+  const focused = isFocused(state.phase);
+  const empty = text === "";
+  const required = props.required === true;
+  useLayoutEffect(() => {
+    if (setControlState === undefined) {
+      return undefined;
+    }
+    setControlState({ focused, empty, required });
+    return () => {
+      setControlState(null);
+    };
+  }, [setControlState, focused, empty, required]);
+
   return {
     state,
-    text: controller.getText(),
+    text,
     messages: shown,
+    mode,
+    displayValue: <DisplayValue text={text} emptyText={messages.emptyValue} />,
     controlProps: {
       ref: controlRef,
-      defaultValue: controller.getText(),
-      readOnly: props.readOnly,
-      disabled: props.disabled,
-      "aria-invalid": hasError(shown) || undefined,
+      id: field?.controlId ?? props.id ?? ownId,
+      defaultValue: text,
+      readOnly,
+      disabled,
+      "aria-invalid": hasError(shown) || field?.invalid === true || undefined,
+      "aria-describedby": field?.describedBy,
+      "aria-required": required || field?.required === true || undefined,
     },
     hiddenInput:
       props.name === undefined ? null : (
@@ -275,7 +354,7 @@ export function useFieldInput<
           type="hidden"
           name={props.name}
           form={props.form}
-          disabled={props.disabled}
+          disabled={disabled}
           value={state.value === null ? "" : kind.serialize(state.value)}
         />
       ),

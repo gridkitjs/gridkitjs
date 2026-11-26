@@ -2,6 +2,13 @@ import { formatText, textParser } from "@gridkitjs/forms-core";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  Field,
+  FieldGroup,
+  Fieldset,
+  Form,
+  FormLayout,
+  FormSection,
+  MessageSummary,
   useFieldInput,
   type FieldInputKind,
   type FieldInputProps,
@@ -14,7 +21,7 @@ const TEXT: FieldInputKind<string> = {
 };
 
 function NameInput(props: FieldInputProps<string>) {
-  const field = useFieldInput(props, TEXT);
+  const field = useFieldInput({ id: "name", ...props }, TEXT);
   return (
     <>
       <input aria-label="Name" {...field.controlProps} />
@@ -33,7 +40,7 @@ describe("a field input on the server", () => {
     const warn = vi.spyOn(console, "warn");
     const html = renderToString(<NameInput defaultValue="Ada" name="name" />);
     expect(html).toBe(
-      '<input aria-label="Name" value="Ada"/><input type="hidden" name="name" value="Ada"/>',
+      '<input aria-label="Name" id="name" value="Ada"/><input type="hidden" name="name" value="Ada"/>',
     );
     expect(error).not.toHaveBeenCalled();
     expect(warn).not.toHaveBeenCalled();
@@ -41,10 +48,10 @@ describe("a field input on the server", () => {
 
   it("renders a controlled value, and `null` as empty", () => {
     expect(renderToString(<NameInput value="Grace" />)).toBe(
-      '<input aria-label="Name" value="Grace"/>',
+      '<input aria-label="Name" id="name" value="Grace"/>',
     );
     expect(renderToString(<NameInput value={null} name="name" />)).toBe(
-      '<input aria-label="Name" value=""/><input type="hidden" name="name" value=""/>',
+      '<input aria-label="Name" id="name" value=""/><input type="hidden" name="name" value=""/>',
     );
   });
 
@@ -57,5 +64,164 @@ describe("a field input on the server", () => {
     expect(hidden).toContain('type="hidden"');
     expect(hidden).toContain('form="profile"');
     expect(hidden).toContain('disabled=""');
+  });
+});
+
+function FieldInput(props: FieldInputProps<string>) {
+  const field = useFieldInput(props, TEXT);
+  return (
+    <>
+      {field.mode === "display" ? (
+        field.displayValue
+      ) : (
+        <input {...field.controlProps} />
+      )}
+      {field.hiddenInput}
+    </>
+  );
+}
+
+describe("a field on the server", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("names and describes its input, and marks it required", () => {
+    const error = vi.spyOn(console, "error");
+    const html = renderToString(
+      <Field id="name" label="Name" description="As on your passport" required>
+        <FieldInput defaultValue="Ada" />
+      </Field>,
+    );
+    expect(html).toBe(
+      [
+        '<div class="gridkit-forms-field is-label-top is-required">',
+        '<label class="gridkit-forms-field-label" id="name-label" for="name">Name',
+        '<span class="gridkit-forms-field-required" aria-hidden="true">*</span></label>',
+        '<div class="gridkit-forms-field-control">',
+        '<input id="name" aria-describedby="name-description name-messages" aria-required="true" value="Ada"/>',
+        "</div>",
+        '<p class="gridkit-forms-field-description" id="name-description">As on your passport</p>',
+        '<div class="gridkit-forms-field-messages" id="name-messages" aria-live="polite"></div>',
+        "</div>",
+      ].join(""),
+    );
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it("puts a floating label inside the control, resting while empty", () => {
+    const html = renderToString(
+      <Field id="email" label="Email" labelPosition="floating">
+        <FieldInput />
+      </Field>,
+    );
+    expect(html).toContain(
+      '<div class="gridkit-forms-field is-label-floating"><div class="gridkit-forms-field-control"><label',
+    );
+  });
+
+  it("shows the app's messages, most serious first, and takes the worst one's class", () => {
+    const html = renderToString(
+      <Field
+        id="limit"
+        label="Credit limit"
+        message={[
+          { text: "Above the usual", severity: "warning" },
+          "Enter a number",
+        ]}
+      >
+        <FieldInput />
+      </Field>,
+    );
+    expect(html).toContain('class="gridkit-forms-field is-label-top is-error"');
+    expect(html).toContain('aria-invalid="true"');
+    expect(html.indexOf("Enter a number")).toBeLessThan(
+      html.indexOf("Above the usual"),
+    );
+    expect(html).toContain(
+      '<span class="gridkit-forms-sr-only">Warning: </span>',
+    );
+  });
+
+  it("shows a value in display mode as text, in a group the label names", () => {
+    const html = renderToString(
+      <Field id="name" label="Name" mode="display">
+        <FieldInput defaultValue="Ada Lovelace" name="name" />
+      </Field>,
+    );
+    expect(html).toBe(
+      [
+        '<div class="gridkit-forms-field is-label-top is-display" role="group" aria-labelledby="name-label" aria-describedby="name-messages">',
+        '<span class="gridkit-forms-field-label" id="name-label">Name</span>',
+        '<div class="gridkit-forms-field-control">',
+        '<span class="gridkit-forms-display-value">Ada Lovelace</span>',
+        '<input type="hidden" name="name" value="Ada Lovelace"/>',
+        "</div>",
+        '<div class="gridkit-forms-field-messages" id="name-messages" aria-live="polite"></div>',
+        "</div>",
+      ].join(""),
+    );
+  });
+
+  it("shows an empty value in display mode as a dash read as no value", () => {
+    const html = renderToString(
+      <Field label="Name" mode="display">
+        <FieldInput />
+      </Field>,
+    );
+    expect(html).toContain(
+      '<span class="gridkit-forms-display-value gridkit-forms-display-empty"><span aria-hidden="true">—</span><span class="gridkit-forms-sr-only">No value</span></span>',
+    );
+  });
+});
+
+describe("a form on the server", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("renders its structure, a collapsed section hidden and no summary", () => {
+    const error = vi.spyOn(console, "error");
+    const html = renderToString(
+      <Form aria-label="Order" density="compact" labelWidth="12rem">
+        <MessageSummary />
+        <FormSection
+          id="delivery"
+          title="Delivery"
+          collapsible
+          defaultExpanded={false}
+        >
+          <Fieldset legend="Address" span={2}>
+            <FormLayout columns={2}>
+              <Field id="city" label="City" span="full" message="Enter a city">
+                <FieldInput />
+              </Field>
+              <FieldGroup id="postal" label="Postal code">
+                <FieldInput />
+              </FieldGroup>
+            </FormLayout>
+          </Fieldset>
+        </FormSection>
+      </Form>,
+    );
+    expect(html).toContain(
+      '<form noValidate="" aria-label="Order" class="gridkit-forms-form is-compact" style="--gridkit-forms-label-width:12rem">',
+    );
+    expect(html).not.toContain("gridkit-forms-message-summary");
+    expect(html).toContain(
+      '<button type="button" class="gridkit-forms-section-toggle" aria-expanded="false" aria-controls="delivery-body">',
+    );
+    expect(html).toContain(
+      '<div class="gridkit-forms-section-body" id="delivery-body" hidden="">',
+    );
+    expect(html).toContain('class="gridkit-forms-fieldset is-span-2"');
+    expect(html).toContain('class="gridkit-forms-layout is-columns-2"');
+    expect(html).toContain(
+      'class="gridkit-forms-field is-label-top is-error is-compact is-span-full"',
+    );
+    expect(html).toContain(
+      '<div id="postal" role="group" aria-labelledby="postal-label" class="gridkit-forms-field gridkit-forms-field-group is-label-top is-compact">',
+    );
+    expect(error).not.toHaveBeenCalled();
   });
 });

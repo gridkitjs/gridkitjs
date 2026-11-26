@@ -1,14 +1,16 @@
-import { useId, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type Ref } from "react";
 import { formatText, requiredRule, textParser } from "@gridkitjs/forms-core";
 import {
+  Field,
   useFieldInput,
+  type Density,
   type FieldBeforeCommitEvent,
   type FieldInputKind,
   type InputHandle,
 } from "@gridkitjs/forms";
 import { DemoSection } from "../DemoSection";
 import { useEventReporter } from "../eventLog";
-import { usePlaygroundSettings, type Density } from "../settings";
+import { usePlaygroundSettings } from "../settings";
 
 const DENSITY_CLASS: Readonly<Record<Density, string>> = {
   compact: "h-6 px-1.5 text-sm",
@@ -48,20 +50,21 @@ function Toggle({
   );
 }
 
+interface NameInputProps {
+  readonly required: boolean;
+  readonly slowCheck: boolean;
+  readonly uppercase: boolean;
+  readonly handle: Ref<InputHandle<string>>;
+}
+
 /**
- * A bare text control on `useFieldInput`, the hook every forms input is
- * built on, reporting each of its nine events to the log. The toggles add a
- * validator, a slow `onBeforeCommit` and an upper-case reading, so the
- * order of events can be watched as each joins in.
+ * The bare text control on `useFieldInput`, inside its field, reporting
+ * each of its nine events to the log.
  */
-export function FieldInputDemo() {
+function NameInput({ required, slowCheck, uppercase, handle }: NameInputProps) {
   const { settings } = usePlaygroundSettings();
   const reporter = useEventReporter("Field input");
-  const inputId = useId();
-  const handle = useRef<InputHandle<string>>(null);
-  const [required, setRequired] = useState(false);
-  const [slowCheck, setSlowCheck] = useState(false);
-  const [uppercase, setUppercase] = useState(false);
+  const requireValue = useMemo(() => requiredRule<string>(), []);
 
   const kind = useMemo<FieldInputKind<string>>(
     () => ({
@@ -91,9 +94,8 @@ export function FieldInputDemo() {
 
   const field = useFieldInput(
     {
-      validate: required ? requiredRule() : undefined,
-      disabled: settings.disabled,
-      readOnly: settings.readOnly,
+      required,
+      validate: required ? requireValue : undefined,
       locale: settings.locale,
       handleRef: handle,
       onFocus: reporter("onFocus"),
@@ -108,6 +110,35 @@ export function FieldInputDemo() {
     },
     kind,
   );
+
+  if (field.mode === "display") {
+    return field.displayValue;
+  }
+  return (
+    <>
+      <input
+        className={`${DENSITY_CLASS[settings.density]} ${uppercase ? "uppercase" : ""} w-full rounded border border-gridkit-fg-muted bg-gridkit-surface text-gridkit-fg read-only:bg-gridkit-surface-muted focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gridkit-accent disabled:opacity-50 aria-invalid:border-gridkit-error`}
+        {...field.controlProps}
+      />
+      <p role="status" className="text-sm text-gridkit-fg-muted">
+        {field.state.phase.kind === "checking" ? "Checking…" : ""}
+      </p>
+    </>
+  );
+}
+
+/**
+ * A bare text control on `useFieldInput`, the hook every forms input is
+ * built on, in a `Field`. The toggles add a required check, a slow
+ * `onBeforeCommit` and an upper-case reading, so the order of events can
+ * be watched as each joins in.
+ */
+export function FieldInputDemo() {
+  const { settings } = usePlaygroundSettings();
+  const handle = useRef<InputHandle<string>>(null);
+  const [required, setRequired] = useState(false);
+  const [slowCheck, setSlowCheck] = useState(false);
+  const [uppercase, setUppercase] = useState(false);
 
   return (
     <DemoSection
@@ -128,30 +159,22 @@ export function FieldInputDemo() {
             onChange={setUppercase}
           />
         </div>
-        <div className="flex max-w-sm flex-col gap-1">
-          <label htmlFor={inputId} className="text-sm font-medium">
-            Name
-          </label>
-          {settings.mode === "edit" ? (
-            <input
-              id={inputId}
-              className={`${DENSITY_CLASS[settings.density]} ${uppercase ? "uppercase" : ""} rounded border border-gridkit-fg-muted bg-gridkit-surface text-gridkit-fg read-only:bg-gridkit-surface-muted focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gridkit-accent disabled:opacity-50 aria-invalid:border-red-600`}
-              {...field.controlProps}
-            />
-          ) : (
-            <output id={inputId} className="text-sm">
-              {field.text === "" ? "—" : field.text}
-            </output>
-          )}
-          <ul className="text-sm" aria-label="Name messages">
-            {field.state.phase.kind === "checking" && (
-              <li className="text-gridkit-fg-muted">Checking…</li>
-            )}
-            {field.messages.map((message) => (
-              <li key={`${message.source}:${message.text}`}>{message.text}</li>
-            ))}
-          </ul>
-        </div>
+        <Field
+          label="Name"
+          className="max-w-sm"
+          density={settings.density}
+          mode={settings.mode}
+          necessityIndicator={settings.necessityIndicator}
+          readOnly={settings.readOnly}
+          disabled={settings.disabled}
+        >
+          <NameInput
+            required={required}
+            slowCheck={slowCheck}
+            uppercase={uppercase}
+            handle={handle}
+          />
+        </Field>
         <div className="flex gap-2">
           <button
             type="button"
