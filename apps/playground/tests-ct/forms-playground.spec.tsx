@@ -101,6 +101,12 @@ test.describe("forms playground page", () => {
     await root.getByLabel("Locale").selectOption("de-DE");
     await expect(html).toHaveAttribute("lang", "de-DE");
 
+    await root
+      .getByLabel("Page controls")
+      .getByLabel("Floating label")
+      .selectOption("above");
+    await expect(html).toHaveClass(/\bgridkit-forms-floating-above\b/);
+
     await root.getByLabel("Density").selectOption("comfortable");
     await expect(
       root
@@ -129,6 +135,7 @@ test.describe("forms playground page", () => {
       scheme: "dark",
       dir: "rtl",
       locale: "de-DE",
+      floating: "above",
       density: "comfortable",
       readonly: "",
       mode: "display",
@@ -309,7 +316,7 @@ test.describe("forms playground page", () => {
     ).toHaveCount(6);
   });
 
-  test("shows no console error under any preset, scheme, direction or mode", async ({
+  test("shows no console error under any preset, scheme, direction, floating label or mode", async ({
     mount,
     page,
   }) => {
@@ -333,6 +340,7 @@ test.describe("forms playground page", () => {
       }
     }
     await controls.getByLabel("Right to left").check();
+    await controls.getByLabel("Floating label").selectOption("above");
     await controls.getByLabel("Mode").selectOption("display");
     await controls.getByLabel("Mode").selectOption("edit");
     await root
