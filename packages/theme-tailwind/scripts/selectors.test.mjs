@@ -58,13 +58,17 @@ function isScoped(selector) {
 
 /**
  * Every selector in a block and the blocks nested in it that is not scoped
- * to the grid, skipping at-rules' own preludes and the token roots.
+ * to the grid, skipping at-rules' own preludes, the token roots and the
+ * steps of a `@keyframes`, which select no element.
  *
  * @param {CssBlock} block
  * @returns {string[]}
  */
 function unscopedSelectors(block) {
   return block.blocks.flatMap((child) => {
+    if (child.prelude.startsWith("@keyframes")) {
+      return [];
+    }
     const own =
       child.prelude.startsWith("@") || TOKEN_ROOTS.has(child.prelude)
         ? []

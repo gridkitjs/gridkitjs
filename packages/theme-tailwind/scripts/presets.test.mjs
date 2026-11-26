@@ -37,12 +37,23 @@ const AAA = 7;
 const AAA_PRESETS = new Set(["high-contrast"]);
 
 /**
- * The colours of a form message's severity icon, which have to stand out
- * from the background as any icon does (WCAG 1.4.11): 3:1, or the body
- * text's AA minimum in the presets held to AAA.
+ * The colours of a form message's severity icon, and of a form control's
+ * border and focus ring while the field shows that severity, which have to
+ * stand out from the background as any icon or control edge does (WCAG
+ * 1.4.11): 3:1, or the body text's AA minimum in the presets held to AAA.
  */
 const SEVERITY_COLORS = ["error", "warning", "info", "success"];
 const NON_TEXT = 3;
+
+/**
+ * A form control's own border against the backgrounds its box takes: the
+ * surface, and the muted surface of a read-only box. The border defaults
+ * to `fg-muted` until the forms tokens join the manifest.
+ */
+const CONTROL_BORDER_PAIRS = [
+  ["fg-muted", "surface"],
+  ["fg-muted", "surface-muted"],
+];
 
 const { tokens } = readManifest();
 const defaults = defaultDeclarations(tokens);
@@ -236,7 +247,26 @@ describe("presets", () => {
       });
 
       const iconMinimum = AAA_PRESETS.has(entry.id) ? AA : NON_TEXT;
-      test(`keeps severity icons at ${iconMinimum}:1 contrast in light and dark`, () => {
+      test(`keeps form control borders at ${iconMinimum}:1 contrast in light and dark`, () => {
+        const values = new Map([
+          ...defaults,
+          ...customProperties(presetRoot(entry)),
+        ]);
+        const problems = SIDES.flatMap((side) =>
+          CONTROL_BORDER_PAIRS.flatMap(([border, background]) => {
+            const ratio = contrast(
+              resolve(values, `--gridkit-${border}-${side}`),
+              resolve(values, `--gridkit-${background}-${side}`),
+            );
+            return ratio < iconMinimum
+              ? [`${side}: ${border} on ${background} is ${ratio.toFixed(2)}:1`]
+              : [];
+          }),
+        );
+        assert.deepEqual(problems, []);
+      });
+
+      test(`keeps severity icons and borders at ${iconMinimum}:1 contrast in light and dark`, () => {
         const values = new Map([
           ...defaults,
           ...customProperties(presetRoot(entry)),
