@@ -1,0 +1,101 @@
+---
+title: "Text pipeline"
+description: "attachTextInput: connects a native text control to a forms-core field controller, keeping the caret, input methods and undo working."
+---
+
+`attachTextInput(control, controller)` connects a native `<input>` or `<textarea>` to a forms-core [field controller](/docs/forms-core/field-state): it turns the control's browser events into the controller's requests, with the browser event attached to every event the controller fires, and writes the controller's text back into the control. The caret stays where the user left it, input methods compose undisturbed, and edits the browser makes stay undoable.
+
+<Callout type="note" title="First iteration">
+  This API is a first iteration and may change before the first release.
+</Callout>
+
+## When to use it
+
+Only to write a forms renderer of your own. The @gridkitjs/forms inputs attach it for you, through [`useFieldInput`](/docs/forms/use-field-input).
+
+## Example
+
+```ts
+import {
+  createFieldController,
+  defaultFormsMessages,
+  formatText,
+  textParser,
+  type NoDetails,
+} from "@gridkitjs/forms-core";
+import { attachTextInput, scheduleTimeout } from "@gridkitjs/forms-dom";
+
+const control = document.createElement("input");
+control.setAttribute("aria-label", "Name");
+document.body.append(control);
+
+const field = createFieldController<string, NoDetails, Event>({
+  defaultParse: textParser(),
+  defaultFormat: formatText,
+  messages: defaultFormsMessages,
+  schedule: scheduleTimeout,
+  onChange: (event) => {
+    console.log(
+      `${String(event.value)}, from ${event.nativeEvent?.type ?? "code"}`,
+    );
+  },
+});
+const input = attachTextInput(control, field);
+
+// When the control leaves the page:
+input.detach();
+field.destroy();
+```
+
+## The events it reads
+
+| Browser event                 | Request                                                                                                                    |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `focus`, `blur`               | `focus`, `blur`: the edit starts and ends; the blur commits, unless <Kbd>Tab</Kbd> did.                                    |
+| `beforeinput`                 | `beforeInput`, with the text the edit would leave; then the edit happens, is prevented, or the handler's data is inserted. |
+| `input`                       | `input`, with the text the edit left. Its `inputType` gives the source: `paste`, `drop`, `undo`, else `typing`.            |
+| `input` while not focused     | `input` with the source `autofill`: read and committed at once.                                                            |
+| `compositionend`              | `endComposition`: the composed text is read.                                                                               |
+| `keydown`                     | `commit` for <Kbd>Enter</Kbd> and <Kbd>Tab</Kbd>, `revert` for <Kbd>Escape</Kbd> (keyboard below).                         |
+| `reset` of the control's form | `reset`, with the source `api`, unless another listener prevented the reset.                                               |
+
+The text a `beforeinput` would leave is worked out from the selection, the edit's `inputType` and its data: a deletion with nothing selected removes a character, a word or a line around the caret. For an edit only the browser knows the outcome of (undo, redo, a spelling correction), the text before it stands in. A line break in a single-line `<input>`, which Chromium reports for <Kbd>Enter</Kbd>, edits nothing and is not reported.
+
+## Keyboard
+
+| Key                                                               | Does                                                                                  |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| <Kbd>Enter</Kbd>                                                  | Commits an `<input>`.                                                                 |
+| <Kbd>Ctrl</Kbd>+<Kbd>Enter</Kbd>, <Kbd>Cmd</Kbd>+<Kbd>Enter</Kbd> | Commits a `<textarea>`, where <Kbd>Enter</Kbd> is a new line.                         |
+| <Kbd>Tab</Kbd>, <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd>                   | Commits; when `onBeforeCommit` refuses at once, the key is prevented and focus stays. |
+| <Kbd>Escape</Kbd>                                                 | Puts back the last committed text; the key is prevented only when there was a change. |
+
+Keys an input method is using and keys another listener prevented are left alone.
+
+## The caret
+
+The control's text is written only when it differs from the controller's. On a focused control, a refused change (`preventDefault` in `onBeforeChange`) is put back with the selection it had before the edit, and any other write keeps the selection's distance from the end of the text, so a separator a formatter adds before the caret does not move it. A write to an unfocused control leaves the selection alone.
+
+## Input methods
+
+While an input method composes, the pipeline reports every update (`input.isComposing`), never writes to the control, and the controller reads the text once `compositionend` arrives. Browsers order the last `input` and `compositionend` differently; the pipeline works with either order.
+
+## Undo
+
+The browser's undo history keeps what the browser edits itself. Text that `onBeforeInput` inserts with `setData` goes through `document.execCommand("insertText")`, so it stays undoable, with a direct insert as the fallback where the command is refused. Text set from code clears the history in every browser tested:
+
+| What changed the text                                                                    | Chromium                     | Firefox              | WebKit                       |
+| ---------------------------------------------------------------------------------------- | ---------------------------- | -------------------- | ---------------------------- |
+| The user's own edits                                                                     | Undoable                     | Undoable             | Undoable                     |
+| `setData` in `onBeforeInput`                                                             | Undoable, with typing around | Undoable, one by one | Undoable, with typing around |
+| A refused change put back, a commit normalizing the text, `setValue`, a controlled value | Clears the history           | Clears the history   | Clears the history           |
+
+## Validity and teardown
+
+The control's custom validity holds the field's first error from the start, shown or not yet, so a plain `<form>` refuses to submit while the field holds one. `detach()` removes every listener and clears the custom validity; the controller is left as it is, so another control can be attached to it. A control already focused when attached (`autofocus`) starts its edit at once.
+
+## See also
+
+- [Field state](/docs/forms-core/field-state) for the controller and its requests.
+- [Forms events](/docs/forms/events) for every event and its order.
+- [useFieldInput](/docs/forms/use-field-input) for the React hook that attaches it.
