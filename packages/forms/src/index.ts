@@ -43,6 +43,12 @@ export type {
   ManagedControlProps,
   TextInputBaseProps,
 } from "./text/textInputProps";
+export { Checkbox, type CheckboxProps } from "./toggle/Checkbox";
+export { Switch, type SwitchProps } from "./toggle/Switch";
+export type {
+  ToggleBaseProps,
+  ToggleLabelPlacement,
+} from "./toggle/toggleProps";
 export {
   useFieldInput,
   type FieldControlBinding,
