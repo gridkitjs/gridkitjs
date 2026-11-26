@@ -8,8 +8,8 @@ groups and totals. Published.
 
 `export-xlsx` is held to `core`'s rule, so the writer runs in Node too: no
 DOM in its `tsconfig.json` `lib`, and the `packages/export-xlsx/**` block of
-`eslint.config.mjs` rejects `react`, `react-dom`, `@gridkitjs/react` and
-`@gridkitjs/dom` imports. Its only dependencies are `@gridkitjs/core` (for
+`eslint.config.mjs` rejects `react`, `react-dom`, `@gridkitjs/react`,
+`@gridkitjs/dom`, `@gridkitjs/forms-dom` and `@gridkitjs/forms` imports. Its only dependencies are `@gridkitjs/core` (for
 the `ExportWriter` types) and `fflate` (zipping the workbook).
 
 ## Layout

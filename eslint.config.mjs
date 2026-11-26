@@ -46,12 +46,14 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: [
+              group: banned([
                 "react",
                 "react-dom",
                 "@gridkitjs/react",
                 "@gridkitjs/dom",
-              ].flatMap((name) => [name, `${name}/*`]),
+                "@gridkitjs/forms-dom",
+                "@gridkitjs/forms",
+              ]),
               message: "core is framework- and DOM-free, see AGENTS.md",
             },
           ],
@@ -69,9 +71,12 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: ["react", "react-dom", "@gridkitjs/react"].flatMap(
-                (name) => [name, `${name}/*`],
-              ),
+              group: banned([
+                "react",
+                "react-dom",
+                "@gridkitjs/react",
+                "@gridkitjs/forms",
+              ]),
               message: "dom is framework-free, see AGENTS.md",
             },
           ],
@@ -89,12 +94,14 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: [
+              group: banned([
                 "react",
                 "react-dom",
                 "@gridkitjs/react",
                 "@gridkitjs/dom",
-              ].flatMap((name) => [name, `${name}/*`]),
+                "@gridkitjs/forms-dom",
+                "@gridkitjs/forms",
+              ]),
               message: "export-xlsx is framework- and DOM-free, see AGENTS.md",
             },
           ],

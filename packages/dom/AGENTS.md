@@ -9,8 +9,8 @@ and `react`.
 
 ## What must not go in it
 
-ESLint rejects any `react`, `react-dom` or `@gridkitjs/react` import from
-`dom` (the `packages/dom/**` block of `eslint.config.mjs`). Each behaviour
+ESLint rejects any `react`, `react-dom`, `@gridkitjs/react` or
+`@gridkitjs/forms` import from `dom` (the `packages/dom/**` block of `eslint.config.mjs`). Each behaviour
 owns its listeners and observers and reports through callbacks, so it names
 no framework's types. Logic that does not need the DOM belongs in `core`.
 

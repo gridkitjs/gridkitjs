@@ -10,7 +10,8 @@ and toolbar is drawn from. Plain TypeScript, published. Read the root
 ## What must not go in it
 
 `core` compiles without the DOM `lib` and ESLint rejects any `react`,
-`react-dom`, `@gridkitjs/react` or `@gridkitjs/dom` import from it.
+`react-dom`, `@gridkitjs/react`, `@gridkitjs/dom`, `@gridkitjs/forms-dom` or
+`@gridkitjs/forms` import from it.
 
 The two halves of that rule live in `tsconfig.json` (`lib` is `ES2025` only)
 and in the `packages/core/**` block of `eslint.config.mjs`. Fix the code
