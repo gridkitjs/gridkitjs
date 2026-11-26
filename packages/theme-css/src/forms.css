@@ -60,6 +60,8 @@
   --gridkit-info-dark: var(--gridkit-accent-dark);
   --gridkit-focus-ring-light: var(--gridkit-accent-light);
   --gridkit-focus-ring-dark: var(--gridkit-accent-dark);
+  --gridkit-accent-fg-light: var(--gridkit-surface-light);
+  --gridkit-accent-fg-dark: var(--gridkit-surface-dark);
 
   color-scheme: light;
   --gridkit-surface: var(--gridkit-surface-light);
@@ -69,6 +71,7 @@
   --gridkit-fg: var(--gridkit-fg-light);
   --gridkit-fg-muted: var(--gridkit-fg-muted-light);
   --gridkit-accent: var(--gridkit-accent-light);
+  --gridkit-accent-fg: var(--gridkit-accent-fg-light);
   --gridkit-selected: var(--gridkit-selected-light);
   --gridkit-selected-strong: var(--gridkit-selected-strong-light);
   --gridkit-error: var(--gridkit-error-light);
@@ -88,6 +91,7 @@
     --gridkit-fg: var(--gridkit-fg-dark);
     --gridkit-fg-muted: var(--gridkit-fg-muted-dark);
     --gridkit-accent: var(--gridkit-accent-dark);
+    --gridkit-accent-fg: var(--gridkit-accent-fg-dark);
     --gridkit-selected: var(--gridkit-selected-dark);
     --gridkit-selected-strong: var(--gridkit-selected-strong-dark);
     --gridkit-error: var(--gridkit-error-dark);
@@ -122,6 +126,7 @@
   --gridkit-fg: var(--gridkit-fg-light);
   --gridkit-fg-muted: var(--gridkit-fg-muted-light);
   --gridkit-accent: var(--gridkit-accent-light);
+  --gridkit-accent-fg: var(--gridkit-accent-fg-light);
   --gridkit-selected: var(--gridkit-selected-light);
   --gridkit-selected-strong: var(--gridkit-selected-strong-light);
   --gridkit-error: var(--gridkit-error-light);
@@ -140,6 +145,7 @@
   --gridkit-fg: var(--gridkit-fg-dark);
   --gridkit-fg-muted: var(--gridkit-fg-muted-dark);
   --gridkit-accent: var(--gridkit-accent-dark);
+  --gridkit-accent-fg: var(--gridkit-accent-fg-dark);
   --gridkit-selected: var(--gridkit-selected-dark);
   --gridkit-selected-strong: var(--gridkit-selected-strong-dark);
   --gridkit-error: var(--gridkit-error-dark);
@@ -168,7 +174,9 @@
     .gridkit-forms-layout,
     .gridkit-forms-message-summary,
     .gridkit-forms-text-input,
-    .gridkit-forms-search-input
+    .gridkit-forms-search-input,
+    .gridkit-forms-checkbox,
+    .gridkit-forms-switch
   ),
   :where(
       .gridkit-forms-form,
@@ -178,7 +186,9 @@
       .gridkit-forms-layout,
       .gridkit-forms-message-summary,
       .gridkit-forms-text-input,
-      .gridkit-forms-search-input
+      .gridkit-forms-search-input,
+      .gridkit-forms-checkbox,
+      .gridkit-forms-switch
     )
     *,
   :where(
@@ -189,7 +199,9 @@
       .gridkit-forms-layout,
       .gridkit-forms-message-summary,
       .gridkit-forms-text-input,
-      .gridkit-forms-search-input
+      .gridkit-forms-search-input,
+      .gridkit-forms-checkbox,
+      .gridkit-forms-switch
     )
     ::before,
   :where(
@@ -200,7 +212,9 @@
       .gridkit-forms-layout,
       .gridkit-forms-message-summary,
       .gridkit-forms-text-input,
-      .gridkit-forms-search-input
+      .gridkit-forms-search-input,
+      .gridkit-forms-checkbox,
+      .gridkit-forms-switch
     )
     ::after {
     box-sizing: border-box;
@@ -214,7 +228,9 @@
       .gridkit-forms-layout,
       .gridkit-forms-message-summary,
       .gridkit-forms-text-input,
-      .gridkit-forms-search-input
+      .gridkit-forms-search-input,
+      .gridkit-forms-checkbox,
+      .gridkit-forms-switch
     )
     :where(button, input, textarea, select) {
     font: inherit;
@@ -230,7 +246,9 @@
       .gridkit-forms-layout,
       .gridkit-forms-message-summary,
       .gridkit-forms-text-input,
-      .gridkit-forms-search-input
+      .gridkit-forms-search-input,
+      .gridkit-forms-checkbox,
+      .gridkit-forms-switch
     )
     :where(svg) {
     display: block;
@@ -768,6 +786,239 @@
   }
 
   /*
+   * A checkbox or a switch: the box or track and its label on one row, as
+   * tall as a text box of the same density, so the two line up in a
+   * layout. The native control lies transparent over the whole row: the
+   * label is part of what a press hits, and focus, Space, the mixed state
+   * and the name come from the platform.
+   */
+  .gridkit-forms-checkbox,
+  .gridkit-forms-switch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--gridkit-spacing) * 2);
+    min-block-size: var(
+      --gridkit-forms-control-height,
+      calc(var(--gridkit-spacing) * 8)
+    );
+    vertical-align: middle;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .gridkit-forms-checkbox.is-compact,
+  .gridkit-forms-switch.is-compact {
+    min-block-size: var(
+      --gridkit-forms-control-height-compact,
+      calc(var(--gridkit-spacing) * 6)
+    );
+  }
+
+  .gridkit-forms-checkbox.is-comfortable,
+  .gridkit-forms-switch.is-comfortable {
+    min-block-size: var(
+      --gridkit-forms-control-height-comfortable,
+      calc(var(--gridkit-spacing) * 10)
+    );
+  }
+
+  .gridkit-forms-checkbox:is(.is-display, .is-readonly, .is-disabled),
+  .gridkit-forms-switch:is(.is-display, .is-readonly, .is-disabled) {
+    cursor: default;
+  }
+
+  .gridkit-forms-checkbox.is-display,
+  .gridkit-forms-switch.is-display {
+    user-select: auto;
+  }
+
+  .gridkit-forms-checkbox.is-disabled,
+  .gridkit-forms-switch.is-disabled {
+    color: var(--gridkit-fg-muted);
+  }
+
+  .gridkit-forms-checkbox-control,
+  .gridkit-forms-switch-control {
+    position: absolute;
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: inherit;
+  }
+
+  .gridkit-forms-checkbox.is-label-start > .gridkit-forms-checkbox-label,
+  .gridkit-forms-switch.is-label-start > .gridkit-forms-switch-label {
+    order: -1;
+  }
+
+  /*
+   * The box, drawn as the grid draws its own checks: an outline at 3:1,
+   * filled with the accent and marked in `--gridkit-accent-fg` when
+   * checked or mixed. Its border and focus ring take the colour of the
+   * most serious message shown.
+   */
+  .gridkit-forms-checkbox-box {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    inline-size: var(--gridkit-forms-check-size, var(--gridkit-icon-size));
+    block-size: var(--gridkit-forms-check-size, var(--gridkit-icon-size));
+    color: var(--gridkit-accent-fg);
+    background-color: var(--gridkit-forms-control-bg, var(--gridkit-surface));
+    border: var(--gridkit-border-width) solid
+      var(--gridkit-forms-control-border, var(--gridkit-fg-muted));
+    border-radius: calc(var(--gridkit-control-radius) * 0.75);
+    outline-color: var(--gridkit-focus-ring);
+    outline-offset: 1px;
+    transition:
+      background-color var(--gridkit-transition-duration),
+      border-color var(--gridkit-transition-duration);
+  }
+
+  .gridkit-forms-checkbox-icon {
+    inline-size: 75%;
+    block-size: 75%;
+    visibility: hidden;
+  }
+
+  .gridkit-forms-checkbox:is(.is-checked, .is-mixed)
+    .gridkit-forms-checkbox-box {
+    background-color: var(--gridkit-accent);
+    border-color: var(--gridkit-accent);
+  }
+
+  .gridkit-forms-checkbox:is(.is-checked, .is-mixed)
+    .gridkit-forms-checkbox-icon {
+    visibility: visible;
+  }
+
+  .gridkit-forms-checkbox-control:focus-visible + .gridkit-forms-checkbox-box,
+  .gridkit-forms-switch-control:focus-visible + .gridkit-forms-switch-track {
+    outline-width: var(--gridkit-focus-ring-width);
+    outline-style: solid;
+  }
+
+  .gridkit-forms-checkbox.is-error .gridkit-forms-checkbox-box,
+  .gridkit-forms-switch.is-error .gridkit-forms-switch-track {
+    border-color: var(--gridkit-error);
+    outline-color: var(--gridkit-error);
+  }
+
+  .gridkit-forms-checkbox.is-warning .gridkit-forms-checkbox-box,
+  .gridkit-forms-switch.is-warning .gridkit-forms-switch-track {
+    border-color: var(--gridkit-warning);
+    outline-color: var(--gridkit-warning);
+  }
+
+  .gridkit-forms-checkbox.is-info .gridkit-forms-checkbox-box,
+  .gridkit-forms-switch.is-info .gridkit-forms-switch-track {
+    border-color: var(--gridkit-info);
+    outline-color: var(--gridkit-info);
+  }
+
+  .gridkit-forms-checkbox.is-success .gridkit-forms-checkbox-box,
+  .gridkit-forms-switch.is-success .gridkit-forms-switch-track {
+    border-color: var(--gridkit-success);
+    outline-color: var(--gridkit-success);
+  }
+
+  .gridkit-forms-checkbox.is-readonly:not(.is-checked, .is-mixed)
+    .gridkit-forms-checkbox-box {
+    background-color: var(--gridkit-surface-muted);
+  }
+
+  .gridkit-forms-checkbox.is-disabled .gridkit-forms-checkbox-box {
+    background-color: var(--gridkit-surface-muted);
+    border-color: var(--gridkit-line);
+  }
+
+  .gridkit-forms-checkbox.is-disabled:is(.is-checked, .is-mixed)
+    .gridkit-forms-checkbox-box {
+    background-color: var(--gridkit-fg-muted);
+    border-color: var(--gridkit-fg-muted);
+  }
+
+  /*
+   * The track, 1.75 times as wide as it is tall, muted when off and the
+   * accent when on. The thumb moves toward the inline end when on, so it
+   * follows `dir`: its margin is the track's inner width less its own.
+   */
+  .gridkit-forms-switch-track {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    inline-size: calc(
+      var(
+          --gridkit-forms-switch-height,
+          calc(var(--gridkit-icon-size) * 1.25)
+        ) *
+        1.75
+    );
+    block-size: var(
+      --gridkit-forms-switch-height,
+      calc(var(--gridkit-icon-size) * 1.25)
+    );
+    padding: var(--gridkit-border-width);
+    background-color: var(
+      --gridkit-forms-switch-track-bg,
+      var(--gridkit-fg-muted)
+    );
+    border: var(--gridkit-border-width) solid transparent;
+    border-radius: 9999px;
+    outline-color: var(--gridkit-focus-ring);
+    outline-offset: 1px;
+    transition:
+      background-color var(--gridkit-transition-duration),
+      border-color var(--gridkit-transition-duration);
+  }
+
+  .gridkit-forms-switch-thumb {
+    block-size: 100%;
+    aspect-ratio: 1;
+    background-color: var(--gridkit-surface);
+    border-radius: 50%;
+    transition:
+      margin-inline-start var(--gridkit-transition-duration),
+      background-color var(--gridkit-transition-duration);
+  }
+
+  .gridkit-forms-switch.is-checked .gridkit-forms-switch-track {
+    background-color: var(--gridkit-accent);
+  }
+
+  .gridkit-forms-switch.is-checked .gridkit-forms-switch-thumb {
+    margin-inline-start: calc(
+      var(
+          --gridkit-forms-switch-height,
+          calc(var(--gridkit-icon-size) * 1.25)
+        ) *
+        0.75
+    );
+    background-color: var(--gridkit-accent-fg);
+  }
+
+  .gridkit-forms-switch.is-disabled .gridkit-forms-switch-track {
+    background-color: var(--gridkit-line);
+  }
+
+  .gridkit-forms-switch.is-disabled.is-checked .gridkit-forms-switch-track {
+    background-color: var(--gridkit-fg-muted);
+  }
+
+  .gridkit-forms-switch.is-disabled .gridkit-forms-switch-thumb {
+    background-color: var(--gridkit-surface-muted);
+  }
+
+  /* "On" or "Off", muted beside the track. */
+  .gridkit-forms-switch-state {
+    color: var(--gridkit-fg-muted);
+  }
+
+  /*
    * A form, a section's body and a fieldset stack their parts with
    * `--gridkit-forms-row-gap` between them. Fields, groups, fieldsets,
    * sections, layouts and the summary take the full width; anything else,
@@ -1086,6 +1337,58 @@
     .gridkit-forms-control.is-disabled {
       border-color: GrayText;
     }
+
+    /*
+     * The box, the track and the thumb draw in system colours themselves:
+     * the outline, Highlight when on, and GrayText when disabled.
+     */
+    .gridkit-forms-checkbox-box,
+    .gridkit-forms-switch-track,
+    .gridkit-forms-switch-thumb {
+      forced-color-adjust: none;
+    }
+
+    .gridkit-forms-checkbox-box,
+    .gridkit-forms-switch-track {
+      color: HighlightText;
+      background-color: Canvas;
+      border-color: CanvasText;
+      outline-color: CanvasText;
+    }
+
+    .gridkit-forms-switch-thumb {
+      background-color: CanvasText;
+    }
+
+    .gridkit-forms-checkbox:is(.is-checked, .is-mixed)
+      .gridkit-forms-checkbox-box,
+    .gridkit-forms-switch.is-checked .gridkit-forms-switch-track {
+      background-color: Highlight;
+      border-color: Highlight;
+    }
+
+    .gridkit-forms-switch.is-checked .gridkit-forms-switch-thumb {
+      background-color: HighlightText;
+    }
+
+    .gridkit-forms-checkbox:is(.is-error, .is-warning)
+      .gridkit-forms-checkbox-box,
+    .gridkit-forms-switch:is(.is-error, .is-warning)
+      .gridkit-forms-switch-track {
+      border-width: calc(var(--gridkit-border-width) * 2);
+    }
+
+    .gridkit-forms-checkbox.is-disabled .gridkit-forms-checkbox-box,
+    .gridkit-forms-switch.is-disabled .gridkit-forms-switch-track {
+      border-color: GrayText;
+    }
+
+    .gridkit-forms-checkbox.is-disabled:is(.is-checked, .is-mixed)
+      .gridkit-forms-checkbox-box,
+    .gridkit-forms-switch.is-disabled.is-checked .gridkit-forms-switch-track,
+    .gridkit-forms-switch.is-disabled .gridkit-forms-switch-thumb {
+      background-color: GrayText;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1095,7 +1398,10 @@
       .gridkit-forms-field-control
       ::placeholder,
     .gridkit-forms-section-toggle-icon,
-    .gridkit-forms-control {
+    .gridkit-forms-control,
+    .gridkit-forms-checkbox-box,
+    .gridkit-forms-switch-track,
+    .gridkit-forms-switch-thumb {
       transition: none;
     }
 
@@ -1113,6 +1419,23 @@
     .gridkit-forms-text-input-reveal {
       min-inline-size: var(--gridkit-forms-min-target-size, 24px);
       min-block-size: var(--gridkit-forms-min-target-size, 24px);
+    }
+
+    /* A toggle's row, the whole of which takes the press, at least as big. */
+    .gridkit-forms-checkbox,
+    .gridkit-forms-switch {
+      min-inline-size: var(--gridkit-forms-min-target-size, 24px);
+    }
+
+    .gridkit-forms-checkbox.is-compact,
+    .gridkit-forms-switch.is-compact {
+      min-block-size: max(
+        var(
+          --gridkit-forms-control-height-compact,
+          calc(var(--gridkit-spacing) * 6)
+        ),
+        var(--gridkit-forms-min-target-size, 24px)
+      );
     }
   }
 }
