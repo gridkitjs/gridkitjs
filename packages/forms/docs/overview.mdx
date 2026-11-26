@@ -1,0 +1,33 @@
+---
+title: "Overview"
+description: "React form inputs and form structure for GridKit, styled by the GridKit themes to match the grid."
+---
+
+@gridkitjs/forms draws GridKit's form inputs and the structure around them in React, styled by the GridKit themes so a form beside a grid looks like part of it. @gridkitjs/forms-core decides what a field does, @gridkitjs/forms-dom connects it to the browser, and this package draws the markup and attaches them, with no styles of its own: the themes' forms stylesheet styles it. It works without the grid packages, and beside them.
+
+<Callout type="note" title="Not yet published">
+  The forms packages are under development and are not on npm yet.
+</Callout>
+
+## Example
+
+The types an app writes against are exported from this package, so an app imports from it alone:
+
+```ts
+import type { Severity } from "@gridkitjs/forms";
+
+const severity: Severity = "warning";
+```
+
+## Exports
+
+Every export of `@gridkitjs/forms`:
+
+| Export     | Kind | Description                                                                                                                              |
+| ---------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `Severity` | type | How serious a message is: `"error"`, `"warning"`, `"info"` or `"success"`. Only `"error"` blocks. Re-exported from forms-core. Growable. |
+
+## See also
+
+- [Forms core overview](/docs/forms-core/overview) for the logic behind every input.
+- [Forms DOM overview](/docs/forms-dom/overview) for the browser behaviours they attach.

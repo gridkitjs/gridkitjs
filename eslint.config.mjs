@@ -31,9 +31,9 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   {
-    // Hooks only exist in the renderer and the apps that consume it.
+    // Hooks only exist in the React packages and the apps that consume them.
     ...reactHooks.configs.flat.recommended,
-    files: ["packages/react/**", "apps/**"],
+    files: ["packages/react/**", "packages/forms/**", "apps/**"],
   },
   {
     // Core has to stay reusable from any renderer, so it must not reach for
@@ -144,6 +144,23 @@ export default tseslint.config(
                 "@gridkitjs/forms",
               ]),
               message: "forms-dom is framework- and grid-free, see AGENTS.md",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // The forms work without the grid, so the React forms never import it.
+    files: ["packages/forms/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: banned(GRID_PACKAGES),
+              message: "forms never imports the grid, see AGENTS.md",
             },
           ],
         },
