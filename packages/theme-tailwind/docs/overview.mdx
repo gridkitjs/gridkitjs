@@ -111,6 +111,18 @@ A colour's dark value is the `-dark` side of its pair, which the grid reads wher
 </div>
 ```
 
+## Forms stylesheet
+
+`@gridkitjs/theme-tailwind/forms.css` is a second entry: the stylesheet for GridKit's forms packages, which are not on npm yet. It declares the palette's nine colours with their light and dark pairs, follows dark mode and `.gridkit-light`/`.gridkit-dark` as the grid does, and registers the same colour utilities, so an app with forms but no grid has them too. Import it after Tailwind, alone or beside `styles.css`, in either order:
+
+```css title="src/index.css"
+@import "tailwindcss";
+@import "@gridkitjs/theme-tailwind/styles.css";
+@import "@gridkitjs/theme-tailwind/forms.css";
+```
+
+Its tokens are the grid's, with the same defaults, so a form and a grid change together. It declares them on `:where(:root)`, at no specificity, where `styles.css` uses `:root`, so a [preset](/docs/theme-tailwind/presets) or your own overrides on `:root` win wherever they are loaded, even before `forms.css`.
+
 ## See also
 
 - [Class names](/docs/theme-tailwind/class-names) for every class and data attribute the grid renders.

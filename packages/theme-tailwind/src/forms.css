@@ -1,0 +1,116 @@
+/*
+ * GridKit tailwind theme: the forms stylesheet.
+ *
+ * Import it after Tailwind, alone in an app with forms but no grid, or
+ * beside `styles.css`, before or after it:
+ *
+ *   @import "tailwindcss";
+ *   @import "@gridkitjs/theme-tailwind/styles.css";
+ *   @import "@gridkitjs/theme-tailwind/forms.css";
+ *
+ * It reads the same theme tokens as the grid, so a form and a grid on one
+ * page change together. To work alone it declares the ones it needs, the
+ * palette and every shared token its rules read, with the defaults
+ * `styles.css` gives them, plus the `--gridkit-forms-*` tokens only forms
+ * read. A test keeps each copied default equal to the grid's.
+ *
+ * Those declarations sit on `:where(:root)`, at no specificity, where
+ * `styles.css` and the presets use `:root`. So a preset, or an app's own
+ * tokens on `:root`, win wherever they are loaded, even before this file:
+ * declared on `:root`, a copy loaded after a preset would put the whole
+ * page, the grid's included, back to the defaults. Beside `styles.css` the
+ * two declare the same values, so either order draws the same.
+ *
+ * Dark mode works as in `styles.css`, whose comments describe the palette:
+ * `@variant dark` follows the app's own `dark:` variant, and
+ * `.gridkit-light` / `.gridkit-dark` pin everything inside them, a grid and
+ * a form alike.
+ */
+
+:where(:root) {
+  --gridkit-surface-light: oklch(1 0 0);
+  --gridkit-surface-dark: oklch(0.21 0.01 250);
+  --gridkit-surface-muted-light: oklch(0.97 0.003 250);
+  --gridkit-surface-muted-dark: oklch(0.26 0.012 250);
+  --gridkit-line-light: oklch(0.92 0.005 250);
+  --gridkit-line-dark: oklch(0.33 0.014 250);
+  --gridkit-hover-line-light: oklch(0.65 0.09 255);
+  --gridkit-hover-line-dark: oklch(0.75 0.09 255);
+  --gridkit-fg-light: oklch(0.21 0.01 250);
+  --gridkit-fg-dark: oklch(0.97 0.003 250);
+  --gridkit-fg-muted-light: oklch(0.5 0.015 250);
+  --gridkit-fg-muted-dark: oklch(0.7 0.015 250);
+  --gridkit-accent-light: oklch(0.6 0.17 255);
+  --gridkit-accent-dark: oklch(0.7 0.15 255);
+  --gridkit-selected-light: oklch(0.94 0.03 255);
+  --gridkit-selected-dark: oklch(0.32 0.05 255);
+  --gridkit-selected-strong-light: oklch(0.9 0.05 255);
+  --gridkit-selected-strong-dark: oklch(0.38 0.07 255);
+
+  color-scheme: light;
+  --gridkit-surface: var(--gridkit-surface-light);
+  --gridkit-surface-muted: var(--gridkit-surface-muted-light);
+  --gridkit-line: var(--gridkit-line-light);
+  --gridkit-hover-line: var(--gridkit-hover-line-light);
+  --gridkit-fg: var(--gridkit-fg-light);
+  --gridkit-fg-muted: var(--gridkit-fg-muted-light);
+  --gridkit-accent: var(--gridkit-accent-light);
+  --gridkit-selected: var(--gridkit-selected-light);
+  --gridkit-selected-strong: var(--gridkit-selected-strong-light);
+
+  @variant dark {
+    color-scheme: dark;
+    --gridkit-surface: var(--gridkit-surface-dark);
+    --gridkit-surface-muted: var(--gridkit-surface-muted-dark);
+    --gridkit-line: var(--gridkit-line-dark);
+    --gridkit-hover-line: var(--gridkit-hover-line-dark);
+    --gridkit-fg: var(--gridkit-fg-dark);
+    --gridkit-fg-muted: var(--gridkit-fg-muted-dark);
+    --gridkit-accent: var(--gridkit-accent-dark);
+    --gridkit-selected: var(--gridkit-selected-dark);
+    --gridkit-selected-strong: var(--gridkit-selected-strong-dark);
+  }
+}
+
+.gridkit-light {
+  color-scheme: light;
+  --gridkit-surface: var(--gridkit-surface-light);
+  --gridkit-surface-muted: var(--gridkit-surface-muted-light);
+  --gridkit-line: var(--gridkit-line-light);
+  --gridkit-hover-line: var(--gridkit-hover-line-light);
+  --gridkit-fg: var(--gridkit-fg-light);
+  --gridkit-fg-muted: var(--gridkit-fg-muted-light);
+  --gridkit-accent: var(--gridkit-accent-light);
+  --gridkit-selected: var(--gridkit-selected-light);
+  --gridkit-selected-strong: var(--gridkit-selected-strong-light);
+}
+
+.gridkit-dark {
+  color-scheme: dark;
+  --gridkit-surface: var(--gridkit-surface-dark);
+  --gridkit-surface-muted: var(--gridkit-surface-muted-dark);
+  --gridkit-line: var(--gridkit-line-dark);
+  --gridkit-hover-line: var(--gridkit-hover-line-dark);
+  --gridkit-fg: var(--gridkit-fg-dark);
+  --gridkit-fg-muted: var(--gridkit-fg-muted-dark);
+  --gridkit-accent: var(--gridkit-accent-dark);
+  --gridkit-selected: var(--gridkit-selected-dark);
+  --gridkit-selected-strong: var(--gridkit-selected-strong-dark);
+}
+
+/*
+ * Every colour declared here as a Tailwind colour, as `styles.css`
+ * registers them, so an app with forms but no grid has
+ * `bg-gridkit-accent` and the rest too.
+ */
+@theme inline {
+  --color-gridkit-surface: var(--gridkit-surface);
+  --color-gridkit-surface-muted: var(--gridkit-surface-muted);
+  --color-gridkit-line: var(--gridkit-line);
+  --color-gridkit-hover-line: var(--gridkit-hover-line);
+  --color-gridkit-fg: var(--gridkit-fg);
+  --color-gridkit-fg-muted: var(--gridkit-fg-muted);
+  --color-gridkit-accent: var(--gridkit-accent);
+  --color-gridkit-selected: var(--gridkit-selected);
+  --color-gridkit-selected-strong: var(--gridkit-selected-strong);
+}

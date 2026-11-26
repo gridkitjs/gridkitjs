@@ -1,8 +1,9 @@
 /**
- * Keeps every rule in `src/styles.css` inside the grid: each selector names
- * at least one `gridkit-` class, so no rule can restyle a host page's own
- * elements, a bare `is-*` state class included. The only exception is
- * `:root`, which declares the theme tokens.
+ * Keeps every rule in the stylesheets inside GridKit's own elements: each
+ * selector names at least one `gridkit-` class, so no rule can restyle a
+ * host page's own elements, a bare `is-*` state class included. The only
+ * exceptions are `:root` and `:where(:root)`, which declare the theme
+ * tokens.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -12,7 +13,9 @@ import { parseCss } from "./css.mjs";
 
 /** @import { CssBlock } from "./css.mjs" */
 
-const STYLESHEET = path.resolve(import.meta.dirname, "..", "src", "styles.css");
+const SRC = path.resolve(import.meta.dirname, "..", "src");
+const STYLESHEETS = ["styles.css", "forms.css"];
+const TOKEN_ROOTS = new Set([":root", ":where(:root)"]);
 const GRIDKIT_CLASS = /\.gridkit-[a-z0-9]/;
 
 /**
@@ -55,7 +58,7 @@ function isScoped(selector) {
 
 /**
  * Every selector in a block and the blocks nested in it that is not scoped
- * to the grid, skipping at-rules' own preludes and `:root`.
+ * to the grid, skipping at-rules' own preludes and the token roots.
  *
  * @param {CssBlock} block
  * @returns {string[]}
@@ -63,7 +66,7 @@ function isScoped(selector) {
 function unscopedSelectors(block) {
   return block.blocks.flatMap((child) => {
     const own =
-      child.prelude.startsWith("@") || child.prelude === ":root"
+      child.prelude.startsWith("@") || TOKEN_ROOTS.has(child.prelude)
         ? []
         : selectors(child.prelude).filter((selector) => !isScoped(selector));
     return [...own, ...unscopedSelectors(child)];
@@ -90,10 +93,12 @@ describe("selector scoping", () => {
   });
 });
 
-describe("styles.css", () => {
-  const sheet = parseCss(readFileSync(STYLESHEET, "utf8"));
+for (const file of STYLESHEETS) {
+  describe(file, () => {
+    const sheet = parseCss(readFileSync(path.join(SRC, file), "utf8"));
 
-  test("names a gridkit- class in every selector", () => {
-    assert.deepEqual(unscopedSelectors(sheet), []);
+    test("names a gridkit- class in every selector", () => {
+      assert.deepEqual(unscopedSelectors(sheet), []);
+    });
   });
-});
+}

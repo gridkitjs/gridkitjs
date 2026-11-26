@@ -1,7 +1,8 @@
 # @gridkitjs/theme-tailwind
 
 The grid's stylesheet for Tailwind v4: palette tokens, dark mode and grid
-styles. Published. `tailwindcss` is a peer dependency.
+styles, plus a separate stylesheet for the forms packages. Published.
+`tailwindcss` is a peer dependency.
 
 ## Layout
 
@@ -10,6 +11,7 @@ The package ships `src/` as source, with no build step.
 | Path              | What it holds                                                                                                                                                                                                                                                                                   |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/styles.css`  | The stylesheet, exported as `@gridkitjs/theme-tailwind/styles.css`.                                                                                                                                                                                                                             |
+| `src/forms.css`   | The forms stylesheet, exported as `@gridkitjs/theme-tailwind/forms.css`: the styles of the forms packages, which work with or without `styles.css` (see [The forms stylesheet](#the-forms-stylesheet)).                                                                                         |
 | `src/tokens.json` | The token manifest, exported as `@gridkitjs/theme-tailwind/tokens.json`: every theme token's group, tier, type and default.                                                                                                                                                                     |
 | `src/presets/`    | The presets, exported as `@gridkitjs/theme-tailwind/presets/*`: one token-only `<id>.css` each, and `index.json` listing them in display order.                                                                                                                                                 |
 | `scripts/`        | Not shipped. The token, preset, selector and class-name tests, and the helpers they read the files with: `css.mjs` parses a stylesheet, `manifest.mjs` the manifest, `presets.mjs` the preset index. `token-docs.mjs` generates the docs' token tables, and `write-token-docs.mjs` writes them. |
@@ -25,7 +27,8 @@ that comment current when the mechanism changes.
 ## Theme tokens
 
 A theme token is a `--gridkit-*` custom property declared on `:root` in
-`styles.css`, and every one is listed in `tokens.json`. The JSDoc typedefs in
+`styles.css`, or, for a token only forms read, on `:where(:root)` in
+`forms.css`, and every one is listed in `tokens.json`. The JSDoc typedefs in
 `scripts/manifest.mjs` are the manifest's contract with the docs and the
 website's theme builder; bump its `schemaVersion` when a field changes
 meaning or goes away. Helpers the grid sets at runtime or inside a rule, such
@@ -71,6 +74,29 @@ A default declared on `:root` may read only raw colours of its own side or
 tokens that are not colours, for the reason the comment at the top of
 `styles.css` gives.
 
+## The forms stylesheet
+
+`src/forms.css` styles the forms packages
+([`forms`](../forms/AGENTS.md) and the packages under it), whose every
+class starts with `gridkit-forms-`. It has to work alone, in an app with no
+grid, and beside `styles.css` in either order, so:
+
+- It declares the palette, the nine `basic` colours, and every other shared
+  token its rules read, each with `styles.css`'s default, on
+  `:where(:root)` rather than `:root`. At no specificity, a preset or an
+  app's own `:root` overrides win wherever they are loaded; the comment at
+  the top of the file says why that matters.
+- Its colours are wired as in `styles.css`: a live name pointed at its pair
+  in `:where(:root)`, the `@variant dark` inside it, `.gridkit-light` and
+  `.gridkit-dark`, and registered in `@theme inline`.
+- A token only forms read is `--gridkit-forms-<part>-<property>`, declared
+  in `forms.css` alone, and listed in `tokens.json` like any other.
+
+So adding a token to `forms.css` follows the steps above with
+`:where(:root)` in place of `:root`, and a rule there reading a shared
+token it does not yet declare copies that token's declaration from
+`styles.css`.
+
 ## Presets
 
 A preset is a stylesheet in `src/presets/` that restyles the grid when
@@ -93,9 +119,9 @@ preset run `pnpm --filter @gridkitjs/theme-css build` and commit both.
 ## The plain-CSS build
 
 [`@gridkitjs/theme-css`](../theme-css/AGENTS.md) is generated from
-`src/styles.css`, and a test fails while it is stale. After changing the
-stylesheet, regenerate it and commit both, with one changeset listing both
-packages:
+`src/styles.css` and `src/forms.css`, and a test fails while either copy is
+stale. After changing a stylesheet, regenerate it and commit both, with one
+changeset listing both packages:
 
 ```bash
 pnpm --filter @gridkitjs/theme-css build
@@ -107,9 +133,10 @@ stylesheet, or teach the generator first.
 
 ## What belongs here
 
-Every style the grid has. The stylesheet targets the semantic class names
-`@gridkitjs/react` renders; components carry no styles of their own (see
-[packages/react/AGENTS.md](../react/AGENTS.md#styling)). The row stripe also
+Every style the grid has, and in `forms.css` every style the forms
+packages have. Each targets the semantic class names its components
+render, `@gridkitjs/react`'s or `@gridkitjs/forms`'s; components carry no
+styles of their own (see [packages/react/AGENTS.md](../react/AGENTS.md#styling)). The row stripe also
 reads each row's `data-gridkit-row-index`, which holds under virtualization
 where `:nth-child` does not; a test in `row-virtualization.spec.tsx` fails if
 it stops working.
@@ -124,9 +151,11 @@ pnpm --filter @gridkitjs/theme-tailwind test
 ```
 
 `scripts/tokens.test.mjs` fails when a manifest entry is malformed or out of group order, when the
-manifest and `:root` disagree on which tokens exist or on a default, when a
+manifest and `styles.css`'s `:root` disagree on which shared tokens exist or on a default, when
+`forms.css`'s `:where(:root)` lacks a forms token, the palette or a shared token
+its rules read, or declares any other, or a default other than the manifest's, when a
 default reads a value the palette swaps, when a colour is missing from a palette block or
-`@theme inline`, when no rule reads a token, or when the token tables on
+`@theme inline`, when no rule in either stylesheet reads a token, or when the token tables on
 `docs/tokens.mdx` differ from what `tokens.json` generates.
 
 `scripts/presets.test.mjs` fails when `index.json` is malformed or
@@ -137,16 +166,19 @@ block of tokens or sets a colour by its live name, or when a preset's
 `selected`, falls under WCAG AA's 4.5:1 in either mode (7:1 for High
 contrast).
 
-`scripts/selectors.test.mjs` fails when a selector in `styles.css`, other
-than `:root`, names no `gridkit-` class, so every rule stays inside the
-grid and none restyles a host page's own elements.
+`scripts/selectors.test.mjs` fails when a selector in `styles.css` or
+`forms.css`, other than `:root` and `:where(:root)`, names no `gridkit-`
+class, so every rule stays inside GridKit's elements and none restyles a
+host page's own.
 
 `scripts/class-names.test.mjs` fails when a class or `data-gridkit-*`
 attribute written in `core`, `dom` or `react` source is missing from the
 tables on `docs/class-names.mdx`, or the page lists one no source writes. A
 name built at run time (`is-sorted-${direction}`) is covered by any listed
 name that starts with its prefix. Rename or add a class, and its row on that
-page changes in the same commit.
+page changes in the same commit. It also fails when `forms-core`,
+`forms-dom` or `forms` writes a class that does not start with
+`gridkit-forms-`.
 
 The Playwright suite mounts `DataGrid` against this stylesheet, so measured
 widths and paddings come from it; see
