@@ -108,6 +108,7 @@ export function FieldGroup({
       describedBy,
       required,
       invalid,
+      severity: null,
       setControlMessages,
       setControlState: ignoreControlState,
     }),

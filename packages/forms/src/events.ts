@@ -52,6 +52,16 @@ export type FieldBeforeCommitEvent<
 /** The field gained or lost focus. */
 export type FieldFocusEvent<V> = core.FieldFocusEvent<V, Event>;
 
+/**
+ * The clear button was pressed, or Escape pressed in a search box: called
+ * before the field empties, with what it held.
+ */
+export interface FieldClearEvent<V> {
+  readonly previousValue: V | null;
+  readonly previousText: string;
+  readonly nativeEvent: Event | null;
+}
+
 /** Every handler a field calls, each optional. */
 export type FieldHandlers<V, D extends object = NoDetails> = core.FieldHandlers<
   V,
