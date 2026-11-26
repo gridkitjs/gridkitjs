@@ -6,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import type { Density, FieldMode } from "@gridkitjs/forms";
 import {
   DEFAULT_PRESET,
   PRESET_PARAM,
@@ -15,8 +16,6 @@ import {
 
 export type ColorScheme = "system" | "light" | "dark";
 export type Direction = "ltr" | "rtl";
-export type Density = "compact" | "standard" | "comfortable";
-export type FieldMode = "edit" | "display";
 
 /**
  * What the page controls set. The page applies `preset`, `colorScheme`,

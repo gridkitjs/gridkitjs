@@ -2,13 +2,14 @@ import { useId, useMemo, useRef, useState } from "react";
 import { formatText, requiredRule, textParser } from "@gridkitjs/forms-core";
 import {
   useFieldInput,
+  type Density,
   type FieldBeforeCommitEvent,
   type FieldInputKind,
   type InputHandle,
 } from "@gridkitjs/forms";
 import { DemoSection } from "../DemoSection";
 import { useEventReporter } from "../eventLog";
-import { usePlaygroundSettings, type Density } from "../settings";
+import { usePlaygroundSettings } from "../settings";
 
 const DENSITY_CLASS: Readonly<Record<Density, string>> = {
   compact: "h-6 px-1.5 text-sm",
