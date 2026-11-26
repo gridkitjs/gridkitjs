@@ -59,6 +59,12 @@ Lengths count code points, closer to "characters" than UTF-16 units and how data
 
 Validators run when the field is created, after every value change, after a controlled value changes it, and on `reveal()`. Their messages are stored at once and shown once the field is revealed: after its first commit attempt, or when a form reveals every field on submit. From then on they update as the user types, so an error goes the moment it is fixed.
 
+## A form's messages
+
+`createFieldRegistry(order?)` holds the fields of one form for a renderer: each field `register`s `{ id, messages, ... }` while it shows messages (the function returned unregisters it), and each input `addRevealer`s its controller's `reveal`, which `revealAll()` calls on a submit. `getFields()` lists the fields in `order` (a renderer passes their place in the page), as the same array until one changes, and `subscribe` tells a listener of each change, so only the summary that reads it re-renders.
+
+`summarizeMessages(fields, severities)` returns what a summary lists: `items`, each a field and one of its messages, field by field with each field's most serious first, and `counts`, one `{ severity, count }` per severity listed, most serious first.
+
 ## The catalogue
 
 `FormsMessages` works like the grid's `GridMessages`: one key per string, a function where a message names a number. `createDefaultFormsMessages(locale)` prints counts in the locale's digits, `defaultFormsMessages` is the runtime locale's, and `resolveFormsMessages(partial, locale)` lays an app's partial set over the defaults, returning the same object for the same locale when given none. A minor release may add keys; a translation without one shows its English default.
