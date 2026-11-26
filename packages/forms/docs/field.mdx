@@ -77,7 +77,7 @@ export function App() {
 | `required`             | `boolean`                                    | `false`      | Marks the label, sets `aria-required` on the control, and tells the input to check for a value. |
 | `labelPosition`        | `"top" \| "floating" \| "start" \| "hidden"` | `"top"`      | Where the label sits, below.                                                                    |
 | `labelWidth`           | `string`                                     | `"10rem"`    | The label column's width for `"start"`, as a CSS length.                                        |
-| `necessityIndicator`   | `"required" \| "optional" \| "none"`         | `"required"` | Marks required fields with an asterisk, the others with "(optional)", or neither.               |
+| `necessityIndicator`   | `"required" \| "optional" \| "none"`         | `"required"` | Stars required fields, marks the others "(optional)", or marks none: `"none"` removes the star. |
 | `mode`                 | `"edit" \| "display"`                        | `"edit"`     | `"display"` shows the value as text, with no control.                                           |
 | `readOnly`, `disabled` | `boolean`                                    | `false`      | For the input. A disabled field is not validated and shows only your messages.                  |
 | `density`              | `"compact" \| "standard" \| "comfortable"`   | `"standard"` | For the input.                                                                                  |
@@ -96,6 +96,12 @@ export function App() {
 
 The label is the same `<label for>` element in every position, so the control's name never changes. In display mode it becomes a `<span>` naming the field, which becomes a group: there is no control for a label to point at.
 
+## Required fields
+
+A required field shows a star after its label text, in the palette's `--gridkit-error` colour, in every visible label position (top, floating, at rest and risen, and start). The star is hidden from screen readers: the control's `aria-required` says the same. A field is required when it has `required`, or when its input has a `required` of its own (an input of yours reports it through `useField`'s `reportControlState`).
+
+To show no star, set `necessityIndicator="none"` on the `Field`, or on the `Form` for every field in it. `aria-required` stays. `necessityIndicator="optional"` marks the other fields with "(optional)" instead.
+
 ## Messages
 
 The field shows your `message` and the input's own messages together, most serious first: an error, then a warning, information and success. Each is read after its severity's name ("Error: Enter a value"), with an icon of its own shape and colour beside it; the text keeps the body colour. Only an error makes the control `aria-invalid`. The message area is a polite live region, always in the page, so a message that appears when the user leaves the field is read without moving focus. The input's own messages show once the user has tried to commit it, and then follow every edit.
@@ -104,13 +110,13 @@ The field shows your `message` and the input's own messages together, most serio
 
 `useField()` gives an input inside a `Field` what it needs; outside one it gives the form's settings and an `id` of its own.
 
-| Member               | Description                                                                                                                           |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `controlProps`       | `id`, `aria-describedby`, `aria-invalid`, `aria-required`, `disabled` and `readOnly`, to spread on the control.                       |
-| `mode`, `density`    | The field's, or the form's.                                                                                                           |
-| `required`           | Whether the field is required: check for a value yourself.                                                                            |
-| `reportMessages`     | Lists your input's messages under the field. Call it from an effect, with `null` once there are none.                                 |
-| `reportControlState` | Tells the field whether the control is focused and empty (and has a start adornment), which a floating label follows. From an effect. |
+| Member               | Description                                                                                                                                                                                     |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `controlProps`       | `id`, `aria-describedby`, `aria-invalid`, `aria-required`, `disabled` and `readOnly`, to spread on the control.                                                                                 |
+| `mode`, `density`    | The field's, or the form's.                                                                                                                                                                     |
+| `required`           | Whether the field is required: check for a value yourself.                                                                                                                                      |
+| `reportMessages`     | Lists your input's messages under the field. Call it from an effect, with `null` once there are none.                                                                                           |
+| `reportControlState` | Tells the field whether the control is focused and empty (and has a start adornment), which a floating label follows, and whether the input is required, which stars the label. From an effect. |
 
 Inputs built on [`useFieldInput`](/docs/forms/use-field-input) do all of this themselves.
 

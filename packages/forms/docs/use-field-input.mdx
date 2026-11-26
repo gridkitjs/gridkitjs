@@ -60,22 +60,23 @@ export function App() {
 
 ## Props
 
-| Prop                   | Type                                           | Default   | Description                                                                                |
-| ---------------------- | ---------------------------------------------- | --------- | ------------------------------------------------------------------------------------------ |
-| `value`                | `V \| null`                                    |           | Present, `null` included, means controlled.                                                |
-| `defaultValue`         | `V \| null`                                    | `null`    | The starting value of an uncontrolled field, and what `reset` returns to.                  |
-| `parse`, `format`      | `Parser<V>`, `Formatter<V>`                    |           | The app's reading and writing; the context holds the input's own, to wrap.                 |
-| `validate`             | `Validator<V> \| Validator<V>[]`               |           | Checks the value after every change; a returned string is an error.                        |
-| `name`                 | `string`                                       |           | Submits the value through a hidden input. The visible control never has a `name`.          |
-| `form`                 | `string`                                       |           | The `id` of a `<form>` elsewhere that the value belongs to.                                |
-| `readOnly`, `disabled` | `boolean`                                      |           | Passed to the control; `disabled` disables the hidden input too, so nothing is submitted.  |
-| `mode`                 | `"edit" \| "display"`                          |           | `"display"` shows the value as text; a `Field` or form around the input sets it otherwise. |
-| `id`                   | `string`                                       | generated | The control's `id` outside a [`Field`](/docs/forms/field); inside one, the field's.        |
-| `locale`               | `Intl.LocalesArgument`                         |           | For parsing, formatting and messages.                                                      |
-| `messages`             | `Partial<FormsMessages>`                       |           | Strings laid over the English defaults.                                                    |
-| `ref`                  | `Ref<HTMLInputElement \| HTMLTextAreaElement>` |           | The native control.                                                                        |
-| `handleRef`            | `Ref<InputHandle<V>>`                          |           | The handle below.                                                                          |
-| `onFocus` ... `onBlur` | handlers                                       |           | The nine [events](/docs/forms/events).                                                     |
+| Prop                   | Type                                           | Default   | Description                                                                                     |
+| ---------------------- | ---------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------- |
+| `value`                | `V \| null`                                    |           | Present, `null` included, means controlled.                                                     |
+| `defaultValue`         | `V \| null`                                    | `null`    | The starting value of an uncontrolled field, and what `reset` returns to.                       |
+| `parse`, `format`      | `Parser<V>`, `Formatter<V>`                    |           | The app's reading and writing; the context holds the input's own, to wrap.                      |
+| `validate`             | `Validator<V> \| Validator<V>[]`               |           | Checks the value after every change; a returned string is an error.                             |
+| `required`             | `boolean`                                      | `false`   | Sets `aria-required` and stars the label of the `Field` around it. Add the check to `validate`. |
+| `name`                 | `string`                                       |           | Submits the value through a hidden input. The visible control never has a `name`.               |
+| `form`                 | `string`                                       |           | The `id` of a `<form>` elsewhere that the value belongs to.                                     |
+| `readOnly`, `disabled` | `boolean`                                      |           | Passed to the control; `disabled` disables the hidden input too, so nothing is submitted.       |
+| `mode`                 | `"edit" \| "display"`                          |           | `"display"` shows the value as text; a `Field` or form around the input sets it otherwise.      |
+| `id`                   | `string`                                       | generated | The control's `id` outside a [`Field`](/docs/forms/field); inside one, the field's.             |
+| `locale`               | `Intl.LocalesArgument`                         |           | For parsing, formatting and messages.                                                           |
+| `messages`             | `Partial<FormsMessages>`                       |           | Strings laid over the English defaults.                                                         |
+| `ref`                  | `Ref<HTMLInputElement \| HTMLTextAreaElement>` |           | The native control.                                                                             |
+| `handleRef`            | `Ref<InputHandle<V>>`                          |           | The handle below.                                                                               |
+| `onFocus` ... `onBlur` | handlers                                       |           | The nine [events](/docs/forms/events).                                                          |
 
 `kind` is a `FieldInputKind<V>`: `defaultParse` and `defaultFormat` (the input's own reading and writing, which `parse` and `format` can wrap) and `serialize` (the value as its hidden input submits it, the same in every locale; `null` submits `""`). `textParser` and `formatText` are a text input's.
 
