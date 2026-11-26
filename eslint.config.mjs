@@ -175,6 +175,24 @@ export default tseslint.config(
     },
   },
   {
+    // The playground's forms page shows the forms work without the grid.
+    files: ["apps/playground/src/forms/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: banned(GRID_PACKAGES),
+              message:
+                "the forms page never imports the grid, see apps/playground/AGENTS.md",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     languageOptions: {
       parserOptions: {
         // Resolves each file to its nearest tsconfig, which is what makes the

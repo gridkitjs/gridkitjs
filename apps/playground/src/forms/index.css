@@ -1,0 +1,11 @@
+/*
+ * The forms page loads the forms stylesheet alone, never the grid's, so it
+ * shows that the forms draw without it.
+ */
+@import "tailwindcss";
+@import "@gridkitjs/theme-tailwind/forms.css";
+
+body {
+  background-color: var(--gridkit-surface);
+  color: var(--gridkit-fg);
+}

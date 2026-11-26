@@ -21,6 +21,13 @@ export default function App() {
     <main className="p-8">
       <h1 className="text-2xl font-bold">GridKit Playground</h1>
       <PresetSwitcher />
+      <p className="mt-2 text-sm">
+        The forms components have a page of their own, without the grid:{" "}
+        <a href="forms.html" className="text-blue-700 underline">
+          forms playground
+        </a>
+        .
+      </p>
       <p className="mt-2 text-sm text-gray-600">
         Import from <code>@gridkitjs/react</code> and render it here. Drag a
         column edge to resize, or double-click it to fit the content. Drag a

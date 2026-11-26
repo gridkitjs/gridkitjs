@@ -1,26 +1,53 @@
 # playground
 
 The Vite app GridKit is developed against, and the home of the Playwright
-component tests for `@gridkitjs/react` and `@gridkitjs/dom`. Private, never
-published, so it needs no changeset.
+component tests for `@gridkitjs/react`, `@gridkitjs/dom`,
+`@gridkitjs/forms-dom` and `@gridkitjs/forms`. Private, never published, so
+it needs no changeset.
 
 ## Layout
 
-| Path                      | What it holds                                                                         |
-| ------------------------- | ------------------------------------------------------------------------------------- |
-| `src/App.tsx`             | The demo page `pnpm dev` serves, built from the grids in `src/demos/`.                |
-| `src/index.css`           | Tailwind plus `@gridkitjs/theme-tailwind/styles.css`, shared with the tests.          |
-| `src/PresetSwitcher.tsx`  | Picks a theme preset; `?preset=<id>` links to one.                                    |
-| `src/presets.ts`          | The theme's presets and `usePresetStyle`, which loads one after the stylesheets.      |
-| `src/Walkthrough.tsx`     | One grid alone on a page: `/?demo=tour`, `grouped`, `pinned` or `server`, `&dir=rtl`. |
-| `tests-ct/`               | Playwright component tests, one spec file per area.                                   |
-| `tests-ct/support/`       | Test-only grids and harnesses the specs mount, plus coverage setup.                   |
-| `playwright/index.tsx`    | The component-test entry; it imports `src/index.css`.                                 |
-| `playwright-ct.config.ts` | The suite's config: the browsers and phones, the Vite plugins, coverage.              |
+| Path                       | What it holds                                                                                                    |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `src/App.tsx`              | The grid page `pnpm dev` serves at `/`, built from the grids in `src/demos/`.                                    |
+| `src/index.css`            | Tailwind plus `@gridkitjs/theme-tailwind/styles.css`, shared with the tests.                                     |
+| `src/PresetSwitcher.tsx`   | Picks a theme preset; `?preset=<id>` links to one.                                                               |
+| `src/presets.ts`           | The theme's presets and `usePresetStyle`, which loads one after the stylesheets.                                 |
+| `src/Walkthrough.tsx`      | One grid alone on a page: `/?demo=tour`, `grouped`, `pinned` or `server`, `&dir=rtl`.                            |
+| `forms.html`, `src/forms/` | The [forms page](#forms-page) at `/forms.html`: page controls, an event log and one section per forms component. |
+| `tests-ct/`                | Playwright component tests, one spec file per area.                                                              |
+| `tests-ct/support/`        | Test-only grids and harnesses the specs mount, plus coverage setup.                                              |
+| `playwright/index.tsx`     | The component-test entry; it imports `src/index.css`.                                                            |
+| `playwright-ct.config.ts`  | The suite's config: the browsers and phones, the Vite plugins, coverage.                                         |
 
 Packages resolve to source, so editing a package hot-reloads the app; run it
 from the repo root with `pnpm dev` (see the root
 [Development](../../AGENTS.md#development) section).
+
+## Forms page
+
+`forms.html` is a page of its own, a second Vite entry that `vite build`
+builds beside `index.html`. It loads `@gridkitjs/theme-tailwind/forms.css`
+and the forms packages alone, never `styles.css` or a grid package (ESLint
+refuses a grid import under `src/forms/`), so it shows the forms work
+without the grid.
+
+**Every forms component gets a section on this page showing every state it
+has, wired to the event log.** A section is a component in
+`src/forms/demos/`, wrapped in `DemoSection` and listed in
+`FormsPlayground.tsx`. It reads the page controls with
+`usePlaygroundSettings()` (preset, colour scheme, right to left, density,
+mode, `disabled`, `readOnly`, locale) and passes them to what it shows; the
+page itself applies the preset, the colour scheme, `dir` and `lang` to the
+document. It reports events through `useEventReporter("<component>")`:
+`onChange={reporter("onChange")}` logs each call with its `value`,
+`previousValue`, `text`, `source`, `trigger` and native event type, so a
+forms event object goes in as it is. The controls keep their choices in the
+URL, so a combination can be linked to.
+
+`tests-ct/forms-playground.spec.tsx` checks the page's controls and log.
+The component-test build generates no Tailwind utilities, so it reads a
+utility class where the page would show a size.
 
 ## Component tests
 
