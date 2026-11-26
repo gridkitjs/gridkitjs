@@ -28,6 +28,11 @@
  */
 
 :where(:root) {
+  --gridkit-font-size: 1em;
+  --gridkit-hint-font-size: 0.75rem;
+  --gridkit-spacing: 0.25rem;
+  --gridkit-transition-duration: 0.1s;
+
   --gridkit-surface-light: oklch(1 0 0);
   --gridkit-surface-dark: oklch(0.21 0.01 250);
   --gridkit-surface-muted-light: oklch(0.97 0.003 250);
@@ -46,6 +51,14 @@
   --gridkit-selected-dark: oklch(0.32 0.05 255);
   --gridkit-selected-strong-light: oklch(0.9 0.05 255);
   --gridkit-selected-strong-dark: oklch(0.38 0.07 255);
+  --gridkit-error-light: oklch(from var(--gridkit-accent-light) l c 25);
+  --gridkit-error-dark: oklch(from var(--gridkit-accent-dark) l c 25);
+  --gridkit-warning-light: oklch(from var(--gridkit-accent-light) l c 70);
+  --gridkit-warning-dark: oklch(from var(--gridkit-accent-dark) l c 70);
+  --gridkit-success-light: oklch(from var(--gridkit-accent-light) l c 150);
+  --gridkit-success-dark: oklch(from var(--gridkit-accent-dark) l c 150);
+  --gridkit-info-light: var(--gridkit-accent-light);
+  --gridkit-info-dark: var(--gridkit-accent-dark);
 
   color-scheme: light;
   --gridkit-surface: var(--gridkit-surface-light);
@@ -57,6 +70,10 @@
   --gridkit-accent: var(--gridkit-accent-light);
   --gridkit-selected: var(--gridkit-selected-light);
   --gridkit-selected-strong: var(--gridkit-selected-strong-light);
+  --gridkit-error: var(--gridkit-error-light);
+  --gridkit-warning: var(--gridkit-warning-light);
+  --gridkit-success: var(--gridkit-success-light);
+  --gridkit-info: var(--gridkit-info-light);
 
   @variant dark {
     color-scheme: dark;
@@ -69,6 +86,25 @@
     --gridkit-accent: var(--gridkit-accent-dark);
     --gridkit-selected: var(--gridkit-selected-dark);
     --gridkit-selected-strong: var(--gridkit-selected-strong-dark);
+    --gridkit-error: var(--gridkit-error-dark);
+    --gridkit-warning: var(--gridkit-warning-dark);
+    --gridkit-success: var(--gridkit-success-dark);
+    --gridkit-info: var(--gridkit-info-dark);
+  }
+}
+
+/*
+ * Without relative colour syntax the error, warning and success defaults
+ * above are invalid, so there they are the text colour, as in `styles.css`.
+ */
+@supports not (color: oklch(from red l c h)) {
+  :where(:root) {
+    --gridkit-error-light: var(--gridkit-fg-light);
+    --gridkit-error-dark: var(--gridkit-fg-dark);
+    --gridkit-warning-light: var(--gridkit-fg-light);
+    --gridkit-warning-dark: var(--gridkit-fg-dark);
+    --gridkit-success-light: var(--gridkit-fg-light);
+    --gridkit-success-dark: var(--gridkit-fg-dark);
   }
 }
 
@@ -83,6 +119,10 @@
   --gridkit-accent: var(--gridkit-accent-light);
   --gridkit-selected: var(--gridkit-selected-light);
   --gridkit-selected-strong: var(--gridkit-selected-strong-light);
+  --gridkit-error: var(--gridkit-error-light);
+  --gridkit-warning: var(--gridkit-warning-light);
+  --gridkit-success: var(--gridkit-success-light);
+  --gridkit-info: var(--gridkit-info-light);
 }
 
 .gridkit-dark {
@@ -96,6 +136,10 @@
   --gridkit-accent: var(--gridkit-accent-dark);
   --gridkit-selected: var(--gridkit-selected-dark);
   --gridkit-selected-strong: var(--gridkit-selected-strong-dark);
+  --gridkit-error: var(--gridkit-error-dark);
+  --gridkit-warning: var(--gridkit-warning-dark);
+  --gridkit-success: var(--gridkit-success-dark);
+  --gridkit-info: var(--gridkit-info-dark);
 }
 
 /*
@@ -113,4 +157,242 @@
   --color-gridkit-accent: var(--gridkit-accent);
   --color-gridkit-selected: var(--gridkit-selected);
   --color-gridkit-selected-strong: var(--gridkit-selected-strong);
+  --color-gridkit-error: var(--gridkit-error);
+  --color-gridkit-warning: var(--gridkit-warning);
+  --color-gridkit-success: var(--gridkit-success);
+  --color-gridkit-info: var(--gridkit-info);
+}
+
+/*
+ * Forms styles.
+ */
+
+@layer base {
+  /*
+   * What the rules below take for granted from Tailwind's Preflight, set on
+   * every forms root, so they draw the same in an app without Preflight and
+   * in theme-css's plain CSS. `:where()` keeps each at no specificity, as
+   * Preflight's are.
+   */
+  :where(.gridkit-forms-field),
+  :where(.gridkit-forms-field) *,
+  :where(.gridkit-forms-field) ::before,
+  :where(.gridkit-forms-field) ::after {
+    box-sizing: border-box;
+  }
+
+  :where(.gridkit-forms-field) :where(button, input, textarea, select) {
+    font: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+  }
+
+  :where(.gridkit-forms-field) :where(svg) {
+    display: block;
+  }
+
+  /*
+   * Read but not seen: a hidden label, the severity read before a message,
+   * the "No value" beside a display-mode dash. Clipped to nothing rather
+   * than hidden, which would take it out of the accessibility tree too.
+   */
+  .gridkit-forms-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /*
+   * A field: its label, then the control, the description and the messages,
+   * one under the other. A disabled field's text is muted, its messages
+   * excepted.
+   */
+  .gridkit-forms-field {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    min-inline-size: 0;
+    font-size: var(--gridkit-font-size);
+    color: var(--gridkit-fg);
+  }
+
+  .gridkit-forms-field.is-disabled {
+    color: var(--gridkit-fg-muted);
+  }
+
+  .gridkit-forms-field-label {
+    margin-block-end: calc(var(--gridkit-spacing) * 1.5);
+    font-weight: 500;
+    overflow-wrap: anywhere;
+  }
+
+  .gridkit-forms-field-required {
+    margin-inline-start: 0.125em;
+    color: var(--gridkit-error);
+  }
+
+  .gridkit-forms-field-optional {
+    font-weight: normal;
+    color: var(--gridkit-fg-muted);
+  }
+
+  .gridkit-forms-field-description {
+    margin: var(--gridkit-spacing) 0 0;
+    font-size: var(--gridkit-hint-font-size);
+    color: var(--gridkit-fg-muted);
+  }
+
+  /*
+   * Always in the page, as a live region has to be, and taking no room
+   * while empty.
+   */
+  .gridkit-forms-field-messages {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--gridkit-spacing) * 0.5);
+  }
+
+  .gridkit-forms-field-messages:not(:empty) {
+    margin-block-start: var(--gridkit-spacing);
+  }
+
+  /*
+   * A message's text keeps the body colour, readable whatever the
+   * severity; its icon carries the severity's colour and shape.
+   */
+  .gridkit-forms-message {
+    display: flex;
+    align-items: flex-start;
+    gap: calc(var(--gridkit-spacing) * 1.5);
+    margin: 0;
+    font-size: var(--gridkit-hint-font-size);
+    color: var(--gridkit-fg);
+  }
+
+  .gridkit-forms-message-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    block-size: 1lh;
+  }
+
+  .gridkit-forms-message-icon svg {
+    inline-size: 1.25em;
+    block-size: 1.25em;
+  }
+
+  .gridkit-forms-message.is-error .gridkit-forms-message-icon {
+    color: var(--gridkit-error);
+  }
+
+  .gridkit-forms-message.is-warning .gridkit-forms-message-icon {
+    color: var(--gridkit-warning);
+  }
+
+  .gridkit-forms-message.is-info .gridkit-forms-message-icon {
+    color: var(--gridkit-info);
+  }
+
+  .gridkit-forms-message.is-success .gridkit-forms-message-icon {
+    color: var(--gridkit-success);
+  }
+
+  /*
+   * The label beside the control, in a column `--gridkit-forms-label-width`
+   * wide, its text on the control's first line; the description and the
+   * messages under the control.
+   */
+  .gridkit-forms-field.is-label-start {
+    grid-template-columns: var(--gridkit-forms-label-width, 10rem) minmax(
+        0,
+        1fr
+      );
+    align-items: baseline;
+    column-gap: calc(var(--gridkit-spacing) * 3);
+  }
+
+  .gridkit-forms-field.is-label-start > * {
+    grid-column: 2;
+  }
+
+  .gridkit-forms-field.is-label-start > .gridkit-forms-field-label {
+    grid-row: 1;
+    grid-column: 1;
+    margin-block-end: 0;
+  }
+
+  /*
+   * A floating label rests inside the control, where its text would be,
+   * and rises onto its top border, on the surface colour so the border
+   * stops at its text. It rises with the field's `is-label-raised`, and
+   * while the browser's autofill shows a value it has not handed over yet.
+   * In display mode it sits on top, as a top label does.
+   */
+  .gridkit-forms-field.is-label-floating:not(.is-display)
+    > .gridkit-forms-field-control {
+    position: relative;
+  }
+
+  .gridkit-forms-field.is-label-floating:not(.is-display)
+    .gridkit-forms-field-label {
+    position: absolute;
+    z-index: 1;
+    inset-block-start: 50%;
+    inset-inline-start: calc(var(--gridkit-spacing) * 2);
+    max-inline-size: calc(100% - var(--gridkit-spacing) * 4);
+    margin: 0;
+    overflow: hidden;
+    font-weight: normal;
+    line-height: 1.25;
+    color: var(--gridkit-fg-muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
+    translate: 0 -50%;
+    transition-property: inset-block-start, inset-inline-start, font-size;
+    transition-duration: var(--gridkit-transition-duration);
+  }
+
+  .gridkit-forms-field.is-label-floating:not(.is-display):is(
+      .is-label-raised,
+      :has(:autofill)
+    )
+    .gridkit-forms-field-label {
+    inset-block-start: 0;
+    inset-inline-start: var(--gridkit-spacing);
+    padding-inline: var(--gridkit-spacing);
+    font-size: var(--gridkit-hint-font-size);
+    font-weight: 500;
+    color: inherit;
+    background-color: var(--gridkit-surface);
+  }
+
+  /* The placeholder shows only once the label is out of its way. */
+  .gridkit-forms-field.is-label-floating:not(.is-display, .is-label-raised)
+    .gridkit-forms-field-control
+    ::placeholder {
+    opacity: 0;
+  }
+
+  /* A value in display mode, as text in a document. */
+  .gridkit-forms-display-value {
+    overflow-wrap: anywhere;
+  }
+
+  .gridkit-forms-display-empty {
+    color: var(--gridkit-fg-muted);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gridkit-forms-field.is-label-floating:not(.is-display)
+      .gridkit-forms-field-label {
+      transition: none;
+    }
+  }
 }
