@@ -17,8 +17,11 @@
  * A 404 from the hosted list skips the check with a warning instead of
  * failing it, so CI keeps passing until the website first publishes the
  * list. So does a default host that does not resolve, until the next site
- * is first deployed. Any other failure to read the list fails the check,
- * and so does an `MDX_TAGS_URL` whose host does not resolve.
+ * is first deployed, and a 402 from the default host, which its hosting
+ * answers while the site is suspended. Any other failure to read the list
+ * fails the check, and so does an `MDX_TAGS_URL` whose host does not
+ * resolve. While the hosted list is unavailable, check locally against the
+ * website repo's list with `MDX_TAGS_FILE`.
  */
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
@@ -193,8 +196,9 @@ function parseTagList(value, source) {
 }
 
 /**
- * The tags the website registers, or `null` when the hosted list does not
- * exist yet: a 404, or the default host not resolving.
+ * The tags the website registers, or `null` when the hosted list is
+ * unavailable: a 404, the default host not resolving, or the default host
+ * answering 402 because its site is suspended.
  *
  * @returns {Promise<Set<string> | null>}
  */
@@ -218,6 +222,7 @@ async function loadRegisteredTags() {
     // An unread body keeps the socket open past the end of the script.
     await response.body?.cancel();
     if (response.status === 404) return null;
+    if (url === DEFAULT_TAGS_URL && response.status === 402) return null;
     throw new Error(
       `${url} answered ${response.status} ${response.statusText}`,
     );
@@ -253,8 +258,9 @@ async function main() {
   const registered = await loadRegisteredTags();
   if (registered === null) {
     warn(
-      "Skipped: the website has not published mdx-tags.json yet (a 404, or " +
-        "a host that does not resolve), so the docs' tags cannot be checked.",
+      "Skipped: the website's mdx-tags.json is unavailable (a 404, a host " +
+        "that does not resolve, or a suspended site answering 402), so the " +
+        "docs' tags cannot be checked. Check locally with MDX_TAGS_FILE.",
     );
     return 0;
   }
