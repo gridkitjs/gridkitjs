@@ -10,7 +10,11 @@ import { expectNoAxeViolations, FORMS_SCOPE } from "./support/axe";
 import { expect, test } from "./support/coverage";
 import { mountGrid } from "./support/mountGrid";
 import ContextMenuGrid from "./support/ContextMenuGrid";
+import FieldGroupHarness from "./support/forms/FieldGroupHarness";
 import FieldHarness from "./support/forms/FieldHarness";
+import FormHarness from "./support/forms/FormHarness";
+import LayoutHarness from "./support/forms/LayoutHarness";
+import SummaryHarness from "./support/forms/SummaryHarness";
 import HeaderTextGrid from "./support/HeaderTextGrid";
 import RightToLeft from "./support/RightToLeft";
 import ToolbarGrid from "./support/ToolbarGrid";
@@ -858,6 +862,65 @@ for (const palette of ["gridkit-light", "gridkit-dark"]) {
         </div>,
       );
       await expect(root.locator(".gridkit-forms-field")).toBeVisible();
+      await expectNoAxeViolations(page, FORMS_SCOPE);
+    });
+  }
+}
+
+const structureScans: readonly {
+  readonly name: string;
+  readonly form: () => React.JSX.Element;
+}[] = [
+  {
+    name: "a form with a fieldset and an open and a collapsed section",
+    form: () => <FormHarness collapsedCity />,
+  },
+  {
+    name: "a form with a message summary of every severity",
+    form: () => (
+      <SummaryHarness
+        severities={["error", "warning", "info", "success"]}
+        messages={{
+          name: "Enter your full name",
+          email: { text: "A personal address", severity: "warning" },
+          phone: [
+            { text: "Checked against the directory", severity: "info" },
+            { text: "Matches the register", severity: "success" },
+          ],
+        }}
+      />
+    ),
+  },
+  {
+    name: "a field group",
+    form: () => <FieldGroupHarness />,
+  },
+  {
+    name: "a three-column layout with start labels",
+    form: () => (
+      <LayoutHarness width="70rem" columns={3} labelPosition="start" />
+    ),
+  },
+];
+
+for (const palette of ["gridkit-light", "gridkit-dark"]) {
+  for (const { name, form } of structureScans) {
+    test(`an axe scan of ${name} finds no violations under .${palette}`, async ({
+      mount,
+      page,
+    }) => {
+      const root = await mount(
+        <div
+          className={palette}
+          style={{
+            color: "var(--gridkit-fg)",
+            backgroundColor: "var(--gridkit-surface)",
+          }}
+        >
+          {form()}
+        </div>,
+      );
+      await expect(root.locator(".gridkit-forms-field").first()).toBeVisible();
       await expectNoAxeViolations(page, FORMS_SCOPE);
     });
   }

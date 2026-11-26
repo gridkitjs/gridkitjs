@@ -15,6 +15,8 @@ const TEXT: FieldInputKind<string> = {
 
 export interface FieldTextInputProps extends FieldInputProps<string> {
   readonly placeholder?: string;
+  /** Names the control in a `FieldGroup`, whose label names the group. */
+  readonly "aria-label"?: string;
 }
 
 /**
@@ -23,7 +25,11 @@ export interface FieldTextInputProps extends FieldInputProps<string> {
  * `required` of its own, makes it check for a value. In display mode it
  * shows its value as text.
  */
-export function FieldTextInput({ placeholder, ...props }: FieldTextInputProps) {
+export function FieldTextInput({
+  placeholder,
+  "aria-label": ariaLabel,
+  ...props
+}: FieldTextInputProps) {
   const { required } = useField();
   const requireValue = useMemo(() => requiredRule<string>(), []);
   const field = useFieldInput(
@@ -39,7 +45,11 @@ export function FieldTextInput({ placeholder, ...props }: FieldTextInputProps) {
       {field.mode === "display" ? (
         field.displayValue
       ) : (
-        <input placeholder={placeholder} {...field.controlProps} />
+        <input
+          placeholder={placeholder}
+          aria-label={ariaLabel}
+          {...field.controlProps}
+        />
       )}
       {field.hiddenInput}
     </>

@@ -123,6 +123,10 @@ says why next to the difference. What the suite already handles:
   DevTools protocol. `support/forms/compose.ts` composes there for real and
   dispatches the composition's events in Firefox and WebKit, so a forms
   composition test runs in all three.
+- **Filling a forms field.** Playwright's `fill` enters text in Firefox
+  as a committed composition, whose `compositionend` comes before its last
+  `input`, unlike a typed key. A forms test about something else types
+  with `typeInto` from `support/forms/typeInto.ts`.
 - **Dropping text.** Playwright cannot drag a text selection, and a
   dispatched `drop` inserts nothing, so a forms drop test dispatches the
   `beforeinput` and `input` a drop fires.
