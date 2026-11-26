@@ -91,6 +91,7 @@ export function FieldInputDemo() {
 
   const field = useFieldInput(
     {
+      id: inputId,
       validate: required ? requiredRule() : undefined,
       disabled: settings.disabled,
       readOnly: settings.readOnly,
@@ -134,7 +135,6 @@ export function FieldInputDemo() {
           </label>
           {settings.mode === "edit" ? (
             <input
-              id={inputId}
               className={`${DENSITY_CLASS[settings.density]} ${uppercase ? "uppercase" : ""} rounded border border-gridkit-fg-muted bg-gridkit-surface text-gridkit-fg read-only:bg-gridkit-surface-muted focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gridkit-accent disabled:opacity-50 aria-invalid:border-red-600`}
               {...field.controlProps}
             />
