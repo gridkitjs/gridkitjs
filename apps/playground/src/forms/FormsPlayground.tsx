@@ -1,4 +1,4 @@
-import { PlaceholderInputDemo } from "./demos/PlaceholderInputDemo";
+import { FieldInputDemo } from "./demos/FieldInputDemo";
 import { EventLogPanel } from "./EventLogPanel";
 import { EventLogProvider } from "./eventLog";
 import { PageControls } from "./PageControls";
@@ -32,7 +32,7 @@ export function FormsPlayground() {
           </header>
           <div className="flex flex-1 flex-col lg:min-h-0 lg:flex-row">
             <main className="flex flex-1 flex-col gap-6 p-6 lg:overflow-y-auto">
-              <PlaceholderInputDemo />
+              <FieldInputDemo />
             </main>
             <aside className="flex h-96 flex-col border-t border-gridkit-line lg:h-auto lg:w-1/2 lg:border-t-0 xl:w-[46rem] lg:border-s">
               <EventLogPanel />

@@ -2,26 +2,29 @@ import { FormsPlayground } from "../src/forms/FormsPlayground";
 import { expect, test } from "./support/coverage";
 
 test.describe("forms playground page", () => {
-  test("logs the placeholder input's events in order, until cleared", async ({
+  test("logs the field input's events in order, until cleared", async ({
     mount,
   }) => {
     const root = await mount(<FormsPlayground />);
     const rows = root
       .getByRole("table", { name: "Event log" })
       .locator("tbody tr");
+    const name = root.getByRole("textbox", { name: "Name" });
 
-    await root.getByLabel("Placeholder text").click();
-    await root.getByLabel("Placeholder text").pressSequentially("ab");
+    await name.click();
+    await name.pressSequentially("ab");
 
-    await expect(rows).toHaveCount(3);
-    await expect(rows.nth(0)).toContainText("focus");
-    await expect(rows.nth(2).locator("td")).toHaveText([
-      "3",
-      "inputPlaceholder input",
+    // Focus, then for each key: onBeforeInput, onInput, onBeforeChange,
+    // onChange and onValidate.
+    await expect(rows).toHaveCount(11);
+    await expect(rows.nth(0)).toContainText("onFocus");
+    await expect(rows.nth(9).locator("td")).toHaveText([
+      "10",
+      "onChangeField input",
       '"ab"',
       '"a"',
       '"ab"',
-      "",
+      "typing",
       "",
       "input",
     ]);
@@ -30,10 +33,32 @@ test.describe("forms playground page", () => {
     await expect(rows).toHaveCount(0);
   });
 
+  test("the toggles add a validator and a slow check", async ({ mount }) => {
+    const root = await mount(<FormsPlayground />);
+    const name = root.getByRole("textbox", { name: "Name" });
+    const messages = root.getByRole("list", { name: "Name messages" });
+    await root.getByLabel("Required").check();
+    await root.getByLabel(/^Slow check/).check();
+
+    // Validators run on a change, so the empty value is checked once
+    // something is typed and deleted.
+    await name.click();
+    await name.press("a");
+    await name.press("Backspace");
+    await name.press("Enter");
+    await expect(messages).toHaveText("Checking…");
+    await expect(messages).toHaveText("Enter a value");
+
+    await name.pressSequentially("taken");
+    await name.press("Enter");
+    await expect(messages).toHaveText('"taken" is taken');
+    await expect(name).toHaveAttribute("aria-invalid", "true");
+  });
+
   test("applies each page control", async ({ mount, page }) => {
     const root = await mount(<FormsPlayground />);
     const html = page.locator("html");
-    const input = root.getByLabel("Placeholder text");
+    const input = root.getByRole("textbox", { name: "Name" });
 
     await root.getByLabel("Preset").selectOption("midnight");
     await expect(
