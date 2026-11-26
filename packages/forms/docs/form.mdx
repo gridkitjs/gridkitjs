@@ -98,6 +98,34 @@ On a submit, `Form`:
 
 Warnings, information and success messages never stop a submit. The `<form>` always has `novalidate`, so the browser's own validation bubbles never show. The form's reset button resets every uncontrolled field.
 
+An input of your own shows its messages on a submit through `useField`'s `onReveal` (see [Field](/docs/forms/field#your-own-input)).
+
+## FormsProvider
+
+`FormsProvider` sets the `locale`, `messages` and `density` of every forms component under it, inside a `Form` or not, so an app sets its language and density once at its root. A `Form`, a layout level, a field or an input that sets one itself wins.
+
+```tsx title="App.tsx"
+import { FormsProvider, TextInput } from "@gridkitjs/forms";
+
+export function App() {
+  return (
+    <FormsProvider
+      locale="de-DE"
+      density="compact"
+      messages={{ required: "Bitte ausfüllen" }}
+    >
+      <TextInput label="Name" required />
+    </FormsProvider>
+  );
+}
+```
+
+| Prop       | Type                                       | Default      | Description                                   |
+| ---------- | ------------------------------------------ | ------------ | --------------------------------------------- |
+| `locale`   | `Intl.LocalesArgument`                     | the browser  | Formats counts, for every component under it. |
+| `messages` | `Partial<FormsMessages>`                   | English      | Laid over the defaults.                       |
+| `density`  | `"compact" \| "standard" \| "comfortable"` | `"standard"` | For every field.                              |
+
 ## Keyboard
 
 | Key              | Where                                            | Action                                                                                                                                                                                        |
