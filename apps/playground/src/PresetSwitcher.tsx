@@ -1,54 +1,34 @@
-import { useEffect, useState } from "react";
-import presetIndex from "@gridkitjs/theme-tailwind/presets/index.json";
-
-// import.meta.glob takes only relative paths, not a package's exports.
-const presetFiles = import.meta.glob<string>(
-  "../../../packages/theme-tailwind/src/presets/*.css",
-  { query: "?raw", import: "default", eager: true },
-);
-const presetCss = new Map(
-  Object.entries(presetFiles).map(([path, css]) => [
-    path.slice(path.lastIndexOf("/") + 1),
-    css,
-  ]),
-);
-
-const PARAM = "preset";
-const { presets } = presetIndex;
+import { useState } from "react";
+import {
+  DEFAULT_PRESET,
+  PRESET_PARAM,
+  presetOrDefault,
+  presets,
+  usePresetStyle,
+} from "./presets";
 
 function presetFromUrl(): string {
-  const id = new URLSearchParams(window.location.search).get(PARAM);
-  return presets.find((preset) => preset.id === id)?.id ?? "default";
+  return presetOrDefault(
+    new URLSearchParams(window.location.search).get(PRESET_PARAM),
+  );
 }
 
 /**
- * Loads one of the theme's presets after its stylesheet, as a consumer's
- * import would, and keeps the choice in the URL so a look can be linked to.
+ * Loads one of the theme's presets after its stylesheet and keeps the
+ * choice in the URL so a look can be linked to.
  */
 export function PresetSwitcher() {
   const [id, setId] = useState(presetFromUrl);
   const preset = presets.find((entry) => entry.id === id);
-
-  useEffect(() => {
-    if (preset === undefined) {
-      return;
-    }
-    const style = document.createElement("style");
-    style.dataset.gridkitPreset = preset.id;
-    style.textContent = presetCss.get(preset.file) ?? "";
-    document.head.append(style);
-    return () => {
-      style.remove();
-    };
-  }, [preset]);
+  usePresetStyle(id);
 
   function choose(next: string) {
     setId(next);
     const url = new URL(window.location.href);
-    if (next === "default") {
-      url.searchParams.delete(PARAM);
+    if (next === DEFAULT_PRESET) {
+      url.searchParams.delete(PRESET_PARAM);
     } else {
-      url.searchParams.set(PARAM, next);
+      url.searchParams.set(PRESET_PARAM, next);
     }
     window.history.replaceState(null, "", url);
   }

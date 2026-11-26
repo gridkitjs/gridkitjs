@@ -10,7 +10,8 @@ published, so it needs no changeset.
 | ------------------------- | ------------------------------------------------------------------------------------- |
 | `src/App.tsx`             | The demo page `pnpm dev` serves, built from the grids in `src/demos/`.                |
 | `src/index.css`           | Tailwind plus `@gridkitjs/theme-tailwind/styles.css`, shared with the tests.          |
-| `src/PresetSwitcher.tsx`  | Loads a theme preset after the stylesheet; `?preset=<id>` links to one.               |
+| `src/PresetSwitcher.tsx`  | Picks a theme preset; `?preset=<id>` links to one.                                    |
+| `src/presets.ts`          | The theme's presets and `usePresetStyle`, which loads one after the stylesheets.      |
 | `src/Walkthrough.tsx`     | One grid alone on a page: `/?demo=tour`, `grouped`, `pinned` or `server`, `&dir=rtl`. |
 | `tests-ct/`               | Playwright component tests, one spec file per area.                                   |
 | `tests-ct/support/`       | Test-only grids and harnesses the specs mount, plus coverage setup.                   |
