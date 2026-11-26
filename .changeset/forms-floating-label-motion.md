@@ -10,5 +10,5 @@ instead of jumping. It moves and shrinks by a transition of its
 background fading alongside, rather than by changing its `font-size`,
 offsets and padding; it scales from its inline start, so it mirrors under
 `dir="rtl"`. The label keeps its weight in both places, and a placeholder
-fades in as it rises. Under
-`prefers-reduced-motion: reduce` it still moves without a transition.
+fades in as it rises. Under `prefers-reduced-motion: reduce` it still
+moves without a transition.
