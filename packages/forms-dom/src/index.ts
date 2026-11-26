@@ -12,4 +12,5 @@ export {
   attachTextInput,
   type AttachedTextInput,
   type TextControl,
+  type TextInputOptions,
 } from "./text/attachTextInput";

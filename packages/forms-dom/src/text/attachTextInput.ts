@@ -10,7 +10,26 @@ import { applyEdit, type TextRange } from "./applyEdit";
 /** The native controls a text input draws. */
 export type TextControl = HTMLInputElement | HTMLTextAreaElement;
 
+/** What a renderer can change about the pipeline while it is attached. */
+export interface TextInputOptions {
+  /**
+   * Selects all the text when the control gains focus from the keyboard or
+   * from code. A press of a pointer places the caret as usual.
+   */
+  readonly selectOnFocus?: boolean | undefined;
+  /**
+   * What Escape does: puts back the last committed text (`"revert"`, the
+   * default), empties the field (`"clear"`, for a search box), or nothing.
+   * It takes the key only when it changed something.
+   */
+  readonly escape?: "revert" | "clear" | "none" | undefined;
+  /** Called just before Escape empties the field, for the renderer's `onClear`. */
+  readonly onClear?: ((nativeEvent: Event) => void) | undefined;
+}
+
 export interface AttachedTextInput {
+  /** Replaces the options, from the next event on. */
+  readonly setOptions: (options: TextInputOptions) => void;
   /**
    * Removes every listener and clears the control's custom validity. The
    * controller is left as it is, so another control can be attached to it.
@@ -127,8 +146,11 @@ function errorText(messages: readonly FieldMessage[]): string {
  * - Enter commits (in a `<textarea>`, Ctrl+Enter or Cmd+Enter, since Enter
  *   is a new line); Tab commits and, when `onBeforeCommit` refuses at once,
  *   keeps focus by preventing the key; Escape puts back the last committed
- *   text and takes the key when it did. Keys an input method is using, and
- *   keys another listener prevented, are left alone.
+ *   text, or empties the field, as `options.escape` says, and takes the key
+ *   when it changed something. Keys an input method is using, and keys
+ *   another listener prevented, are left alone.
+ * - With `options.selectOnFocus`, focus from the keyboard or from code
+ *   selects all the text.
  * - A `reset` of the control's form that nobody prevented resets the
  *   field, with `source: "api"`.
  *
@@ -149,9 +171,15 @@ function errorText(messages: readonly FieldMessage[]): string {
 export function attachTextInput<V, D extends object>(
   control: TextControl,
   controller: FieldController<V, D, Event>,
+  initialOptions: TextInputOptions = {},
 ): AttachedTextInput {
+  let options = initialOptions;
   let state: TextPipelineState = READY;
   let customValidity = "";
+  // A pointer pressed on the unfocused control: the focus that follows
+  // places the caret, so it selects nothing. That focus, or the press's
+  // click where focus comes later (a touch), clears it.
+  let pointerFocus = false;
   const listeners = new AbortController();
   const { signal } = listeners;
 
@@ -379,11 +407,36 @@ export function attachTextInput<V, D extends object>(
         }
         return;
       case "Escape":
-        if (!modified && !event.shiftKey && controller.revert(event)) {
+        if (!modified && !event.shiftKey && escape(event)) {
           event.preventDefault();
         }
         return;
     }
+  }
+
+  /** Does what Escape does, and says whether it changed anything. */
+  function escape(event: KeyboardEvent): boolean {
+    switch (options.escape ?? "revert") {
+      case "revert":
+        return controller.revert(event);
+      case "clear":
+        if (control.readOnly || controller.getText() === "") {
+          return false;
+        }
+        options.onClear?.(event);
+        controller.clear(event);
+        return true;
+      case "none":
+        return false;
+    }
+  }
+
+  function onFocus(event: FocusEvent): void {
+    controller.focus(event);
+    if (options.selectOnFocus === true && !pointerFocus) {
+      control.select();
+    }
+    pointerFocus = false;
   }
 
   // On the document, so the app's own listeners have had their say first.
@@ -398,10 +451,18 @@ export function attachTextInput<V, D extends object>(
 
   // A union of the two controls loses the event map, so listen through one type.
   const element: HTMLElement = control;
+  element.addEventListener("focus", onFocus, { signal });
   element.addEventListener(
-    "focus",
-    (event) => {
-      controller.focus(event);
+    "pointerdown",
+    () => {
+      pointerFocus = !hasFocus(control);
+    },
+    { signal },
+  );
+  element.addEventListener(
+    "click",
+    () => {
+      pointerFocus = false;
     },
     { signal },
   );
@@ -427,6 +488,9 @@ export function attachTextInput<V, D extends object>(
   render();
 
   return {
+    setOptions: (next) => {
+      options = next;
+    },
     detach: () => {
       if (state.kind === "detached") {
         return;
