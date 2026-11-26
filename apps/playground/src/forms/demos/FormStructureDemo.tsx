@@ -13,6 +13,7 @@ import { DemoSection } from "../DemoSection";
 import { useEventReporter } from "../eventLog";
 import { usePlaygroundSettings, type Option } from "../settings";
 import { DemoInput } from "./DemoInput";
+import { OwnInput } from "./OwnInput";
 
 const COMPONENT = "Form structure";
 
@@ -61,7 +62,7 @@ export function FormStructureDemo() {
   return (
     <DemoSection
       title="Form structure"
-      description="Form, FormSection, Fieldset, FieldGroup, FormLayout and MessageSummary together. Save with empty required fields to see the summary take focus; its links open a collapsed section to reach a field. Narrow the window to watch the columns drop."
+      description="Form, FormSection, Fieldset, FieldGroup, FormLayout and MessageSummary together, with an input of your own (Reference) wired in through useField. Save with empty required fields to see the summary take focus; its links open a collapsed section to reach a field. Narrow the window to watch the columns drop."
     >
       <div className="flex flex-col gap-5">
         <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
@@ -122,11 +123,9 @@ export function FormStructureDemo() {
           aria-label="Customer order"
           className="max-w-4xl"
           mode={settings.mode}
-          density={settings.density}
           necessityIndicator={settings.necessityIndicator}
           readOnly={settings.readOnly}
           disabled={settings.disabled}
-          locale={settings.locale}
           labelPosition={labelPosition}
           enterMovesToNextField={enterMoves}
           onSubmit={(event) => {
@@ -161,6 +160,15 @@ export function FormStructureDemo() {
               </Field>
               <Field label="Phone" description="With the country code">
                 <DemoInput component={`${COMPONENT}: Phone`} name="phone" />
+              </Field>
+              <Field
+                label="Reference"
+                description="Your own input, wired in through useField"
+              >
+                <OwnInput
+                  component={`${COMPONENT}: Reference`}
+                  name="reference"
+                />
               </Field>
               <Field label="Notes" span="full">
                 <DemoInput component={`${COMPONENT}: Notes`} name="notes" />

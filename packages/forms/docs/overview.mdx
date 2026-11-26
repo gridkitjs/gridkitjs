@@ -5,34 +5,86 @@ description: "React form inputs and form structure for GridKit, styled by the Gr
 
 @gridkitjs/forms draws GridKit's form inputs and the structure around them in React, styled by the GridKit themes so a form beside a grid looks like part of it. @gridkitjs/forms-core decides what a field does, @gridkitjs/forms-dom connects it to the browser, and this package draws the markup and attaches them, with no styles of its own: the themes' forms stylesheet styles it. It works without the grid packages, and beside them.
 
-<Callout type="note" title="Not yet published">
-  The forms packages are under development and are not on npm yet.
+<Callout type="note" title="First iteration, not yet published">
+  The forms packages are a first iteration, under development and not on npm
+  yet. Their components may change before the first release.
 </Callout>
 
-## Example
+## Which package
+
+| Package                 | Holds                                                                                           | Install it when                                       |
+| ----------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `@gridkitjs/forms`      | The React components and hooks: inputs, `Form`, `Field`, layout, the message summary.           | Your app draws forms in React. This is the usual one. |
+| `@gridkitjs/forms-core` | A field's value, draft, events, parsing, validation and messages, with no DOM and no framework. | You write a forms renderer of your own.               |
+| `@gridkitjs/forms-dom`  | The browser behaviours an input attaches: typing and pasting, toggles, Enter navigation, focus. | You write a forms renderer of your own.               |
+
+`@gridkitjs/forms` depends on the other two and re-exports the types an app writes against, so an app installs and imports it alone. None of them imports a grid package: a forms-only app does not ship the grid.
+
+## Install
+
+Install `@gridkitjs/forms` with a theme: `@gridkitjs/theme-tailwind` for an app on Tailwind CSS 4, or `@gridkitjs/theme-css` for plain CSS. React 19 is a peer dependency.
+
+## Import the stylesheet
+
+The forms stylesheet is `forms.css` in either theme. Import it alone in an app with forms but no grid:
+
+```css title="src/index.css"
+@import "tailwindcss";
+@import "@gridkitjs/theme-tailwind/forms.css";
+```
+
+Beside the grid, import both, in either order. They share one palette, so a form and a grid follow the same [preset](/docs/theme-tailwind/presets), dark mode and token overrides:
+
+```css title="src/index.css"
+@import "tailwindcss";
+@import "@gridkitjs/theme-tailwind/styles.css";
+@import "@gridkitjs/theme-tailwind/forms.css";
+```
+
+Without Tailwind, import `@gridkitjs/theme-css/forms.css` (and `@gridkitjs/theme-css/styles.css` beside the grid) instead.
+
+## Your first form
 
 ```tsx title="App.tsx"
-import { Field, Form, SearchInput, TextInput } from "@gridkitjs/forms";
+import {
+  Checkbox,
+  Field,
+  Form,
+  FormsProvider,
+  TextInput,
+} from "@gridkitjs/forms";
 
 export function App() {
   return (
-    <Form
-      onSubmit={(event) => {
-        event.preventDefault();
-        console.log(new FormData(event.currentTarget).get("name"));
-      }}
-    >
-      <Field label="Search customers">
-        <SearchInput debounce={250} />
-      </Field>
-      <Field label="Name" required>
-        <TextInput name="name" />
-      </Field>
-      <button type="submit">Save</button>
-    </Form>
+    <FormsProvider locale="en-GB">
+      <Form
+        aria-label="Customer"
+        onSubmit={(event) => {
+          event.preventDefault();
+          console.log(Object.fromEntries(new FormData(event.currentTarget)));
+        }}
+      >
+        <Field label="Name" required>
+          <TextInput name="name" />
+        </Field>
+        <Field label="Email" description="For the order confirmation">
+          <TextInput name="email" inputMode="email" autoComplete="email" />
+        </Field>
+        <Checkbox name="newsletter" label="Send me the newsletter" />
+        <button type="submit">Save</button>
+      </Form>
+    </FormsProvider>
   );
 }
 ```
+
+Saving with an empty name shows its error and moves focus to it; nothing reaches `onSubmit` until every field is valid.
+
+## Components
+
+- Inputs: [TextInput](/docs/forms/text-input), [SearchInput](/docs/forms/search-input), [Checkbox](/docs/forms/checkbox), [Switch](/docs/forms/switch).
+- Structure: [Form and FormsProvider](/docs/forms/form), [Field](/docs/forms/field), [Layout](/docs/forms/layout) (`FormLayout`, `FormSection`, `Fieldset`, `FieldGroup`), [Message summary](/docs/forms/message-summary).
+- How every input behaves: [Events](/docs/forms/events); building an input of your own: [useFieldInput](/docs/forms/use-field-input).
 
 ## Exports
 
@@ -46,11 +98,11 @@ Every export of `@gridkitjs/forms`. Those marked as re-exported come from forms-
 | `Switch`, `SwitchProps`                                                                                                                                                                                                               | component, type   | An on or off setting that takes effect at once (`role="switch"`).                                        | [Switch](/docs/forms/switch)                   |
 | `ToggleBaseProps`, `ToggleLabelPlacement`                                                                                                                                                                                             | types             | The props a checkbox and a switch share.                                                                 | [Checkbox](/docs/forms/checkbox#props)         |
 | `InputBaseProps`, `TextInputBaseProps`, `ManagedControlProps`                                                                                                                                                                         | types             | The props every input, and every text input, shares; the control attributes an input sets itself.        | [TextInput](/docs/forms/text-input#props)      |
-| `Form`, `FormProps`                                                                                                                                                                                                                   | component, type   | A `<form>` whose fields share its settings, refusing a submit while a field holds an error.              | [Form](/docs/forms/form)                       |
+| `Form`, `FormProps`, `FormsProvider`, `FormsProviderProps`                                                                                                                                                                            | components, types | A `<form>` that refuses an invalid submit; app-wide locale, strings and density.                         | [Form](/docs/forms/form)                       |
 | `FormLayout`, `FormLayoutProps`, `FormSection`, `FormSectionProps`, `Fieldset`, `FieldsetProps`, `FieldGroup`, `FieldGroupProps`, `FieldSpan`                                                                                         | components, types | Responsive columns, titled and collapsible sections, fieldsets and groups of inputs.                     | [Layout](/docs/forms/layout)                   |
 | `MessageSummary`, `MessageSummaryProps`                                                                                                                                                                                               | component, type   | Every message in a form, each a link to its field.                                                       | [Message summary](/docs/forms/message-summary) |
 | `Field`, `FieldProps`                                                                                                                                                                                                                 | component, type   | One input with its label, help text and messages, wired for assistive technology.                        | [Field](/docs/forms/field)                     |
-| `useField`, `UseFieldResult`, `FieldControlProps`, `FieldControlState`                                                                                                                                                                | hook, types       | Wires an input of your own into the `Field` around it.                                                   | [Field](/docs/forms/field#your-own-input)      |
+| `useField`, `UseFieldOptions`, `UseFieldResult`, `FieldControlProps`, `FieldControlState`                                                                                                                                             | hook, types       | Wires an input of your own into the `Field` around it.                                                   | [Field](/docs/forms/field#your-own-input)      |
 | `Density`, `FieldMode`, `LabelPosition`, `NecessityIndicator`                                                                                                                                                                         | types             | How tightly fields are drawn, edit or display mode, where a label sits, which fields are marked.         | [Field](/docs/forms/field#props)               |
 | `useFieldInput`, `FieldInputProps`, `FieldInputKind`, `FieldInputOptions`, `FieldInput`, `FieldControlBinding`                                                                                                                        | hook, types       | Binds a native text control to a field; every input is built on it.                                      | [useFieldInput](/docs/forms/use-field-input)   |
 | `InputHandle`                                                                                                                                                                                                                         | type              | What an input does from code: `focus`, `setValue`, `reset`, `revealMessages`.                            | [useFieldInput](/docs/forms/use-field-input)   |
@@ -63,13 +115,35 @@ Every export of `@gridkitjs/forms`. Those marked as re-exported come from forms-
 | `FieldMessage`, `FieldMessageInput`, `Severity`                                                                                                                                                                                       | types             | A field's messages and how serious each is; only `"error"` blocks. Growable. Re-exported.                | [Validation](/docs/forms-core/validation)      |
 | `FormsMessages`                                                                                                                                                                                                                       | type              | Every string the forms show. Re-exported.                                                                | [Validation](/docs/forms-core/validation)      |
 
+## Stability
+
+The forms packages follow the grid's [stability policy](/docs/react/stability) once they are published, with these packages in place of the grid's:
+
+- **Covered** from their 1.0: every export of `@gridkitjs/forms`, everything in `@gridkitjs/forms-core` an app writes against (the event and message types, the parse and format contract, the validators), the props and the `handleRef` handle of every component, the `gridkit-forms-*` class names and `is-*` state classes each component page lists, the ARIA roles and attributes those pages describe, and the `--gridkit-*` tokens `forms.css` reads.
+- **Renderer tier**: `@gridkitjs/forms-dom`, and the parts of `@gridkitjs/forms-core` only a renderer calls (`createFieldController`, `fieldReducer`, the field registry). These may change in a minor release, called out in the changelog.
+- **Not covered**: the DOM structure beyond the documented classes and attributes, the default English text of `FormsMessages`, and the exact sizes and colours behind a token's default.
+
+A minor release may add members to these unions, so a `switch` over one needs a `default` branch:
+
+- `ChangeSource`, where a change came from (`"typing"`, `"paste"`, `"toggle"` and the rest).
+- `CommitTrigger`, what ended an edit (`"enter"`, `"tab"`, `"blur"` and the rest).
+- `Severity`, how serious a message is.
+- `FieldMessage["source"]`, where a message came from.
+- `FieldPhase` (by `kind`), the field lifecycle: `idle`, `editing`, `checking`, `leaving`.
+- `FieldDraft` (by `kind`) and `TextReading` (by `kind`), what a field shows while it is edited.
+
+It may also add keys to `FormsMessages`: `messages` takes a partial set, so a translation without a new key shows its English default.
+
+Until the first release, any change may land: the forms are a first iteration.
+
 ## See also
 
 - [TextInput](/docs/forms/text-input) and [SearchInput](/docs/forms/search-input), the text inputs.
 - [Checkbox](/docs/forms/checkbox) and [Switch](/docs/forms/switch), the toggles.
-- [Form](/docs/forms/form) for the form around the fields, and submitting.
+- [Form](/docs/forms/form) for the form around the fields, submitting and `FormsProvider`.
 - [Field](/docs/forms/field) for the label, help text and messages around an input.
 - [Layout](/docs/forms/layout) for columns, sections, fieldsets and groups.
 - [Events](/docs/forms/events) for what every input fires, and in what order.
+- [Stability](/docs/react/stability) for the grid's policy, which the forms follow.
 - [Forms core overview](/docs/forms-core/overview) for the logic behind every input.
 - [Forms DOM overview](/docs/forms-dom/overview) for the browser behaviours they attach.

@@ -109,7 +109,7 @@ The field shows your `message` and the input's own messages together, most serio
 
 ## Your own input
 
-`useField()` gives an input inside a `Field` what it needs; outside one it gives the form's settings and an `id` of its own.
+`useField()` gives an input inside a `Field` what it needs; outside one it gives the form's settings and an `id` of its own. Inside a `Form`, `useField({ onReveal })` is called when a submit reveals every field's messages: show your input's messages then, as you would when the user leaves it. The form looks for an invalid control right after, so a native constraint or `setCustomValidity` set by then refuses the submit.
 
 | Member               | Description                                                                                                                                                                                                                                        |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

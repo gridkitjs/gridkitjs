@@ -39,7 +39,8 @@ has, wired to the event log.** A section is a component in
 `usePlaygroundSettings()` (preset, colour scheme, right to left, density,
 mode, `disabled`, `readOnly`, locale) and passes them to what it shows; the
 page itself applies the preset, the colour scheme, `dir` and `lang` to the
-document. It reports events through `useEventReporter("<component>")`:
+document, and gives every section the locale and density through a
+`FormsProvider`, so a section passes neither. It reports events through `useEventReporter("<component>")`:
 `onChange={reporter("onChange")}` logs each call with its `value`,
 `previousValue`, `text`, `source`, `trigger` and native event type, so a
 forms event object goes in as it is. The controls keep their choices in the

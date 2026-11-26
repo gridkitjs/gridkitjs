@@ -3,7 +3,7 @@ title: "Auto-grow"
 description: "attachAutoGrow: grows a textarea with its text between a minimum and a maximum number of lines, then lets it scroll."
 ---
 
-`attachAutoGrow(textarea, { minRows, maxRows })` grows a `<textarea>` with its text, from `minRows` lines to `maxRows`, then lets it scroll. The height follows every `input` and every change of the textarea's width, which rewraps its text, and is worked out from the computed line height, padding and borders. CSS `field-sizing: content` would do the same, but not in every browser the forms support.
+`attachAutoGrow(textarea, { minRows, maxRows })` grows a `<textarea>` with its text, from `minRows` lines to `maxRows`, then lets it scroll. The height follows every `input` and, a frame later, every change of the textarea's width, which rewraps its text, and is worked out from the computed line height, padding and borders. CSS `field-sizing: content` would do the same, but not in every browser the forms support.
 
 <Callout type="note" title="First iteration">
   This API is a first iteration and may change before the first release.

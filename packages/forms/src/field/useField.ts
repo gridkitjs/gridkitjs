@@ -1,5 +1,6 @@
 import { toFieldMessages, type FieldMessageInput } from "@gridkitjs/forms-core";
-import { useCallback, useId } from "react";
+import { useCallback, useId, useLayoutEffect, useRef } from "react";
+import { useFormContext } from "../form/formContext";
 import { useFormSettings, type Density, type FieldMode } from "../settings";
 import { useFieldContext, type FieldControlState } from "./fieldContext";
 
@@ -11,6 +12,17 @@ export interface FieldControlProps {
   readonly "aria-required": true | undefined;
   readonly disabled: boolean;
   readonly readOnly: boolean;
+}
+
+/** What an app's own input tells `useField`. */
+export interface UseFieldOptions {
+  /**
+   * Called when the `Form` around the input reveals every field's
+   * messages, on a submit attempt, so the input shows its own messages as
+   * a commit would. The form looks for an invalid control right after, so
+   * a native constraint or `setCustomValidity` set here refuses the submit.
+   */
+  readonly onReveal?: (() => void) | undefined;
 }
 
 /** What `useField` gives an app's own input. */
@@ -44,10 +56,25 @@ export interface UseFieldResult {
  * `Field` it gives the form's settings and an `id` of its own, and the
  * reports go nowhere.
  */
-export function useField(): UseFieldResult {
+export function useField(options: UseFieldOptions = {}): UseFieldResult {
   const field = useFieldContext();
+  const form = useFormContext();
   const formSettings = useFormSettings();
   const ownId = useId();
+
+  // The latest callback, read when the form reveals, so a new function on
+  // every render does not add the input to the form again.
+  const onReveal = useRef(options.onReveal);
+  useLayoutEffect(() => {
+    onReveal.current = options.onReveal;
+  });
+  useLayoutEffect(
+    () =>
+      form?.registry.addRevealer(() => {
+        onReveal.current?.();
+      }),
+    [form],
+  );
   const settings = field?.settings ?? formSettings;
   const setControlMessages = field?.setControlMessages;
   const setControlState = field?.setControlState;

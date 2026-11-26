@@ -41,6 +41,7 @@ export function attachAutoGrow(
   let options = initialOptions;
   let width = -1;
   let detached = false;
+  let frame = 0;
   const listeners = new AbortController();
 
   function update(): void {
@@ -73,7 +74,14 @@ export function attachAutoGrow(
     const next = entry?.contentRect.width ?? width;
     if (next !== width) {
       width = next;
-      update();
+      // Set the height in the next frame: setting it inside the callback
+      // resizes the observed element again in the same frame, which WebKit
+      // reports as a "ResizeObserver loop" error.
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        update();
+      });
     }
   });
   resizes.observe(textarea);
@@ -90,6 +98,7 @@ export function attachAutoGrow(
       detached = true;
       listeners.abort();
       resizes.disconnect();
+      cancelAnimationFrame(frame);
     },
   };
 }

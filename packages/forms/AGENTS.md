@@ -77,15 +77,16 @@ input reports from a layout effect and takes its report back in the
 effect's cleanup, so nothing outlives the input. The settings every level
 of a form shares (mode, density, label position, `readOnly`, `disabled`,
 locale, messages) live in `src/settings.tsx`, one memoized context per
-level. `forms-field.spec.tsx` covers it. A `FieldGroup` gives its inputs
+level, the outermost an optional `FormsProvider`. `forms-field.spec.tsx`
+and `forms-provider.spec.tsx` cover it. A `FieldGroup` gives its inputs
 the same context with no `controlId`, and lists every input's report,
 keyed by the input's own `useId`.
 
 `Form` (`src/form/`) holds no lifecycle: it makes one `FormContext` when
 it mounts, holding forms-core's field registry, the collapsible sections
 and the `MessageSummary` element. Fields register while they show
-messages, inputs add their controller's `reveal`, and sections and the
-summary add themselves, each from a layout effect or ref whose cleanup
+messages, inputs add their controller's `reveal` (an app's own input its
+`useField` `onReveal`), and sections and the summary add themselves, each from a layout effect or ref whose cleanup
 takes it back. Only `MessageSummary` subscribes to the registry, so a
 field's change re-renders that field and the summary, never the form. A
 refused submit renders the reveal at once (`flushSync`) so the summary

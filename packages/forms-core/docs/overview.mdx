@@ -5,10 +5,11 @@ description: "Framework-free form-input logic for GridKit: values and drafts, ev
 
 @gridkitjs/forms-core holds the logic behind GridKit's form inputs: the value a field holds and the draft being typed, the events an input fires and their order, parsing and formatting, validation and the messages it produces. It has no DOM and no framework, so a field can be driven from a browser, a Node test or any renderer. @gridkitjs/forms-dom attaches it to real controls, and @gridkitjs/forms draws the React components on top.
 
-You only need this package to write a forms renderer of your own. @gridkitjs/forms depends on it, so installing that is enough to use the inputs.
+You only need this package to write a forms renderer of your own. @gridkitjs/forms depends on it, so installing that is enough to use the inputs: the [forms overview](/docs/forms/overview) shows how to install it, import the stylesheet and write a first form.
 
-<Callout type="note" title="Not yet published">
-  The forms packages are under development and are not on npm yet.
+<Callout type="note" title="First iteration, not yet published">
+  The forms packages are a first iteration, under development and not on npm
+  yet. Their API may change before the first release.
 </Callout>
 
 ## Example
@@ -58,6 +59,10 @@ Every export of `@gridkitjs/forms-core`:
 | `FormsMessages`, `createDefaultFormsMessages`, `defaultFormsMessages`, `resolveFormsMessages`                                                                                                                      | type, functions                      | Every string the forms show, and laying an app's own over them.                                    | [Validation](/docs/forms-core/validation)                  |
 | `createFieldRegistry`, `FieldRegistry`, `RegisteredField`, `summarizeMessages`, `MessageSummary`, `SummaryItem`, `SeverityCount`                                                                                   | function, types                      | A form's fields and their shown messages, for a summary and for revealing every field on a submit. | [Validation](/docs/forms-core/validation#a-forms-messages) |
 | `Schedule`                                                                                                                                                                                                         | type                                 | `(callback, delay) => cancel`: a timer. forms-core keeps none, so it is handed one.                | [Field state](/docs/forms-core/field-state)                |
+
+## Stability
+
+What an app writes against (the event and message types, the parse and format contract, the validators and `FormsMessages`) follows semantic versioning. What only a renderer calls (`createFieldController`, `fieldReducer`, the field registry) is in the renderer tier: a minor release may change it, with the change called out in the changelog. The [forms stability section](/docs/forms/overview#stability) lists what is covered and the unions a minor release may grow.
 
 ## See also
 

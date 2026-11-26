@@ -46,9 +46,9 @@ and `forms-switch.spec.tsx` cover it.
 listener on the form and no state; its `detach` removes it.
 
 `attachAutoGrow` (`src/text/attachAutoGrow.ts`) holds one `input` listener
-and a `ResizeObserver` on the textarea, and no state beyond the last width
-it measured; its `detach` removes both. `forms-text-input.spec.tsx` covers
-it.
+and a `ResizeObserver` on the textarea, the last width it measured, and
+the animation frame a width change sets the height in; its `detach`
+removes all three. `forms-text-input.spec.tsx` covers it.
 
 ## Commands
 

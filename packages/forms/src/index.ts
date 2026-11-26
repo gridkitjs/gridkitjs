@@ -20,9 +20,11 @@ export type { FieldSpan } from "./field/parts";
 export {
   useField,
   type FieldControlProps,
+  type UseFieldOptions,
   type UseFieldResult,
 } from "./field/useField";
 export { Form, type FormProps } from "./form/Form";
+export { FormsProvider, type FormsProviderProps } from "./FormsProvider";
 export {
   MessageSummary,
   type MessageSummaryProps,
