@@ -36,6 +36,7 @@ export type {
   LabelPosition,
   NecessityIndicator,
 } from "./settings";
+export { SearchInput, type SearchInputProps } from "./text/SearchInput";
 export { TextInput, type TextInputProps } from "./text/TextInput";
 export type {
   InputBaseProps,
