@@ -1,5 +1,6 @@
 import { FormsPlayground } from "../src/forms/FormsPlayground";
 import { expect, test } from "./support/coverage";
+import { typeInto } from "./support/forms/typeInto";
 
 test.describe("forms playground page", () => {
   test("logs the field input's events in order, until cleared", async ({
@@ -155,6 +156,45 @@ test.describe("forms playground page", () => {
       .selectOption("display");
     await expect(root.getByRole("group", { name: "Top label" })).toHaveText(
       /Top label\s*a/,
+    );
+  });
+
+  test("the form structure section refuses an empty save, then logs a save and each section toggle", async ({
+    mount,
+  }) => {
+    const root = await mount(<FormsPlayground />);
+    const form = root.getByRole("form", { name: "Customer order" });
+    const rows = root
+      .getByRole("table", { name: "Event log" })
+      .locator("tbody tr");
+    const summary = form.locator(".gridkit-forms-message-summary");
+
+    // The credit limit warning, in a collapsed section, is listed from the start.
+    await expect(summary).toContainText(
+      "Credit limit: Above the usual credit limit",
+    );
+    await form.getByRole("button", { name: "Save" }).click();
+    await expect(summary).toBeFocused();
+    await expect(summary).toContainText("Contact: Enter a value");
+
+    await summary.getByRole("link", { name: /^Credit limit/ }).click();
+    await expect(
+      form.getByRole("textbox", { name: "Credit limit" }),
+    ).toBeFocused();
+    await expect(rows.filter({ hasText: "onExpandedChange" })).toHaveCount(1);
+
+    await typeInto(form.getByRole("textbox", { name: "Contact" }), "Ada");
+    await typeInto(
+      form.getByRole("textbox", { name: "Email" }),
+      "ada@example.com",
+    );
+    await typeInto(form.getByRole("textbox", { name: "Street" }), "Main 1");
+    await typeInto(form.getByRole("textbox", { name: "Postal code" }), "1011");
+    await typeInto(form.getByRole("textbox", { name: "City" }), "Amsterdam");
+    await form.getByRole("button", { name: "Save" }).click();
+    await expect(rows.filter({ hasText: "onSubmit" })).toHaveCount(1);
+    await expect(rows.filter({ hasText: "onSubmit" })).toContainText(
+      "Amsterdam",
     );
   });
 });
