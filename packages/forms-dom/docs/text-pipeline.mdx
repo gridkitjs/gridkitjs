@@ -3,7 +3,7 @@ title: "Text pipeline"
 description: "attachTextInput: connects a native text control to a forms-core field controller, keeping the caret, input methods and undo working."
 ---
 
-`attachTextInput(control, controller)` connects a native `<input>` or `<textarea>` to a forms-core [field controller](/docs/forms-core/field-state): it turns the control's browser events into the controller's requests, with the browser event attached to every event the controller fires, and writes the controller's text back into the control. The caret stays where the user left it, input methods compose undisturbed, and edits the browser makes stay undoable.
+`attachTextInput(control, controller, options)` connects a native `<input>` or `<textarea>` to a forms-core [field controller](/docs/forms-core/field-state): it turns the control's browser events into the controller's requests, with the browser event attached to every event the controller fires, and writes the controller's text back into the control. The caret stays where the user left it, input methods compose undisturbed, and edits the browser makes stay undoable.
 
 <Callout type="note" title="First iteration">
   This API is a first iteration and may change before the first release.
@@ -47,6 +47,16 @@ input.detach();
 field.destroy();
 ```
 
+## Options
+
+`options` is a `TextInputOptions`; `setOptions` on the returned object replaces it while the control is attached.
+
+| Option          | Type                            | Default    | Description                                                                                                         |
+| --------------- | ------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------- |
+| `selectOnFocus` | `boolean`                       | `false`    | Selects all the text when the control gains focus from the keyboard or from code. A pointer press places the caret. |
+| `escape`        | `"revert" \| "clear" \| "none"` | `"revert"` | What <Kbd>Escape</Kbd> does: puts back the last committed text, empties the field (a search box), or nothing.       |
+| `onClear`       | `(nativeEvent: Event) => void`  |            | Called just before <Kbd>Escape</Kbd> empties the field, so the renderer can fire its own `onClear`.                 |
+
 ## The events it reads
 
 | Browser event                 | Request                                                                                                                    |
@@ -63,12 +73,12 @@ The text a `beforeinput` would leave is worked out from the selection, the edit'
 
 ## Keyboard
 
-| Key                                                               | Does                                                                                  |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| <Kbd>Enter</Kbd>                                                  | Commits an `<input>`.                                                                 |
-| <Kbd>Ctrl</Kbd>+<Kbd>Enter</Kbd>, <Kbd>Cmd</Kbd>+<Kbd>Enter</Kbd> | Commits a `<textarea>`, where <Kbd>Enter</Kbd> is a new line.                         |
-| <Kbd>Tab</Kbd>, <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd>                   | Commits; when `onBeforeCommit` refuses at once, the key is prevented and focus stays. |
-| <Kbd>Escape</Kbd>                                                 | Puts back the last committed text; the key is prevented only when there was a change. |
+| Key                                                               | Does                                                                                                                            |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| <Kbd>Enter</Kbd>                                                  | Commits an `<input>`.                                                                                                           |
+| <Kbd>Ctrl</Kbd>+<Kbd>Enter</Kbd>, <Kbd>Cmd</Kbd>+<Kbd>Enter</Kbd> | Commits a `<textarea>`, where <Kbd>Enter</Kbd> is a new line.                                                                   |
+| <Kbd>Tab</Kbd>, <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd>                   | Commits; when `onBeforeCommit` refuses at once, the key is prevented and focus stays.                                           |
+| <Kbd>Escape</Kbd>                                                 | Puts back the last committed text, or empties the field, as `escape` says; the key is prevented only when it changed something. |
 
 Keys an input method is using and keys another listener prevented are left alone.
 

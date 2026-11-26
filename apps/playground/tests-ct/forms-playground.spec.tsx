@@ -3,7 +3,7 @@ import { expect, test } from "./support/coverage";
 import { typeInto } from "./support/forms/typeInto";
 
 test.describe("forms playground page", () => {
-  test("logs the field input's events in order, until cleared", async ({
+  test("logs the text input's events in order, until cleared", async ({
     mount,
   }) => {
     const root = await mount(<FormsPlayground />);
@@ -21,7 +21,7 @@ test.describe("forms playground page", () => {
     await expect(rows.nth(0)).toContainText("onFocus");
     await expect(rows.nth(9).locator("td")).toHaveText([
       "10",
-      "onChangeField input",
+      "onChangeTextInput",
       '"ab"',
       '"a"',
       '"ab"',
@@ -30,7 +30,10 @@ test.describe("forms playground page", () => {
       "input",
     ]);
 
-    await root.getByRole("button", { name: "Clear" }).click();
+    await root
+      .getByRole("complementary")
+      .getByRole("button", { name: "Clear" })
+      .click();
     await expect(rows).toHaveCount(0);
   });
 
@@ -98,9 +101,11 @@ test.describe("forms playground page", () => {
     await expect(html).toHaveAttribute("lang", "de-DE");
 
     await root.getByLabel("Density").selectOption("comfortable");
-    // The component-test build generates no Tailwind utilities, so the
-    // class stands in for the height it sets on the page.
-    await expect(input).toHaveClass(/\bh-10\b/);
+    await expect(
+      root
+        .locator(".gridkit-forms-control")
+        .filter({ has: page.getByRole("textbox", { name: "Name" }) }),
+    ).toHaveClass(/\bis-comfortable\b/);
 
     await root.getByRole("checkbox", { name: "Disabled" }).check();
     await expect(input).toBeDisabled();
@@ -157,6 +162,44 @@ test.describe("forms playground page", () => {
     await expect(root.getByRole("group", { name: "Top label" })).toHaveText(
       /Top label\s*a/,
     );
+  });
+
+  test("the text input section logs a clear from the box's clear button", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<FormsPlayground />);
+    const rows = root
+      .getByRole("table", { name: "Event log" })
+      .locator("tbody tr");
+    const clearable = root.getByRole("textbox", { name: "Clearable" });
+
+    await root
+      .locator(".gridkit-forms-control")
+      .filter({ has: page.getByRole("textbox", { name: "Clearable" }) })
+      .getByRole("button", { name: "Clear" })
+      .click();
+
+    await expect(clearable).toHaveValue("");
+    await expect(rows.first()).toContainText("onClearTextInput: Clearable");
+    await expect(rows.filter({ hasText: "onCommit" })).toContainText("clear");
+  });
+
+  test("the search input section reads the text once typing pauses", async ({
+    mount,
+  }) => {
+    const root = await mount(<FormsPlayground />);
+    const rows = root
+      .getByRole("table", { name: "Event log" })
+      .locator("tbody tr");
+    const search = root.getByRole("searchbox", { name: "Search orders" });
+
+    await search.click();
+    await search.pressSequentially("ab");
+
+    await expect(rows.filter({ hasText: "onChange" })).toHaveCount(1);
+    await expect(rows.filter({ hasText: "onInput" })).toHaveCount(2);
+    await expect(rows.filter({ hasText: "onChange" })).toContainText('"ab"');
   });
 
   test("the form structure section refuses an empty save, then logs a save and each section toggle", async ({

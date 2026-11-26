@@ -142,6 +142,7 @@ export function Field({
       describedBy,
       required,
       invalid: severity === "error",
+      severity,
       setControlMessages,
       setControlState,
     }),

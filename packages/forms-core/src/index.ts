@@ -70,7 +70,13 @@ export {
   type SummaryItem,
 } from "./registry";
 export type { Schedule } from "./schedule";
-export { formatText, textParser, type TextParseOptions } from "./text";
+export {
+  countCharacters,
+  counterAnnouncement,
+  formatText,
+  textParser,
+  type TextParseOptions,
+} from "./text";
 export {
   checkedRule,
   maxLengthRule,

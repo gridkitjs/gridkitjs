@@ -1,8 +1,12 @@
 import {
   createFieldController,
   hasError,
+  mostSevere,
   resolveFormsMessages,
+  sortFieldMessages,
+  toFieldMessages,
   type FieldMessage,
+  type FieldMessageInput,
   type FieldOptions,
   type FieldPhase,
   type FieldState,
@@ -13,12 +17,15 @@ import {
   type ParseContext,
   type ParseResult,
   type Parser,
+  type Severity,
   type Validator,
 } from "@gridkitjs/forms-core";
 import {
   attachTextInput,
   scheduleTimeout,
+  type AttachedTextInput,
   type TextControl,
+  type TextInputOptions,
 } from "@gridkitjs/forms-dom";
 import {
   useCallback,
@@ -27,6 +34,7 @@ import {
   useImperativeHandle,
   useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
   type ReactElement,
@@ -34,7 +42,7 @@ import {
   type RefCallback,
 } from "react";
 import { DisplayValue } from "./DisplayValue";
-import type { FieldHandlers } from "./events";
+import type { FieldClearEvent, FieldHandlers } from "./events";
 import { useFieldContext } from "./field/fieldContext";
 import { useFormContext } from "./form/formContext";
 import { setRef } from "./refs";
@@ -95,6 +103,13 @@ export interface FieldInputProps<
    * of the `Field` around it. The input adds the check to `validate`.
    */
   readonly required?: boolean | undefined;
+  /** The app's messages, always shown with the field's own; a string is an error. */
+  readonly message?:
+    FieldMessageInput | readonly FieldMessageInput[] | undefined;
+  /** Shows the error state with no message, for a form library that shows its errors elsewhere. */
+  readonly invalid?: boolean | undefined;
+  /** Called first when the field is cleared, before its change and commit. */
+  readonly onClear?: ((event: FieldClearEvent<V>) => void) | undefined;
   /** Submits the value under this name, through a hidden input. */
   readonly name?: string | undefined;
   /** The `id` of a `<form>` elsewhere in the page that the value belongs to. */
@@ -112,6 +127,20 @@ export interface FieldInputProps<
   /** The native control. */
   readonly ref?: Ref<E> | undefined;
   readonly handleRef?: Ref<InputHandle<V>> | undefined;
+}
+
+/** How the input that calls `useFieldInput` behaves, which its own props decide. */
+export interface FieldInputOptions extends TextInputOptions {
+  /**
+   * Something sits at the control's start (a prefix, an icon), where a
+   * resting floating label would cover it, so the label stays raised.
+   */
+  readonly startAdornment?: boolean | undefined;
+  /**
+   * Milliseconds typing must pause before the text is read (`onChange`),
+   * for a search box; `onInput` fires at once and a commit reads at once.
+   */
+  readonly changeDelay?: number | undefined;
 }
 
 /** The props `useFieldInput` gives the native control. */
@@ -134,10 +163,19 @@ export interface FieldInput<V, E extends TextControl = HTMLInputElement> {
   /** The text on screen. */
   readonly text: string;
   /**
-   * The messages to show: none until a commit attempt or `revealMessages`,
-   * and none while disabled. A `Field` around the input lists them itself.
+   * The messages to show: the app's `message`, and the field's own from
+   * the first commit attempt or `revealMessages` on, except while
+   * disabled. A `Field` around the input lists them itself.
    */
   readonly messages: readonly FieldMessage[];
+  /**
+   * The most serious message shown, under the input or anywhere in the
+   * `Field` around it, or `"error"` for `invalid`: the control box's
+   * border colour.
+   */
+  readonly severity: Severity | null;
+  /** Fires `onClear`, then empties the field and commits it (`source` and `trigger` `"clear"`). */
+  readonly clear: (nativeEvent: Event | null) => void;
   /** The props', the `Field`'s or the form's. */
   readonly mode: FieldMode;
   /** The value as text, to draw in place of the control in display mode. */
@@ -163,7 +201,8 @@ function isFocused(phase: FieldPhase<unknown>): boolean {
   }
 }
 
-function validatorsOf<V>(
+/** `validate` as a list. */
+export function validatorsOf<V>(
   validate: Validator<V> | readonly Validator<V>[] | undefined,
 ): readonly Validator<V>[] {
   if (validate === undefined) {
@@ -189,13 +228,19 @@ function validatorsOf<V>(
  * Inside a `Field` the control takes the field's `id`, description,
  * required and invalid states, and `readOnly`, `disabled` and `mode` from
  * the field and the form, and the hook tells the field its shown messages
- * and whether the control is focused, empty and required.
+ * and whether the control is focused, empty and required. `options` are
+ * the calling input's own behaviour; the latest reach forms-dom after
+ * every render.
  */
 export function useFieldInput<
   V,
   E extends TextControl = HTMLInputElement,
   D extends object = NoDetails,
->(props: FieldInputProps<V, E, D>, kind: FieldInputKind<V>): FieldInput<V, E> {
+>(
+  props: FieldInputProps<V, E, D>,
+  kind: FieldInputKind<V>,
+  options: FieldInputOptions = {},
+): FieldInput<V, E> {
   const field = useFieldContext();
   const form = useFormContext();
   const formSettings = useFormSettings();
@@ -215,7 +260,7 @@ export function useFieldInput<
           ),
     [props.messages, props.locale, settings, locale],
   );
-  const options: FieldOptions<V, D, Event> = {
+  const fieldOptions: FieldOptions<V, D, Event> = {
     value: props.value,
     defaultValue: props.defaultValue,
     parse: props.parse,
@@ -224,6 +269,7 @@ export function useFieldInput<
     defaultFormat: kind.defaultFormat,
     validators: validatorsOf(props.validate),
     schedule: scheduleTimeout,
+    changeDelay: options.changeDelay,
     locale,
     messages,
     onFocus: props.onFocus,
@@ -236,8 +282,8 @@ export function useFieldInput<
     onCommit: props.onCommit,
     onBlur: props.onBlur,
   };
-  const [controller] = useState(() => createFieldController(options));
-  controller.setOptions(options);
+  const [controller] = useState(() => createFieldController(fieldOptions));
+  controller.setOptions(fieldOptions);
   const state = useSyncExternalStore(
     controller.subscribe,
     controller.getState,
@@ -276,12 +322,36 @@ export function useFieldInput<
     },
     [ref],
   );
+  const { onClear } = props;
+  function fireClear(nativeEvent: Event | null): void {
+    onClear?.({
+      previousValue: controller.getState().value,
+      previousText: controller.getText(),
+      nativeEvent,
+    });
+  }
+  const pipelineOptions: TextInputOptions = {
+    selectOnFocus: options.selectOnFocus,
+    escape: options.escape,
+    onClear: fireClear,
+  };
+  const pipeline = useRef<AttachedTextInput | null>(null);
   useLayoutEffect(() => {
     if (control === null) {
       return undefined;
     }
-    return attachTextInput(control, controller).detach;
+    const attached = attachTextInput(control, controller);
+    pipeline.current = attached;
+    return () => {
+      attached.detach();
+      pipeline.current = null;
+    };
   }, [control, controller]);
+  // Every render's options, the attaching render's included: this effect
+  // runs straight after the one above, before any event can arrive.
+  useLayoutEffect(() => {
+    pipeline.current?.setOptions(pipelineOptions);
+  });
 
   useImperativeHandle(
     props.handleRef,
@@ -304,8 +374,24 @@ export function useFieldInput<
 
   const text = controller.getText();
   // A disabled field is not validated, so it shows none of its own messages.
-  const shown =
+  const own =
     state.revealed && !disabled ? controller.getMessages() : NO_MESSAGES;
+  const { message } = props;
+  const shown = useMemo(
+    () =>
+      message === undefined
+        ? own
+        : sortFieldMessages([...own, ...toFieldMessages(message, "app")]),
+    [own, message],
+  );
+  const fieldSeverity = field?.severity ?? null;
+  const severity =
+    props.invalid === true
+      ? "error"
+      : mostSevere([
+          ...shown.map((shownMessage) => shownMessage.severity),
+          ...(fieldSeverity === null ? [] : [fieldSeverity]),
+        ]);
 
   const setControlMessages = field?.setControlMessages;
   useLayoutEffect(() => {
@@ -322,20 +408,26 @@ export function useFieldInput<
   const focused = isFocused(state.phase);
   const empty = text === "";
   const required = props.required === true;
+  const startAdornment = options.startAdornment === true;
   useLayoutEffect(() => {
     if (setControlState === undefined) {
       return undefined;
     }
-    setControlState({ focused, empty, required });
+    setControlState({ focused, empty, required, startAdornment });
     return () => {
       setControlState(null);
     };
-  }, [setControlState, focused, empty, required]);
+  }, [setControlState, focused, empty, required, startAdornment]);
 
   return {
     state,
     text,
     messages: shown,
+    severity,
+    clear: (nativeEvent) => {
+      fireClear(nativeEvent);
+      controller.clear(nativeEvent);
+    },
     mode,
     displayValue: <DisplayValue text={text} emptyText={messages.emptyValue} />,
     controlProps: {
@@ -344,7 +436,11 @@ export function useFieldInput<
       defaultValue: text,
       readOnly,
       disabled,
-      "aria-invalid": hasError(shown) || field?.invalid === true || undefined,
+      "aria-invalid":
+        hasError(shown) ||
+        props.invalid === true ||
+        field?.invalid === true ||
+        undefined,
       "aria-describedby": field?.describedBy,
       "aria-required": required || field?.required === true || undefined,
     },

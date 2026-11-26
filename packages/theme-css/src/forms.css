@@ -28,6 +28,7 @@
   --gridkit-border-width: 1px;
   --gridkit-radius: 0.25rem;
   --gridkit-control-radius: 0.25rem;
+  --gridkit-icon-size: 1rem;
   --gridkit-focus-ring-width: 2px;
   --gridkit-transition-duration: 0.1s;
 
@@ -165,7 +166,9 @@
     .gridkit-forms-fieldset,
     .gridkit-forms-section,
     .gridkit-forms-layout,
-    .gridkit-forms-message-summary
+    .gridkit-forms-message-summary,
+    .gridkit-forms-text-input,
+    .gridkit-forms-search-input
   ),
   :where(
       .gridkit-forms-form,
@@ -173,7 +176,9 @@
       .gridkit-forms-fieldset,
       .gridkit-forms-section,
       .gridkit-forms-layout,
-      .gridkit-forms-message-summary
+      .gridkit-forms-message-summary,
+      .gridkit-forms-text-input,
+      .gridkit-forms-search-input
     )
     *,
   :where(
@@ -182,7 +187,9 @@
       .gridkit-forms-fieldset,
       .gridkit-forms-section,
       .gridkit-forms-layout,
-      .gridkit-forms-message-summary
+      .gridkit-forms-message-summary,
+      .gridkit-forms-text-input,
+      .gridkit-forms-search-input
     )
     ::before,
   :where(
@@ -191,7 +198,9 @@
       .gridkit-forms-fieldset,
       .gridkit-forms-section,
       .gridkit-forms-layout,
-      .gridkit-forms-message-summary
+      .gridkit-forms-message-summary,
+      .gridkit-forms-text-input,
+      .gridkit-forms-search-input
     )
     ::after {
     box-sizing: border-box;
@@ -203,7 +212,9 @@
       .gridkit-forms-fieldset,
       .gridkit-forms-section,
       .gridkit-forms-layout,
-      .gridkit-forms-message-summary
+      .gridkit-forms-message-summary,
+      .gridkit-forms-text-input,
+      .gridkit-forms-search-input
     )
     :where(button, input, textarea, select) {
     font: inherit;
@@ -217,7 +228,9 @@
       .gridkit-forms-fieldset,
       .gridkit-forms-section,
       .gridkit-forms-layout,
-      .gridkit-forms-message-summary
+      .gridkit-forms-message-summary,
+      .gridkit-forms-text-input,
+      .gridkit-forms-search-input
     )
     :where(svg) {
     display: block;
@@ -436,6 +449,23 @@
     );
   }
 
+  /*
+   * A multiline control rests the label on its first line, whatever the
+   * density: below the border and the textarea's padding, centred on a
+   * line of 1.5 (its own line height of 1.25 takes 0.625em of that).
+   */
+  .gridkit-forms-field.is-label-floating:not(
+      .is-display,
+      .is-label-raised,
+      :has(:autofill)
+    )
+    > .gridkit-forms-field-control:has(> .gridkit-forms-text-input.is-multiline)
+    > .gridkit-forms-field-label {
+    transform: translateY(
+      calc(var(--gridkit-border-width) + var(--gridkit-spacing) * 1.5 + 0.125em)
+    );
+  }
+
   .gridkit-forms-field.is-label-floating:not(.is-display)
     .gridkit-forms-field-label:dir(rtl) {
     transform-origin: 100% 50%;
@@ -466,6 +496,266 @@
     .gridkit-forms-field-control
     ::placeholder {
     opacity: 0;
+  }
+
+  /*
+   * A text input: its box, then the counter under it. Multiline text and a
+   * display-mode value keep their line breaks.
+   */
+  .gridkit-forms-text-input,
+  .gridkit-forms-search-input {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-inline-size: 0;
+    font-size: var(--gridkit-font-size);
+    color: var(--gridkit-fg);
+  }
+
+  .gridkit-forms-text-input.is-multiline .gridkit-forms-display-value {
+    white-space: pre-wrap;
+  }
+
+  /*
+   * The box around a text control, at the height its density picks. Its
+   * border, at 3:1 against the background, and its focus ring take the
+   * colour of the most serious message shown. Read-only and disabled boxes
+   * sit on the muted surface; a disabled one's text is muted too.
+   */
+  .gridkit-forms-control {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--gridkit-spacing) * 1.5);
+    min-block-size: var(
+      --gridkit-forms-control-height,
+      calc(var(--gridkit-spacing) * 8)
+    );
+    padding-inline: var(
+      --gridkit-forms-control-padding-x,
+      calc(var(--gridkit-spacing) * 2)
+    );
+    background-color: var(--gridkit-forms-control-bg, var(--gridkit-surface));
+    border: var(--gridkit-border-width) solid
+      var(--gridkit-forms-control-border, var(--gridkit-fg-muted));
+    border-radius: var(--gridkit-control-radius);
+    outline-color: var(--gridkit-focus-ring);
+    outline-offset: 1px;
+    transition: border-color var(--gridkit-transition-duration);
+  }
+
+  .gridkit-forms-control.is-compact {
+    min-block-size: var(
+      --gridkit-forms-control-height-compact,
+      calc(var(--gridkit-spacing) * 6)
+    );
+  }
+
+  .gridkit-forms-control.is-comfortable {
+    min-block-size: var(
+      --gridkit-forms-control-height-comfortable,
+      calc(var(--gridkit-spacing) * 10)
+    );
+  }
+
+  .gridkit-forms-control:has(
+    > :is(
+        .gridkit-forms-text-input-control,
+        .gridkit-forms-search-input-control
+      ):focus
+  ) {
+    outline-width: var(--gridkit-focus-ring-width);
+    outline-style: solid;
+  }
+
+  .gridkit-forms-control.is-error {
+    border-color: var(--gridkit-error);
+    outline-color: var(--gridkit-error);
+  }
+
+  .gridkit-forms-control.is-warning {
+    border-color: var(--gridkit-warning);
+    outline-color: var(--gridkit-warning);
+  }
+
+  .gridkit-forms-control.is-info {
+    border-color: var(--gridkit-info);
+    outline-color: var(--gridkit-info);
+  }
+
+  .gridkit-forms-control.is-success {
+    border-color: var(--gridkit-success);
+    outline-color: var(--gridkit-success);
+  }
+
+  .gridkit-forms-control.is-readonly,
+  .gridkit-forms-control.is-disabled {
+    background-color: var(--gridkit-surface-muted);
+  }
+
+  .gridkit-forms-control.is-disabled {
+    color: var(--gridkit-fg-muted);
+    border-color: var(--gridkit-line);
+  }
+
+  /*
+   * The native control fills the box, which draws everything around it. Its
+   * own line height stays under the compact box's height, whatever the
+   * page's. A textarea grows from `forms-dom`'s auto-grow, so it is never
+   * resized by hand, and the box lines its adornments up with the first
+   * line.
+   */
+  .gridkit-forms-text-input-control,
+  .gridkit-forms-search-input-control {
+    flex: 1 1 auto;
+    align-self: stretch;
+    min-inline-size: 0;
+    margin: 0;
+    padding: 0;
+    line-height: 1.25;
+    color: inherit;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    outline: none;
+    appearance: none;
+  }
+
+  .gridkit-forms-text-input-control::placeholder,
+  .gridkit-forms-search-input-control::placeholder {
+    color: var(--gridkit-fg-muted);
+    opacity: 1;
+  }
+
+  textarea.gridkit-forms-text-input-control {
+    padding-block: calc(var(--gridkit-spacing) * 1.5);
+    line-height: 1.5;
+    resize: none;
+  }
+
+  .gridkit-forms-text-input.is-multiline > .gridkit-forms-control {
+    align-items: flex-start;
+  }
+
+  .gridkit-forms-text-input.is-multiline
+    > .gridkit-forms-control
+    > :not(.gridkit-forms-text-input-control) {
+    margin-block-start: calc(
+      var(--gridkit-spacing) * 1.5 + (1.5em - var(--gridkit-icon-size)) / 2
+    );
+  }
+
+  .gridkit-forms-text-input.is-multiline
+    > .gridkit-forms-control
+    > :is(.gridkit-forms-prefix, .gridkit-forms-suffix) {
+    margin-block-start: calc(var(--gridkit-spacing) * 1.5);
+    line-height: 1.5;
+  }
+
+  /*
+   * An upper-cased input shows its text upper-cased while the value is
+   * read upper-cased, so the caret never moves; its placeholder keeps its
+   * own case.
+   */
+  .gridkit-forms-text-input.is-uppercase .gridkit-forms-text-input-control {
+    text-transform: uppercase;
+  }
+
+  .gridkit-forms-text-input.is-uppercase
+    .gridkit-forms-text-input-control::placeholder {
+    text-transform: none;
+  }
+
+  /* The browser's own clear button: the forms draw theirs in every browser. */
+  .gridkit-forms-search-input-control::-webkit-search-cancel-button,
+  .gridkit-forms-search-input-control::-webkit-search-decoration {
+    appearance: none;
+  }
+
+  .gridkit-forms-prefix,
+  .gridkit-forms-suffix {
+    flex: none;
+    color: var(--gridkit-fg-muted);
+    white-space: nowrap;
+  }
+
+  .gridkit-forms-search-input-icon {
+    display: inline-flex;
+    flex: none;
+    color: var(--gridkit-fg-muted);
+  }
+
+  .gridkit-forms-search-input-icon svg,
+  .gridkit-forms-clear-button svg,
+  .gridkit-forms-text-input-reveal svg {
+    inline-size: var(--gridkit-icon-size);
+    block-size: var(--gridkit-icon-size);
+  }
+
+  /*
+   * The clear and reveal buttons: icons in the muted colour, the body
+   * colour on hover. The clear button is never focused; the reveal button
+   * shows its own ring and, while the password shows, the accent.
+   */
+  .gridkit-forms-clear-button,
+  .gridkit-forms-text-input-reveal {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    margin-inline: calc(var(--gridkit-spacing) * -0.5);
+    padding: calc(var(--gridkit-spacing) * 0.5);
+    color: var(--gridkit-fg-muted);
+    cursor: pointer;
+    background: none;
+    border: 0;
+    border-radius: var(--gridkit-control-radius);
+  }
+
+  .gridkit-forms-clear-button:hover,
+  .gridkit-forms-text-input-reveal:hover:not(:disabled) {
+    color: var(--gridkit-fg);
+  }
+
+  .gridkit-forms-text-input-reveal.is-revealed {
+    color: var(--gridkit-accent);
+  }
+
+  .gridkit-forms-text-input-reveal:disabled {
+    cursor: default;
+  }
+
+  .gridkit-forms-text-input-reveal:focus-visible {
+    outline: var(--gridkit-focus-ring-width) solid var(--gridkit-focus-ring);
+  }
+
+  /* A ring with a gap, turning while the input loads. */
+  .gridkit-forms-spinner {
+    flex: none;
+    inline-size: var(--gridkit-icon-size);
+    block-size: var(--gridkit-icon-size);
+    color: var(--gridkit-fg-muted);
+    border: 2px solid currentColor;
+    border-inline-end-color: transparent;
+    border-radius: 50%;
+    animation: gridkit-forms-spin 0.8s linear infinite;
+  }
+
+  /*
+   * "12/50" at the inline end, under the box. Over the limit it turns
+   * bold: the error itself shows as the field's message, and the counter
+   * keeps the body colour so its small text stays readable.
+   */
+  .gridkit-forms-text-input-counter {
+    justify-self: end;
+    margin-block-start: var(--gridkit-spacing);
+    font-size: var(--gridkit-hint-font-size);
+    font-variant-numeric: tabular-nums;
+    color: var(--gridkit-fg-muted);
+  }
+
+  .gridkit-forms-text-input-counter.is-over-limit {
+    font-weight: 600;
+    color: var(--gridkit-fg);
   }
 
   /* A value in display mode, as text in a document. */
@@ -778,14 +1068,51 @@
     }
   }
 
+  @keyframes gridkit-forms-spin {
+    to {
+      rotate: 1turn;
+    }
+  }
+
+  /*
+   * With the colours gone, an error or a warning box keeps a thicker
+   * border, and a disabled one the system's disabled colour.
+   */
+  @media (forced-colors: active) {
+    .gridkit-forms-control:is(.is-error, .is-warning) {
+      border-width: calc(var(--gridkit-border-width) * 2);
+    }
+
+    .gridkit-forms-control.is-disabled {
+      border-color: GrayText;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .gridkit-forms-field.is-label-floating:not(.is-display)
       .gridkit-forms-field-label,
     .gridkit-forms-field.is-label-floating:not(.is-display)
       .gridkit-forms-field-control
       ::placeholder,
-    .gridkit-forms-section-toggle-icon {
+    .gridkit-forms-section-toggle-icon,
+    .gridkit-forms-control {
       transition: none;
+    }
+
+    /* A full, still ring. */
+    .gridkit-forms-spinner {
+      border-inline-end-color: currentColor;
+      opacity: 0.6;
+      animation: none;
+    }
+  }
+
+  /* Icon buttons big enough to hit with a finger. */
+  @media (pointer: coarse) {
+    .gridkit-forms-clear-button,
+    .gridkit-forms-text-input-reveal {
+      min-inline-size: var(--gridkit-forms-min-target-size, 24px);
+      min-block-size: var(--gridkit-forms-min-target-size, 24px);
     }
   }
 }

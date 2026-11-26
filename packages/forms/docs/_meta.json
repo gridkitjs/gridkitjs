@@ -2,6 +2,8 @@
   "order": [
     "overview",
     "events",
+    "text-input",
+    "search-input",
     "form",
     "field",
     "layout",

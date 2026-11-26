@@ -1,4 +1,4 @@
-import type { FieldMessage } from "@gridkitjs/forms-core";
+import type { FieldMessage, Severity } from "@gridkitjs/forms-core";
 import {
   createContext,
   useCallback,
@@ -40,6 +40,12 @@ export interface FieldContextValue {
    * from its input. In a group each input marks only its own errors.
    */
   readonly invalid: boolean;
+  /**
+   * The most serious message shown under a single field, which its
+   * control's border takes; `null` in a group, whose inputs each take
+   * their own.
+   */
+  readonly severity: Severity | null;
   /**
    * The shown messages of the input `reporter` names (its own `useId`),
    * which the field lists with its own; none takes the report back.

@@ -1,0 +1,119 @@
+---
+title: "TextInput"
+description: "TextInput: a single line, a password with a reveal button, or growing multiline text, with adornments, a clear button and a character counter."
+---
+
+`TextInput` is a text field whose value is a string, `null` when empty: a single line, a password with a reveal button (`type="password"`), or a `<textarea>` that grows with its text (`multiline`). It draws the box every forms text input shares, with a `prefix` and a `suffix`, a clear button (`clearable`), a spinner (`loading`) and a character counter (`maxLength`), and fires the forms [events](/docs/forms/events).
+
+<Callout type="note" title="First iteration">
+  This component is a first iteration and may change before the first release.
+</Callout>
+
+## When to use it
+
+For any text a user types: a name, a code, a note, a password. Put it in a [`Field`](/docs/forms/field), which gives it its label, help text and messages. Email, phone and URL keyboards come from `inputMode` and `autoComplete`, not from `type`.
+
+## Example
+
+```tsx title="App.tsx"
+import { Field, Form, TextInput } from "@gridkitjs/forms";
+
+export function App() {
+  return (
+    <Form labelPosition="floating">
+      <Field label="Title" required>
+        <TextInput name="title" maxLength={50} clearable />
+      </Field>
+      <Field label="Amount" description="Before tax">
+        <TextInput name="amount" prefix="€" suffix="net" inputMode="decimal" />
+      </Field>
+      <Field label="Notes">
+        <TextInput name="notes" multiline maxRows={6} />
+      </Field>
+      <Field label="Password">
+        <TextInput
+          name="password"
+          type="password"
+          autoComplete="current-password"
+        />
+      </Field>
+      <button type="submit">Save</button>
+    </Form>
+  );
+}
+```
+
+## Props
+
+Besides the props of [`useFieldInput`](/docs/forms/use-field-input#props) (`value`, `defaultValue`, `parse`, `format`, `validate`, `required`, `name`, `message`, `invalid`, `mode`, `readOnly`, `disabled`, the handlers and the refs):
+
+| Prop                                                | Type                                       | Default                   | Description                                                                                                                |
+| --------------------------------------------------- | ------------------------------------------ | ------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `type`                                              | `"text" \| "password"`                     | `"text"`                  | `"password"` hides the text and adds the reveal button.                                                                    |
+| `multiline`                                         | `boolean`                                  | `false`                   | A `<textarea>`.                                                                                                            |
+| `minRows`, `maxRows`                                | `number`                                   | `2`, `8`                  | Multiline: it grows with its text between these, then scrolls.                                                             |
+| `maxLength`                                         | `number`                                   |                           | Characters (code points) allowed. Typing past it is allowed: the counter marks the overflow and the field shows `tooLong`. |
+| `minLength`                                         | `number`                                   |                           | Fewer is `tooShort`.                                                                                                       |
+| `pattern`                                           | `RegExp`                                   |                           | The whole value must match, else `patternMismatch`.                                                                        |
+| `showCounter`                                       | `boolean`                                  | `true` with a `maxLength` | The "12/50" counter under the box.                                                                                         |
+| `uppercase`                                         | `boolean`                                  | `false`                   | Reads the value upper-cased in the field's locale; the text shows upper-cased by CSS, so the caret never moves.            |
+| `trim`                                              | `boolean`                                  | `false`                   | Drops whitespace around the value; never for a password.                                                                   |
+| `revealable`                                        | `boolean`                                  | `true`                    | A password's reveal button.                                                                                                |
+| `revertOnEscape`                                    | `boolean`                                  | `true`                    | <Kbd>Escape</Kbd> puts back the last committed text.                                                                       |
+| `placeholder`                                       | `string`                                   |                           | Shown while the field is empty; with a floating label, only while the label is raised. Never a label.                      |
+| `prefix`, `suffix`                                  | `ReactNode`                                |                           | Inside the box, at the inline start and end; read with the control. A prefix keeps a floating label raised.                |
+| `clearable`                                         | `boolean`                                  | `false`                   | A clear button in the box, while the field has text and can be edited.                                                     |
+| `onClear`                                           | `(event: FieldClearEvent<string>) => void` |                           | Called first when the field is cleared, with `previousValue` and `previousText`.                                           |
+| `loading`                                           | `boolean`                                  | `false`                   | A spinner in the box, and `aria-busy` on the control.                                                                      |
+| `selectOnFocus`                                     | `boolean`                                  | `false`                   | Selects all the text on focus from the keyboard or from code, not from a click.                                            |
+| `density`                                           | `"compact" \| "standard" \| "comfortable"` | the field's               | The box's height.                                                                                                          |
+| `inputMode`, `enterKeyHint`, `autoComplete`         |                                            |                           | Passed to the control.                                                                                                     |
+| `controlProps`                                      | attributes                                 |                           | Other attributes for the control, such as `spellCheck`.                                                                    |
+| `label`, `description`                              | `ReactNode`                                |                           | Outside a `Field`, draws one around the input.                                                                             |
+| `aria-label`, `aria-labelledby`, `aria-describedby` | `string`                                   |                           | Without a label, `aria-label` names the control; `aria-describedby` adds to its descriptions.                              |
+| `className`, `style`                                |                                            |                           | On the input's root.                                                                                                       |
+
+## Behaviour
+
+- **The box.** Its border is at 3:1 contrast or more against the background. While the field shows a message, the border and the focus ring take the colour of the most serious one: error, warning, info or success.
+- **Clear button.** It never takes focus, so focus stays in the input. Pressing it fires `onClear`, then `onInput`, `onChange` and `onCommit` with `source` and `trigger` `"clear"`.
+- **Counter.** "12/50" is hidden from screen readers, which read "Up to 50 characters" with the control instead. When typing pauses for a second with a tenth of the limit or less left, or over it, a polite announcement says "5 characters left" or "3 characters too many", never on every keystroke.
+- **Password.** The reveal button is named "Show password" and is pressed while the password shows. Pressed with a pointer it keeps focus and the caret in the input; from the keyboard focus stays on the button.
+- **Multiline.** It grows from `minRows` to `maxRows` as lines are added and when its width changes, then scrolls. A floating label rests on its first line.
+- **Display mode.** The text, with a multiline value's line breaks; a password shows "••••••••".
+- **Outside a `Field`**, `label` or `description` draw a field around the input. With neither, it shows its own messages under the box and needs an `aria-label`.
+
+## Keyboard
+
+| Key                                                               | Does                                                                                     |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| <Kbd>Enter</Kbd>                                                  | Commits a single line. In a multiline input, a new line.                                 |
+| <Kbd>Ctrl</Kbd>+<Kbd>Enter</Kbd>, <Kbd>Cmd</Kbd>+<Kbd>Enter</Kbd> | Commits a multiline input.                                                               |
+| <Kbd>Tab</Kbd>                                                    | Commits, then focus moves on.                                                            |
+| <Kbd>Escape</Kbd>                                                 | Puts back the last committed text when it differs, and takes the key; else passes it on. |
+
+## Class names
+
+| Class                                            | Element    | Description                                                                                                                   |
+| ------------------------------------------------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `.gridkit-forms-text-input`                      | `<div>`    | The root. States: is-multiline, is-uppercase, is-compact, is-comfortable.                                                     |
+| `.gridkit-forms-control`                         | `<div>`    | The box. States: is-error, is-warning, is-info, is-success, is-disabled, is-readonly, is-loading, is-compact, is-comfortable. |
+| `.gridkit-forms-text-input-control`              | `<input>`  | The control, or a `<textarea>`.                                                                                               |
+| `.gridkit-forms-prefix`, `.gridkit-forms-suffix` | `<span>`   | The adornments.                                                                                                               |
+| `.gridkit-forms-clear-button`                    | `<button>` | The clear button.                                                                                                             |
+| `.gridkit-forms-spinner`                         | `<span>`   | The spinner, hidden from screen readers.                                                                                      |
+| `.gridkit-forms-text-input-reveal`               | `<button>` | The reveal button. State: is-revealed.                                                                                        |
+| `.gridkit-forms-text-input-counter`              | `<div>`    | The counter, hidden from screen readers. State: is-over-limit.                                                                |
+
+The box reads `--gridkit-forms-control-height` (`-compact`, `-comfortable`), `--gridkit-forms-control-padding-x`, `--gridkit-forms-control-bg` and `--gridkit-forms-control-border` when set, and the palette's severity colours for its border.
+
+## Messages and localization
+
+From `FormsMessages`: `clear` ("Clear"), `showPassword` ("Show password"), `counter` ("12/50"), `counterLabel` ("Up to 50 characters"), `charactersLeft`, `charactersOver`, `tooLong`, `tooShort`, `patternMismatch` and `required`. Counts print in the field's locale.
+
+## See also
+
+- [SearchInput](/docs/forms/search-input) for a search box.
+- [Field](/docs/forms/field) for the label, help text and messages around it.
+- [Events](/docs/forms/events) for what it fires, and in what order.
+- [useFieldInput](/docs/forms/use-field-input) for building an input of your own.

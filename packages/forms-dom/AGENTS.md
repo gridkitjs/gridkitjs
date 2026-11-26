@@ -40,6 +40,11 @@ own lifecycle is the forms-core controller's. Its listeners share one
 `attachEnterNavigation` (`src/form/formControls.ts`) holds one `keydown`
 listener on the form and no state; its `detach` removes it.
 
+`attachAutoGrow` (`src/text/attachAutoGrow.ts`) holds one `input` listener
+and a `ResizeObserver` on the textarea, and no state beyond the last width
+it measured; its `detach` removes both. `forms-text-input.spec.tsx` covers
+it.
+
 ## Commands
 
 ```bash

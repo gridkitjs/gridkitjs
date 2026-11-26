@@ -54,6 +54,15 @@ and leaves the controller usable. `forms-events.spec.tsx` and
 `forms-field-input.spec.tsx` cover it through the harness in
 `tests-ct/support/forms/`.
 
+`TextInput` and `SearchInput` (`src/text/`) are the reference inputs: each
+calls `useFieldInput` with its own `kind` and `FieldInputOptions`, and draws
+the shared box (`ControlBox` in `src/text/parts.tsx`) around the control.
+They hold no lifecycle: a password's reveal is one boolean, the counter's
+announcement waits on a `scheduleTimeout` its effect cancels, and a
+multiline input attaches forms-dom's `attachAutoGrow` in a layout effect
+that detaches it. A later input copies this shape.
+`forms-text-input.spec.tsx` and `forms-search-input.spec.tsx` cover them.
+
 `Field` (`src/field/`) holds no lifecycle either: it keeps what its input
 last reported (shown messages, and whether the control is focused and
 empty) and gives the input its ids and states through `FieldContext`. An

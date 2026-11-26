@@ -11,37 +11,25 @@ description: "React form inputs and form structure for GridKit, styled by the Gr
 
 ## Example
 
-Every input fires the same [events](/docs/forms/events). Until the inputs arrive, the hook they are built on binds a native control:
-
 ```tsx title="App.tsx"
-import {
-  formatText,
-  textParser,
-  useFieldInput,
-  type FieldInputKind,
-} from "@gridkitjs/forms";
-
-const text: FieldInputKind<string> = {
-  defaultParse: textParser(),
-  defaultFormat: formatText,
-  serialize: (value) => value,
-};
+import { Field, Form, SearchInput, TextInput } from "@gridkitjs/forms";
 
 export function App() {
-  const field = useFieldInput(
-    {
-      name: "name",
-      onCommit: (event) => {
-        console.log(`committed ${String(event.value)}`);
-      },
-    },
-    text,
-  );
   return (
-    <label>
-      Name <input {...field.controlProps} />
-      {field.hiddenInput}
-    </label>
+    <Form
+      onSubmit={(event) => {
+        event.preventDefault();
+        console.log(new FormData(event.currentTarget).get("name"));
+      }}
+    >
+      <Field label="Search customers">
+        <SearchInput debounce={250} />
+      </Field>
+      <Field label="Name" required>
+        <TextInput name="name" />
+      </Field>
+      <button type="submit">Save</button>
+    </Form>
   );
 }
 ```
@@ -50,27 +38,31 @@ export function App() {
 
 Every export of `@gridkitjs/forms`. Those marked as re-exported come from forms-core, so an app imports from this package alone.
 
-| Export                                                                                                                                                                                                             | Kind              | Description                                                                                              | Page                                           |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| `Form`, `FormProps`                                                                                                                                                                                                | component, type   | A `<form>` whose fields share its settings, refusing a submit while a field holds an error.              | [Form](/docs/forms/form)                       |
-| `FormLayout`, `FormLayoutProps`, `FormSection`, `FormSectionProps`, `Fieldset`, `FieldsetProps`, `FieldGroup`, `FieldGroupProps`, `FieldSpan`                                                                      | components, types | Responsive columns, titled and collapsible sections, fieldsets and groups of inputs.                     | [Layout](/docs/forms/layout)                   |
-| `MessageSummary`, `MessageSummaryProps`                                                                                                                                                                            | component, type   | Every message in a form, each a link to its field.                                                       | [Message summary](/docs/forms/message-summary) |
-| `Field`, `FieldProps`                                                                                                                                                                                              | component, type   | One input with its label, help text and messages, wired for assistive technology.                        | [Field](/docs/forms/field)                     |
-| `useField`, `UseFieldResult`, `FieldControlProps`, `FieldControlState`                                                                                                                                             | hook, types       | Wires an input of your own into the `Field` around it.                                                   | [Field](/docs/forms/field#your-own-input)      |
-| `Density`, `FieldMode`, `LabelPosition`, `NecessityIndicator`                                                                                                                                                      | types             | How tightly fields are drawn, edit or display mode, where a label sits, which fields are marked.         | [Field](/docs/forms/field#props)               |
-| `useFieldInput`, `FieldInputProps`, `FieldInputKind`, `FieldInput`, `FieldControlBinding`                                                                                                                          | hook, types       | Binds a native text control to a field; every input is built on it.                                      | [useFieldInput](/docs/forms/use-field-input)   |
-| `InputHandle`                                                                                                                                                                                                      | type              | What an input does from code: `focus`, `setValue`, `reset`, `revealMessages`.                            | [useFieldInput](/docs/forms/use-field-input)   |
-| `FieldEventBase`, `FieldInputEvent`, `FieldChangeEvent`, `FieldValidateEvent`, `FieldCommitEvent`, `FieldBeforeInputEvent`, `FieldBeforeChangeEvent`, `FieldBeforeCommitEvent`, `FieldFocusEvent`, `FieldHandlers` | types             | The event objects, with the browser's `Event` as their native event, and the handlers that receive them. | [Events](/docs/forms/events)                   |
-| `ChangeSource`, `CommitTrigger`, `TextInputDetails`, `NoDetails`                                                                                                                                                   | types             | Where a change came from and what ended an edit. Growable unions. Re-exported.                           | [Events](/docs/forms/events)                   |
-| `Parser`, `Formatter`, `ParseContext`, `FormatContext`, `ParseResult`, `parsed`, `unreadable`                                                                                                                      | types, functions  | The parse and format contract; the context holds the input's own, to wrap. Re-exported.                  | [Events](/docs/forms/events#hooks)             |
-| `textParser`, `formatText`, `TextParseOptions`                                                                                                                                                                     | functions, type   | A text input's own reading (trim, upper case, empty is `null`) and writing. Re-exported.                 | [Field state](/docs/forms-core/field-state)    |
-| `FieldState`, `FieldDraft`, `FieldPhase`, `TextReading`                                                                                                                                                            | types             | A field's value, draft, messages and lifecycle. Growable unions. Re-exported.                            | [Field state](/docs/forms-core/field-state)    |
-| `Validator`, `ValidatorContext`, `ValidationResult`                                                                                                                                                                | types             | A check of the value, returning messages. Re-exported.                                                   | [Validation](/docs/forms-core/validation)      |
-| `FieldMessage`, `FieldMessageInput`, `Severity`                                                                                                                                                                    | types             | A field's messages and how serious each is; only `"error"` blocks. Growable. Re-exported.                | [Validation](/docs/forms-core/validation)      |
-| `FormsMessages`                                                                                                                                                                                                    | type              | Every string the forms show. Re-exported.                                                                | [Validation](/docs/forms-core/validation)      |
+| Export                                                                                                                                                                                                                                | Kind              | Description                                                                                              | Page                                           |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `TextInput`, `TextInputProps`                                                                                                                                                                                                         | component, type   | A single line, a password or growing multiline text, with adornments, a clear button and a counter.      | [TextInput](/docs/forms/text-input)            |
+| `SearchInput`, `SearchInputProps`                                                                                                                                                                                                     | component, type   | A search box with an optional debounce; Enter searches at once, Escape clears.                           | [SearchInput](/docs/forms/search-input)        |
+| `InputBaseProps`, `TextInputBaseProps`, `ManagedControlProps`                                                                                                                                                                         | types             | The props every input, and every text input, shares; the control attributes an input sets itself.        | [TextInput](/docs/forms/text-input#props)      |
+| `Form`, `FormProps`                                                                                                                                                                                                                   | component, type   | A `<form>` whose fields share its settings, refusing a submit while a field holds an error.              | [Form](/docs/forms/form)                       |
+| `FormLayout`, `FormLayoutProps`, `FormSection`, `FormSectionProps`, `Fieldset`, `FieldsetProps`, `FieldGroup`, `FieldGroupProps`, `FieldSpan`                                                                                         | components, types | Responsive columns, titled and collapsible sections, fieldsets and groups of inputs.                     | [Layout](/docs/forms/layout)                   |
+| `MessageSummary`, `MessageSummaryProps`                                                                                                                                                                                               | component, type   | Every message in a form, each a link to its field.                                                       | [Message summary](/docs/forms/message-summary) |
+| `Field`, `FieldProps`                                                                                                                                                                                                                 | component, type   | One input with its label, help text and messages, wired for assistive technology.                        | [Field](/docs/forms/field)                     |
+| `useField`, `UseFieldResult`, `FieldControlProps`, `FieldControlState`                                                                                                                                                                | hook, types       | Wires an input of your own into the `Field` around it.                                                   | [Field](/docs/forms/field#your-own-input)      |
+| `Density`, `FieldMode`, `LabelPosition`, `NecessityIndicator`                                                                                                                                                                         | types             | How tightly fields are drawn, edit or display mode, where a label sits, which fields are marked.         | [Field](/docs/forms/field#props)               |
+| `useFieldInput`, `FieldInputProps`, `FieldInputKind`, `FieldInputOptions`, `FieldInput`, `FieldControlBinding`                                                                                                                        | hook, types       | Binds a native text control to a field; every input is built on it.                                      | [useFieldInput](/docs/forms/use-field-input)   |
+| `InputHandle`                                                                                                                                                                                                                         | type              | What an input does from code: `focus`, `setValue`, `reset`, `revealMessages`.                            | [useFieldInput](/docs/forms/use-field-input)   |
+| `FieldEventBase`, `FieldInputEvent`, `FieldChangeEvent`, `FieldValidateEvent`, `FieldCommitEvent`, `FieldBeforeInputEvent`, `FieldBeforeChangeEvent`, `FieldBeforeCommitEvent`, `FieldFocusEvent`, `FieldClearEvent`, `FieldHandlers` | types             | The event objects, with the browser's `Event` as their native event, and the handlers that receive them. | [Events](/docs/forms/events)                   |
+| `ChangeSource`, `CommitTrigger`, `TextInputDetails`, `NoDetails`                                                                                                                                                                      | types             | Where a change came from and what ended an edit. Growable unions. Re-exported.                           | [Events](/docs/forms/events)                   |
+| `Parser`, `Formatter`, `ParseContext`, `FormatContext`, `ParseResult`, `parsed`, `unreadable`                                                                                                                                         | types, functions  | The parse and format contract; the context holds the input's own, to wrap. Re-exported.                  | [Events](/docs/forms/events#hooks)             |
+| `textParser`, `formatText`, `TextParseOptions`                                                                                                                                                                                        | functions, type   | A text input's own reading (trim, upper case, empty is `null`) and writing. Re-exported.                 | [Field state](/docs/forms-core/field-state)    |
+| `FieldState`, `FieldDraft`, `FieldPhase`, `TextReading`                                                                                                                                                                               | types             | A field's value, draft, messages and lifecycle. Growable unions. Re-exported.                            | [Field state](/docs/forms-core/field-state)    |
+| `Validator`, `ValidatorContext`, `ValidationResult`                                                                                                                                                                                   | types             | A check of the value, returning messages. Re-exported.                                                   | [Validation](/docs/forms-core/validation)      |
+| `FieldMessage`, `FieldMessageInput`, `Severity`                                                                                                                                                                                       | types             | A field's messages and how serious each is; only `"error"` blocks. Growable. Re-exported.                | [Validation](/docs/forms-core/validation)      |
+| `FormsMessages`                                                                                                                                                                                                                       | type              | Every string the forms show. Re-exported.                                                                | [Validation](/docs/forms-core/validation)      |
 
 ## See also
 
+- [TextInput](/docs/forms/text-input) and [SearchInput](/docs/forms/search-input), the text inputs.
 - [Form](/docs/forms/form) for the form around the fields, and submitting.
 - [Field](/docs/forms/field) for the label, help text and messages around an input.
 - [Layout](/docs/forms/layout) for columns, sections, fieldsets and groups.

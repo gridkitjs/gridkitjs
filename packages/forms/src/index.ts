@@ -5,6 +5,7 @@ export type {
   FieldBeforeCommitEvent,
   FieldBeforeInputEvent,
   FieldChangeEvent,
+  FieldClearEvent,
   FieldCommitEvent,
   FieldEventBase,
   FieldFocusEvent,
@@ -35,11 +36,19 @@ export type {
   LabelPosition,
   NecessityIndicator,
 } from "./settings";
+export { SearchInput, type SearchInputProps } from "./text/SearchInput";
+export { TextInput, type TextInputProps } from "./text/TextInput";
+export type {
+  InputBaseProps,
+  ManagedControlProps,
+  TextInputBaseProps,
+} from "./text/textInputProps";
 export {
   useFieldInput,
   type FieldControlBinding,
   type FieldInput,
   type FieldInputKind,
+  type FieldInputOptions,
   type FieldInputProps,
   type InputHandle,
 } from "./useFieldInput";
