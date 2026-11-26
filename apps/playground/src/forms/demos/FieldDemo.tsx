@@ -1,50 +1,7 @@
-import type { ReactNode } from "react";
-import {
-  Field,
-  type FieldMessageInput,
-  type FieldProps,
-  type LabelPosition,
-} from "@gridkitjs/forms";
+import type { FieldMessageInput, LabelPosition } from "@gridkitjs/forms";
 import { DemoSection } from "../DemoSection";
-import { usePlaygroundSettings } from "../settings";
+import { DemoField, DemoGroup } from "./DemoField";
 import { DemoInput } from "./DemoInput";
-
-/**
- * A `Field` with the page's density, mode, marked fields, `readOnly` and
- * `disabled`.
- */
-function DemoField(props: FieldProps) {
-  const { settings } = usePlaygroundSettings();
-  return (
-    <Field
-      density={settings.density}
-      mode={settings.mode}
-      necessityIndicator={settings.necessityIndicator}
-      readOnly={settings.readOnly}
-      disabled={settings.disabled}
-      {...props}
-    />
-  );
-}
-
-function Group({
-  title,
-  children,
-}: {
-  readonly title: string;
-  readonly children: ReactNode;
-}) {
-  return (
-    <div>
-      <h3 className="mb-3 text-sm font-semibold text-gridkit-fg-muted">
-        {title}
-      </h3>
-      <div className="grid max-w-3xl gap-x-6 gap-y-5 sm:grid-cols-2">
-        {children}
-      </div>
-    </div>
-  );
-}
 
 const POSITIONS: readonly {
   readonly position: LabelPosition;
@@ -85,10 +42,10 @@ export function FieldDemo() {
   return (
     <DemoSection
       title="Field"
-      description="The label in each position, the required and optional markers, help text and a message of each severity, around a stand-in text control. A floating label rises on focus or a value; a required field shows its error once you leave it empty."
+      description="The label in each position, the required and optional markers, help text and a message of each severity, around a TextInput. A floating label rises on focus or a value; a required field shows its error once you leave it empty."
     >
       <div className="flex flex-col gap-8">
-        <Group title="Label positions">
+        <DemoGroup title="Label positions">
           {POSITIONS.map(({ position, label }) => (
             <DemoField
               key={position}
@@ -107,15 +64,15 @@ export function FieldDemo() {
               />
             </DemoField>
           ))}
-        </Group>
-        <Group title="Severities">
+        </DemoGroup>
+        <DemoGroup title="Severities">
           {SEVERITIES.map(({ label, message }) => (
             <DemoField key={label} label={label} message={message}>
               <DemoInput component={`Field: ${label}`} defaultValue="10045" />
             </DemoField>
           ))}
-        </Group>
-        <Group title="Markers and modes">
+        </DemoGroup>
+        <DemoGroup title="Markers and modes">
           <DemoField
             label="Optional"
             necessityIndicator="optional"
@@ -136,7 +93,7 @@ export function FieldDemo() {
           >
             <DemoInput component="Field: Disabled" defaultValue="Ada" />
           </DemoField>
-        </Group>
+        </DemoGroup>
       </div>
     </DemoSection>
   );
