@@ -54,6 +54,15 @@ and leaves the controller usable. `forms-events.spec.tsx` and
 `forms-field-input.spec.tsx` cover it through the harness in
 `tests-ct/support/forms/`.
 
+`Field` (`src/field/`) holds no lifecycle either: it keeps what its input
+last reported (shown messages, and whether the control is focused and
+empty) and gives the input its ids and states through `FieldContext`. An
+input reports from a layout effect and takes its report back in the
+effect's cleanup, so nothing outlives the input. The settings every level
+of a form shares (mode, density, label position, `readOnly`, `disabled`,
+locale, messages) live in `src/settings.tsx`, one memoized context per
+level. `forms-field.spec.tsx` covers it.
+
 ## Commands
 
 ```bash

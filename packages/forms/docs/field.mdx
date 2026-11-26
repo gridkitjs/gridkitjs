@@ -1,0 +1,144 @@
+---
+title: "Field"
+description: "Field wraps one input with its label, required marker, help text and messages, and wires them to the input for assistive technology."
+---
+
+`Field` holds one input with its `label`, a required or optional marker, help text (`description`) and messages, and wires them to the input: the label names the control, the help text and messages describe it, and `aria-invalid` and `aria-required` follow the field. The label sits above the control, floats inside it, sits beside it or is hidden (`labelPosition`). The input reads all of it from context, so an input of your own gets the same through `useField`.
+
+<Callout type="note" title="First iteration">
+  This component is a first iteration and may change before the first release.
+</Callout>
+
+## When to use it
+
+Around every input in a form, so each has a name, a place for its messages and the same layout. An input outside a `Field` needs an `aria-label` of its own.
+
+## Example
+
+An input of your own, wired to its field with `useField`:
+
+```tsx title="App.tsx"
+import { useEffect, useState } from "react";
+import { Field, useField } from "@gridkitjs/forms";
+
+function CodeInput() {
+  const { controlProps, reportMessages, reportControlState } = useField();
+  const [text, setText] = useState("");
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    reportMessages(
+      text.length > 6
+        ? { text: "Six letters at most", severity: "warning" }
+        : null,
+    );
+  }, [reportMessages, text]);
+  useEffect(() => {
+    reportControlState({ focused, empty: text === "" });
+  }, [reportControlState, focused, text]);
+
+  return (
+    <input
+      {...controlProps}
+      value={text}
+      onChange={(event) => {
+        setText(event.target.value);
+      }}
+      onFocus={() => {
+        setFocused(true);
+      }}
+      onBlur={() => {
+        setFocused(false);
+      }}
+    />
+  );
+}
+
+export function App() {
+  return (
+    <Field
+      label="Discount code"
+      description="Printed on your voucher"
+      labelPosition="floating"
+    >
+      <CodeInput />
+    </Field>
+  );
+}
+```
+
+## Props
+
+| Prop                   | Type                                         | Default      | Description                                                                                     |
+| ---------------------- | -------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------- |
+| `label`                | `ReactNode`                                  |              | Names the input. Leave it out only when the input has an `aria-label`.                          |
+| `description`          | `ReactNode`                                  |              | Help text under the control, read as part of its description.                                   |
+| `message`              | `FieldMessageInput \| FieldMessageInput[]`   |              | Your messages, always shown; a string is an error. A form library's error goes here.            |
+| `required`             | `boolean`                                    | `false`      | Marks the label, sets `aria-required` on the control, and tells the input to check for a value. |
+| `labelPosition`        | `"top" \| "floating" \| "start" \| "hidden"` | `"top"`      | Where the label sits, below.                                                                    |
+| `labelWidth`           | `string`                                     | `"10rem"`    | The label column's width for `"start"`, as a CSS length.                                        |
+| `necessityIndicator`   | `"required" \| "optional" \| "none"`         | `"required"` | Marks required fields with an asterisk, the others with "(optional)", or neither.               |
+| `mode`                 | `"edit" \| "display"`                        | `"edit"`     | `"display"` shows the value as text, with no control.                                           |
+| `readOnly`, `disabled` | `boolean`                                    | `false`      | For the input. A disabled field is not validated and shows only your messages.                  |
+| `density`              | `"compact" \| "standard" \| "comfortable"`   | `"standard"` | For the input.                                                                                  |
+| `id`                   | `string`                                     | generated    | The control's `id`.                                                                             |
+| `className`, `style`   |                                              |              | On the field's root.                                                                            |
+| `children`             | `ReactNode`                                  |              | One input.                                                                                      |
+
+## Label positions
+
+| Position     | Where the label is                                                                                                                                                                                                                                                                                                                     |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `"top"`      | Above the control, always.                                                                                                                                                                                                                                                                                                             |
+| `"floating"` | Inside the control, where its text would be, while the field is empty and not focused. It rises onto the control's top border on focus, when the field holds text or a value, when the browser autofills it, and in display mode, and moves without a transition under reduced motion. A placeholder shows only while the label is up. |
+| `"start"`    | Beside the control, in a column `labelWidth` wide, on its first line.                                                                                                                                                                                                                                                                  |
+| `"hidden"`   | Not shown, but still the control's name for a screen reader.                                                                                                                                                                                                                                                                           |
+
+The label is the same `<label for>` element in every position, so the control's name never changes. In display mode it becomes a `<span>` naming the field, which becomes a group: there is no control for a label to point at.
+
+## Messages
+
+The field shows your `message` and the input's own messages together, most serious first: an error, then a warning, information and success. Each is read after its severity's name ("Error: Enter a value"), with an icon of its own shape and colour beside it; the text keeps the body colour. Only an error makes the control `aria-invalid`. The message area is a polite live region, always in the page, so a message that appears when the user leaves the field is read without moving focus. The input's own messages show once the user has tried to commit it, and then follow every edit.
+
+## Your own input
+
+`useField()` gives an input inside a `Field` what it needs; outside one it gives the form's settings and an `id` of its own.
+
+| Member               | Description                                                                                                                           |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `controlProps`       | `id`, `aria-describedby`, `aria-invalid`, `aria-required`, `disabled` and `readOnly`, to spread on the control.                       |
+| `mode`, `density`    | The field's, or the form's.                                                                                                           |
+| `required`           | Whether the field is required: check for a value yourself.                                                                            |
+| `reportMessages`     | Lists your input's messages under the field. Call it from an effect, with `null` once there are none.                                 |
+| `reportControlState` | Tells the field whether the control is focused and empty (and has a start adornment), which a floating label follows. From an effect. |
+
+Inputs built on [`useFieldInput`](/docs/forms/use-field-input) do all of this themselves.
+
+## Class names
+
+| Class                              | Element   | Description                                                                                                                                                                                                                                                                              |
+| ---------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.gridkit-forms-field`             | `<div>`   | The root. States: is-label-top, is-label-floating, is-label-start, is-label-hidden, is-label-raised (a floating label is up), is-required, is-error, is-warning, is-info, is-success (the most serious message shown), is-disabled, is-readonly, is-display, is-compact, is-comfortable. |
+| `.gridkit-forms-field-label`       | `<label>` | The label, a `<span>` in display mode.                                                                                                                                                                                                                                                   |
+| `.gridkit-forms-field-required`    | `<span>`  | The asterisk, hidden from screen readers.                                                                                                                                                                                                                                                |
+| `.gridkit-forms-field-optional`    | `<span>`  | "(optional)".                                                                                                                                                                                                                                                                            |
+| `.gridkit-forms-field-control`     | `<div>`   | Around the input, and a floating label.                                                                                                                                                                                                                                                  |
+| `.gridkit-forms-field-description` | `<p>`     | The help text.                                                                                                                                                                                                                                                                           |
+| `.gridkit-forms-field-messages`    | `<div>`   | The message area, a polite live region.                                                                                                                                                                                                                                                  |
+| `.gridkit-forms-message`           | `<p>`     | One message. States: is-error, is-warning, is-info, is-success.                                                                                                                                                                                                                          |
+| `.gridkit-forms-message-icon`      | `<span>`  | Its icon, in the severity's colour.                                                                                                                                                                                                                                                      |
+| `.gridkit-forms-message-text`      | `<span>`  | Its text.                                                                                                                                                                                                                                                                                |
+| `.gridkit-forms-display-value`     | `<span>`  | A value in display mode; with `.gridkit-forms-display-empty`, a dash read as "No value".                                                                                                                                                                                                 |
+| `.gridkit-forms-sr-only`           | `<span>`  | Read, not seen: a hidden label, a message's severity, "No value".                                                                                                                                                                                                                        |
+
+The forms stylesheet reads the palette's `--gridkit-error`, `--gridkit-warning`, `--gridkit-info` and `--gridkit-success` for the icons, and `--gridkit-forms-label-width` (set by `labelWidth`) for the label column.
+
+## Messages and localization
+
+The field's own strings come from `FormsMessages`: `optional` ("optional"), `severityLabel` ("Error", "Warning", "Information", "Success") and `emptyValue` ("No value").
+
+## See also
+
+- [useFieldInput](/docs/forms/use-field-input) for building an input that fills a field by itself.
+- [Validation](/docs/forms-core/validation) for messages, severities and validators.
+- [Events](/docs/forms/events) for what an input fires.
