@@ -2,6 +2,7 @@ import type { FieldMessage } from "../messages/fieldMessage";
 import type { FormsMessages } from "../messages/formsMessages";
 import type {
   FormatContext,
+  FormatPurpose,
   Formatter,
   ParseContext,
   ParseResult,
@@ -44,6 +45,7 @@ import {
   createFieldState,
   fieldMessages,
   fieldText,
+  formatPurpose,
   type FieldDraft,
   type FieldState,
 } from "./state";
@@ -196,16 +198,21 @@ const COMMIT_SOURCES: Readonly<Record<CommitTrigger, ChangeSource>> = {
   autofill: "autofill",
 };
 
+/** Writes a value for what `purpose` says the text is for when it is called. */
 function formatterOf<V, D extends object, N>(
   options: FieldOptions<V, D, N>,
+  purpose: () => FormatPurpose,
 ): (value: V | null) => string {
   const format = options.format ?? options.defaultFormat;
-  const context: FormatContext<V> = {
-    defaultFormat: (value) => options.defaultFormat(value, context),
-    locale: options.locale,
-    messages: options.messages,
+  return (value) => {
+    const context: FormatContext<V> = {
+      defaultFormat: (shown) => options.defaultFormat(shown, context),
+      locale: options.locale,
+      messages: options.messages,
+      purpose: purpose(),
+    };
+    return format(value, context);
   };
-  return (value) => format(value, context);
 }
 
 function parserOf<V, D extends object, N>(
@@ -249,7 +256,10 @@ export function createFieldController<
       : options.value;
   let state = createFieldState<V>(
     startValue,
-    validatorOf(options)(startValue, formatterOf(options)(startValue)),
+    validatorOf(options)(
+      startValue,
+      formatterOf(options, () => "display")(startValue),
+    ),
   );
   const listeners = new Set<() => void>();
   let read: ReadWait<V, N> = NO_READ;
@@ -261,6 +271,7 @@ export function createFieldController<
   // An input that declares details passes `details`; without it, `D` is
   // `NoDetails` and an empty object is all of them.
   const noDetails = (): D => ({}) as D;
+  const purposeNow = (): FormatPurpose => formatPurpose(state.phase);
 
   function env(): FieldEnv<V, D, N> {
     return {
@@ -268,7 +279,7 @@ export function createFieldController<
       dispatch: (action) => (state = fieldReducer(state, action)),
       handlers: options,
       parse: parserOf(options),
-      format: formatterOf(options),
+      format: formatterOf(options, purposeNow),
       same: (a, b) =>
         a === null || b === null
           ? a === b
@@ -412,7 +423,7 @@ export function createFieldController<
 
   return {
     getState: () => state,
-    getText: () => fieldText(state, formatterOf(options)),
+    getText: () => fieldText(state, formatterOf(options, purposeNow)),
     getMessages: () => {
       if (shown?.state !== state) {
         shown = { state, messages: fieldMessages(state) };

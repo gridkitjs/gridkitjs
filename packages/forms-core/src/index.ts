@@ -63,6 +63,7 @@ export {
   parsed,
   unreadable,
   type FormatContext,
+  type FormatPurpose,
   type Formatter,
   type ParseContext,
   type ParseResult,

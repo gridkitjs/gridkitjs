@@ -13,7 +13,8 @@ const format = {
   defaultFormat: () => "",
   locale: undefined,
   messages: defaultFormsMessages,
-};
+  purpose: "display",
+} as const;
 
 const parse = {
   defaultParse: () => ({ kind: "value", value: null }) as const,

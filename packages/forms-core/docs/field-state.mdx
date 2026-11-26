@@ -64,6 +64,8 @@ field.getText(); // "Ada": the commit normalized the text
 | `locale`, `messages`   | `Intl.LocalesArgument`, `FormsMessages` |             | For parsing, formatting and messages. `messages` is required.                  |
 | `onFocus` ... `onBlur` | handlers                                |             | The nine handlers below.                                                       |
 
+Both formatters receive `context.purpose`: `"edit"` while the field has focus (`editing`, `leaving`, or `checking` before focus went), `"display"` otherwise. So `getText()` and each event's `text` are the text for their moment: `onFocus` and a commit by Enter carry the edit form, a commit by blur and `onBlur` the display form.
+
 ## The order events fire in
 
 While typing, per edit: `onBeforeInput`, the edit, `onInput`, then reading the text, `onBeforeChange`, `onChange` and `onValidate`. A commit: `onBeforeCommit` (waited for when it returns a promise), then `onCommit`. Leaving: the commit, then `onBlur`. A step with nothing to report is skipped, never reordered: text that reads as the value held fires no `onChange`, and text that cannot be read fires `onValidate` only when that changes. A request made from inside a handler runs after the current sequence. The [events page](/docs/forms/events) covers each event's fields.

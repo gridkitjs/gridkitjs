@@ -1,5 +1,5 @@
 import { sortFieldMessages, type FieldMessage } from "../messages/fieldMessage";
-import type { ParseResult } from "../parse";
+import type { FormatPurpose, ParseResult } from "../parse";
 import type { CommitTrigger } from "./events";
 
 /**
@@ -97,6 +97,23 @@ export function fieldText<V>(
   return state.draft.kind === "current"
     ? format(state.value)
     : state.draft.text;
+}
+
+/**
+ * What the field's text is written for in `phase`: `edit` while the field
+ * has focus (editing, leaving after Tab, or checking before focus went),
+ * else `display`.
+ */
+export function formatPurpose<V>(phase: FieldPhase<V>): FormatPurpose {
+  switch (phase.kind) {
+    case "idle":
+      return "display";
+    case "checking":
+      return phase.leaving ? "display" : "edit";
+    case "editing":
+    case "leaving":
+      return "edit";
+  }
 }
 
 /** Why `draft`'s text cannot be read, or `null` when it can (or has not been read yet). */

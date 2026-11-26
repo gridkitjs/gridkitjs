@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { defaultFormsMessages } from "../messages/formsMessages";
+import { parsed } from "../parse";
 import type { Schedule } from "../schedule";
 import { formatText, textParser } from "../text";
 import { requiredRule } from "../validation/validators";
@@ -679,6 +680,64 @@ describe("listeners", () => {
     controller.setValue("a");
     expect(controller.getMessages()).not.toBe(first);
     expect(controller.getMessages()).toEqual([]);
+  });
+});
+
+describe("the text's purpose", () => {
+  /** A field writing "edit:" or "display:" before its value, by the context's purpose. */
+  function purposeField() {
+    return textField({
+      defaultValue: "a",
+      defaultFormat: (value, { purpose }) => `${purpose}:${value ?? ""}`,
+      defaultParse: (text) => parsed(text.replace(/^\w+:/, "")),
+    });
+  }
+
+  test("is display while idle and edit once focused", () => {
+    const field = purposeField();
+    const { controller } = field;
+    expect(controller.getText()).toBe("display:a");
+    controller.focus(null);
+    expect(field.event("onFocus")).toMatchObject({ text: "edit:a" });
+    expect(controller.getText()).toBe("edit:a");
+  });
+
+  test("an Enter commit reports the edit form, a blur the display form", () => {
+    const field = purposeField();
+    const { controller } = field;
+    controller.focus(null);
+    controller.input(typed("edit:b"));
+    controller.commit("enter", null);
+    expect(field.event("onCommit")).toMatchObject({ text: "edit:b" });
+    expect(controller.getText()).toBe("edit:b");
+
+    controller.input(typed("edit:c"));
+    controller.blur(null);
+    expect(field.event("onBeforeCommit")).toMatchObject({ text: "edit:c" });
+    expect(field.event("onCommit")).toMatchObject({ text: "display:c" });
+    expect(field.event("onBlur")).toMatchObject({ text: "display:c" });
+    expect(controller.getText()).toBe("display:c");
+  });
+
+  test("Tab commits in the edit form and the blur after it shows display", () => {
+    const field = purposeField();
+    const { controller } = field;
+    controller.focus(null);
+    controller.commit("tab", null);
+    expect(field.event("onCommit")).toMatchObject({ text: "edit:a" });
+    controller.blur(null);
+    expect(field.event("onBlur")).toMatchObject({ text: "display:a" });
+  });
+
+  test("the input's own format receives the same purpose as the app's", () => {
+    const field = textField({
+      defaultValue: "a",
+      defaultFormat: (value, { purpose }) => `${purpose}:${value ?? ""}`,
+      format: (value, { defaultFormat }) => `[${defaultFormat(value)}]`,
+    });
+    expect(field.controller.getText()).toBe("[display:a]");
+    field.controller.focus(null);
+    expect(field.controller.getText()).toBe("[edit:a]");
   });
 });
 
