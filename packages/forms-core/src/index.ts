@@ -62,6 +62,20 @@ export {
 } from "./messages/formsMessages";
 export { mostSevere, type Severity } from "./messages/severity";
 export {
+  addDecimals,
+  compareDecimals,
+  decimalToNumber,
+  isDecimalString,
+  normalizeDecimal,
+  numberToDecimal,
+  roundDecimal,
+  shiftDecimal,
+  subtractDecimals,
+  type DecimalString,
+  type NumberLike,
+  type RoundingMode,
+} from "./number/decimal";
+export {
   parsed,
   unreadable,
   type FormatContext,
