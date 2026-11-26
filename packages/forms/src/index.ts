@@ -22,6 +22,10 @@ export {
   type UseFieldResult,
 } from "./field/useField";
 export { Form, type FormProps } from "./form/Form";
+export {
+  MessageSummary,
+  type MessageSummaryProps,
+} from "./form/MessageSummary";
 export { Fieldset, type FieldsetProps } from "./layout/Fieldset";
 export { FormLayout, type FormLayoutProps } from "./layout/FormLayout";
 export { FormSection, type FormSectionProps } from "./layout/FormSection";

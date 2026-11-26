@@ -25,7 +25,7 @@ function Icon({ children }: { readonly children: ReactNode }) {
  * A different shape for each severity, so it never rests on colour alone:
  * a cross, an exclamation mark in a triangle, an "i" and a tick.
  */
-function SeverityIcon({ severity }: { readonly severity: Severity }) {
+export function SeverityIcon({ severity }: { readonly severity: Severity }) {
   switch (severity) {
     case "error":
       return (
