@@ -33,11 +33,12 @@ import {
   runSettle,
   runSync,
   runValueChange,
-  type BeforeInputDecision,
   type ChangeCause,
   type CommitOutcome,
   type CommitStep,
   type FieldEnv,
+  type InputFilter,
+  type InputFilterDecision,
   type PendingCheck,
   type TextEdit,
 } from "./plan";
@@ -80,6 +81,12 @@ export interface FieldOptions<
   ) => string;
   /** Whether two values are one; `Object.is` by default. Never called with `null`. */
   readonly equals?: ((a: V, b: V) => boolean) | undefined;
+  /**
+   * The input's own judgement of each edit the app's `onBeforeInput` lets
+   * through, outside a composition: a number input refusing letters, or
+   * cleaning a paste.
+   */
+  readonly filterInput?: InputFilter<N> | undefined;
   readonly validators?: readonly Validator<V>[] | undefined;
   /** The input's own details, added to every event it fires. */
   readonly details?:
@@ -115,10 +122,13 @@ export interface FieldController<V, D extends object = NoDetails, N = unknown> {
   readonly subscribe: (listener: () => void) => () => void;
   /** Replaces the options, silently: no listener is called. */
   readonly setOptions: (options: FieldOptions<V, D, N>) => void;
-  /** `onBeforeInput` for an edit about to happen, and what to do with it. */
+  /**
+   * `onBeforeInput` for an edit about to happen, then the input's
+   * `filterInput`, and what to do with it.
+   */
   readonly beforeInput: (
     edit: TextEdit<N> & { readonly cancelable: boolean },
-  ) => BeforeInputDecision;
+  ) => InputFilterDecision;
   /**
    * The text changed. Read at once, after `changeDelay`, or, while an input
    * method composes (`input.isComposing`), once composition ends. While the
@@ -292,6 +302,7 @@ export function createFieldController<
       get: () => state,
       dispatch: (action) => (state = fieldReducer(state, action)),
       handlers: options,
+      filterInput: options.filterInput,
       parse: parserOf(options),
       format: formatterOf(options, purposeNow),
       same: (a, b) =>

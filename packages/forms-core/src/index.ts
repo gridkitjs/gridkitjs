@@ -34,6 +34,8 @@ export type {
   BeforeInputDecision,
   ChangeCause,
   CommitOutcome,
+  InputFilter,
+  InputFilterDecision,
   TextEdit,
 } from "./field/plan";
 export {

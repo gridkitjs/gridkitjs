@@ -49,6 +49,25 @@ export type BeforeInputDecision =
   | { readonly kind: "rewrite"; readonly data: string };
 
 /**
+ * What an input's own filter does with an edit: one of `onBeforeInput`'s
+ * decisions, or `replace`, where the whole text becomes `text` with the
+ * caret at `caret` (a mask laying its characters out again).
+ */
+export type InputFilterDecision =
+  | BeforeInputDecision
+  | { readonly kind: "replace"; readonly text: string; readonly caret: number };
+
+/**
+ * An input's own judgement of an edit, after the app's `onBeforeInput` let
+ * it through: `edit` is the edit as the app left it (its `text` the text it
+ * would leave), `before` the text before it.
+ */
+export type InputFilter<N> = (
+  edit: TextEdit<N>,
+  before: string,
+) => InputFilterDecision;
+
+/**
  * How a commit request ended:
  *
  * - `accepted`: committed (`onCommit` has fired).
@@ -71,6 +90,8 @@ export interface FieldEnv<V, D extends object, N> {
   readonly get: () => FieldState<V>;
   readonly dispatch: (action: FieldAction<V>) => FieldState<V>;
   readonly handlers: FieldHandlers<V, D, N>;
+  /** The input's own judgement of an edit, after `onBeforeInput`. */
+  readonly filterInput: InputFilter<N> | undefined;
   readonly parse: (text: string) => ParseResult<V>;
   readonly format: (value: V | null) => string;
   /** Whether two values are one; `null` equals only itself. */
@@ -173,12 +194,55 @@ function emitBlur<V, D extends object, N>(
 }
 
 /**
- * `onBeforeInput` for an edit about to happen, and what forms-dom should do
- * with it. Changes no state: the edit arrives through `runEdit`.
+ * `onBeforeInput` for an edit about to happen, then the input's own filter
+ * for an edit the app let through (outside a composition, which cannot be
+ * refused), and what forms-dom should do with it. Changes no state: the
+ * edit arrives through `runEdit`.
  */
 export function runBeforeInput<V, D extends object, N>(
   env: FieldEnv<V, D, N>,
   edit: TextEdit<N> & { readonly cancelable: boolean },
+): InputFilterDecision {
+  const before = fieldText(env.get(), env.format);
+  const decision = appDecision(env, edit, before);
+  const { filterInput } = env;
+  if (
+    filterInput === undefined ||
+    !edit.cancelable ||
+    decision.kind === "prevent"
+  ) {
+    return decision;
+  }
+  const judged = filterInput(
+    decision.kind === "rewrite"
+      ? rewrittenEdit(edit, before, decision.data)
+      : edit,
+    before,
+  );
+  return judged.kind === "allow" ? decision : judged;
+}
+
+/** `edit` with `data` in place of the selection, as forms-dom inserts a rewrite. */
+function rewrittenEdit<N>(
+  edit: TextEdit<N>,
+  before: string,
+  data: string,
+): TextEdit<N> {
+  const { input } = edit;
+  const start = input?.selectionStart ?? before.length;
+  const end = input?.selectionEnd ?? start;
+  return {
+    ...edit,
+    text: before.slice(0, start) + data + before.slice(end),
+    input: input && { ...input, data },
+  };
+}
+
+/** What the app's `onBeforeInput` decides about `edit`; `before` is the text before it. */
+function appDecision<V, D extends object, N>(
+  env: FieldEnv<V, D, N>,
+  edit: TextEdit<N> & { readonly cancelable: boolean },
+  before: string,
 ): BeforeInputDecision {
   const handler = env.handlers.onBeforeInput;
   if (handler === undefined) {
@@ -194,7 +258,7 @@ export function runBeforeInput<V, D extends object, N>(
         value: state.value,
         previousValue: state.value,
         text: edit.text,
-        previousText: fieldText(state, env.format),
+        previousText: before,
       },
       edit,
     ),
