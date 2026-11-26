@@ -29,13 +29,15 @@ Every export of `@gridkitjs/forms-dom`:
 
 | Export                                                                                      | Kind            | Description                                                                                                                           | Page                                               |
 | ------------------------------------------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| `attachTextInput`, `AttachedTextInput`, `TextControl`                                       | function, types | Connects a native `<input>` or `<textarea>` to a forms-core field controller.                                                         | [Text pipeline](/docs/forms-dom/text-pipeline)     |
+| `attachTextInput`, `AttachedTextInput`, `TextControl`, `TextInputOptions`                   | function, types | Connects a native `<input>` or `<textarea>` to a forms-core field controller.                                                         | [Text pipeline](/docs/forms-dom/text-pipeline)     |
+| `attachAutoGrow`, `AttachedAutoGrow`, `AutoGrowOptions`                                     | function, types | Grows a `<textarea>` with its text between a minimum and a maximum number of lines.                                                   | [Auto-grow](/docs/forms-dom/auto-grow)             |
 | `attachEnterNavigation`, `findFirstInvalidControl`, `focusTargetIn`, `compareDocumentOrder` | functions       | Enter moving from field to field, the first invalid control of a form, the control a link should focus, document order.               | [Form navigation](/docs/forms-dom/form-navigation) |
 | `scheduleTimeout`                                                                           | function        | The browser's timers as a forms-core [`Schedule`](/docs/forms-core/overview#exports): runs a callback once after a delay, cancelable. | This page                                          |
 
 ## See also
 
 - [Text pipeline](/docs/forms-dom/text-pipeline) for connecting a text control to a field.
+- [Auto-grow](/docs/forms-dom/auto-grow) for a textarea that grows with its text.
 - [Form navigation](/docs/forms-dom/form-navigation) for Enter navigation and finding a form's first problem.
 - [Forms core overview](/docs/forms-core/overview) for the logic these behaviours attach to.
 - [Forms overview](/docs/forms/overview) for the React components built on them.

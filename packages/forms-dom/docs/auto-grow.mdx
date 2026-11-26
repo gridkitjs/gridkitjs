@@ -1,0 +1,48 @@
+---
+title: "Auto-grow"
+description: "attachAutoGrow: grows a textarea with its text between a minimum and a maximum number of lines, then lets it scroll."
+---
+
+`attachAutoGrow(textarea, { minRows, maxRows })` grows a `<textarea>` with its text, from `minRows` lines to `maxRows`, then lets it scroll. The height follows every `input` and every change of the textarea's width, which rewraps its text, and is worked out from the computed line height, padding and borders. CSS `field-sizing: content` would do the same, but not in every browser the forms support.
+
+<Callout type="note" title="First iteration">
+  This API is a first iteration and may change before the first release.
+</Callout>
+
+## When to use it
+
+Only to write a forms renderer of your own. A multiline [`TextInput`](/docs/forms/text-input) attaches it for you.
+
+## Example
+
+```ts
+import { attachAutoGrow } from "@gridkitjs/forms-dom";
+
+const notes = document.createElement("textarea");
+notes.setAttribute("aria-label", "Notes");
+document.body.append(notes);
+
+const grow = attachAutoGrow(notes, { minRows: 2, maxRows: 6 });
+
+// After setting the text from code, which fires no input event:
+notes.value = "One\nTwo\nThree";
+grow.update();
+
+// When the textarea leaves the page:
+grow.detach();
+```
+
+## What it returns
+
+| Member                | Description                                                                      |
+| --------------------- | -------------------------------------------------------------------------------- |
+| `update()`            | Sets the height for the text there is now. Call it after writing text from code. |
+| `setOptions(options)` | Replaces the row range, and sets the height for it.                              |
+| `detach()`            | Stops listening and observing, and leaves the height as it is.                   |
+
+A line height of `normal` is taken as 1.2 times the font size; give the textarea a line height of its own for an exact fit.
+
+## See also
+
+- [Text pipeline](/docs/forms-dom/text-pipeline) for the text the textarea holds.
+- [TextInput](/docs/forms/text-input) for the multiline input built on it.
