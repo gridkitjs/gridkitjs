@@ -1,0 +1,85 @@
+---
+title: "Validation"
+description: "Field messages and their severities, the built-in validators, when messages show, and the forms messages catalogue."
+---
+
+A field's `validators` check its value after every change and return messages; `FormsMessages` holds every string the forms show, in English by default, laid over with an app's own through `resolveFormsMessages`. Only an error blocks: a warning, a note or a confirmation shows and never stops the user.
+
+<Callout type="note" title="First iteration">
+  This API is a first iteration and may change before the first release.
+</Callout>
+
+## Example
+
+```ts
+import {
+  createFieldController,
+  formatText,
+  maxLengthRule,
+  requiredRule,
+  resolveFormsMessages,
+  textParser,
+  type Validator,
+} from "@gridkitjs/forms-core";
+
+const notAdmin: Validator<string> = (value) =>
+  value === "admin"
+    ? { text: "This name is reserved", severity: "warning" }
+    : null;
+
+const field = createFieldController<string>({
+  defaultParse: textParser(),
+  defaultFormat: formatText,
+  messages: resolveFormsMessages({ required: "Pick a user name" }),
+  validators: [requiredRule(), maxLengthRule(20), notAdmin],
+});
+
+field.getMessages(); // [{ severity: "error", text: "Pick a user name", code: "required", ... }]
+```
+
+## Messages
+
+A `FieldMessage` has a `severity` (`"error"`, `"warning"`, `"info"` or `"success"`), its `text`, a `code` (`"required"`, `"tooShort"`, `"tooLong"`, `"pattern"`, `"unreadable"`, `"refused"`, the app's own, or `null`) and a `source` (`"parse"`, `"validate"`, `"commit"` or `"app"`). An app writes a `FieldMessageInput`: a string, which is an error, or `{ text, severity?, code? }`. `toFieldMessages(input, source)` turns one input or several into messages; `sortFieldMessages` puts them in display order (most serious first); `hasError` says whether any blocks.
+
+## Validators
+
+A `Validator<V>` is `(value, { text, locale, messages }) => ValidationResult`: a message, several, or `null` when the value is fine. It runs with every value, `null` included, so it must be cheap and synchronous; a slow or remote check belongs in `onBeforeCommit`.
+
+| Function                         | Checks                                                                                                |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `requiredRule()`                 | `null`, or a string of only whitespace, is `messages.required`.                                       |
+| `minLengthRule(min)`             | Fewer than `min` code points is `messages.tooShort(min)`.                                             |
+| `maxLengthRule(max)`             | More than `max` code points is `messages.tooLong(max)`.                                               |
+| `patternRule(pattern, message?)` | The whole value must match, as the HTML `pattern` attribute reads it.                                 |
+| `checkedRule(pick)`              | Anything but `true` is the message `pick` takes from the catalogue (`requiredChecked`, `requiredOn`). |
+
+Lengths count code points, closer to "characters" than UTF-16 units and how databases count a `VARCHAR`. The rules other than `requiredRule` pass `null`.
+
+## When messages show
+
+Validators run when the field is created, after every value change, after a controlled value changes it, and on `reveal()`. Their messages are stored at once and shown once the field is revealed: after its first commit attempt, or when a form reveals every field on submit. From then on they update as the user types, so an error goes the moment it is fixed.
+
+## The catalogue
+
+`FormsMessages` works like the grid's `GridMessages`: one key per string, a function where a message names a number. `createDefaultFormsMessages(locale)` prints counts in the locale's digits, `defaultFormsMessages` is the runtime locale's, and `resolveFormsMessages(partial, locale)` lays an app's partial set over the defaults, returning the same object for the same locale when given none. A minor release may add keys; a translation without one shows its English default.
+
+| Key                                                             | English default                                                                  |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `required`                                                      | "Enter a value"                                                                  |
+| `requiredChecked`, `requiredOn`                                 | "Check this box to continue", "Turn this on to continue"                         |
+| `tooShort(min)`, `tooLong(max)`                                 | "Enter at least {min} characters", "Enter no more than {max} characters"         |
+| `patternMismatch`                                               | "Enter a value in the expected format"                                           |
+| `unreadable`                                                    | "This value can't be read"                                                       |
+| `checkFailed`                                                   | "This value could not be checked"                                                |
+| `clear`, `showPassword`, `fieldHelp`                            | "Clear", "Show password", "More information"                                     |
+| `counter(count, max)`, `counterLabel(max)`                      | "{count}/{max}", "Up to {max} characters"                                        |
+| `charactersLeft(left)`, `charactersOver(over)`                  | "{left} characters left", "{over} characters too many"                           |
+| `loading`, `emptyValue`, `optional`, `searchPlaceholder`        | "Loading", "No value", "optional", "Search"                                      |
+| `displayChecked`, `displayUnchecked`, `displayOn`, `displayOff` | "Yes", "No", "On", "Off"                                                         |
+| `severityLabel(severity)`                                       | "Error", "Warning", "Information", "Success"                                     |
+| `severityCount(severity, count)`                                | "1 error", "2 warnings", "1 note", "3 confirmations"                             |
+| `messageSummaryTitle(count)`                                    | "There is 1 problem with this form", "There are {count} problems with this form" |
+
+## See also
+
+- [Field state](/docs/forms-core/field-state) for the controller that runs the validators.

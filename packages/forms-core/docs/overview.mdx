@@ -14,23 +14,50 @@ You only need this package to write a forms renderer of your own. @gridkitjs/for
 ## Example
 
 ```ts
-import { mostSevere } from "@gridkitjs/forms-core";
+import {
+  createFieldController,
+  defaultFormsMessages,
+  formatText,
+  textParser,
+} from "@gridkitjs/forms-core";
 
-// A field showing an info note and an error takes the error's state.
-mostSevere(["info", "error"]); // "error"
+const field = createFieldController<string>({
+  defaultParse: textParser(),
+  defaultFormat: formatText,
+  messages: defaultFormsMessages,
+  onCommit: ({ value }) => {
+    console.log(`committed ${String(value)}`);
+  },
+});
+
+field.focus(null);
+field.input({ text: "Ada", source: "typing", nativeEvent: null, input: null });
+field.commit("enter", null); // logs "committed Ada"
 ```
 
 ## Exports
 
 Every export of `@gridkitjs/forms-core`:
 
-| Export       | Kind     | Description                                                                                                           |
-| ------------ | -------- | --------------------------------------------------------------------------------------------------------------------- |
-| `Severity`   | type     | How serious a message is: `"error"`, `"warning"`, `"info"` or `"success"`. Only `"error"` blocks. Growable.           |
-| `mostSevere` | function | `(severities: Iterable<Severity>) => Severity \| null`: the most serious of the given severities, or `null` for none. |
-| `Schedule`   | type     | `(callback, delay) => cancel`: runs a callback once after a delay. forms-core keeps no timers, so it is handed one.   |
+| Export                                                                                                                                                                                                             | Kind             | Description                                                                         | Page                                        |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- | ----------------------------------------------------------------------------------- | ------------------------------------------- |
+| `createFieldController`, `FieldController`, `FieldOptions`                                                                                                                                                         | function, types  | One field's state and the requests that move it.                                    | [Field state](/docs/forms-core/field-state) |
+| `FieldState`, `FieldDraft`, `FieldPhase`, `TextReading`                                                                                                                                                            | types            | A field's value, draft, messages and lifecycle. Growable unions.                    | [Field state](/docs/forms-core/field-state) |
+| `fieldReducer`, `FieldAction`                                                                                                                                                                                      | function, type   | Every transition of a field, pure.                                                  | [Field state](/docs/forms-core/field-state) |
+| `fieldText`, `fieldMessages`, `shownMessages`                                                                                                                                                                      | functions        | The text and messages a state shows.                                                | [Field state](/docs/forms-core/field-state) |
+| `TextEdit`, `ChangeCause`, `BeforeInputDecision`, `CommitOutcome`                                                                                                                                                  | types            | What a renderer passes to the requests, and what they answer.                       | [Field state](/docs/forms-core/field-state) |
+| `ChangeSource`, `CommitTrigger`, `TextInputDetails`, `NoDetails`                                                                                                                                                   | types            | Where a change came from and what ended an edit. Growable unions.                   | [Forms events](/docs/forms/events)          |
+| `FieldEventBase`, `FieldInputEvent`, `FieldChangeEvent`, `FieldValidateEvent`, `FieldCommitEvent`, `FieldBeforeInputEvent`, `FieldBeforeChangeEvent`, `FieldBeforeCommitEvent`, `FieldFocusEvent`, `FieldHandlers` | types            | The event objects and the handlers that receive them.                               | [Forms events](/docs/forms/events)          |
+| `Parser`, `Formatter`, `ParseContext`, `FormatContext`, `ParseResult`, `parsed`, `unreadable`                                                                                                                      | types, functions | The parse and format contract; the context holds the input's own, to wrap.          | [Field state](/docs/forms-core/field-state) |
+| `textParser`, `formatText`, `TextParseOptions`                                                                                                                                                                     | functions, type  | A text input's own reading (trim, upper case, empty is `null`) and writing.         | [Field state](/docs/forms-core/field-state) |
+| `FieldMessage`, `FieldMessageInput`, `toFieldMessages`, `sortFieldMessages`, `hasError`                                                                                                                            | types, functions | A field's messages, as shown and as an app writes them.                             | [Validation](/docs/forms-core/validation)   |
+| `Severity`, `mostSevere`                                                                                                                                                                                           | type, function   | How serious a message is; only `"error"` blocks. Growable.                          | [Validation](/docs/forms-core/validation)   |
+| `Validator`, `ValidatorContext`, `ValidationResult`, `requiredRule`, `minLengthRule`, `maxLengthRule`, `patternRule`, `checkedRule`                                                                                | types, functions | Validators and the built-in rules.                                                  | [Validation](/docs/forms-core/validation)   |
+| `FormsMessages`, `createDefaultFormsMessages`, `defaultFormsMessages`, `resolveFormsMessages`                                                                                                                      | type, functions  | Every string the forms show, and laying an app's own over them.                     | [Validation](/docs/forms-core/validation)   |
+| `Schedule`                                                                                                                                                                                                         | type             | `(callback, delay) => cancel`: a timer. forms-core keeps none, so it is handed one. | [Field state](/docs/forms-core/field-state) |
 
 ## See also
 
+- [Field state](/docs/forms-core/field-state) and [Validation](/docs/forms-core/validation).
 - [Forms DOM overview](/docs/forms-dom/overview) for the browser behaviours built on this package.
 - [Forms overview](/docs/forms/overview) for the React components.
