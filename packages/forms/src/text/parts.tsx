@@ -8,7 +8,6 @@ import {
   useEffect,
   useState,
   type MouseEvent,
-  type PointerEvent,
   type ReactNode,
   type Ref,
   type RefCallback,
@@ -65,8 +64,13 @@ export function SearchIcon() {
   );
 }
 
-/** Keeps focus, and the selection, in the control when a button in its box is pressed. */
-export function keepFocus(event: PointerEvent | MouseEvent): void {
+/**
+ * Keeps focus, and the selection, in the control when a button in its box
+ * is pressed, by a mouse or, through the mouse events that follow a tap,
+ * a finger. Not on `pointerdown`: WebKit fires no `click` after a touch
+ * whose `pointerdown` was prevented.
+ */
+export function keepFocus(event: MouseEvent): void {
   event.preventDefault();
 }
 
@@ -250,7 +254,6 @@ export function ControlBox({
           className="gridkit-forms-clear-button"
           tabIndex={-1}
           aria-label={clear.label}
-          onPointerDown={keepFocus}
           onMouseDown={keepFocus}
           onClick={clear.onClear}
         >
