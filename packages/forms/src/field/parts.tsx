@@ -38,21 +38,28 @@ const NO_MESSAGES: readonly FieldMessage[] = [];
 
 /**
  * The messages a field or group shows: its inputs' and the app's, most
- * serious first. A disabled one shows only the app's.
+ * serious first, each text of a severity once, as when two inputs of a
+ * group both lack a value. A disabled one shows only the app's.
  */
 export function useShownMessages(
   controlMessages: readonly FieldMessage[],
   message: FieldMessageInput | readonly FieldMessageInput[] | undefined,
   disabled: boolean,
 ): readonly FieldMessage[] {
-  return useMemo(
-    () =>
-      sortFieldMessages([
-        ...(disabled ? NO_MESSAGES : controlMessages),
-        ...toFieldMessages(message, "app"),
-      ]),
-    [disabled, controlMessages, message],
-  );
+  return useMemo(() => {
+    const seen = new Set<string>();
+    return sortFieldMessages([
+      ...(disabled ? NO_MESSAGES : controlMessages),
+      ...toFieldMessages(message, "app"),
+    ]).filter((shown) => {
+      const key = `${shown.severity}:${shown.text}`;
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
+  }, [disabled, controlMessages, message]);
 }
 
 /**

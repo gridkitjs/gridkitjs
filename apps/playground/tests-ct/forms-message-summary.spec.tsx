@@ -80,7 +80,6 @@ test.describe("MessageSummary", () => {
     await expect(summary(root)).toBeFocused();
     await expect(links(root)).toHaveText([
       "Address: Enter a value",
-      "Address: Enter a value",
       "City: Enter a value",
     ]);
 
@@ -100,11 +99,11 @@ test.describe("MessageSummary", () => {
   }) => {
     const root = await mount(<SummaryHarness />);
     await root.getByRole("button", { name: "Send" }).click();
-    await expect(links(root)).toHaveCount(3);
+    await expect(links(root)).toHaveCount(2);
 
     await links(root).filter({ hasText: "City" }).click();
     await typeInto(root.getByRole("textbox", { name: "City" }), "London");
-    await expect(links(root)).toHaveCount(2);
+    await expect(links(root)).toHaveCount(1);
 
     await typeInto(root.getByRole("textbox", { name: "Postal code" }), "1000");
     await typeInto(root.getByRole("textbox", { name: "Street" }), "Main");
