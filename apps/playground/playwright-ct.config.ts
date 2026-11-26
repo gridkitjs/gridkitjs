@@ -28,6 +28,8 @@ const coveragePlugin = istanbul({
   include: [
     "packages/react/src/DataGrid/**/*.{ts,tsx}",
     "packages/dom/src/**/*.ts",
+    "packages/forms-dom/src/**/*.ts",
+    "packages/forms/src/**/*.{ts,tsx}",
   ],
   extension: [".ts", ".tsx"],
   requireEnv: true,

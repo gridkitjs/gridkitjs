@@ -1,10 +1,14 @@
 /**
- * Keeps `src/tokens.json`, `src/styles.css` and `docs/tokens.mdx` in
- * step. The stylesheet's theme tokens are the custom properties its `:root`
- * block declares; the manifest has to list each of them with the default
- * declared there, each colour has to be wired up the way the palette
- * comment in `styles.css` describes, and the docs page's tables have to be
- * the ones the manifest generates.
+ * Keeps `src/tokens.json`, the stylesheets and `docs/tokens.mdx` in step.
+ *
+ * The shared tokens, which the grid and the forms both read, are the custom
+ * properties `styles.css` declares on `:root`. The forms tokens,
+ * `--gridkit-forms-*`, are declared only in `forms.css`, on `:where(:root)`,
+ * beside its copy of the palette and of every shared token its rules read.
+ * The manifest has to list each token with the default declared for it,
+ * each colour has to be wired up the way the palette comment in
+ * `styles.css` describes, and the docs page's tables have to be the ones
+ * the manifest generates.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -25,10 +29,12 @@ import {
 } from "./manifest.mjs";
 import { DOCS_PAGE, withTokenTables } from "./token-docs.mjs";
 
+/** @import { CssBlock, CssDeclaration } from "./css.mjs" */
 /** @import { Token } from "./manifest.mjs" */
 
-const STYLESHEET = path.resolve(import.meta.dirname, "..", "src", "styles.css");
+const SRC = path.resolve(import.meta.dirname, "..", "src");
 const TOKEN_NAME = /^--gridkit-[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const FORMS_TOKEN = /^--gridkit-forms-/;
 const TOKEN_FIELDS = new Set([
   "name",
   "group",
@@ -43,21 +49,73 @@ const SIDES = /** @type {const} */ (["light", "dark"]);
 const manifest = readManifest();
 const { tokens } = manifest;
 const colors = tokens.filter((token) => token.type === "color");
-const defaults = defaultDeclarations(tokens);
+const sharedTokens = tokens.filter(({ name }) => !FORMS_TOKEN.test(name));
+const formsTokens = tokens.filter(({ name }) => FORMS_TOKEN.test(name));
+const tokenNames = new Set(tokens.map(({ name }) => name));
+const colorNames = new Set(colors.map(({ name }) => name));
 
-const sheet = parseCss(readFileSync(STYLESHEET, "utf8"));
-const root = childBlock(sheet, ":root");
-const rootProperties = customProperties(root);
+/**
+ * @param {string} file
+ * @returns {CssBlock}
+ */
+function readSheet(file) {
+  return parseCss(readFileSync(path.join(SRC, file), "utf8"));
+}
+
+const styles = readSheet("styles.css");
+const forms = readSheet("forms.css");
+
+/**
+ * The token a custom property belongs to: the token itself, or the colour
+ * whose raw pair it is.
+ *
+ * @param {string} property
+ * @returns {string | undefined}
+ */
+function tokenOf(property) {
+  if (tokenNames.has(property)) {
+    return property;
+  }
+  const color = property.replace(/-(?:light|dark)$/, "");
+  return color !== property && colorNames.has(color) ? color : undefined;
+}
+
+/**
+ * The custom properties that hold these tokens' defaults, and each colour's
+ * live name: everything a stylesheet declares on its root for them.
+ *
+ * @param {Token[]} declared
+ * @returns {Set<string>}
+ */
+function rootDeclarations(declared) {
+  return new Set([
+    ...defaultDeclarations(declared).keys(),
+    ...declared.filter(({ type }) => type === "color").map(({ name }) => name),
+  ]);
+}
 
 /**
  * Each colour's live name pointed at one side of its pair, as a palette
  * block declares it.
  *
+ * @param {Token[]} declared The colours a stylesheet declares.
  * @param {(typeof SIDES)[number]} side
  * @returns {Map<string, string>}
  */
-function pointers(side) {
-  return new Map(colors.map(({ name }) => [name, `var(${name}-${side})`]));
+function pointers(declared, side) {
+  return new Map(declared.map(({ name }) => [name, `var(${name}-${side})`]));
+}
+
+/**
+ * Every value in a stylesheet that could read a token. `@theme inline`
+ * reads every colour to register its utility, which says nothing about
+ * whether a rule uses it, so it doesn't count.
+ *
+ * @param {CssBlock} sheet
+ * @returns {CssDeclaration[]}
+ */
+function readingDeclarations(sheet) {
+  return allDeclarations(sheet, (block) => block.prelude === "@theme inline");
 }
 
 /**
@@ -109,6 +167,92 @@ function entryProblems(token) {
   return problems;
 }
 
+/**
+ * The checks every stylesheet's palette takes: its root declares exactly
+ * these tokens' defaults and live colours, each default as the manifest
+ * gives it, and each colour is pointed at its pair in all four palette
+ * blocks and registered in `@theme inline`.
+ *
+ * @param {CssBlock} sheet
+ * @param {string} rootPrelude
+ * @param {Token[]} declared
+ */
+function testPalette(sheet, rootPrelude, declared) {
+  const root = childBlock(sheet, rootPrelude);
+  const rootProperties = customProperties(root);
+  const expected = rootDeclarations(declared);
+  const declaredColors = declared.filter(({ type }) => type === "color");
+
+  test(`declares its tokens on ${rootPrelude}`, () => {
+    assert.deepEqual(
+      [...expected].filter((name) => !rootProperties.has(name)),
+      [],
+    );
+  });
+
+  test(`declares no other custom property on ${rootPrelude}`, () => {
+    assert.deepEqual(
+      [...rootProperties.keys()].filter((name) => !expected.has(name)),
+      [],
+    );
+  });
+
+  test("declares each default as tokens.json gives it", () => {
+    const differing = [...defaultDeclarations(declared)]
+      .filter(
+        ([name, value]) =>
+          rootProperties.has(name) && rootProperties.get(name) !== value,
+      )
+      .map(
+        ([name, value]) =>
+          `${name}: "${rootProperties.get(name)}" in the stylesheet, "${value}" in tokens.json`,
+      );
+    assert.deepEqual(differing, []);
+  });
+
+  test(`points every live colour at its light value on ${rootPrelude}`, () => {
+    assert.deepEqual(
+      new Map(
+        declaredColors.map(({ name }) => [name, rootProperties.get(name)]),
+      ),
+      pointers(declaredColors, "light"),
+    );
+  });
+
+  test("points every live colour, and nothing else, at its dark value under @variant dark", () => {
+    assert.deepEqual(
+      customProperties(childBlock(root, "@variant dark")),
+      pointers(declaredColors, "dark"),
+    );
+  });
+
+  test("points every live colour, and nothing else, at its light value in .gridkit-light", () => {
+    assert.deepEqual(
+      customProperties(childBlock(sheet, ".gridkit-light")),
+      pointers(declaredColors, "light"),
+    );
+  });
+
+  test("points every live colour, and nothing else, at its dark value in .gridkit-dark", () => {
+    assert.deepEqual(
+      customProperties(childBlock(sheet, ".gridkit-dark")),
+      pointers(declaredColors, "dark"),
+    );
+  });
+
+  test("registers every colour, and nothing else, in @theme inline", () => {
+    assert.deepEqual(
+      customProperties(childBlock(sheet, "@theme inline")),
+      new Map(
+        declaredColors.map(({ name }) => [
+          `--color-gridkit-${name.slice("--gridkit-".length)}`,
+          `var(${name})`,
+        ]),
+      ),
+    );
+  });
+}
+
 describe("tokens.json", () => {
   test("has schema 1 and well-formed entries", () => {
     assert.equal(manifest.schemaVersion, 1);
@@ -136,40 +280,6 @@ describe("tokens.json", () => {
       [],
     );
   });
-});
-
-describe("styles.css", () => {
-  const declaredForTokens = new Set([
-    ...defaults.keys(),
-    ...colors.map(({ name }) => name),
-  ]);
-
-  test("declares every tokens.json token on :root", () => {
-    assert.deepEqual(
-      [...declaredForTokens].filter((name) => !rootProperties.has(name)),
-      [],
-    );
-  });
-
-  test("declares no custom property on :root that tokens.json lacks", () => {
-    assert.deepEqual(
-      [...rootProperties.keys()].filter((name) => !declaredForTokens.has(name)),
-      [],
-    );
-  });
-
-  test("declares each default as tokens.json gives it", () => {
-    const differing = [...defaults]
-      .filter(
-        ([name, value]) =>
-          rootProperties.has(name) && rootProperties.get(name) !== value,
-      )
-      .map(
-        ([name, value]) =>
-          `${name}: "${rootProperties.get(name)}" in styles.css, "${value}" in tokens.json`,
-      );
-    assert.deepEqual(differing, []);
-  });
 
   /*
    * A custom property holding `var()` resolves on the element that declares
@@ -177,7 +287,7 @@ describe("styles.css", () => {
    * value inside `.gridkit-dark`. A raw colour reads only raw colours of its
    * own side; any other default reads only tokens that are not colours.
    */
-  test("declares no default that reads a value the palette swaps", () => {
+  test("gives no default that reads a value the palette swaps", () => {
     const sideOfRaw = new Map(
       colors.flatMap(({ name }) =>
         SIDES.map((side) => [`${name}-${side}`, side]),
@@ -186,69 +296,64 @@ describe("styles.css", () => {
     const singles = new Set(
       tokens.filter(({ type }) => type !== "color").map(({ name }) => name),
     );
-    const problems = [...defaults].flatMap(([name, value]) => {
-      const side = sideOfRaw.get(name);
-      return [...value.matchAll(/var\((--[\w-]+)/g)]
-        .map(([, read]) => read)
-        .filter((read) =>
-          side === undefined
-            ? !singles.has(read)
-            : sideOfRaw.get(read) !== side,
-        )
-        .map((read) => `${name} reads ${read}`);
-    });
+    const problems = [...defaultDeclarations(tokens)].flatMap(
+      ([name, value]) => {
+        const side = sideOfRaw.get(name);
+        return [...value.matchAll(/var\((--[\w-]+)/g)]
+          .map(([, read]) => read)
+          .filter((read) =>
+            side === undefined
+              ? !singles.has(read)
+              : sideOfRaw.get(read) !== side,
+          )
+          .map((read) => `${name} reads ${read}`);
+      },
+    );
     assert.deepEqual(problems, []);
   });
+});
 
-  test("points every live colour at its light value on :root", () => {
-    assert.deepEqual(
-      new Map(colors.map(({ name }) => [name, rootProperties.get(name)])),
-      pointers("light"),
-    );
-  });
+describe("styles.css", () => {
+  testPalette(styles, ":root", sharedTokens);
+});
 
-  test("points every live colour, and nothing else, at its dark value under @variant dark", () => {
-    assert.deepEqual(
-      customProperties(childBlock(root, "@variant dark")),
-      pointers("dark"),
-    );
-  });
+describe("forms.css", () => {
+  const declared = new Set(
+    [...customProperties(childBlock(forms, ":where(:root)")).keys()].map(
+      (property) => tokenOf(property) ?? property,
+    ),
+  );
+  const copied = sharedTokens.filter(({ name }) => declared.has(name));
 
-  test("points every live colour, and nothing else, at its light value in .gridkit-light", () => {
-    assert.deepEqual(
-      customProperties(childBlock(sheet, ".gridkit-light")),
-      pointers("light"),
-    );
-  });
-
-  test("points every live colour, and nothing else, at its dark value in .gridkit-dark", () => {
-    assert.deepEqual(
-      customProperties(childBlock(sheet, ".gridkit-dark")),
-      pointers("dark"),
-    );
-  });
-
-  test("registers every colour, and nothing else, in @theme inline", () => {
-    assert.deepEqual(
-      customProperties(childBlock(sheet, "@theme inline")),
-      new Map(
-        colors.map(({ name }) => [
-          `--color-gridkit-${name.slice("--gridkit-".length)}`,
-          `var(${name})`,
-        ]),
-      ),
-    );
-  });
+  testPalette(forms, ":where(:root)", [...copied, ...formsTokens]);
 
   /*
-   * `@theme inline` reads every colour to register its utility, which says
-   * nothing about whether the grid uses it, so it doesn't count.
+   * The palette travels with every stylesheet, for the colour utilities;
+   * any other shared token is copied only if this sheet reads it, so it
+   * still works alone. A declaration reading its own token, as a colour's
+   * live name reads its pair, doesn't count.
    */
-  test("reads every token with var()", () => {
-    const values = allDeclarations(
-      sheet,
-      (block) => block.prelude === "@theme inline",
-    ).map(({ value }) => value);
+  test("copies the palette and exactly the shared tokens it reads", () => {
+    const palette = sharedTokens
+      .filter(({ type, tier }) => type === "color" && tier === "basic")
+      .map(({ name }) => name);
+    const read = readingDeclarations(forms).flatMap(({ property, value }) =>
+      [...value.matchAll(/var\((--[\w-]+)/g)]
+        .map(([, name = ""]) => tokenOf(name))
+        .filter((name) => name !== undefined && name !== tokenOf(property)),
+    );
+    const needed = new Set(
+      [...palette, ...read].filter((name) => !FORMS_TOKEN.test(name)),
+    );
+    assert.deepEqual(copied.map(({ name }) => name).sort(), [...needed].sort());
+  });
+});
+
+describe("both stylesheets", () => {
+  test("read every token with var()", () => {
+    const values = [styles, forms]
+      .flatMap(readingDeclarations)
+      .map(({ value }) => value);
     const unread = tokens.filter(
       ({ name }) =>
         !values.some((value) =>

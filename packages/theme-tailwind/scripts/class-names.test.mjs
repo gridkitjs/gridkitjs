@@ -5,6 +5,10 @@
  * there is still written somewhere. A name built at run time, such as
  * `is-sorted-${direction}`, shows up in the source as its prefix
  * (`is-sorted-`), which the page covers with any name that starts with it.
+ *
+ * The forms packages, `forms-core`, `forms-dom` and `forms`, are held to
+ * their own prefix instead: every class they write starts with
+ * `gridkit-forms-`, beside `is-*` states and `data-gridkit-*` attributes.
  */
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
@@ -12,9 +16,12 @@ import path from "node:path";
 import { describe, test } from "node:test";
 
 const PACKAGES = path.resolve(import.meta.dirname, "..", "..");
-const SOURCE_DIRS = ["core", "dom", "react"].map((name) =>
-  path.join(PACKAGES, name, "src"),
-);
+/** @param {string[]} names */
+const sourceDirs = (names) =>
+  names.map((name) => path.join(PACKAGES, name, "src"));
+const SOURCE_DIRS = sourceDirs(["core", "dom", "react"]);
+const FORMS_SOURCE_DIRS = sourceDirs(["forms-core", "forms-dom", "forms"]);
+const FORMS_NAME = /^(?:gridkit-forms-|is-|data-gridkit-)/;
 const DOCS_PAGE = path.resolve(
   import.meta.dirname,
   "..",
@@ -147,5 +154,17 @@ describe("docs/class-names.mdx", () => {
 
   test("lists every class and data attribute the grid renders, and no other", () => {
     assert.deepEqual(compare(source, page), { missing: [], stale: [] });
+  });
+});
+
+describe("the forms packages", () => {
+  test("write no class without the gridkit-forms- prefix", () => {
+    const names = FORMS_SOURCE_DIRS.flatMap(sourceFiles).flatMap((file) => [
+      ...sourceNames(readFileSync(file, "utf8")),
+    ]);
+    assert.deepEqual(
+      names.filter((name) => !FORMS_NAME.test(name)),
+      [],
+    );
   });
 });

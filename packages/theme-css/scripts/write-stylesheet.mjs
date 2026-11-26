@@ -1,9 +1,12 @@
 /**
- * Writes `src/styles.css`, generated from theme-tailwind's stylesheet.
+ * Writes `src/styles.css` and `src/forms.css`, generated from
+ * theme-tailwind's stylesheets.
  *
  * Usage: pnpm --filter @gridkitjs/theme-css build
  */
 import { writeFileSync } from "node:fs";
-import { TARGET, generateStylesheet } from "./stylesheet.mjs";
+import { STYLESHEETS, generateStylesheet } from "./stylesheet.mjs";
 
-writeFileSync(TARGET, await generateStylesheet());
+for (const stylesheet of STYLESHEETS) {
+  writeFileSync(stylesheet.target, await generateStylesheet(stylesheet));
+}

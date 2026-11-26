@@ -18,6 +18,7 @@
   ],
   "exports": {
     "./styles.css": "./src/styles.css",
+    "./forms.css": "./src/forms.css",
     "./presets/*": "./src/presets/*"
   },
   "files": [

@@ -2,6 +2,17 @@
 import tseslint from "typescript-eslint";
 import reactHooks from "eslint-plugin-react-hooks";
 
+// The packages that make up the grid. No forms package may import one.
+const GRID_PACKAGES = [
+  "@gridkitjs/core",
+  "@gridkitjs/dom",
+  "@gridkitjs/react",
+  "@gridkitjs/export-xlsx",
+];
+
+/** Import patterns matching each package and every subpath of it. */
+const banned = (names) => names.flatMap((name) => [name, `${name}/*`]);
+
 export default tseslint.config(
   {
     // Generated output, plus config files that sit outside any tsconfig
@@ -20,9 +31,9 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   {
-    // Hooks only exist in the renderer and the apps that consume it.
+    // Hooks only exist in the React packages and the apps that consume them.
     ...reactHooks.configs.flat.recommended,
-    files: ["packages/react/**", "apps/**"],
+    files: ["packages/react/**", "packages/forms/**", "apps/**"],
   },
   {
     // Core has to stay reusable from any renderer, so it must not reach for
@@ -35,12 +46,14 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: [
+              group: banned([
                 "react",
                 "react-dom",
                 "@gridkitjs/react",
                 "@gridkitjs/dom",
-              ].flatMap((name) => [name, `${name}/*`]),
+                "@gridkitjs/forms-dom",
+                "@gridkitjs/forms",
+              ]),
               message: "core is framework- and DOM-free, see AGENTS.md",
             },
           ],
@@ -58,9 +71,12 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: ["react", "react-dom", "@gridkitjs/react"].flatMap(
-                (name) => [name, `${name}/*`],
-              ),
+              group: banned([
+                "react",
+                "react-dom",
+                "@gridkitjs/react",
+                "@gridkitjs/forms",
+              ]),
               message: "dom is framework-free, see AGENTS.md",
             },
           ],
@@ -78,13 +94,98 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: [
+              group: banned([
                 "react",
                 "react-dom",
                 "@gridkitjs/react",
                 "@gridkitjs/dom",
-              ].flatMap((name) => [name, `${name}/*`]),
+                "@gridkitjs/forms-dom",
+                "@gridkitjs/forms",
+              ]),
               message: "export-xlsx is framework- and DOM-free, see AGENTS.md",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // forms-core runs anywhere a field can be driven from: no DOM (its
+    // tsconfig's `lib`), no framework, and nothing from the workspace.
+    files: ["packages/forms-core/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: banned([
+                "react",
+                "react-dom",
+                ...GRID_PACKAGES,
+                "@gridkitjs/forms-dom",
+                "@gridkitjs/forms",
+              ]),
+              message:
+                "forms-core is framework-, DOM- and grid-free, see AGENTS.md",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // The forms behaviours are shared by every forms renderer, so they may
+    // use the DOM but no framework, and never reach into the grid.
+    files: ["packages/forms-dom/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: banned([
+                "react",
+                "react-dom",
+                ...GRID_PACKAGES,
+                "@gridkitjs/forms",
+              ]),
+              message: "forms-dom is framework- and grid-free, see AGENTS.md",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // The forms work without the grid, so the React forms never import it.
+    files: ["packages/forms/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: banned(GRID_PACKAGES),
+              message: "forms never imports the grid, see AGENTS.md",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // The playground's forms page shows the forms work without the grid.
+    files: ["apps/playground/src/forms/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: banned(GRID_PACKAGES),
+              message:
+                "the forms page never imports the grid, see apps/playground/AGENTS.md",
             },
           ],
         },

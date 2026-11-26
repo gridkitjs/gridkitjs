@@ -1,0 +1,95 @@
+/*
+ * GridKit plain-CSS theme: the forms stylesheet.
+ *
+ * Generated from packages/theme-tailwind/src/forms.css in the GridKit
+ * repository by this package's scripts/write-stylesheet.mjs. Don't edit it
+ * by hand: change the source and run the package's build.
+ *
+ * Import it alone, in an app with forms but no grid, or beside styles.css,
+ * before or after it. It reads the grid's theme tokens and declares the
+ * ones it needs, with the grid's defaults, on `:where(:root)` below. That
+ * has no specificity, so a preset or a theme's own tokens on `:root` win
+ * wherever they are loaded.
+ *
+ * Each colour is a raw `-light`/`-dark` pair and a live name the rules
+ * read, pointed at one pair by whichever of these applies:
+ *
+ *  - `:where(:root)`, by default: light.
+ *  - The `prefers-color-scheme: dark` query: dark, following the OS.
+ *  - `.gridkit-light` / `.gridkit-dark`: one palette, whatever the OS
+ *    prefers, for an app with its own theme toggle. Put either on `<html>`
+ *    or on any ancestor of a grid or a form.
+ */
+
+:where(:root) {
+  --gridkit-surface-light: oklch(1 0 0);
+  --gridkit-surface-dark: oklch(0.21 0.01 250);
+  --gridkit-surface-muted-light: oklch(0.97 0.003 250);
+  --gridkit-surface-muted-dark: oklch(0.26 0.012 250);
+  --gridkit-line-light: oklch(0.92 0.005 250);
+  --gridkit-line-dark: oklch(0.33 0.014 250);
+  --gridkit-hover-line-light: oklch(0.65 0.09 255);
+  --gridkit-hover-line-dark: oklch(0.75 0.09 255);
+  --gridkit-fg-light: oklch(0.21 0.01 250);
+  --gridkit-fg-dark: oklch(0.97 0.003 250);
+  --gridkit-fg-muted-light: oklch(0.5 0.015 250);
+  --gridkit-fg-muted-dark: oklch(0.7 0.015 250);
+  --gridkit-accent-light: oklch(0.6 0.17 255);
+  --gridkit-accent-dark: oklch(0.7 0.15 255);
+  --gridkit-selected-light: oklch(0.94 0.03 255);
+  --gridkit-selected-dark: oklch(0.32 0.05 255);
+  --gridkit-selected-strong-light: oklch(0.9 0.05 255);
+  --gridkit-selected-strong-dark: oklch(0.38 0.07 255);
+
+  color-scheme: light;
+  --gridkit-surface: var(--gridkit-surface-light);
+  --gridkit-surface-muted: var(--gridkit-surface-muted-light);
+  --gridkit-line: var(--gridkit-line-light);
+  --gridkit-hover-line: var(--gridkit-hover-line-light);
+  --gridkit-fg: var(--gridkit-fg-light);
+  --gridkit-fg-muted: var(--gridkit-fg-muted-light);
+  --gridkit-accent: var(--gridkit-accent-light);
+  --gridkit-selected: var(--gridkit-selected-light);
+  --gridkit-selected-strong: var(--gridkit-selected-strong-light);
+}
+
+@media (prefers-color-scheme: dark) {
+  :where(:root) {
+    color-scheme: dark;
+    --gridkit-surface: var(--gridkit-surface-dark);
+    --gridkit-surface-muted: var(--gridkit-surface-muted-dark);
+    --gridkit-line: var(--gridkit-line-dark);
+    --gridkit-hover-line: var(--gridkit-hover-line-dark);
+    --gridkit-fg: var(--gridkit-fg-dark);
+    --gridkit-fg-muted: var(--gridkit-fg-muted-dark);
+    --gridkit-accent: var(--gridkit-accent-dark);
+    --gridkit-selected: var(--gridkit-selected-dark);
+    --gridkit-selected-strong: var(--gridkit-selected-strong-dark);
+  }
+}
+
+.gridkit-light {
+  color-scheme: light;
+  --gridkit-surface: var(--gridkit-surface-light);
+  --gridkit-surface-muted: var(--gridkit-surface-muted-light);
+  --gridkit-line: var(--gridkit-line-light);
+  --gridkit-hover-line: var(--gridkit-hover-line-light);
+  --gridkit-fg: var(--gridkit-fg-light);
+  --gridkit-fg-muted: var(--gridkit-fg-muted-light);
+  --gridkit-accent: var(--gridkit-accent-light);
+  --gridkit-selected: var(--gridkit-selected-light);
+  --gridkit-selected-strong: var(--gridkit-selected-strong-light);
+}
+
+.gridkit-dark {
+  color-scheme: dark;
+  --gridkit-surface: var(--gridkit-surface-dark);
+  --gridkit-surface-muted: var(--gridkit-surface-muted-dark);
+  --gridkit-line: var(--gridkit-line-dark);
+  --gridkit-hover-line: var(--gridkit-hover-line-dark);
+  --gridkit-fg: var(--gridkit-fg-dark);
+  --gridkit-fg-muted: var(--gridkit-fg-muted-dark);
+  --gridkit-accent: var(--gridkit-accent-dark);
+  --gridkit-selected: var(--gridkit-selected-dark);
+  --gridkit-selected-strong: var(--gridkit-selected-strong-dark);
+}
