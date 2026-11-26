@@ -9,6 +9,11 @@ export {
 } from "./form/formControls";
 export { scheduleTimeout } from "./scheduleTimeout";
 export {
+  attachAutoGrow,
+  type AttachedAutoGrow,
+  type AutoGrowOptions,
+} from "./text/attachAutoGrow";
+export {
   attachTextInput,
   type AttachedTextInput,
   type TextControl,
