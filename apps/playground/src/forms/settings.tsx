@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Density, FieldMode } from "@gridkitjs/forms";
+import type { Density, FieldMode, NecessityIndicator } from "@gridkitjs/forms";
 import {
   DEFAULT_PRESET,
   PRESET_PARAM,
@@ -18,7 +18,9 @@ export type ColorScheme = "system" | "light" | "dark";
 export type Direction = "ltr" | "rtl";
 
 /**
- * What the page controls set. The page applies `preset`, `colorScheme`,
+ * What the page controls set. `necessityIndicator` says which labels are
+ * marked: required ones with a star, the others in words, or none. The
+ * page applies `preset`, `colorScheme`,
  * `direction` and `locale` to the document; each section hands the rest to
  * the components it shows.
  */
@@ -28,6 +30,7 @@ export interface PlaygroundSettings {
   readonly direction: Direction;
   readonly density: Density;
   readonly mode: FieldMode;
+  readonly necessityIndicator: NecessityIndicator;
   readonly disabled: boolean;
   readonly readOnly: boolean;
   /** A BCP 47 tag, for the components' `locale` and the page's `lang`. */
@@ -56,6 +59,12 @@ export const FIELD_MODES: readonly Option<FieldMode>[] = [
   { value: "display", label: "Display" },
 ];
 
+export const NECESSITY_INDICATORS: readonly Option<NecessityIndicator>[] = [
+  { value: "required", label: "Required" },
+  { value: "optional", label: "Optional" },
+  { value: "none", label: "None" },
+];
+
 const localeNames = new Intl.DisplayNames(["en"], { type: "language" });
 
 // Locales that differ in digits, separators, date order and script.
@@ -75,6 +84,7 @@ const DEFAULTS: PlaygroundSettings = {
   direction: "ltr",
   density: "standard",
   mode: "edit",
+  necessityIndicator: "required",
   disabled: false,
   readOnly: false,
   locale: "en-US",
@@ -86,6 +96,7 @@ const PARAMS: Readonly<Record<keyof PlaygroundSettings, string>> = {
   direction: "dir",
   density: "density",
   mode: "mode",
+  necessityIndicator: "necessity",
   disabled: "disabled",
   readOnly: "readonly",
   locale: "locale",
@@ -97,6 +108,7 @@ const TEXT_SETTINGS = [
   "direction",
   "density",
   "mode",
+  "necessityIndicator",
   "locale",
 ] as const;
 
@@ -122,6 +134,11 @@ function settingsFromUrl(): PlaygroundSettings {
     direction: params.get(PARAMS.direction) === "rtl" ? "rtl" : "ltr",
     density: optionOr(DENSITIES, params.get(PARAMS.density), DEFAULTS.density),
     mode: optionOr(FIELD_MODES, params.get(PARAMS.mode), DEFAULTS.mode),
+    necessityIndicator: optionOr(
+      NECESSITY_INDICATORS,
+      params.get(PARAMS.necessityIndicator),
+      DEFAULTS.necessityIndicator,
+    ),
     disabled: params.has(PARAMS.disabled),
     readOnly: params.has(PARAMS.readOnly),
     locale: optionOr(LOCALES, params.get(PARAMS.locale), DEFAULTS.locale),

@@ -36,8 +36,8 @@ test.describe("forms playground page", () => {
   test("the toggles add a validator and a slow check", async ({ mount }) => {
     const root = await mount(<FormsPlayground />);
     const name = root.getByRole("textbox", { name: "Name" });
-    const messages = root.getByRole("list", { name: "Name messages" });
-    await root.getByLabel("Required").check();
+    const status = root.getByRole("status").filter({ hasText: "Checking" });
+    await root.getByLabel("Required", { exact: true }).check();
     await root.getByLabel(/^Slow check/).check();
 
     // Validators run on a change, so the empty value is checked once
@@ -46,13 +46,35 @@ test.describe("forms playground page", () => {
     await name.press("a");
     await name.press("Backspace");
     await name.press("Enter");
-    await expect(messages).toHaveText("Checking…");
-    await expect(messages).toHaveText("Enter a value");
+    await expect(status).toHaveText("Checking…");
+    await expect(name).toHaveAccessibleDescription("Error: Enter a value");
 
     await name.pressSequentially("taken");
     await name.press("Enter");
-    await expect(messages).toHaveText('"taken" is taken');
+    await expect(name).toHaveAccessibleDescription('Error: "taken" is taken');
     await expect(name).toHaveAttribute("aria-invalid", "true");
+  });
+
+  test("the Required toggle stars the field, until the page marks no fields", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<FormsPlayground />);
+    const nameField = root
+      .locator(".gridkit-forms-field")
+      .filter({ has: page.getByRole("textbox", { name: "Name" }) });
+    const star = nameField.locator(".gridkit-forms-field-required");
+    await expect(star).toHaveCount(0);
+
+    await root.getByLabel("Required", { exact: true }).check();
+    await expect(star).toBeVisible();
+    await expect(root.getByRole("textbox", { name: "Name" })).toHaveAttribute(
+      "aria-required",
+      "true",
+    );
+
+    await root.getByLabel("Marked fields").selectOption("none");
+    await expect(star).toHaveCount(0);
   });
 
   test("applies each page control", async ({ mount, page }) => {

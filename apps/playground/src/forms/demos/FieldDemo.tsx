@@ -67,13 +67,17 @@ function DemoInput({
   );
 }
 
-/** A `Field` with the page's density, mode, `readOnly` and `disabled`. */
+/**
+ * A `Field` with the page's density, mode, marked fields, `readOnly` and
+ * `disabled`.
+ */
 function DemoField(props: FieldProps) {
   const { settings } = usePlaygroundSettings();
   return (
     <Field
       density={settings.density}
       mode={settings.mode}
+      necessityIndicator={settings.necessityIndicator}
       readOnly={settings.readOnly}
       disabled={settings.disabled}
       {...props}

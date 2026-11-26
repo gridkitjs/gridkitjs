@@ -5,6 +5,7 @@ import {
   DENSITIES,
   FIELD_MODES,
   LOCALES,
+  NECESSITY_INDICATORS,
   usePlaygroundSettings,
   type Option,
 } from "./settings";
@@ -131,6 +132,14 @@ export function PageControls() {
         options={FIELD_MODES}
         onChange={(mode) => {
           change({ mode });
+        }}
+      />
+      <SelectControl
+        label="Marked fields"
+        value={settings.necessityIndicator}
+        options={NECESSITY_INDICATORS}
+        onChange={(necessityIndicator) => {
+          change({ necessityIndicator });
         }}
       />
       <SelectControl
