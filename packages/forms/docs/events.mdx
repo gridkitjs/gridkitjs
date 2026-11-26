@@ -100,6 +100,8 @@ onBeforeInput → (the browser edits) → onInput → parse → onBeforeChange �
 
 On a commit, `onBeforeCommit`, then `onCommit`; on leaving by <Kbd>Tab</Kbd> or a click elsewhere, the commit, then `onBlur`. `onFocus` comes before anything else. A step with nothing to report is skipped, never reordered: text that reads as the value already held fires no `onChange`. Leaving fires one commit: <Kbd>Tab</Kbd> commits, and the blur that follows commits nothing more; <Kbd>Enter</Kbd> and then leaving is two. Text that cannot be read commits nothing and shows why.
 
+A clear button, or <Kbd>Escape</Kbd> in a [search input](/docs/forms/search-input), fires `onClear` first (a `FieldClearEvent` with `previousValue`, `previousText` and `nativeEvent`), then `onInput`, `onBeforeChange`, `onChange`, `onValidate`, `onBeforeCommit` and `onCommit`, with `source` and `trigger` `"clear"`.
+
 While an input method composes (Chinese, Japanese, Korean, Vietnamese Telex), every update fires `onBeforeInput` (not cancelable) and `onInput` with `input.isComposing`, and the text is read once, when composition ends.
 
 ## Hooks

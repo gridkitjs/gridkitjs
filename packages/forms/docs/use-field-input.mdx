@@ -3,7 +3,7 @@ title: "useFieldInput"
 description: "The hook every forms input is built on: binds a native text control to a field's value, events, validation and hidden input."
 ---
 
-`useFieldInput(props, kind)` binds a native `<input>` or `<textarea>` to a field: the value and the text being typed, the [events](/docs/forms/events) in their order, controlled and imperative changes, validation, and a hidden input that submits the value under `name`. It renders nothing itself: spread `controlProps` on the control and draw `hiddenInput` beside it. `kind` says how the input reads, writes and submits its value.
+`useFieldInput(props, kind, options)` binds a native `<input>` or `<textarea>` to a field: the value and the text being typed, the [events](/docs/forms/events) in their order, controlled and imperative changes, validation, and a hidden input that submits the value under `name`. It renders nothing itself: spread `controlProps` on the control and draw `hiddenInput` beside it. `kind` says how the input reads, writes and submits its value, and `options` how it behaves.
 
 <Callout type="note" title="First iteration">
   This hook is a first iteration and may change before the first release.
@@ -67,6 +67,9 @@ export function App() {
 | `parse`, `format`      | `Parser<V>`, `Formatter<V>`                    |           | The app's reading and writing; the context holds the input's own, to wrap.                      |
 | `validate`             | `Validator<V> \| Validator<V>[]`               |           | Checks the value after every change; a returned string is an error.                             |
 | `required`             | `boolean`                                      | `false`   | Sets `aria-required` and stars the label of the `Field` around it. Add the check to `validate`. |
+| `message`              | `FieldMessageInput \| FieldMessageInput[]`     |           | Your messages, always shown with the field's own; a string is an error.                         |
+| `invalid`              | `boolean`                                      | `false`   | The error state with no message, for a form library that shows its errors elsewhere.            |
+| `onClear`              | `(event: FieldClearEvent<V>) => void`          |           | Called first when the input's `clear` runs, with `previousValue` and `previousText`.            |
 | `name`                 | `string`                                       |           | Submits the value through a hidden input. The visible control never has a `name`.               |
 | `form`                 | `string`                                       |           | The `id` of a `<form>` elsewhere that the value belongs to.                                     |
 | `readOnly`, `disabled` | `boolean`                                      |           | Passed to the control; `disabled` disables the hidden input too, so nothing is submitted.       |
@@ -80,15 +83,26 @@ export function App() {
 
 `kind` is a `FieldInputKind<V>`: `defaultParse` and `defaultFormat` (the input's own reading and writing, which `parse` and `format` can wrap) and `serialize` (the value as its hidden input submits it, the same in every locale; `null` submits `""`). `textParser` and `formatText` are a text input's.
 
+`options` is a `FieldInputOptions`, the input's own behaviour, which the latest render passes on:
+
+| Option           | Type                            | Default    | Description                                                                                             |
+| ---------------- | ------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------- |
+| `startAdornment` | `boolean`                       | `false`    | Something sits at the control's start, so a floating label stays raised.                                |
+| `changeDelay`    | `number`                        | `0`        | Milliseconds typing must pause before the text is read, for a search box.                               |
+| `selectOnFocus`  | `boolean`                       | `false`    | Selects all the text on focus from the keyboard or from code.                                           |
+| `escape`         | `"revert" \| "clear" \| "none"` | `"revert"` | What <Kbd>Escape</Kbd> does: puts back the last commit, clears the field (after `onClear`), or nothing. |
+
 ## What it returns
 
-| Field                  | Description                                                                                                                            |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `controlProps`         | `ref`, `id`, `defaultValue`, `readOnly`, `disabled`, `aria-invalid`, `aria-describedby` and `aria-required`, to spread on the control. |
-| `mode`, `displayValue` | The mode in effect, and the value as text to draw in place of the control in display mode.                                             |
-| `hiddenInput`          | `<input type="hidden">` carrying `name`, or `null` without one.                                                                        |
-| `messages`             | The messages to show: none until the first commit attempt or `revealMessages()`, then live as the user types.                          |
-| `text`, `state`        | The text on screen, and the whole field state (`value`, `draft`, `phase`, ...).                                                        |
+| Field                  | Description                                                                                                                               |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `controlProps`         | `ref`, `id`, `defaultValue`, `readOnly`, `disabled`, `aria-invalid`, `aria-describedby` and `aria-required`, to spread on the control.    |
+| `mode`, `displayValue` | The mode in effect, and the value as text to draw in place of the control in display mode.                                                |
+| `hiddenInput`          | `<input type="hidden">` carrying `name`, or `null` without one.                                                                           |
+| `messages`             | The messages to show: your `message`, and the field's own from the first commit attempt or `revealMessages()` on, live as the user types. |
+| `severity`             | The most serious message shown, under the input or in the `Field` around it, or `"error"` for `invalid`: the box's border colour.         |
+| `clear(nativeEvent)`   | Fires `onClear`, then empties the field and commits it, with `source` and `trigger` `"clear"`: a clear button's action.                   |
+| `text`, `state`        | The text on screen, and the whole field state (`value`, `draft`, `phase`, ...).                                                           |
 
 ## Behaviour
 
