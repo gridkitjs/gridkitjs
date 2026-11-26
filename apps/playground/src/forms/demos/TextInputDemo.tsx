@@ -9,7 +9,6 @@ import {
 } from "@gridkitjs/forms";
 import { DemoSection } from "../DemoSection";
 import { useEventReporter } from "../eventLog";
-import { usePlaygroundSettings } from "../settings";
 import { DemoField, DemoGroup } from "./DemoField";
 
 const BUTTON_CLASS =
@@ -49,11 +48,9 @@ function LoggedTextInput({
   component,
   ...props
 }: TextInputProps & { readonly component: string }) {
-  const { settings } = usePlaygroundSettings();
   const reporter = useEventReporter(component);
   return (
     <TextInput
-      locale={settings.locale}
       onFocus={reporter("onFocus")}
       onBeforeInput={reporter("onBeforeInput")}
       onInput={reporter("onInput")}

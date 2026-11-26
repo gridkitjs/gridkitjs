@@ -2,7 +2,7 @@ import { useState } from "react";
 import { SearchInput, type SearchInputProps } from "@gridkitjs/forms";
 import { DemoSection } from "../DemoSection";
 import { useEventReporter } from "../eventLog";
-import { usePlaygroundSettings, type Option } from "../settings";
+import type { Option } from "../settings";
 import { DemoField, DemoGroup } from "./DemoField";
 import { Toggle } from "./TextInputDemo";
 
@@ -20,11 +20,9 @@ function LoggedSearchInput({
   component,
   ...props
 }: SearchInputProps & { readonly component: string }) {
-  const { settings } = usePlaygroundSettings();
   const reporter = useEventReporter(component);
   return (
     <SearchInput
-      locale={settings.locale}
       onFocus={reporter("onFocus")}
       onInput={reporter("onInput")}
       onBeforeChange={reporter("onBeforeChange")}

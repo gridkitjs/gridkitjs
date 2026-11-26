@@ -20,9 +20,10 @@ export type Direction = "ltr" | "rtl";
 /**
  * What the page controls set. `necessityIndicator` says which labels are
  * marked: required ones with a star, the others in words, or none. The
- * page applies `preset`, `colorScheme`,
- * `direction` and `locale` to the document; each section hands the rest to
- * the components it shows.
+ * page applies `preset`, `colorScheme`, `direction` and `locale` to the
+ * document, and gives every forms component `locale` and `density`
+ * through a `FormsProvider`; each section hands the rest to the
+ * components it shows.
  */
 export interface PlaygroundSettings {
   readonly preset: string;

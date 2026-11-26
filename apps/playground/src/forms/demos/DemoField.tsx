@@ -3,14 +3,13 @@ import { Field, type FieldProps } from "@gridkitjs/forms";
 import { usePlaygroundSettings } from "../settings";
 
 /**
- * A `Field` with the page's density, mode, marked fields, `readOnly` and
+ * A `Field` with the page's mode, marked fields, `readOnly` and
  * `disabled`; its own props win.
  */
 export function DemoField(props: FieldProps) {
   const { settings } = usePlaygroundSettings();
   return (
     <Field
-      density={settings.density}
       mode={settings.mode}
       necessityIndicator={settings.necessityIndicator}
       readOnly={settings.readOnly}

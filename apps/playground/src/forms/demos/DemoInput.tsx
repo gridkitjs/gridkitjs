@@ -1,6 +1,5 @@
 import { TextInput } from "@gridkitjs/forms";
 import { useEventReporter } from "../eventLog";
-import { usePlaygroundSettings } from "../settings";
 
 /**
  * A `TextInput` for the sections about structure, reporting its changes,
@@ -21,7 +20,6 @@ export function DemoInput({
   /** Names the control in a `FieldGroup`, whose label names the group. */
   readonly "aria-label"?: string;
 }) {
-  const { settings } = usePlaygroundSettings();
   const reporter = useEventReporter(component);
   return (
     <TextInput
@@ -29,7 +27,6 @@ export function DemoInput({
       defaultValue={defaultValue}
       placeholder={placeholder}
       aria-label={ariaLabel}
-      locale={settings.locale}
       onChange={reporter("onChange")}
       onValidate={reporter("onValidate")}
       onCommit={reporter("onCommit")}

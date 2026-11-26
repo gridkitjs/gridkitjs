@@ -19,7 +19,6 @@ function usePageStates() {
     mode: settings.mode,
     readOnly: settings.readOnly,
     disabled: settings.disabled,
-    density: settings.density,
   };
 }
 
@@ -42,14 +41,7 @@ function LoggedCheckbox({
   component,
   ...props
 }: CheckboxProps & { readonly component: string }) {
-  const { settings } = usePlaygroundSettings();
-  return (
-    <Checkbox
-      locale={settings.locale}
-      {...useToggleReporters(component)}
-      {...props}
-    />
-  );
+  return <Checkbox {...useToggleReporters(component)} {...props} />;
 }
 
 /** A `Switch` reporting all of its events to the log under `component`. */
@@ -57,14 +49,7 @@ function LoggedSwitch({
   component,
   ...props
 }: SwitchProps & { readonly component: string }) {
-  const { settings } = usePlaygroundSettings();
-  return (
-    <Switch
-      locale={settings.locale}
-      {...useToggleReporters(component)}
-      {...props}
-    />
-  );
+  return <Switch {...useToggleReporters(component)} {...props} />;
 }
 
 const SEVERITIES: readonly {
