@@ -43,7 +43,14 @@ export function OwnInput({
   }, [reportControlState, focused, text]);
 
   if (mode === "display") {
-    return <span>{text === "" ? "–" : text}</span>;
+    return text === "" ? (
+      <span className="gridkit-forms-display-value gridkit-forms-display-empty">
+        <span aria-hidden="true">—</span>
+        <span className="gridkit-forms-sr-only">No value</span>
+      </span>
+    ) : (
+      <span className="gridkit-forms-display-value">{text}</span>
+    );
   }
   return (
     <input
