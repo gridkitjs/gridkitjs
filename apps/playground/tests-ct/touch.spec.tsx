@@ -7,6 +7,8 @@ import type { ColumnDefinition } from "@gridkitjs/core";
 import { DataGrid, type DataGridProps } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import RightToLeft from "./support/RightToLeft";
+import TextInputHarness from "./support/forms/TextInputHarness";
+import ToggleHarness from "./support/forms/ToggleHarness";
 import ToolbarGrid from "./support/ToolbarGrid";
 import { mountGrid } from "./support/mountGrid";
 import {
@@ -393,6 +395,61 @@ test.describe("touch", { tag: "@touch" }, () => {
 
       await tap(page, pager.getByRole("button", { name: /next/i }));
       await expect(bodyCell(root, 0, 0)).toHaveText("row-5");
+    });
+  });
+  test.describe("forms", () => {
+    test("a tap flips a checkbox, whose whole row is big enough to tap", async ({
+      mount,
+      page,
+    }) => {
+      const root = await mount(
+        <ToggleHarness aria-label="Agreed" density="compact" />,
+      );
+      const checkbox = root.getByRole("checkbox", { name: "Agreed" });
+      await expectTappable(checkbox);
+
+      await tap(page, checkbox);
+
+      await expect(checkbox).toBeChecked();
+    });
+
+    test("a tap on a checkbox's label flips it", async ({ mount, page }) => {
+      const root = await mount(<ToggleHarness label="Agreed" />);
+
+      await tap(page, root.getByText("Agreed"));
+
+      await expect(root.getByRole("checkbox")).toBeChecked();
+    });
+
+    test("a tap flips a switch, big enough to tap", async ({ mount, page }) => {
+      const root = await mount(
+        <ToggleHarness
+          variant="switch"
+          aria-label="Alerts"
+          density="compact"
+        />,
+      );
+      const control = root.getByRole("switch", { name: "Alerts" });
+      await expectTappable(control);
+
+      await tap(page, control);
+
+      await expect(control).toBeChecked();
+    });
+
+    test("a tap on a text input's clear button empties it", async ({
+      mount,
+      page,
+    }) => {
+      const root = await mount(
+        <TextInputHarness clearable defaultValue="Ada" />,
+      );
+      const clear = root.getByRole("button", { name: "Clear", exact: true });
+      await expectTappable(clear);
+
+      await tap(page, clear);
+
+      await expect(root.getByRole("textbox", { name: "Name" })).toHaveValue("");
     });
   });
 });
