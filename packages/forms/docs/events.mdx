@@ -1,0 +1,165 @@
+---
+title: "Events"
+description: "The events every forms input fires: onInput for each edit, onChange when the value changes, onCommit when the user is done, and the hooks between."
+---
+
+Every forms input fires the same events, at three levels: `onInput` for every edit of the text, `onChange` when the value it reads as changes, and `onCommit` when the user is done with it. Each handler receives one object with the value and text before and after, where the change came from and the browser event behind it. Hooks run between the steps (`onBeforeInput`, `onBeforeChange`, `onBeforeCommit`) to prevent, rewrite or refuse, and `parse` and `format` change how text is read and written.
+
+<Callout type="note" title="First iteration">
+  The event model is a first iteration and may change before the first release.
+</Callout>
+
+## Which event to use
+
+| Event      | Fires when                                                    | Use it to                                                   |
+| ---------- | ------------------------------------------------------------- | ----------------------------------------------------------- |
+| `onInput`  | The text changed: a key, a paste, a drop, a deletion.         | React to every keystroke, such as a live character count.   |
+| `onChange` | The value changed. Typing a trailing zero after "1.5" is not. | Keep the value in your state.                               |
+| `onCommit` | The user is done: <Kbd>Enter</Kbd>, <Kbd>Tab</Kbd>, leaving.  | Save, or start work that should not run on every keystroke. |
+
+## Example
+
+The inputs arrive in a later release; until then, the hook they are built on shows the events on a native `<input>`:
+
+```tsx title="App.tsx"
+import {
+  formatText,
+  textParser,
+  useFieldInput,
+  type FieldInputKind,
+} from "@gridkitjs/forms";
+
+const text: FieldInputKind<string> = {
+  defaultParse: textParser({ trim: true }),
+  defaultFormat: formatText,
+  serialize: (value) => value,
+};
+
+export function App() {
+  const field = useFieldInput(
+    {
+      onInput: (event) => {
+        console.log(`typed "${event.text}"`);
+      },
+      onChange: (event) => {
+        console.log(
+          `${String(event.previousValue)} became ${String(event.value)} (${event.source})`,
+        );
+      },
+      onCommit: (event) => {
+        if (event.changed) {
+          console.log(`save ${String(event.value)}, by ${event.trigger}`);
+        }
+      },
+    },
+    text,
+  );
+  return (
+    <label>
+      Name <input {...field.controlProps} />
+    </label>
+  );
+}
+```
+
+## The event object
+
+In every event, `value` and `text` are what the field holds after the change the event is about (the proposed ones, in a before-event), and `previousValue` and `previousText` what it held before.
+
+| Field           | Type                       | Description                                                                                                |
+| --------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `value`         | `V \| null`                | The value; `null` is empty.                                                                                |
+| `previousValue` | `V \| null`                | The value before.                                                                                          |
+| `text`          | `string`                   | The text on screen.                                                                                        |
+| `previousText`  | `string`                   | The text before.                                                                                           |
+| `source`        | `ChangeSource`             | Where the change came from, below.                                                                         |
+| `nativeEvent`   | `Event \| null`            | The browser event behind it; `null` for a change made from code.                                           |
+| `input`         | `TextInputDetails \| null` | The browser's report of a text edit: `inputType`, `data`, `selectionStart`, `selectionEnd`, `isComposing`. |
+
+`onInput` and `onBeforeInput` come before the text is read, so their `value` and `previousValue` are both the value held. `onCommit` and `onBeforeCommit` add `trigger` (what ended the edit), `changed` (whether `value` differs from `previousValue`, the value at the last commit) and `initialValue` (the value when the field gained focus). `onValidate` adds `messages` and `valid`. `onFocus` and `onBlur` carry `value`, `text` and `nativeEvent`.
+
+| `source`                                      | The change came from                                                               |
+| --------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `typing`                                      | Keys, deletions, and text an input method composed.                                |
+| `paste`, `drop`                               | Text pasted or dropped in.                                                         |
+| `undo`                                        | The browser's undo or redo.                                                        |
+| `revert`                                      | <Kbd>Escape</Kbd> putting back the last committed value.                           |
+| `autofill`                                    | The text changing while the field was not focused, as browser autofill.            |
+| `api`                                         | `setValue`, `reset`, or the form's reset.                                          |
+| `step`, `picker`, `preset`, `clear`, `toggle` | The inputs that have them: steppers, pop-ups, presets, a clear button, a checkbox. |
+
+`trigger` is `enter`, `tab`, `blur`, `autofill`, or `picker`, `preset`, `clear` and `toggle` for the inputs that have them. Both lists may grow in a minor release, so a `switch` over either needs a `default`.
+
+## The order
+
+While typing, for each edit:
+
+```text
+onBeforeInput → (the browser edits) → onInput → parse → onBeforeChange → onChange → onValidate
+```
+
+On a commit, `onBeforeCommit`, then `onCommit`; on leaving by <Kbd>Tab</Kbd> or a click elsewhere, the commit, then `onBlur`. `onFocus` comes before anything else. A step with nothing to report is skipped, never reordered: text that reads as the value already held fires no `onChange`. Leaving fires one commit: <Kbd>Tab</Kbd> commits, and the blur that follows commits nothing more; <Kbd>Enter</Kbd> and then leaving is two. Text that cannot be read commits nothing and shows why.
+
+While an input method composes (Chinese, Japanese, Korean, Vietnamese Telex), every update fires `onBeforeInput` (not cancelable) and `onInput` with `input.isComposing`, and the text is read once, when composition ends.
+
+## Hooks
+
+- **`onBeforeInput`**: `preventDefault()` stops the edit, and `setData(data)` inserts `data` in place of what was typed, pasted or dropped. An inserted rewrite stays undoable. Neither works while an input method composes (`cancelable` is false).
+- **`onBeforeChange`**: `preventDefault()` keeps the value, and the typed text is put back with its selection; `setValue(value)` changes to another value instead.
+- **`onBeforeCommit`**: `preventDefault(message)` refuses the commit and shows `message` as an error. It may return a promise: the commit waits for it, and so does the `onBlur` of a field being left. A refusal keeps focus only for <Kbd>Enter</Kbd>, and for <Kbd>Tab</Kbd> when it refuses at once; after a click elsewhere focus has gone, and the message shows on the field.
+- **`parse` and `format`** receive the input's own reading and writing in their context, to wrap:
+
+```tsx title="App.tsx"
+import {
+  formatText,
+  parsed,
+  textParser,
+  useFieldInput,
+  type FieldInputKind,
+} from "@gridkitjs/forms";
+
+const text: FieldInputKind<string> = {
+  defaultParse: textParser(),
+  defaultFormat: formatText,
+  serialize: (value) => value,
+};
+
+export function App() {
+  const field = useFieldInput(
+    {
+      // "n/a" means empty; everything else reads as the input reads it.
+      parse: (input, { defaultParse }) =>
+        input === "n/a" ? parsed(null) : defaultParse(input),
+    },
+    text,
+  );
+  return (
+    <label>
+      Name <input {...field.controlProps} />
+    </label>
+  );
+}
+```
+
+A request made from inside a handler, such as an `onChange` that calls `setValue`, runs after the current sequence ends.
+
+## Controlled values and changes from code
+
+A controlled field (`value` present, `null` included) shows the app's value whenever the user is not typing, with no event at all: a `value` change never fires `onChange`. While the user types, a new `value` waits for the edit to end, so an app that only listens to `onCommit` never has typing erased. After a commit, the field shows the app's `value` again on the next render, so an app that did not take the change gets its own value back.
+
+`setValue(value)` and `reset()` on the `handleRef` fire `onBeforeChange`, `onChange` and `onValidate` with `source: "api"`, and no commit. A reset of the field's `<form>` resets it the same way.
+
+## Keyboard
+
+| Key                                                               | Does                                                                          |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| <Kbd>Enter</Kbd>                                                  | Commits; focus stays. In a `<textarea>`, a new line.                          |
+| <Kbd>Ctrl</Kbd>+<Kbd>Enter</Kbd>, <Kbd>Cmd</Kbd>+<Kbd>Enter</Kbd> | Commits a `<textarea>`.                                                       |
+| <Kbd>Tab</Kbd>                                                    | Commits, then focus moves on, unless `onBeforeCommit` refuses at once.        |
+| <Kbd>Escape</Kbd>                                                 | Puts back the last committed text, as an edit from `revert`, when it differs. |
+
+## See also
+
+- [useFieldInput](/docs/forms/use-field-input) for the hook behind every input.
+- [Field state](/docs/forms-core/field-state) for the controller that decides each event.
+- [Text pipeline](/docs/forms-dom/text-pipeline) for how browser events become these.

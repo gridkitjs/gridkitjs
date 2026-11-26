@@ -11,23 +11,60 @@ description: "React form inputs and form structure for GridKit, styled by the Gr
 
 ## Example
 
-The types an app writes against are exported from this package, so an app imports from it alone:
+Every input fires the same [events](/docs/forms/events). Until the inputs arrive, the hook they are built on binds a native control:
 
-```ts
-import type { Severity } from "@gridkitjs/forms";
+```tsx title="App.tsx"
+import {
+  formatText,
+  textParser,
+  useFieldInput,
+  type FieldInputKind,
+} from "@gridkitjs/forms";
 
-const severity: Severity = "warning";
+const text: FieldInputKind<string> = {
+  defaultParse: textParser(),
+  defaultFormat: formatText,
+  serialize: (value) => value,
+};
+
+export function App() {
+  const field = useFieldInput(
+    {
+      name: "name",
+      onCommit: (event) => {
+        console.log(`committed ${String(event.value)}`);
+      },
+    },
+    text,
+  );
+  return (
+    <label>
+      Name <input {...field.controlProps} />
+      {field.hiddenInput}
+    </label>
+  );
+}
 ```
 
 ## Exports
 
-Every export of `@gridkitjs/forms`:
+Every export of `@gridkitjs/forms`. Those marked as re-exported come from forms-core, so an app imports from this package alone.
 
-| Export     | Kind | Description                                                                                                                              |
-| ---------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `Severity` | type | How serious a message is: `"error"`, `"warning"`, `"info"` or `"success"`. Only `"error"` blocks. Re-exported from forms-core. Growable. |
+| Export                                                                                                                                                                                                             | Kind             | Description                                                                                              | Page                                         |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `useFieldInput`, `FieldInputProps`, `FieldInputKind`, `FieldInput`, `FieldControlBinding`                                                                                                                          | hook, types      | Binds a native text control to a field; every input is built on it.                                      | [useFieldInput](/docs/forms/use-field-input) |
+| `InputHandle`                                                                                                                                                                                                      | type             | What an input does from code: `focus`, `setValue`, `reset`, `revealMessages`.                            | [useFieldInput](/docs/forms/use-field-input) |
+| `FieldEventBase`, `FieldInputEvent`, `FieldChangeEvent`, `FieldValidateEvent`, `FieldCommitEvent`, `FieldBeforeInputEvent`, `FieldBeforeChangeEvent`, `FieldBeforeCommitEvent`, `FieldFocusEvent`, `FieldHandlers` | types            | The event objects, with the browser's `Event` as their native event, and the handlers that receive them. | [Events](/docs/forms/events)                 |
+| `ChangeSource`, `CommitTrigger`, `TextInputDetails`, `NoDetails`                                                                                                                                                   | types            | Where a change came from and what ended an edit. Growable unions. Re-exported.                           | [Events](/docs/forms/events)                 |
+| `Parser`, `Formatter`, `ParseContext`, `FormatContext`, `ParseResult`, `parsed`, `unreadable`                                                                                                                      | types, functions | The parse and format contract; the context holds the input's own, to wrap. Re-exported.                  | [Events](/docs/forms/events#hooks)           |
+| `textParser`, `formatText`, `TextParseOptions`                                                                                                                                                                     | functions, type  | A text input's own reading (trim, upper case, empty is `null`) and writing. Re-exported.                 | [Field state](/docs/forms-core/field-state)  |
+| `FieldState`, `FieldDraft`, `FieldPhase`, `TextReading`                                                                                                                                                            | types            | A field's value, draft, messages and lifecycle. Growable unions. Re-exported.                            | [Field state](/docs/forms-core/field-state)  |
+| `Validator`, `ValidatorContext`, `ValidationResult`                                                                                                                                                                | types            | A check of the value, returning messages. Re-exported.                                                   | [Validation](/docs/forms-core/validation)    |
+| `FieldMessage`, `FieldMessageInput`, `Severity`                                                                                                                                                                    | types            | A field's messages and how serious each is; only `"error"` blocks. Growable. Re-exported.                | [Validation](/docs/forms-core/validation)    |
+| `FormsMessages`                                                                                                                                                                                                    | type             | Every string the forms show. Re-exported.                                                                | [Validation](/docs/forms-core/validation)    |
 
 ## See also
 
+- [Events](/docs/forms/events) for what every input fires, and in what order.
 - [Forms core overview](/docs/forms-core/overview) for the logic behind every input.
 - [Forms DOM overview](/docs/forms-dom/overview) for the browser behaviours they attach.
