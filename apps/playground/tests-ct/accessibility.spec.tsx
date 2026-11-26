@@ -840,6 +840,25 @@ const fieldScans: readonly {
     field: () => <FieldHarness labelPosition="floating" />,
   },
   {
+    name: "a field with a floating label above the input, at rest",
+    field: () => (
+      <FieldHarness
+        labelPosition="floating"
+        className="gridkit-forms-floating-above"
+      />
+    ),
+  },
+  {
+    name: "a field with a floating label above the input, raised",
+    field: () => (
+      <FieldHarness
+        labelPosition="floating"
+        className="gridkit-forms-floating-above"
+        defaultValue="ada@example.com"
+      />
+    ),
+  },
+  {
     name: "a field in display mode",
     field: () => (
       <FieldHarness label="Name" mode="display" defaultValue="Ada Lovelace" />

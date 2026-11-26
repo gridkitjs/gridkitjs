@@ -5,6 +5,7 @@ import type { MountResult } from "@playwright/experimental-ct-react";
 import type { LabelPosition } from "@gridkitjs/forms";
 import { expect, test } from "./support/coverage";
 import FieldHarness from "./support/forms/FieldHarness";
+import { floatingLabelPlace } from "./support/forms/floatingLabel";
 import OwnInputField from "./support/forms/OwnInputField";
 
 function field(root: MountResult) {
@@ -264,6 +265,70 @@ test.describe("A floating label", () => {
 
     await page.emulateMedia({ reducedMotion: "reduce" });
     await expect.poll(async () => (await transition()).seconds).toBe(0);
+  });
+});
+
+test.describe("A floating label above the input", () => {
+  const settled = (root: MountResult) => floatingLabelPlace(field(root));
+
+  for (const { where, harness } of [
+    {
+      where: "on an ancestor",
+      harness: () => (
+        <div className="gridkit-forms-floating-above">
+          <FieldHarness labelPosition="floating" />
+        </div>
+      ),
+    },
+    {
+      where: "on the field",
+      harness: () => (
+        <FieldHarness
+          labelPosition="floating"
+          className="gridkit-forms-floating-above"
+        />
+      ),
+    },
+  ]) {
+    test(`rises above the control, in line with its start, with the class ${where}`, async ({
+      mount,
+    }) => {
+      const root = await mount(harness());
+      const resting = await settled(root);
+      // At rest it lies inside the control.
+      expect(resting.labelBottom).toBeGreaterThan(resting.controlTop);
+
+      await email(root).focus();
+      await expect(field(root)).toHaveClass(/\bis-label-raised\b/);
+      const raised = await settled(root);
+      expect(raised.labelBottom).toBeLessThanOrEqual(raised.controlTop);
+      expect(Math.abs(raised.textStart - raised.controlStart)).toBeLessThan(1);
+      expect(await labelScale(root)).toBe(1);
+      expect(raised.fieldHeight).toBe(resting.fieldHeight);
+    });
+  }
+
+  test("rises above the control's start in right-to-left text", async ({
+    mount,
+  }) => {
+    const root = await mount(
+      <div dir="rtl" className="gridkit-forms-floating-above">
+        <FieldHarness labelPosition="floating" />
+      </div>,
+    );
+    await email(root).focus();
+    await expect(field(root)).toHaveClass(/\bis-label-raised\b/);
+    const raised = await settled(root);
+    expect(raised.labelBottom).toBeLessThanOrEqual(raised.controlTop);
+    expect(Math.abs(raised.textStart - raised.controlStart)).toBeLessThan(1);
+  });
+
+  test("lands on the border without the class", async ({ mount }) => {
+    const root = await mount(<FieldHarness labelPosition="floating" />);
+    await email(root).focus();
+    await expect(field(root)).toHaveClass(/\bis-label-raised\b/);
+    const raised = await settled(root);
+    expect(raised.labelBottom).toBeGreaterThan(raised.controlTop);
   });
 });
 
