@@ -326,6 +326,24 @@ export function attachTextInput<V, D extends object>(
   }
 
   function onCompositionEnd(event: CompositionEvent): void {
+    // Firefox ends a composition committed in one step before the `input`
+    // that reports its text, so the text is reported here; otherwise the
+    // render below would write the old text over it. That late `input`
+    // then finds nothing new.
+    if (control.value !== controller.getText()) {
+      controller.input({
+        text: control.value,
+        source: "typing",
+        input: {
+          inputType: "insertCompositionText",
+          data: event.data,
+          selectionStart: control.selectionStart,
+          selectionEnd: control.selectionEnd,
+          isComposing: true,
+        },
+        nativeEvent: event,
+      });
+    }
     state = READY;
     controller.endComposition(event);
     render();

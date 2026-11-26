@@ -356,4 +356,26 @@ test.describe("the order a text field's events fire in", () => {
       native: "compositionend",
     });
   });
+
+  // Firefox enters `fill`'s text as a composition committed in one step and
+  // fires its last `input` after `compositionend`; the text must survive.
+  test("a fill: the text is read once and kept when the field is left", async ({
+    mount,
+  }) => {
+    const root = await mount(<FieldInputHarness name="name" />);
+
+    await nameField(root).fill("Ada");
+    await root.getByRole("textbox", { name: "Next" }).click();
+
+    await expect(nameField(root)).toHaveValue("Ada");
+    await expect(eventItems(root).last()).toHaveText("onBlur");
+    const events = await loggedEvents(root);
+    expect(events.filter((event) => event.name === "onChange")).toMatchObject([
+      { value: "Ada", previousValue: null, source: "typing" },
+    ]);
+    expect(events.find((event) => event.name === "onCommit")).toMatchObject({
+      value: "Ada",
+      trigger: "blur",
+    });
+  });
 });

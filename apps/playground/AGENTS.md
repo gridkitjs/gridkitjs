@@ -124,9 +124,11 @@ says why next to the difference. What the suite already handles:
   dispatches the composition's events in Firefox and WebKit, so a forms
   composition test runs in all three.
 - **Filling a forms field.** Playwright's `fill` enters text in Firefox
-  as a committed composition, whose `compositionend` comes before its last
-  `input`, unlike a typed key. A forms test about something else types
-  with `typeInto` from `support/forms/typeInto.ts`.
+  as a composition committed in one step, whose `compositionend` comes
+  before its last `input`. The forms handle that order, and
+  `forms-events.spec.tsx` covers it; a forms test about something else
+  types with `typeInto` from `support/forms/typeInto.ts`, so every browser
+  sees keystrokes.
 - **Dropping text.** Playwright cannot drag a text selection, and a
   dispatched `drop` inserts nothing, so a forms drop test dispatches the
   `beforeinput` and `input` a drop fires.
