@@ -19,7 +19,6 @@ import type {
 import { fieldReducer } from "./fieldReducer";
 import {
   CHECKING,
-  runApiChange,
   runAutofill,
   runBeforeInput,
   runBlur,
@@ -33,6 +32,7 @@ import {
   runRevert,
   runSettle,
   runSync,
+  runValueChange,
   type BeforeInputDecision,
   type ChangeCause,
   type CommitOutcome,
@@ -146,7 +146,14 @@ export interface FieldController<V, D extends object = NoDetails, N = unknown> {
     trigger: CommitTrigger,
     nativeEvent: N | null,
   ) => CommitOutcome;
-  /** The change chain to `value`, with `source: "api"`. */
+  /**
+   * A value set whole without a commit (a step, a part of a composite
+   * input): the change chain to `value`, with `cause`'s source and native
+   * event. Typed text gives way to the value formatted, even when the value
+   * stays.
+   */
+  readonly change: (value: V | null, cause: ChangeCause<N>) => void;
+  /** `change` to `value` with `source: "api"`. */
   readonly setValue: (value: V | null) => void;
   /** The change chain back to `defaultValue` (or `null`), with `source: "api"`. */
   readonly reset: () => void;
@@ -185,6 +192,13 @@ interface CheckWait<N> {
 }
 
 const NO_READ = { kind: "none" } as const;
+
+/** A change made from code: `setValue` and `reset`. */
+const API: ChangeCause<never> = {
+  source: "api",
+  nativeEvent: null,
+  input: null,
+};
 
 /** The source a commit reports, by what triggered it. */
 const COMMIT_SOURCES: Readonly<Record<CommitTrigger, ChangeSource>> = {
@@ -510,14 +524,19 @@ export function createFieldController<
           ),
         CHECKING,
       ),
+    change: (value, cause) => {
+      perform(() => {
+        runValueChange(env(), value, cause);
+      });
+    },
     setValue: (value) => {
       perform(() => {
-        runApiChange(env(), value);
+        runValueChange(env(), value, API);
       });
     },
     reset: () => {
       perform(() => {
-        runApiChange(env(), options.defaultValue ?? null);
+        runValueChange(env(), options.defaultValue ?? null, API);
       });
     },
     sync: (value) => {

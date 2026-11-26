@@ -779,20 +779,19 @@ export function runAutofill<V, D extends object, N>(
   ).check;
 }
 
-const API: ChangeCause<never> = {
-  source: "api",
-  nativeEvent: null,
-  input: null,
-};
-
-/** `setValue` and `reset`: the change chain with `source: "api"`, no commit. */
-export function runApiChange<V, D extends object, N>(
+/**
+ * A value set whole without a commit: a step, `setValue` and `reset`. The
+ * change chain, with `cause`'s source and native event; typed text is
+ * replaced by the value formatted, even when the value stays.
+ */
+export function runValueChange<V, D extends object, N>(
   env: FieldEnv<V, D, N>,
   value: V | null,
+  cause: ChangeCause<N>,
 ): void {
   const start = env.get();
-  if (runChange(env, start, value, null, start.draft, API) === "unchanged") {
-    validateIfReadingChanged(env, start, start.draft, API);
+  if (runChange(env, start, value, null, start.draft, cause) === "unchanged") {
+    validateIfReadingChanged(env, start, start.draft, cause);
   }
 }
 

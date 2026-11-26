@@ -402,6 +402,28 @@ describe("a controlled value", () => {
 });
 
 describe("setValue and reset", () => {
+  test("change runs the change chain with the cause given, and no commit", () => {
+    const field = textField();
+    const { controller } = field;
+    controller.focus(null);
+    field.clear();
+    controller.change("b", {
+      source: "step",
+      nativeEvent: "keydown ArrowUp",
+      input: null,
+    });
+    expect(field.names()).toEqual(["onBeforeChange", "onChange", "onValidate"]);
+    expect(field.event("onChange")).toMatchObject({
+      value: "b",
+      source: "step",
+      nativeEvent: "keydown ArrowUp",
+    });
+    expect(controller.getState().phase).toMatchObject({
+      kind: "editing",
+      committedValue: null,
+    });
+  });
+
   test("setValue runs the change chain with source api", () => {
     const field = textField();
     field.controller.setValue("x");

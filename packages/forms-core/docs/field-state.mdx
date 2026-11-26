@@ -85,6 +85,7 @@ While typing, per edit: `onBeforeInput`, the edit, `onInput`, then reading the t
 | `revert(nativeEvent)`                       | Escape: back to the last commit. False when there is nothing to put back.                                                                                 |
 | `clear(nativeEvent)`                        | Empties the field, then commits.                                                                                                                          |
 | `pick(value, source, trigger, nativeEvent)` | A value chosen whole (a toggle, an option), then a commit.                                                                                                |
+| `change(value, cause)`                      | A value set whole (a step, a part of a composite input): the change chain with the cause's `source` and native event; no commit.                          |
 | `setValue(value)`, `reset()`                | The change chain with `source: "api"`; no commit.                                                                                                         |
 | `sync(value)`                               | The controlled value; see below.                                                                                                                          |
 | `reveal()`                                  | Messages show from now on.                                                                                                                                |

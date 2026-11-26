@@ -6,7 +6,6 @@ import { runValidators, type Validator } from "../validation/validators";
 import type { ChangeSource, FieldHandlers, TextInputDetails } from "./events";
 import { fieldReducer } from "./fieldReducer";
 import {
-  runApiChange,
   runAutofill,
   runBeforeInput,
   runBlur,
@@ -17,6 +16,7 @@ import {
   runPick,
   runRead,
   runRevert,
+  runValueChange,
   type FieldEnv,
   type TextEdit,
 } from "./plan";
@@ -749,10 +749,12 @@ describe("a pick", () => {
   });
 });
 
-describe("setValue", () => {
-  test("runs the change chain with source api, and no commit", () => {
+describe("a value change", () => {
+  const API = { source: "api", nativeEvent: null, input: null } as const;
+
+  test("runs the change chain with its cause, and no commit", () => {
     const field = setup({ phase: "idle" });
-    runApiChange(field.env, 7);
+    runValueChange(field.env, 7, API);
     expect(field.names()).toEqual(["onBeforeChange", "onChange", "onValidate"]);
     expect(field.event("onChange")).toMatchObject({
       value: 7,
@@ -764,13 +766,38 @@ describe("setValue", () => {
     expect(field.state.value).toBe(7);
   });
 
+  test("reports a step's source and key", () => {
+    const field = setup();
+    runValueChange(field.env, 2, {
+      source: "step",
+      nativeEvent: "keydown ArrowUp",
+      input: null,
+    });
+    expect(field.names()).toEqual(["onBeforeChange", "onChange", "onValidate"]);
+    expect(field.event("onBeforeChange")).toMatchObject({
+      value: 2,
+      source: "step",
+      nativeEvent: "keydown ArrowUp",
+    });
+    expect(field.state.phase.kind).toBe("editing");
+  });
+
   test("replaces typed text, and fires nothing for the value held", () => {
     const field = setup();
     field.type("12.0");
     field.clear();
-    runApiChange(field.env, 12);
+    runValueChange(field.env, 12, API);
     expect(field.calls).toEqual([]);
     expect(field.state.draft).toEqual({ kind: "current" });
+  });
+
+  test("replaces unreadable text even when the value stays", () => {
+    const field = setup();
+    field.type("1x");
+    field.clear();
+    runValueChange(field.env, 1, API);
+    expect(field.state.draft).toEqual({ kind: "current" });
+    expect(field.names()).toEqual(["onValidate"]);
   });
 });
 
