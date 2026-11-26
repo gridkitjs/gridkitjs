@@ -78,6 +78,17 @@ The stylesheet needs no CSS reset of yours. Inside the grid and its menus it set
 
 `@gridkitjs/react` renders semantic class names, each starting with `gridkit-` (`gridkit-data-grid`, `gridkit-header-cell`, `gridkit-grid-row`), and marks state with `is-*` classes beside them, such as `is-selected`, and with ARIA attributes. They are the same under both themes; [class names](/docs/theme-tailwind/class-names) lists every one, with the grid's `data-gridkit-*` attributes.
 
+## Forms stylesheet
+
+`@gridkitjs/theme-css/forms.css` is the plain-CSS copy of the Tailwind theme's [forms stylesheet](/docs/theme-tailwind#forms-stylesheet), for GridKit's forms packages, which are not on npm yet. It declares the palette with the grid's defaults and follows the same dark mode, so it works alone or beside `styles.css`, in either order:
+
+```css title="src/index.css"
+@import "@gridkitjs/theme-css/styles.css";
+@import "@gridkitjs/theme-css/forms.css";
+```
+
+It declares its tokens on `:where(:root)`, at no specificity, so a preset or your own overrides on `:root` win wherever they are loaded.
+
 ## Compared with the Tailwind theme
 
 - **Dark mode** follows `prefers-color-scheme` and the two classes, where the Tailwind theme follows your app's `dark:` variant.

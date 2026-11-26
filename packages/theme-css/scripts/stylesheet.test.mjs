@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, test } from "node:test";
 import postcss from "postcss";
-import { TARGET, generateStylesheet, toPlainCss } from "./stylesheet.mjs";
+import path from "node:path";
+import { STYLESHEETS, generateStylesheet, toPlainCss } from "./stylesheet.mjs";
 
 const DARK_QUERY = "@media (prefers-color-scheme: dark)";
 
@@ -38,26 +39,38 @@ function source(extra = "") {
 ${extra}`;
 }
 
-describe("the generated stylesheet", () => {
-  test("matches theme-tailwind's (run pnpm --filter @gridkitjs/theme-css build)", async () => {
-    assert.equal(readFileSync(TARGET, "utf8"), await generateStylesheet());
-  });
+for (const stylesheet of STYLESHEETS) {
+  const { target, paletteRoot } = stylesheet;
 
-  test("has no Tailwind-only at-rule", () => {
-    const css = readFileSync(TARGET, "utf8");
-    for (const atRule of ["@variant", "@theme", "@apply", "@custom-variant"]) {
-      assert.ok(!css.includes(atRule), `${atRule} in ${TARGET}`);
-    }
-  });
+  describe(`the generated ${path.basename(target)}`, () => {
+    test("matches theme-tailwind's (run pnpm --filter @gridkitjs/theme-css build)", async () => {
+      assert.equal(
+        readFileSync(target, "utf8"),
+        await generateStylesheet(stylesheet),
+      );
+    });
 
-  test("puts the dark query before the palette classes", () => {
-    const css = readFileSync(TARGET, "utf8");
-    const dark = css.indexOf(`${DARK_QUERY} {\n  :root {`);
-    assert.notEqual(dark, -1);
-    assert.ok(dark < css.indexOf("\n.gridkit-light {"));
-    assert.ok(dark < css.indexOf("\n.gridkit-dark {"));
+    test("has no Tailwind-only at-rule", () => {
+      const css = readFileSync(target, "utf8");
+      for (const atRule of [
+        "@variant",
+        "@theme",
+        "@apply",
+        "@custom-variant",
+      ]) {
+        assert.ok(!css.includes(atRule), `${atRule} in ${target}`);
+      }
+    });
+
+    test("puts the dark query before the palette classes", () => {
+      const css = readFileSync(target, "utf8");
+      const dark = css.indexOf(`${DARK_QUERY} {\n  ${paletteRoot} {`);
+      assert.notEqual(dark, -1);
+      assert.ok(dark < css.indexOf("\n.gridkit-light {"));
+      assert.ok(dark < css.indexOf("\n.gridkit-dark {"));
+    });
   });
-});
+}
 
 describe("toPlainCss", () => {
   test("moves @variant dark into a media query after :root", () => {
@@ -78,6 +91,17 @@ describe("toPlainCss", () => {
       ["--gridkit-accent: var(--gridkit-accent-dark)"],
     );
     assert.ok(next?.type === "rule" && next.selector === ".gridkit-light");
+  });
+
+  test("moves @variant dark out of another palette rule onto the same selector", () => {
+    const css = source().replace(":root {", ":where(:root) {");
+    const [light, media] = postcss.parse(
+      toPlainCss(css, ":where(:root)"),
+    ).nodes;
+    assert.ok(light?.type === "rule" && light.selector === ":where(:root)");
+    assert.ok(media?.type === "atrule");
+    const [dark] = media.nodes ?? [];
+    assert.ok(dark?.type === "rule" && dark.selector === ":where(:root)");
   });
 
   test("drops @theme inline, its comment and the source's header", () => {
