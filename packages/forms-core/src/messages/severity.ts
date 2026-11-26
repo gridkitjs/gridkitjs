@@ -13,6 +13,11 @@ const BY_SERIOUSNESS: readonly Severity[] = [
   "success",
 ];
 
+/** Where `severity` sorts among messages: 0 for an error, higher for less serious. */
+export function severityRank(severity: Severity): number {
+  return BY_SERIOUSNESS.indexOf(severity);
+}
+
 /**
  * The most serious of `severities`, or `null` when there are none. A field
  * showing several messages takes the state of the most serious one.
