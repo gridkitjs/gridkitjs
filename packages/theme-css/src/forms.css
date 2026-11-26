@@ -389,7 +389,17 @@
     transform: translateY(-50%) scale(0.75);
   }
 
-  /* The placeholder shows only once the label is out of its way. */
+  /*
+   * The placeholder shows only once the label is out of its way, fading in
+   * as the label rises.
+   */
+  .gridkit-forms-field.is-label-floating:not(.is-display)
+    .gridkit-forms-field-control
+    ::placeholder {
+    transition: opacity var(--gridkit-forms-label-transition-duration, 0.18s)
+      ease-out;
+  }
+
   .gridkit-forms-field.is-label-floating:not(.is-display, .is-label-raised)
     .gridkit-forms-field-control
     ::placeholder {
@@ -407,7 +417,10 @@
 
   @media (prefers-reduced-motion: reduce) {
     .gridkit-forms-field.is-label-floating:not(.is-display)
-      .gridkit-forms-field-label {
+      .gridkit-forms-field-label,
+    .gridkit-forms-field.is-label-floating:not(.is-display)
+      .gridkit-forms-field-control
+      ::placeholder {
       transition: none;
     }
   }
