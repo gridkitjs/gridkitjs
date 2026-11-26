@@ -20,6 +20,11 @@ export interface FieldControlState {
   readonly startAdornment?: boolean | undefined;
   /** The input needs a value by a `required` of its own, so the field marks its label. */
   readonly required?: boolean | undefined;
+  /**
+   * The control carries its own label beside it (a checkbox, a switch), so
+   * nothing can rest inside it: a floating label sits above, as `top`.
+   */
+  readonly labelBeside?: boolean | undefined;
 }
 
 /** What a `Field`, or a `FieldGroup`, gives the inputs inside it. */

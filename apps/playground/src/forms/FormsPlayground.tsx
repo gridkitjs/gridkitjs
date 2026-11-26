@@ -2,6 +2,7 @@ import { FieldDemo } from "./demos/FieldDemo";
 import { FormStructureDemo } from "./demos/FormStructureDemo";
 import { SearchInputDemo } from "./demos/SearchInputDemo";
 import { TextInputDemo } from "./demos/TextInputDemo";
+import { CheckboxDemo, SwitchDemo } from "./demos/ToggleDemo";
 import { EventLogPanel } from "./EventLogPanel";
 import { EventLogProvider } from "./eventLog";
 import { PageControls } from "./PageControls";
@@ -37,6 +38,8 @@ export function FormsPlayground() {
             <main className="flex flex-1 flex-col gap-6 p-6 lg:overflow-y-auto">
               <TextInputDemo />
               <SearchInputDemo />
+              <CheckboxDemo />
+              <SwitchDemo />
               <FieldDemo />
               <FormStructureDemo />
             </main>

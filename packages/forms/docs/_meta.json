@@ -4,6 +4,8 @@
     "events",
     "text-input",
     "search-input",
+    "checkbox",
+    "switch",
     "form",
     "field",
     "layout",

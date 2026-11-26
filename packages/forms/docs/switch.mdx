@@ -1,0 +1,90 @@
+---
+title: "Switch"
+description: "Switch: an on or off setting that takes effect at once, a native checkbox with role switch, firing the forms events on every flip."
+---
+
+`Switch` is an on or off setting that takes effect at once: a native `<input type="checkbox" role="switch">` whose value is `true` or `false`, never empty. `label` is the text beside the track, `labelPlacement` puts it after or before, and `showStateLabel` adds "On" or "Off". Every flip fires the same [events](/docs/forms/events) as a text input, then commits.
+
+<Callout type="note" title="First iteration">
+  This component is a first iteration and may change before the first release.
+</Callout>
+
+## When to use it
+
+For a setting that applies the moment it changes, such as notifications or a dark theme. For an answer the user confirms with the rest of a form, or one that can be left unanswered, use a [`Checkbox`](/docs/forms/checkbox).
+
+## Example
+
+```tsx title="App.tsx"
+import { useState } from "react";
+import { Switch } from "@gridkitjs/forms";
+
+export function App() {
+  const [alerts, setAlerts] = useState(true);
+  return (
+    <>
+      <Switch
+        label="Email alerts"
+        value={alerts}
+        onChange={(event) => {
+          setAlerts(event.value === true);
+        }}
+      />
+      <p>{alerts ? "You will get alerts" : "Alerts are off"}</p>
+    </>
+  );
+}
+```
+
+## Props
+
+The props of [`Checkbox`](/docs/forms/checkbox#props) but `threeState`, with these differences:
+
+| Prop             | Type                    | Default | Description                                                                                |
+| ---------------- | ----------------------- | ------- | ------------------------------------------------------------------------------------------ |
+| `value`          | `boolean`               |         | Present means controlled.                                                                  |
+| `defaultValue`   | `boolean`               | `false` |                                                                                            |
+| `showStateLabel` | `boolean`               | `false` | "On" or "Off" beside the track. Screen readers hear the state from the control, not these. |
+| `required`       | `boolean`               | `false` | It must be on: "Turn this on to continue" until it is.                                     |
+| `ref`            | `Ref<HTMLInputElement>` |         | The native control.                                                                        |
+
+## Behaviour
+
+- **The state.** The browser reads the control's checked state as the switch's on or off; no `aria-checked` is written.
+- **The thumb** moves to the inline end when on: the right in a left-to-right page, the left in a right-to-left one.
+- **Submitting.** With `name`, a hidden input submits `"true"` or `"false"`.
+- **Read-only.** `readOnly` refuses every flip; the switch stays focusable and is read as read-only.
+- **Display mode.** "On" or "Off", beside the label.
+
+## Events
+
+As [`Checkbox`](/docs/forms/checkbox#events): a flip fires `onBeforeChange`, `onChange`, `onValidate`, `onBeforeCommit` and `onCommit` with `source` and `trigger` `"toggle"`, and `text` "On" or "Off".
+
+## Keyboard and pointer
+
+| Key              | Does      |
+| ---------------- | --------- |
+| <Kbd>Space</Kbd> | Flips it. |
+| <Kbd>Tab</Kbd>   | Moves on. |
+
+A press anywhere on the row, the label included, flips it. Under a coarse pointer the row is at least 24px in both directions.
+
+## Class names
+
+| Class                           | Element   | Description                                                                                                                                               |
+| ------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.gridkit-forms-switch`         | `<label>` | The row; a `<div>` in display mode. States: is-checked, is-disabled, is-readonly, is-display, is-label-start, is-compact, is-comfortable, and a severity. |
+| `.gridkit-forms-switch-control` | `<input>` | The native control, transparent over the row.                                                                                                             |
+| `.gridkit-forms-switch-track`   | `<span>`  | The drawn track, hidden from screen readers.                                                                                                              |
+| `.gridkit-forms-switch-thumb`   | `<span>`  | The thumb.                                                                                                                                                |
+| `.gridkit-forms-switch-label`   | `<span>`  | The text beside the track.                                                                                                                                |
+| `.gridkit-forms-switch-state`   | `<span>`  | "On" or "Off", with `showStateLabel`.                                                                                                                     |
+
+## Messages and localization
+
+From `FormsMessages`: `displayOn` ("On"), `displayOff` ("Off") and `requiredOn` ("Turn this on to continue").
+
+## See also
+
+- [Checkbox](/docs/forms/checkbox), for an answer confirmed with a form.
+- [Events](/docs/forms/events) for what it fires, and in what order.

@@ -19,3 +19,8 @@ export {
   type TextControl,
   type TextInputOptions,
 } from "./text/attachTextInput";
+export {
+  attachToggle,
+  type AttachedToggle,
+  type ToggleOptions,
+} from "./toggle/attachToggle";

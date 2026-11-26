@@ -85,24 +85,25 @@ export function App() {
 
 `options` is a `FieldInputOptions`, the input's own behaviour, which the latest render passes on:
 
-| Option           | Type                            | Default    | Description                                                                                             |
-| ---------------- | ------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------- |
-| `startAdornment` | `boolean`                       | `false`    | Something sits at the control's start, so a floating label stays raised.                                |
-| `changeDelay`    | `number`                        | `0`        | Milliseconds typing must pause before the text is read, for a search box.                               |
-| `selectOnFocus`  | `boolean`                       | `false`    | Selects all the text on focus from the keyboard or from code.                                           |
-| `escape`         | `"revert" \| "clear" \| "none"` | `"revert"` | What <Kbd>Escape</Kbd> does: puts back the last commit, clears the field (after `onClear`), or nothing. |
+| Option           | Type                            | Default    | Description                                                                                                                                                                    |
+| ---------------- | ------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `startAdornment` | `boolean`                       | `false`    | Something sits at the control's start, so a floating label stays raised.                                                                                                       |
+| `changeDelay`    | `number`                        | `0`        | Milliseconds typing must pause before the text is read, for a search box.                                                                                                      |
+| `selectOnFocus`  | `boolean`                       | `false`    | Selects all the text on focus from the keyboard or from code.                                                                                                                  |
+| `escape`         | `"revert" \| "clear" \| "none"` | `"revert"` | What <Kbd>Escape</Kbd> does: puts back the last commit, clears the field (after `onClear`), or nothing.                                                                        |
+| `toggle`         | `{ threeState?: boolean }`      |            | The control is a checkbox, flipped whole: forms-dom's [toggle behaviour](/docs/forms-dom/toggles) drives it, every flip commits, and a `Field`'s floating label sits above it. |
 
 ## What it returns
 
-| Field                  | Description                                                                                                                               |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `controlProps`         | `ref`, `id`, `defaultValue`, `readOnly`, `disabled`, `aria-invalid`, `aria-describedby` and `aria-required`, to spread on the control.    |
-| `mode`, `displayValue` | The mode in effect, and the value as text to draw in place of the control in display mode.                                                |
-| `hiddenInput`          | `<input type="hidden">` carrying `name`, or `null` without one.                                                                           |
-| `messages`             | The messages to show: your `message`, and the field's own from the first commit attempt or `revealMessages()` on, live as the user types. |
-| `severity`             | The most serious message shown, under the input or in the `Field` around it, or `"error"` for `invalid`: the box's border colour.         |
-| `clear(nativeEvent)`   | Fires `onClear`, then empties the field and commits it, with `source` and `trigger` `"clear"`: a clear button's action.                   |
-| `text`, `state`        | The text on screen, and the whole field state (`value`, `draft`, `phase`, ...).                                                           |
+| Field                  | Description                                                                                                                                                                                     |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `controlProps`         | `ref`, `id`, `defaultValue` (a toggle: `defaultChecked`), `readOnly` (a toggle: `aria-readonly`), `disabled`, `aria-invalid`, `aria-describedby` and `aria-required`, to spread on the control. |
+| `mode`, `displayValue` | The mode in effect, and the value as text to draw in place of the control in display mode.                                                                                                      |
+| `hiddenInput`          | `<input type="hidden">` carrying `name`, or `null` without one.                                                                                                                                 |
+| `messages`             | The messages to show: your `message`, and the field's own from the first commit attempt or `revealMessages()` on, live as the user types.                                                       |
+| `severity`             | The most serious message shown, under the input or in the `Field` around it, or `"error"` for `invalid`: the box's border colour.                                                               |
+| `clear(nativeEvent)`   | Fires `onClear`, then empties the field and commits it, with `source` and `trigger` `"clear"`: a clear button's action.                                                                         |
+| `text`, `state`        | The text on screen, and the whole field state (`value`, `draft`, `phase`, ...).                                                                                                                 |
 
 ## Behaviour
 

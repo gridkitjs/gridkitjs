@@ -203,6 +203,7 @@ function formatterOf<V, D extends object, N>(
   const context: FormatContext<V> = {
     defaultFormat: (value) => options.defaultFormat(value, context),
     locale: options.locale,
+    messages: options.messages,
   };
   return (value) => format(value, context);
 }

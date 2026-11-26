@@ -63,6 +63,13 @@ multiline input attaches forms-dom's `attachAutoGrow` in a layout effect
 that detaches it. A later input copies this shape.
 `forms-text-input.spec.tsx` and `forms-search-input.spec.tsx` cover them.
 
+`Checkbox` and `Switch` (`src/toggle/`) share one internal `ToggleInput`,
+which calls `useFieldInput` with the `toggle` option: the hook then
+attaches forms-dom's `attachToggle` in place of the text pipeline, turns
+off `commitOnLeave` and tells the `Field` the control's label sits beside
+it, so a floating label sits as `top`. They hold no lifecycle of their
+own. `forms-checkbox.spec.tsx` and `forms-switch.spec.tsx` cover them.
+
 `Field` (`src/field/`) holds no lifecycle either: it keeps what its input
 last reported (shown messages, and whether the control is focused and
 empty) and gives the input its ids and states through `FieldContext`. An

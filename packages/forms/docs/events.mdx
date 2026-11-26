@@ -102,6 +102,8 @@ On a commit, `onBeforeCommit`, then `onCommit`; on leaving by <Kbd>Tab</Kbd> or 
 
 A clear button, or <Kbd>Escape</Kbd> in a [search input](/docs/forms/search-input), fires `onClear` first (a `FieldClearEvent` with `previousValue`, `previousText` and `nativeEvent`), then `onInput`, `onBeforeChange`, `onChange`, `onValidate`, `onBeforeCommit` and `onCommit`, with `source` and `trigger` `"clear"`.
 
+A [checkbox](/docs/forms/checkbox) or [switch](/docs/forms/switch) flipped fires `onBeforeChange`, `onChange`, `onValidate`, `onBeforeCommit` and `onCommit`, with `source` and `trigger` `"toggle"`; leaving it commits nothing more.
+
 While an input method composes (Chinese, Japanese, Korean, Vietnamese Telex), every update fires `onBeforeInput` (not cancelable) and `onInput` with `input.isComposing`, and the text is read once, when composition ends.
 
 ## Hooks

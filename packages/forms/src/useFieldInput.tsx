@@ -5,6 +5,7 @@ import {
   resolveFormsMessages,
   sortFieldMessages,
   toFieldMessages,
+  type FieldController,
   type FieldMessage,
   type FieldMessageInput,
   type FieldOptions,
@@ -22,10 +23,13 @@ import {
 } from "@gridkitjs/forms-core";
 import {
   attachTextInput,
+  attachToggle,
   scheduleTimeout,
   type AttachedTextInput,
+  type AttachedToggle,
   type TextControl,
   type TextInputOptions,
+  type ToggleOptions,
 } from "@gridkitjs/forms-dom";
 import {
   useCallback,
@@ -141,15 +145,29 @@ export interface FieldInputOptions extends TextInputOptions {
    * for a search box; `onInput` fires at once and a commit reads at once.
    */
   readonly changeDelay?: number | undefined;
+  /**
+   * The control is a checkbox, flipped whole, rather than text: forms-dom's
+   * toggle behaviour drives it, every flip commits, leaving commits nothing
+   * more, and its label sits beside it, so a `Field`'s floating label stays
+   * above. `readOnly` is passed on by the hook.
+   */
+  readonly toggle?: Omit<ToggleOptions, "readOnly"> | undefined;
 }
 
 /** The props `useFieldInput` gives the native control. */
 export interface FieldControlBinding<E extends TextControl> {
   readonly ref: RefCallback<E>;
   readonly id: string;
-  /** The text on screen. The control's live text is forms-dom's, so it is never a controlled `value`. */
-  readonly defaultValue: string;
+  /**
+   * The text on screen, for a text control. The control's live text is
+   * forms-dom's, so it is never a controlled `value`.
+   */
+  readonly defaultValue: string | undefined;
+  /** Whether a toggle is checked when it is first drawn; forms-dom keeps it after. */
+  readonly defaultChecked: boolean | undefined;
+  /** A text control's native `readOnly`; a toggle, which ignores it, has `aria-readonly`. */
   readonly readOnly: boolean | undefined;
+  readonly "aria-readonly": true | undefined;
   readonly disabled: boolean | undefined;
   readonly "aria-invalid": true | undefined;
   /** The description and messages of the `Field` around it. */
@@ -201,6 +219,32 @@ function isFocused(phase: FieldPhase<unknown>): boolean {
   }
 }
 
+/** The forms-dom behaviour driving the control. */
+type AttachedBehaviour =
+  | { readonly kind: "text"; readonly handle: AttachedTextInput }
+  | { readonly kind: "toggle"; readonly handle: AttachedToggle };
+
+function attachBehaviour<V, D extends object>(
+  control: TextControl,
+  controller: FieldController<V, D, Event>,
+  toggle: boolean,
+): AttachedBehaviour {
+  if (!toggle) {
+    return { kind: "text", handle: attachTextInput(control, controller) };
+  }
+  if (!(control instanceof HTMLInputElement)) {
+    throw new TypeError("A toggle's control must be an <input>.");
+  }
+  // A toggle input's value is always a boolean: `Checkbox` and `Switch`
+  // are its only callers, and each is typed so.
+  const toggleController = controller as unknown as FieldController<
+    boolean,
+    D,
+    Event
+  >;
+  return { kind: "toggle", handle: attachToggle(control, toggleController) };
+}
+
 /** `validate` as a list. */
 export function validatorsOf<V>(
   validate: Validator<V> | readonly Validator<V>[] | undefined,
@@ -212,7 +256,8 @@ export function validatorsOf<V>(
 }
 
 /**
- * Binds a native text control to a field: the value and draft model, the
+ * Binds a native text control, or with `options.toggle` a checkbox, to a
+ * field: the value and draft model, the
  * events in their order, controlled and imperative changes, validation and
  * the hidden input that submits the value. The input that calls it draws
  * the control with `controlProps` spread on it, and `hiddenInput` beside
@@ -249,6 +294,7 @@ export function useFieldInput<
   const readOnly = props.readOnly === true || settings.readOnly;
   const disabled = props.disabled === true || settings.disabled;
   const mode = props.mode ?? settings.mode;
+  const toggle = options.toggle !== undefined;
   const locale = props.locale ?? settings.locale;
   const messages = useMemo(
     () =>
@@ -270,6 +316,7 @@ export function useFieldInput<
     validators: validatorsOf(props.validate),
     schedule: scheduleTimeout,
     changeDelay: options.changeDelay,
+    commitOnLeave: !toggle,
     locale,
     messages,
     onFocus: props.onFocus,
@@ -330,27 +377,33 @@ export function useFieldInput<
       nativeEvent,
     });
   }
-  const pipelineOptions: TextInputOptions = {
+  const textOptions: TextInputOptions = {
     selectOnFocus: options.selectOnFocus,
     escape: options.escape,
     onClear: fireClear,
   };
-  const pipeline = useRef<AttachedTextInput | null>(null);
+  const toggleOptions: ToggleOptions = { ...options.toggle, readOnly };
+  const behaviour = useRef<AttachedBehaviour | null>(null);
   useLayoutEffect(() => {
     if (control === null) {
       return undefined;
     }
-    const attached = attachTextInput(control, controller);
-    pipeline.current = attached;
+    const attached = attachBehaviour(control, controller, toggle);
+    behaviour.current = attached;
     return () => {
-      attached.detach();
-      pipeline.current = null;
+      attached.handle.detach();
+      behaviour.current = null;
     };
-  }, [control, controller]);
+  }, [control, controller, toggle]);
   // Every render's options, the attaching render's included: this effect
   // runs straight after the one above, before any event can arrive.
   useLayoutEffect(() => {
-    pipeline.current?.setOptions(pipelineOptions);
+    const attached = behaviour.current;
+    if (attached?.kind === "text") {
+      attached.handle.setOptions(textOptions);
+    } else if (attached?.kind === "toggle") {
+      attached.handle.setOptions(toggleOptions);
+    }
   });
 
   useImperativeHandle(
@@ -413,11 +466,17 @@ export function useFieldInput<
     if (setControlState === undefined) {
       return undefined;
     }
-    setControlState({ focused, empty, required, startAdornment });
+    setControlState({
+      focused,
+      empty,
+      required,
+      startAdornment,
+      labelBeside: toggle,
+    });
     return () => {
       setControlState(null);
     };
-  }, [setControlState, focused, empty, required, startAdornment]);
+  }, [setControlState, focused, empty, required, startAdornment, toggle]);
 
   return {
     state,
@@ -433,8 +492,10 @@ export function useFieldInput<
     controlProps: {
       ref: controlRef,
       id: field?.controlId ?? props.id ?? ownId,
-      defaultValue: text,
-      readOnly,
+      defaultValue: toggle ? undefined : text,
+      defaultChecked: toggle ? state.value === true : undefined,
+      readOnly: toggle ? undefined : readOnly,
+      "aria-readonly": (toggle && readOnly) || undefined,
       disabled,
       "aria-invalid":
         hasError(shown) ||

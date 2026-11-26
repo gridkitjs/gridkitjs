@@ -365,7 +365,6 @@ function TextInputControl({
               aria-controls={controlId}
               aria-label={strings.showPassword}
               disabled={controlProps.disabled}
-              onPointerDown={keepFocus}
               onMouseDown={keepFocus}
               onClick={() => {
                 if (

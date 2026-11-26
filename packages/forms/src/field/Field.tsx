@@ -152,7 +152,10 @@ export function Field({
   // Marked when either the field or its input asks for a value.
   const marked = required || controlState?.required === true;
   const display = settings.mode === "display";
-  const position = settings.labelPosition;
+  const position =
+    settings.labelPosition === "floating" && controlState?.labelBeside === true
+      ? "top"
+      : settings.labelPosition;
   const raised =
     position === "floating" && isRaised(controlState, settings.mode);
 
@@ -167,7 +170,11 @@ export function Field({
       control !== null &&
       control !== undefined &&
       !control.hasAttribute("aria-label") &&
-      !control.hasAttribute("aria-labelledby")
+      !control.hasAttribute("aria-labelledby") &&
+      // A checkbox named by the label wrapped around it.
+      !(
+        control instanceof HTMLInputElement && (control.labels?.length ?? 0) > 0
+      )
     ) {
       warnOnce(
         "field-label",

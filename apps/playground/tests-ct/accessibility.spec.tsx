@@ -17,6 +17,7 @@ import LayoutHarness from "./support/forms/LayoutHarness";
 import SearchInputHarness from "./support/forms/SearchInputHarness";
 import SummaryHarness from "./support/forms/SummaryHarness";
 import TextInputHarness from "./support/forms/TextInputHarness";
+import ToggleHarness from "./support/forms/ToggleHarness";
 import HeaderTextGrid from "./support/HeaderTextGrid";
 import RightToLeft from "./support/RightToLeft";
 import ToolbarGrid from "./support/ToolbarGrid";
@@ -898,6 +899,118 @@ const fieldScans: readonly {
   {
     name: "a search input in display mode",
     field: () => <SearchInputHarness mode="display" defaultValue="Ada" />,
+  },
+  {
+    name: "an unchecked checkbox in a field",
+    field: () => (
+      <ToggleHarness fieldLabel="Newsletter" label="Send me the newsletter" />
+    ),
+  },
+  {
+    name: "a checked checkbox",
+    field: () => (
+      <ToggleHarness fieldLabel="Terms" label="I agree" defaultValue />
+    ),
+  },
+  {
+    name: "a mixed checkbox",
+    field: () => (
+      <ToggleHarness
+        fieldLabel="Columns"
+        label="All columns"
+        defaultValue={null}
+      />
+    ),
+  },
+  {
+    name: "an invalid checkbox",
+    field: () => (
+      <ToggleHarness
+        fieldLabel="Terms"
+        label="I agree"
+        fieldMessage="Check this box to continue"
+        required
+      />
+    ),
+  },
+  {
+    name: "a disabled, checked checkbox",
+    field: () => (
+      <ToggleHarness fieldLabel="Terms" label="I agree" disabled defaultValue />
+    ),
+  },
+  {
+    name: "a read-only checkbox",
+    field: () => (
+      <ToggleHarness fieldLabel="Terms" label="I agree" readOnly defaultValue />
+    ),
+  },
+  {
+    name: "a checkbox in display mode",
+    field: () => (
+      <ToggleHarness
+        fieldLabel="Terms"
+        label="I agree"
+        mode="display"
+        defaultValue
+      />
+    ),
+  },
+  {
+    name: "a switch, off and on",
+    field: () => (
+      <ToggleHarness
+        variant="switch"
+        fieldLabel="Alerts"
+        label="Email alerts"
+        showStateLabel
+      />
+    ),
+  },
+  {
+    name: "a switch that is on",
+    field: () => (
+      <ToggleHarness
+        variant="switch"
+        fieldLabel="Alerts"
+        label="Email alerts"
+        defaultValue
+      />
+    ),
+  },
+  {
+    name: "an invalid switch",
+    field: () => (
+      <ToggleHarness
+        variant="switch"
+        fieldLabel="Alerts"
+        label="Email alerts"
+        fieldMessage={{ text: "Alerts are off", severity: "warning" }}
+      />
+    ),
+  },
+  {
+    name: "a disabled switch",
+    field: () => (
+      <ToggleHarness
+        variant="switch"
+        fieldLabel="Alerts"
+        label="Email alerts"
+        disabled
+        defaultValue
+      />
+    ),
+  },
+  {
+    name: "a switch in display mode",
+    field: () => (
+      <ToggleHarness
+        variant="switch"
+        fieldLabel="Alerts"
+        label="Email alerts"
+        mode="display"
+      />
+    ),
   },
 ];
 

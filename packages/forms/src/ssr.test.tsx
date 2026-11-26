@@ -2,6 +2,7 @@ import { formatText, textParser } from "@gridkitjs/forms-core";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  Checkbox,
   Field,
   FieldGroup,
   Fieldset,
@@ -9,6 +10,7 @@ import {
   FormLayout,
   FormSection,
   MessageSummary,
+  Switch,
   useFieldInput,
   type FieldInputKind,
   type FieldInputProps,
@@ -223,5 +225,52 @@ describe("a form on the server", () => {
       '<div id="postal" role="group" aria-labelledby="postal-label" class="gridkit-forms-field gridkit-forms-field-group is-label-top is-compact">',
     );
     expect(error).not.toHaveBeenCalled();
+  });
+});
+
+describe("a toggle on the server", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("renders a checked checkbox with its label and submitted value", () => {
+    const error = vi.spyOn(console, "error");
+    const html = renderToString(
+      <Checkbox
+        id="news"
+        label="Send me the newsletter"
+        name="news"
+        defaultValue
+      />,
+    );
+    expect(html).toContain('<label class="gridkit-forms-checkbox is-checked">');
+    expect(html).toContain(
+      '<input id="news" aria-describedby="news-messages" type="checkbox" class="gridkit-forms-checkbox-control" checked=""/>',
+    );
+    expect(html).toContain(
+      '<span class="gridkit-forms-checkbox-label">Send me the newsletter</span>',
+    );
+    expect(html).toContain('<input type="hidden" name="news" value="true"/>');
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it("marks a null checkbox mixed and submits it empty", () => {
+    const html = renderToString(
+      <Checkbox aria-label="All" name="all" defaultValue={null} />,
+    );
+    expect(html).toContain('class="gridkit-forms-checkbox is-mixed"');
+    expect(html).toContain('<input type="hidden" name="all" value=""/>');
+  });
+
+  it("renders a switch, off unless given, and shows its state in display mode", () => {
+    expect(
+      renderToString(<Switch aria-label="Alerts" name="alerts" />),
+    ).toContain('role="switch"');
+    expect(
+      renderToString(<Switch aria-label="Alerts" name="alerts" />),
+    ).toContain('<input type="hidden" name="alerts" value="false"/>');
+    expect(
+      renderToString(<Switch label="Alerts" mode="display" defaultValue />),
+    ).toContain('<span class="gridkit-forms-display-value">On</span>');
   });
 });
