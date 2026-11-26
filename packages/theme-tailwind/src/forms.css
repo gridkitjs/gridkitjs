@@ -527,6 +527,55 @@
   }
 
   /*
+   * Under `gridkit-forms-floating-above`, on the field or on any ancestor,
+   * a raised label sits above the control instead, where a top label sits:
+   * full size, in line with the control's inline start, and the top label's
+   * gap above the control. The field always keeps that room above the
+   * control, so rising never moves anything else. The label's top is the
+   * control's top, so it rests where it does without the class; risen, it
+   * moves up by its own height and the gap, and out by its inset and
+   * padding.
+   */
+  .gridkit-forms-field.is-label-floating:not(.is-display):is(
+      .gridkit-forms-floating-above,
+      .gridkit-forms-floating-above *
+    )
+    > .gridkit-forms-field-control {
+    padding-block-start: calc(1.25em + var(--gridkit-spacing) * 1.5);
+  }
+
+  .gridkit-forms-field.is-label-floating:not(.is-display):is(
+      .gridkit-forms-floating-above,
+      .gridkit-forms-floating-above *
+    )
+    .gridkit-forms-field-label {
+    inset-block-start: calc(1.25em + var(--gridkit-spacing) * 1.5);
+  }
+
+  .gridkit-forms-field.is-label-floating:not(.is-display):is(
+      .is-label-raised,
+      :has(:autofill)
+    ):is(.gridkit-forms-floating-above, .gridkit-forms-floating-above *)
+    .gridkit-forms-field-label {
+    background-color: transparent;
+    transform: translate(
+      calc(var(--gridkit-spacing) * -2),
+      calc(-100% - var(--gridkit-spacing) * 1.5)
+    );
+  }
+
+  .gridkit-forms-field.is-label-floating:not(.is-display):is(
+      .is-label-raised,
+      :has(:autofill)
+    ):is(.gridkit-forms-floating-above, .gridkit-forms-floating-above *)
+    .gridkit-forms-field-label:dir(rtl) {
+    transform: translate(
+      calc(var(--gridkit-spacing) * 2),
+      calc(-100% - var(--gridkit-spacing) * 1.5)
+    );
+  }
+
+  /*
    * The placeholder shows only once the label is out of its way, fading in
    * as the label rises.
    */
