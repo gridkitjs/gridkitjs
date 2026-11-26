@@ -32,6 +32,7 @@ export interface FormatContext<V> {
   /** The input's own formatting, to fall back on. */
   readonly defaultFormat: (value: V | null) => string;
   readonly locale: Intl.LocalesArgument;
+  readonly messages: FormsMessages;
 }
 
 /** Writes a value as the text a field shows, `null` included. */
