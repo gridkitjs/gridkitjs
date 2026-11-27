@@ -11,6 +11,27 @@ import { applyEdit, type TextRange } from "./applyEdit";
 /** The native controls a text input draws. */
 export type TextControl = HTMLInputElement | HTMLTextAreaElement;
 
+/**
+ * What `attachTextInput` asks of the field it drives: a forms-core
+ * `FieldController`, or one part of a composite input.
+ */
+export type TextInputController<V, D extends object> = Pick<
+  FieldController<V, D, Event>,
+  | "getState"
+  | "getText"
+  | "getMessages"
+  | "subscribe"
+  | "beforeInput"
+  | "input"
+  | "endComposition"
+  | "focus"
+  | "commit"
+  | "blur"
+  | "revert"
+  | "clear"
+  | "reset"
+>;
+
 /** What a renderer can change about the pipeline while it is attached. */
 export interface TextInputOptions {
   /**
@@ -205,7 +226,7 @@ function errorText(messages: readonly FieldMessage[]): string {
  */
 export function attachTextInput<V, D extends object>(
   control: TextControl,
-  controller: FieldController<V, D, Event>,
+  controller: TextInputController<V, D>,
   initialOptions: TextInputOptions = {},
 ): AttachedTextInput {
   let options = initialOptions;
