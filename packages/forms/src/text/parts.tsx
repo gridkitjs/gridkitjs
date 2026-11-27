@@ -195,6 +195,7 @@ export function useOwnMessagesId(controlId: string): string | undefined {
  * adornments, the clear button and the spinner inside it.
  */
 export function ControlBox({
+  className,
   severity,
   disabled,
   readOnly,
@@ -209,6 +210,8 @@ export function ControlBox({
   end,
   children,
 }: {
+  /** More classes for the box, beside its own. */
+  readonly className?: string | undefined;
   readonly severity: Severity | null;
   readonly disabled: boolean;
   readonly readOnly: boolean;
@@ -234,6 +237,7 @@ export function ControlBox({
     <div
       className={classNames(
         "gridkit-forms-control",
+        className,
         severity !== null && `is-${severity}`,
         disabled && "is-disabled",
         readOnly && "is-readonly",
