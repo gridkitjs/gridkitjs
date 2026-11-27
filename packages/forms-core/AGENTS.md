@@ -2,7 +2,9 @@
 
 Framework-free form-input logic: values and drafts, the field lifecycle and
 its reducer, event objects and their order, the parse and format contract,
-validators, messages and their catalogue. Plain TypeScript with no DOM.
+validators, messages and their catalogue, and reading and writing numbers in
+every locale with exact decimals (`src/number/`, on `Intl` alone, with no
+number library). Plain TypeScript with no DOM.
 Private until its first release: `"private": true` keeps it out of the
 release, pack and docs tooling. Read the root
 [Structure](../../AGENTS.md#structure) section for how it fits with
