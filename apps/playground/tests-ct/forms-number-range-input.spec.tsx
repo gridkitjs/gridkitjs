@@ -394,7 +394,7 @@ test.describe("NumberRangeInput: states", () => {
       />,
     );
     await expect(root.locator(".gridkit-forms-display-value")).toHaveText(
-      "10,00–20,00 €",
+      "10,00–20,00\u00A0€",
     );
   });
 
