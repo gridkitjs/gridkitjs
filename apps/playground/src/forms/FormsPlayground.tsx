@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { FormsProvider } from "@gridkitjs/forms";
 import { FieldDemo } from "./demos/FieldDemo";
 import { FormStructureDemo } from "./demos/FormStructureDemo";
+import { NumberInputDemo, PercentInputDemo } from "./demos/NumberInputDemo";
 import { SearchInputDemo } from "./demos/SearchInputDemo";
 import { TextInputDemo } from "./demos/TextInputDemo";
 import { CheckboxDemo, SwitchDemo } from "./demos/ToggleDemo";
@@ -51,6 +52,8 @@ export function FormsPlayground() {
               <main className="flex flex-1 flex-col gap-6 p-6 lg:overflow-y-auto">
                 <TextInputDemo />
                 <SearchInputDemo />
+                <NumberInputDemo />
+                <PercentInputDemo />
                 <CheckboxDemo />
                 <SwitchDemo />
                 <FieldDemo />

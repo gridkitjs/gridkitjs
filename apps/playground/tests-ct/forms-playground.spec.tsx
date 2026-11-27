@@ -291,6 +291,28 @@ test.describe("forms playground page", () => {
     );
   });
 
+  test("the number input section logs typing and a step, in the page's locale", async ({
+    mount,
+  }) => {
+    const root = await mount(<FormsPlayground />);
+    const rows = root
+      .getByRole("table", { name: "Event log" })
+      .locator("tbody tr");
+    await root.getByLabel("Locale").selectOption("de-DE");
+    const amount = root.getByRole("spinbutton", { name: "Amount" });
+
+    await typeInto(amount, "12,5");
+    await expect(amount).toHaveValue("12,50");
+    await amount.press("ArrowUp");
+
+    // 12.5 is off the grid of whole steps, so the step goes to 13.
+    await expect(amount).toHaveValue("13,00");
+    await expect(rows.filter({ hasText: "onStep" })).toHaveCount(1);
+    await expect(
+      rows.filter({ hasText: "onChange" }).filter({ hasText: "step" }),
+    ).toContainText("13");
+  });
+
   test("the page's locale and density reach every component", async ({
     mount,
     page,
@@ -313,7 +335,7 @@ test.describe("forms playground page", () => {
     // which fix their own: a compact and a standard one per input.
     await expect(
       root.locator(".gridkit-forms-field:not(.is-comfortable)"),
-    ).toHaveCount(6);
+    ).toHaveCount(8);
   });
 
   test("shows no console error under any preset, scheme, direction, floating label or mode", async ({
