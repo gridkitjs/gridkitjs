@@ -6,6 +6,7 @@
     "search-input",
     "number-input",
     "percent-input",
+    "number-range-input",
     "checkbox",
     "switch",
     "form",
