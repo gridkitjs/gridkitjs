@@ -69,7 +69,7 @@ The controller is a forms-core `FieldController`, or one part of a composite inp
 | `beforeinput`                 | `beforeInput`, with the text the edit would leave; then the edit happens, is prevented, the handler's data is inserted, or the field's filter replaces the whole text. |
 | `input`                       | `input`, with the text the edit left. Its `inputType` gives the source: `paste`, `drop`, `undo`, else `typing`.                                                        |
 | `input` while not focused     | `input` with the source `autofill`: read and committed at once.                                                                                                        |
-| `compositionend`              | `endComposition`: the composed text is read.                                                                                                                           |
+| `compositionend`              | `filterComposition` for the composed text, written as the filter decides; then `endComposition`: the text is read.                                                     |
 | `keydown`                     | `commit` for <Kbd>Enter</Kbd> and <Kbd>Tab</Kbd>, `revert` for <Kbd>Escape</Kbd> (keyboard below).                                                                     |
 | `reset` of the control's form | `reset`, with the source `api`, unless another listener prevented the reset.                                                                                           |
 
@@ -97,6 +97,8 @@ A field's own `filterInput` can answer an edit with `replace`: the pipeline prev
 ## Input methods
 
 While an input method composes, the pipeline reports every update (`input.isComposing`), never writes to the control, and the controller reads the text once `compositionend` arrives. Browsers order the last `input` and `compositionend` differently; the pipeline works with either order.
+
+A composition cannot be refused while it runs, so the field's own `filterInput` judges it once it has ended: the pipeline asks the controller's `filterComposition` about the composed text as one insert (`insertCompositionText`) over the range the composition replaced, with the text from before it began. A `replace` is written as for typing, a `rewrite` puts its data in place of the composed text, and `prevent` puts back the text from before the composition. A masked field lays composed characters into its slots this way, and a number field refuses composed letters. Phone keyboards that compose whole words, as Android's do even for Latin text, take this path on every word.
 
 ## Undo
 

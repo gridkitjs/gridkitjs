@@ -24,6 +24,7 @@ export type TextInputController<V, D extends object> = Pick<
   | "beforeInput"
   | "input"
   | "endComposition"
+  | "filterComposition"
   | "focus"
   | "commit"
   | "blur"
@@ -88,7 +89,8 @@ interface TextSnapshot {
  * - `editing`: the browser is making an edit `onBeforeInput` allowed;
  *   `before` is the text and selection it started from.
  * - `composing`: an input method owns the text between `start` and the
- *   last `suffixLength` code units. Writes to the control wait for it.
+ *   last `suffixLength` code units, in place of what lay there in
+ *   `before`, the text when it began. Writes to the control wait for it.
  * - `rewriting`: inserting the data `onBeforeInput` gave in place of the
  *   browser's edit, or the whole text the field's filter replaced it
  *   with, which is reported once inserted; the events the insert itself
@@ -102,6 +104,7 @@ type TextPipelineState =
       readonly kind: "composing";
       readonly start: number;
       readonly suffixLength: number;
+      readonly before: string;
     }
   | { readonly kind: "rewriting"; readonly before: TextSnapshot }
   | { readonly kind: "detached" };
@@ -196,7 +199,10 @@ function errorText(messages: readonly FieldMessage[]): string {
  * - With `options.decimalKey`, the keypad's decimal key types that text,
  *   judged as any other typing, in place of what the layout gives.
  * - While an input method composes, every `input` reports `isComposing`
- *   and the text is read once `compositionend` arrives.
+ *   and the text is read once `compositionend` arrives. Then the field's
+ *   `filterInput` judges the composed text as one insert over the range
+ *   the composition replaced (`filterComposition`), and its replacement,
+ *   rewrite or refusal is written as for any edit.
  * - Enter commits (in a `<textarea>`, Ctrl+Enter or Cmd+Enter, since Enter
  *   is a new line); Tab commits and, when `onBeforeCommit` refuses at once,
  *   keeps focus by preventing the key; Escape puts back the last committed
@@ -480,10 +486,63 @@ export function attachTextInput<V, D extends object>(
       kind: "composing",
       start: range.start,
       suffixLength: control.value.length - range.end,
+      before: control.value,
     };
   }
 
+  /**
+   * Asks the field's filter about the text a composition left, as one
+   * insert over the range it replaced, and writes what the filter decides:
+   * its text, the composed text rewritten, or, when it refuses, the text
+   * from before the composition.
+   */
+  function filterComposed(
+    composition: Extract<TextPipelineState, { kind: "composing" }>,
+    nativeEvent: CompositionEvent,
+  ): void {
+    const { start, suffixLength, before } = composition;
+    const data = control.value.slice(
+      start,
+      control.value.length - suffixLength,
+    );
+    const replacedEnd = before.length - suffixLength;
+    if (data === "" || replacedEnd < start) {
+      return;
+    }
+    const edit: TextEdit<Event> = {
+      text: control.value,
+      source: "typing",
+      input: {
+        inputType: "insertCompositionText",
+        data,
+        selectionStart: start,
+        selectionEnd: replacedEnd,
+        isComposing: false,
+      },
+      nativeEvent,
+    };
+    const decision = controller.filterComposition(edit, before);
+    switch (decision.kind) {
+      case "allow":
+        return;
+      case "prevent":
+        replace(edit, before, start);
+        return;
+      case "rewrite":
+        replace(
+          edit,
+          before.slice(0, start) + decision.data + before.slice(replacedEnd),
+          start + decision.data.length,
+        );
+        return;
+      case "replace":
+        replace(edit, decision.text, decision.caret);
+        return;
+    }
+  }
+
   function onCompositionEnd(event: CompositionEvent): void {
+    const composition = state.kind === "composing" ? state : null;
     // Firefox ends a composition committed in one step before the `input`
     // that reports its text, so the text is reported here; otherwise the
     // render below would write the old text over it. That late `input`
@@ -503,6 +562,9 @@ export function attachTextInput<V, D extends object>(
       });
     }
     state = READY;
+    if (composition !== null) {
+      filterComposed(composition, event);
+    }
     controller.endComposition(event);
     render();
   }
