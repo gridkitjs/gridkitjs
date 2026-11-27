@@ -65,7 +65,7 @@ field.getText(); // "Ada": the commit normalized the text
 | `locale`, `messages`   | `Intl.LocalesArgument`, `FormsMessages` |             | For parsing, formatting and messages. `messages` is required.                  |
 | `onFocus` ... `onBlur` | handlers                                |             | The nine handlers below.                                                       |
 
-`filterInput(edit, before)` runs after the app's `onBeforeInput` lets an edit through, outside an input method's composition (which cannot be refused). `edit.text` is the text the edit would leave, the app's rewrite included, and `before` the text before it. It returns an `InputFilterDecision`: `allow` (the app's decision stands), `prevent`, `rewrite` with the data to insert instead, or `replace` with the whole `text` and the `caret`. A number input refuses letters this way and cleans a paste.
+`filterInput(edit, before)` runs after the app's `onBeforeInput` lets an edit through, outside an input method's composition (which cannot be refused); once a composition ends, forms-dom asks it again through `filterComposition` for the composed text as one insert. `edit.text` is the text the edit would leave, the app's rewrite included, and `before` the text before it. It returns an `InputFilterDecision`: `allow` (the app's decision stands), `prevent`, `rewrite` with the data to insert instead, or `replace` with the whole `text` and the `caret`. A number input refuses letters this way and cleans a paste.
 
 Both formatters receive `context.purpose`: `"edit"` while the field has focus (`editing`, `leaving`, or `checking` before focus went), `"display"` otherwise. So `getText()` and each event's `text` are the text for their moment: `onFocus` and a commit by Enter carry the edit form, a commit by blur and `onBlur` the display form.
 
@@ -83,6 +83,7 @@ While typing, per edit: `onBeforeInput`, the edit, `onInput`, then reading the t
 | `beforeInput(edit)`                         | `onBeforeInput`, then `filterInput`; returns `allow`, `prevent`, `rewrite` with the data to insert, or the filter's `replace`.                            |
 | `input(edit)`                               | The text changed. Read at once, after `changeDelay`, or when an input method ends composing. On an idle field it is autofill: read and committed at once. |
 | `endComposition(nativeEvent)`               | Composition ended: the text is read.                                                                                                                      |
+| `filterComposition(edit, before)`           | `filterInput` alone, for the text a composition left, as one insert over the range it replaced; `before` is the text from before it. `allow` without one. |
 | `focus(nativeEvent)`, `blur(nativeEvent)`   | Focus came or went. A blur commits unless Tab already did.                                                                                                |
 | `commit(trigger, nativeEvent)`              | Reads unread text, then commits. Returns `accepted`, `refused`, `unreadable` or `checking`.                                                               |
 | `revert(nativeEvent)`                       | Escape: back to the last commit. False when there is nothing to put back.                                                                                 |

@@ -137,6 +137,17 @@ export interface FieldController<V, D extends object = NoDetails, N = unknown> {
   readonly input: (edit: TextEdit<N>) => void;
   /** An input method finished composing: the text is read. */
   readonly endComposition: (nativeEvent: N | null) => void;
+  /**
+   * The input's own `filterInput` alone, for the text an input method
+   * composed, judged as one insert over the range the composition
+   * replaced once it has ended: `before` is the text from before it began.
+   * The app's `onBeforeInput` saw the composition as it happened. `allow`
+   * for an input with no filter.
+   */
+  readonly filterComposition: (
+    edit: TextEdit<N>,
+    before: string,
+  ) => InputFilterDecision;
   readonly focus: (nativeEvent: N | null) => void;
   /** Reads any unread text, then commits it. */
   readonly commit: (
@@ -485,6 +496,8 @@ export function createFieldController<
         });
       });
     },
+    filterComposition: (edit, before) =>
+      options.filterInput?.(edit, before) ?? { kind: "allow" },
     focus: (nativeEvent) => {
       perform(() => {
         runFocus(env(), nativeEvent);
