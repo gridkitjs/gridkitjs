@@ -175,6 +175,7 @@
     .gridkit-forms-message-summary,
     .gridkit-forms-text-input,
     .gridkit-forms-search-input,
+    .gridkit-forms-number-input,
     .gridkit-forms-checkbox,
     .gridkit-forms-switch
   ),
@@ -187,6 +188,7 @@
       .gridkit-forms-message-summary,
       .gridkit-forms-text-input,
       .gridkit-forms-search-input,
+      .gridkit-forms-number-input,
       .gridkit-forms-checkbox,
       .gridkit-forms-switch
     )
@@ -200,6 +202,7 @@
       .gridkit-forms-message-summary,
       .gridkit-forms-text-input,
       .gridkit-forms-search-input,
+      .gridkit-forms-number-input,
       .gridkit-forms-checkbox,
       .gridkit-forms-switch
     )
@@ -213,6 +216,7 @@
       .gridkit-forms-message-summary,
       .gridkit-forms-text-input,
       .gridkit-forms-search-input,
+      .gridkit-forms-number-input,
       .gridkit-forms-checkbox,
       .gridkit-forms-switch
     )
@@ -229,6 +233,7 @@
       .gridkit-forms-message-summary,
       .gridkit-forms-text-input,
       .gridkit-forms-search-input,
+      .gridkit-forms-number-input,
       .gridkit-forms-checkbox,
       .gridkit-forms-switch
     )
@@ -247,6 +252,7 @@
       .gridkit-forms-message-summary,
       .gridkit-forms-text-input,
       .gridkit-forms-search-input,
+      .gridkit-forms-number-input,
       .gridkit-forms-checkbox,
       .gridkit-forms-switch
     )
@@ -570,7 +576,8 @@
    * display-mode value keep their line breaks.
    */
   .gridkit-forms-text-input,
-  .gridkit-forms-search-input {
+  .gridkit-forms-search-input,
+  .gridkit-forms-number-input {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     min-inline-size: 0;
@@ -626,7 +633,8 @@
   .gridkit-forms-control:has(
     > :is(
         .gridkit-forms-text-input-control,
-        .gridkit-forms-search-input-control
+        .gridkit-forms-search-input-control,
+        .gridkit-forms-number-input-control
       ):focus
   ) {
     outline-width: var(--gridkit-focus-ring-width);
@@ -671,7 +679,8 @@
    * line.
    */
   .gridkit-forms-text-input-control,
-  .gridkit-forms-search-input-control {
+  .gridkit-forms-search-input-control,
+  .gridkit-forms-number-input-control {
     flex: 1 1 auto;
     align-self: stretch;
     min-inline-size: 0;
@@ -687,7 +696,8 @@
   }
 
   .gridkit-forms-text-input-control::placeholder,
-  .gridkit-forms-search-input-control::placeholder {
+  .gridkit-forms-search-input-control::placeholder,
+  .gridkit-forms-number-input-control::placeholder {
     color: var(--gridkit-fg-muted);
     opacity: 1;
   }
@@ -805,6 +815,134 @@
     border-inline-end-color: transparent;
     border-radius: 50%;
     animation: gridkit-forms-spin 0.8s linear infinite;
+  }
+
+  /*
+   * A number sits at the box's end, in tabular figures so digits line up
+   * down a column of fields. The control is left to right wherever the
+   * locale writes numbers so, even in a right-to-left field, so the side
+   * follows the field's direction (`:dir()` on the root), not the
+   * control's: physical sides, for that reason.
+   */
+  .gridkit-forms-number-input-control {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  .gridkit-forms-number-input:dir(rtl) .gridkit-forms-number-input-control,
+  .gridkit-forms-number-input.is-align-start:dir(ltr)
+    .gridkit-forms-number-input-control {
+    text-align: left;
+  }
+
+  .gridkit-forms-number-input.is-align-start:dir(rtl)
+    .gridkit-forms-number-input-control {
+    text-align: right;
+  }
+
+  /* The currency sign, percent sign or unit beside the number. */
+  .gridkit-forms-number-input-affix {
+    flex: none;
+    color: var(--gridkit-forms-affix-color, var(--gridkit-fg-muted));
+    white-space: nowrap;
+  }
+
+  /*
+   * Stepper buttons inside the box, reaching its edges. Stacked at the
+   * end, two half-height buttons share a column divided from the text by
+   * a line; split, a full-height button sits at each end. A long press
+   * neither scrolls, selects nor opens a menu.
+   */
+  .gridkit-forms-stepper {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    align-self: stretch;
+    inline-size: var(
+      --gridkit-forms-stepper-width,
+      calc(var(--gridkit-spacing) * 5)
+    );
+    margin-inline-end: calc(
+      var(--gridkit-forms-control-padding-x, calc(var(--gridkit-spacing) * 2)) *
+        -1
+    );
+    border-inline-start: var(--gridkit-border-width) solid var(--gridkit-line);
+  }
+
+  .gridkit-forms-stepper-button {
+    display: inline-flex;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    min-block-size: 0;
+    margin: 0;
+    padding: 0;
+    color: var(--gridkit-fg);
+    cursor: pointer;
+    background: none;
+    border: 0;
+    touch-action: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  .gridkit-forms-stepper > .gridkit-forms-stepper-button.is-increment {
+    border-start-end-radius: var(--gridkit-control-radius);
+  }
+
+  .gridkit-forms-stepper > .gridkit-forms-stepper-button.is-decrement {
+    border-block-start: var(--gridkit-border-width) solid var(--gridkit-line);
+    border-end-end-radius: var(--gridkit-control-radius);
+  }
+
+  .gridkit-forms-control > .gridkit-forms-stepper-button {
+    flex: none;
+    align-self: stretch;
+    inline-size: var(
+      --gridkit-forms-stepper-width,
+      calc(var(--gridkit-spacing) * 5)
+    );
+  }
+
+  .gridkit-forms-control > .gridkit-forms-stepper-button.is-decrement {
+    margin-inline-start: calc(
+      var(--gridkit-forms-control-padding-x, calc(var(--gridkit-spacing) * 2)) *
+        -1
+    );
+    border-inline-end: var(--gridkit-border-width) solid var(--gridkit-line);
+    border-start-start-radius: var(--gridkit-control-radius);
+    border-end-start-radius: var(--gridkit-control-radius);
+  }
+
+  .gridkit-forms-control > .gridkit-forms-stepper-button.is-increment {
+    margin-inline-end: calc(
+      var(--gridkit-forms-control-padding-x, calc(var(--gridkit-spacing) * 2)) *
+        -1
+    );
+    border-inline-start: var(--gridkit-border-width) solid var(--gridkit-line);
+    border-start-end-radius: var(--gridkit-control-radius);
+    border-end-end-radius: var(--gridkit-control-radius);
+  }
+
+  .gridkit-forms-stepper-button:hover:not(.is-disabled),
+  .gridkit-forms-stepper-button:active:not(.is-disabled) {
+    background-color: var(--gridkit-surface-muted);
+  }
+
+  .gridkit-forms-stepper-button.is-disabled {
+    color: var(--gridkit-fg-muted);
+    cursor: default;
+  }
+
+  .gridkit-forms-stepper-icon {
+    inline-size: var(--gridkit-icon-size);
+    block-size: var(--gridkit-icon-size);
+  }
+
+  /* Two buttons share the box's height, so their chevrons are smaller. */
+  .gridkit-forms-stepper .gridkit-forms-stepper-icon {
+    inline-size: calc(var(--gridkit-icon-size) * 0.75);
+    block-size: calc(var(--gridkit-icon-size) * 0.75);
   }
 
   /*
@@ -1277,6 +1415,7 @@
       .gridkit-forms-field,
       .gridkit-forms-text-input,
       .gridkit-forms-search-input,
+      .gridkit-forms-number-input,
       .gridkit-forms-message-summary
     )
     :is(
@@ -1284,6 +1423,7 @@
       .gridkit-forms-field,
       .gridkit-forms-text-input,
       .gridkit-forms-search-input,
+      .gridkit-forms-number-input,
       .gridkit-forms-message-summary
     ) {
     font-size: inherit;
@@ -1412,6 +1552,19 @@
       border-color: GrayText;
     }
 
+    .gridkit-forms-stepper-button {
+      color: CanvasText;
+    }
+
+    .gridkit-forms-stepper-button.is-disabled {
+      color: GrayText;
+    }
+
+    .gridkit-forms-stepper,
+    .gridkit-forms-stepper-button {
+      border-color: CanvasText;
+    }
+
     /*
      * The box, the track and the thumb draw in system colours themselves:
      * the outline, Highlight when on, and GrayText when disabled.
@@ -1490,9 +1643,29 @@
   /* Icon buttons big enough to hit with a finger. */
   @media (pointer: coarse) {
     .gridkit-forms-clear-button,
-    .gridkit-forms-text-input-reveal {
+    .gridkit-forms-text-input-reveal,
+    .gridkit-forms-stepper-button {
       min-inline-size: var(--gridkit-forms-min-target-size, 24px);
       min-block-size: var(--gridkit-forms-min-target-size, 24px);
+    }
+
+    /*
+     * Stacked buttons would each be half a box high, too small for a
+     * finger, so they sit side by side.
+     */
+    .gridkit-forms-stepper {
+      flex-direction: row;
+      inline-size: auto;
+    }
+
+    .gridkit-forms-stepper > .gridkit-forms-stepper-button.is-increment {
+      border-start-end-radius: 0;
+    }
+
+    .gridkit-forms-stepper > .gridkit-forms-stepper-button.is-decrement {
+      border-block-start: 0;
+      border-inline-start: var(--gridkit-border-width) solid var(--gridkit-line);
+      border-start-end-radius: var(--gridkit-control-radius);
     }
 
     /* A toggle's row, the whole of which takes the press, at least as big. */
