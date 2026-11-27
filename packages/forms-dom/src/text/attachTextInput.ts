@@ -2,6 +2,7 @@ import type {
   ChangeSource,
   FieldController,
   FieldMessage,
+  InputFilterDecision,
   TextEdit,
   TextInputDetails,
 } from "@gridkitjs/forms-core";
@@ -25,6 +26,20 @@ export interface TextInputOptions {
   readonly escape?: "revert" | "clear" | "none" | undefined;
   /** Called just before Escape empties the field, for the renderer's `onClear`. */
   readonly onClear?: ((nativeEvent: Event) => void) | undefined;
+  /**
+   * Where the caret goes when the field's text is written into the focused
+   * control: given the text before, the caret in it and the text after.
+   * By default it keeps its distance from the end of the text.
+   */
+  readonly mapCaret?:
+    | ((previousText: string, caret: number, nextText: string) => number)
+    | undefined;
+  /**
+   * What the keypad's decimal key types, whatever the keyboard layout
+   * gives: a number field's decimal separator, so the keypad "." of a US
+   * keyboard types "," in a German field.
+   */
+  readonly decimalKey?: string | undefined;
 }
 
 export interface AttachedTextInput {
@@ -54,8 +69,9 @@ interface TextSnapshot {
  * - `composing`: an input method owns the text between `start` and the
  *   last `suffixLength` code units. Writes to the control wait for it.
  * - `rewriting`: inserting the data `onBeforeInput` gave in place of the
- *   browser's edit, which is reported once inserted; the events the insert
- *   itself fires are ignored. `before` is as for `editing`.
+ *   browser's edit, or the whole text the field's filter replaced it
+ *   with, which is reported once inserted; the events the insert itself
+ *   fires are ignored. `before` is as for `editing`.
  * - `detached`: every listener is gone.
  */
 type TextPipelineState =
@@ -78,7 +94,11 @@ const DETACHED: TextPipelineState = { kind: "detached" };
  * an insert made from code.
  */
 interface EditingDocument {
-  execCommand(commandId: "insertText", showUI: boolean, value: string): boolean;
+  execCommand(
+    commandId: "insertText" | "delete",
+    showUI: boolean,
+    value?: string,
+  ): boolean;
 }
 
 /**
@@ -121,6 +141,15 @@ function snapshot(control: TextControl): TextSnapshot {
   };
 }
 
+/** The default caret rule: the same distance from the end of the text. */
+function caretFromEnd(
+  previousText: string,
+  caret: number,
+  nextText: string,
+): number {
+  return Math.max(0, nextText.length - (previousText.length - caret));
+}
+
 function errorText(messages: readonly FieldMessage[]): string {
   return messages.find((message) => message.severity === "error")?.text ?? "";
 }
@@ -136,11 +165,15 @@ function errorText(messages: readonly FieldMessage[]): string {
  *
  * - `focus` and `blur` start and end the edit; the blur commits it, unless
  *   Tab did.
- * - `beforeinput` asks `onBeforeInput` with the text the edit would leave,
- *   then lets the edit happen, prevents it, or inserts the handler's data
- *   in its place. `input` reports the text the edit left. Where it came
- *   from (`typing`, `paste`, `drop`, `undo`) is read from its `inputType`;
- *   text that changes while the field is not being edited is `autofill`.
+ * - `beforeinput` asks `onBeforeInput`, then the field's own
+ *   `filterInput`, with the text the edit would leave, then lets the edit
+ *   happen, prevents it, inserts the handler's data in its place, or
+ *   replaces the whole text and places the caret as the filter says.
+ *   `input` reports the text the edit left. Where it came from (`typing`,
+ *   `paste`, `drop`, `undo`) is read from its `inputType`; text that
+ *   changes while the field is not being edited is `autofill`.
+ * - With `options.decimalKey`, the keypad's decimal key types that text,
+ *   judged as any other typing, in place of what the layout gives.
  * - While an input method composes, every `input` reports `isComposing`
  *   and the text is read once `compositionend` arrives.
  * - Enter commits (in a `<textarea>`, Ctrl+Enter or Cmd+Enter, since Enter
@@ -157,16 +190,18 @@ function errorText(messages: readonly FieldMessage[]): string {
  * After every change of the field it writes the controller's text into
  * the control when the two differ, never while an input method composes.
  * On a focused control a refused change is put back with the selection it
- * had before the edit, and any other write keeps the selection's distance
- * from the end of the text, so separators a formatter adds before the
- * caret do not move it. A write to an unfocused control leaves the
- * selection alone. The control's custom validity holds the field's first
- * error, shown or not yet, so a plain `<form>` refuses to submit it.
+ * had before the edit, and any other write places the selection by
+ * `options.mapCaret`, by default at its distance from the end of the
+ * text, so separators a formatter adds before the caret do not move it. A
+ * write to an unfocused control leaves the selection alone. The control's
+ * custom validity holds the field's first error, shown or not yet, so a
+ * plain `<form>` refuses to submit it.
  *
- * Inserting the handler's data goes through the browser's editing commands
- * where the browser allows it, so it can be undone; elsewhere it is set
- * directly. Setting the text from code (a refused change put back, a
- * commit normalizing the text, a value from the app) cannot be undone.
+ * Inserting the handler's data, and replacing the text, go through the
+ * browser's editing commands where the browser allows it, so they can be
+ * undone; elsewhere the text is set directly. Setting the text from code
+ * (a refused change put back, a commit normalizing the text, a value from
+ * the app) cannot be undone.
  */
 export function attachTextInput<V, D extends object>(
   control: TextControl,
@@ -231,12 +266,13 @@ export function attachTextInput<V, D extends object>(
       return;
     }
     const { selectionStart, selectionEnd, selectionDirection } = control;
-    const length = control.value.length;
+    const previous = control.value;
     control.value = text;
     if (selectionStart !== null && selectionEnd !== null) {
+      const map = options.mapCaret ?? caretFromEnd;
       control.setSelectionRange(
-        Math.max(0, text.length - (length - selectionStart)),
-        Math.max(0, text.length - (length - selectionEnd)),
+        map(previous, selectionStart, text),
+        map(previous, selectionEnd, text),
         selectionDirection ?? undefined,
       );
     }
@@ -278,13 +314,43 @@ export function attachTextInput<V, D extends object>(
     );
   }
 
-  function onBeforeInput(event: InputEvent): void {
-    const inputType = event.inputType === "" ? null : event.inputType;
-    if (state.kind === "rewriting" || editsNothing(inputType)) {
-      return;
+  /**
+   * Replaces the whole text with `text`, as the field's own filter asked,
+   * and puts the caret at `caret`. Text that stays the same only moves the
+   * caret.
+   */
+  function replace(cause: TextEdit<Event>, text: string, caret: number): void {
+    if (control.value !== text) {
+      state = { kind: "rewriting", before: snapshot(control) };
+      control.setSelectionRange(0, control.value.length);
+      const editing: EditingDocument = control.ownerDocument;
+      const inserted =
+        text === ""
+          ? editing.execCommand("delete", false)
+          : editing.execCommand("insertText", false, text);
+      if (!inserted || control.value !== text) {
+        control.value = text;
+      }
+      controller.input({ ...cause, text: control.value });
+      state = READY;
     }
+    if (control.value === text) {
+      control.setSelectionRange(caret, caret);
+    }
+  }
+
+  /** What the app and the field's filter decide about an edit the browser is about to make. */
+  function decide(
+    inputType: string | null,
+    data: string | null,
+    nativeEvent: Event,
+    cancelable: boolean,
+    composing: boolean,
+  ): {
+    readonly edit: TextEdit<Event>;
+    readonly decision: InputFilterDecision;
+  } {
     const range = selection();
-    const data = event.data;
     const proposed =
       range === null || inputType === null
         ? null
@@ -294,35 +360,78 @@ export function attachTextInput<V, D extends object>(
       data,
       selectionStart: range?.start ?? null,
       selectionEnd: range?.end ?? null,
-      isComposing: event.isComposing || state.kind === "composing",
+      isComposing: composing,
     };
     const edit: TextEdit<Event> = {
       text: proposed ?? control.value,
       source: sourceOf(inputType),
       input,
-      nativeEvent: event,
+      nativeEvent,
     };
     const decision = controller.beforeInput({
       ...edit,
-      cancelable: event.cancelable && !input.isComposing,
+      cancelable: cancelable && !composing,
     });
-    switch (decision.kind) {
-      case "allow":
-        if (state.kind !== "composing") {
-          state = { kind: "editing", before: snapshot(control) };
-        }
-        return;
-      case "prevent":
-        event.preventDefault();
-        return;
-      case "rewrite":
-        event.preventDefault();
-        rewrite(
-          { ...edit, input: { ...input, data: decision.data } },
-          decision.data,
-        );
-        return;
+    return { edit, decision };
+  }
+
+  /** Inserts the data of a rewrite, or replaces the text, as `decision` says. */
+  function applyOwn(
+    edit: TextEdit<Event>,
+    decision: InputFilterDecision,
+  ): void {
+    if (decision.kind === "rewrite") {
+      rewrite(
+        {
+          ...edit,
+          input: edit.input && { ...edit.input, data: decision.data },
+        },
+        decision.data,
+      );
+    } else if (decision.kind === "replace") {
+      replace(edit, decision.text, decision.caret);
     }
+  }
+
+  function onBeforeInput(event: InputEvent): void {
+    const inputType = event.inputType === "" ? null : event.inputType;
+    if (state.kind === "rewriting" || editsNothing(inputType)) {
+      return;
+    }
+    const { edit, decision } = decide(
+      inputType,
+      event.data,
+      event,
+      event.cancelable,
+      event.isComposing || state.kind === "composing",
+    );
+    if (decision.kind === "allow") {
+      if (state.kind !== "composing") {
+        state = { kind: "editing", before: snapshot(control) };
+      }
+      return;
+    }
+    event.preventDefault();
+    applyOwn(edit, decision);
+  }
+
+  /**
+   * Types `data` as though the keyboard had: the app and the filter judge
+   * it, then it is inserted. For a key whose own text is replaced, such as
+   * the keypad's decimal key.
+   */
+  function typeText(data: string, nativeEvent: KeyboardEvent): void {
+    const { edit, decision } = decide(
+      "insertText",
+      data,
+      nativeEvent,
+      true,
+      false,
+    );
+    applyOwn(
+      edit,
+      decision.kind === "allow" ? { kind: "rewrite", data } : decision,
+    );
   }
 
   function onInput(event: Event): void {
@@ -395,6 +504,19 @@ export function attachTextInput<V, D extends object>(
       return;
     }
     const modified = event.ctrlKey || event.altKey || event.metaKey;
+    // With Num Lock off the key is Delete, and stays one.
+    if (
+      event.code === "NumpadDecimal" &&
+      event.key.length === 1 &&
+      options.decimalKey !== undefined &&
+      !modified &&
+      !control.readOnly &&
+      !control.disabled
+    ) {
+      event.preventDefault();
+      typeText(options.decimalKey, event);
+      return;
+    }
     switch (event.key) {
       case "Enter":
         if (commitsOnEnter(event)) {

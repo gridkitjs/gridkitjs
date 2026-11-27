@@ -51,23 +51,25 @@ field.destroy();
 
 `options` is a `TextInputOptions`; `setOptions` on the returned object replaces it while the control is attached.
 
-| Option          | Type                            | Default    | Description                                                                                                         |
-| --------------- | ------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------- |
-| `selectOnFocus` | `boolean`                       | `false`    | Selects all the text when the control gains focus from the keyboard or from code. A pointer press places the caret. |
-| `escape`        | `"revert" \| "clear" \| "none"` | `"revert"` | What <Kbd>Escape</Kbd> does: puts back the last committed text, empties the field (a search box), or nothing.       |
-| `onClear`       | `(nativeEvent: Event) => void`  |            | Called just before <Kbd>Escape</Kbd> empties the field, so the renderer can fire its own `onClear`.                 |
+| Option          | Type                                                                | Default               | Description                                                                                                         |
+| --------------- | ------------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `selectOnFocus` | `boolean`                                                           | `false`               | Selects all the text when the control gains focus from the keyboard or from code. A pointer press places the caret. |
+| `escape`        | `"revert" \| "clear" \| "none"`                                     | `"revert"`            | What <Kbd>Escape</Kbd> does: puts back the last committed text, empties the field (a search box), or nothing.       |
+| `onClear`       | `(nativeEvent: Event) => void`                                      |                       | Called just before <Kbd>Escape</Kbd> empties the field, so the renderer can fire its own `onClear`.                 |
+| `mapCaret`      | `(previousText: string, caret: number, nextText: string) => number` | distance from the end | Where the caret goes when the field's text is written into the focused control (see [The caret](#the-caret)).       |
+| `decimalKey`    | `string`                                                            |                       | What the keypad's decimal key types, whatever the keyboard layout gives: a number field's decimal separator.        |
 
 ## The events it reads
 
-| Browser event                 | Request                                                                                                                    |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `focus`, `blur`               | `focus`, `blur`: the edit starts and ends; the blur commits, unless <Kbd>Tab</Kbd> did.                                    |
-| `beforeinput`                 | `beforeInput`, with the text the edit would leave; then the edit happens, is prevented, or the handler's data is inserted. |
-| `input`                       | `input`, with the text the edit left. Its `inputType` gives the source: `paste`, `drop`, `undo`, else `typing`.            |
-| `input` while not focused     | `input` with the source `autofill`: read and committed at once.                                                            |
-| `compositionend`              | `endComposition`: the composed text is read.                                                                               |
-| `keydown`                     | `commit` for <Kbd>Enter</Kbd> and <Kbd>Tab</Kbd>, `revert` for <Kbd>Escape</Kbd> (keyboard below).                         |
-| `reset` of the control's form | `reset`, with the source `api`, unless another listener prevented the reset.                                               |
+| Browser event                 | Request                                                                                                                                                                |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `focus`, `blur`               | `focus`, `blur`: the edit starts and ends; the blur commits, unless <Kbd>Tab</Kbd> did.                                                                                |
+| `beforeinput`                 | `beforeInput`, with the text the edit would leave; then the edit happens, is prevented, the handler's data is inserted, or the field's filter replaces the whole text. |
+| `input`                       | `input`, with the text the edit left. Its `inputType` gives the source: `paste`, `drop`, `undo`, else `typing`.                                                        |
+| `input` while not focused     | `input` with the source `autofill`: read and committed at once.                                                                                                        |
+| `compositionend`              | `endComposition`: the composed text is read.                                                                                                                           |
+| `keydown`                     | `commit` for <Kbd>Enter</Kbd> and <Kbd>Tab</Kbd>, `revert` for <Kbd>Escape</Kbd> (keyboard below).                                                                     |
+| `reset` of the control's form | `reset`, with the source `api`, unless another listener prevented the reset.                                                                                           |
 
 The text a `beforeinput` would leave is worked out from the selection, the edit's `inputType` and its data: a deletion with nothing selected removes a character, a word or a line around the caret. For an edit only the browser knows the outcome of (undo, redo, a spelling correction), the text before it stands in. A line break in a single-line `<input>`, which Chromium reports for <Kbd>Enter</Kbd>, edits nothing and is not reported.
 
@@ -80,11 +82,15 @@ The text a `beforeinput` would leave is worked out from the selection, the edit'
 | <Kbd>Tab</Kbd>, <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd>                   | Commits; when `onBeforeCommit` refuses at once, the key is prevented and focus stays.                                           |
 | <Kbd>Escape</Kbd>                                                 | Puts back the last committed text, or empties the field, as `escape` says; the key is prevented only when it changed something. |
 
+With `decimalKey` set, the keypad's decimal key types that text instead of the layout's, judged by `onBeforeInput` and the field's filter as any typing: the keypad "." of a US keyboard types "," in a German number field. With <Kbd>Num Lock</Kbd> off the key is <Kbd>Delete</Kbd> and stays one.
+
 Keys an input method is using and keys another listener prevented are left alone.
 
 ## The caret
 
-The control's text is written only when it differs from the controller's. On a focused control, a refused change (`preventDefault` in `onBeforeChange`) is put back with the selection it had before the edit, and any other write keeps the selection's distance from the end of the text, so a separator a formatter adds before the caret does not move it. A write to an unfocused control leaves the selection alone.
+The control's text is written only when it differs from the controller's. On a focused control, a refused change (`preventDefault` in `onBeforeChange`) is put back with the selection it had before the edit, and any other write places the selection by `mapCaret`. By default it keeps its distance from the end of the text, so a separator a formatter adds before the caret does not move it; a number field maps by its digits instead (forms-core's [`numberCaret`](/docs/forms-core/numbers#typing)), since grouping comes and goes on both sides of the caret. A write to an unfocused control leaves the selection alone.
+
+A field's own `filterInput` can answer an edit with `replace`: the pipeline prevents the browser's edit, selects all the text, inserts the new text through `document.execCommand("insertText")` so it stays undoable, and puts the caret where the filter says. Text that stays the same only moves the caret. A number field with fixed decimals answers every edit this way.
 
 ## Input methods
 
