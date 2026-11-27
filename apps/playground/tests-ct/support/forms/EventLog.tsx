@@ -29,6 +29,10 @@ export interface AnyFieldEvent {
   /** A range input's details. */
   readonly changedEnd?: string | null;
   readonly span?: unknown;
+  /** A masked input's details, beside `formatted`. */
+  readonly raw?: string;
+  readonly complete?: boolean;
+  readonly pattern?: string;
 }
 
 /** One handler call as the log keeps it: plain data a spec can read back. */
@@ -55,6 +59,9 @@ export interface LoggedEvent {
   readonly via?: string;
   readonly changedEnd?: string | null;
   readonly span?: unknown;
+  readonly raw?: string;
+  readonly complete?: boolean;
+  readonly pattern?: string;
   /** The native event's type, `null` for a change the app made. */
   readonly native: string | null;
 }

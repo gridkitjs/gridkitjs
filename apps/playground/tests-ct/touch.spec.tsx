@@ -7,6 +7,7 @@ import type { ColumnDefinition } from "@gridkitjs/core";
 import { DataGrid, type DataGridProps } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import RightToLeft from "./support/RightToLeft";
+import MaskedInputHarness from "./support/forms/MaskedInputHarness";
 import NumberInputHarness from "./support/forms/NumberInputHarness";
 import TextInputHarness from "./support/forms/TextInputHarness";
 import ToggleHarness from "./support/forms/ToggleHarness";
@@ -473,6 +474,20 @@ test.describe("touch", { tag: "@touch" }, () => {
       await page.keyboard.type("12.5");
 
       await expect(amount).toHaveValue("12,50");
+    });
+
+    test("a digits-only mask asks for the numeric keypad and fills from a phone keyboard", async ({
+      mount,
+      page,
+    }) => {
+      const root = await mount(<MaskedInputHarness label="Phone" />);
+      const phone = root.getByRole("textbox", { name: "Phone" });
+      await expect(phone).toHaveAttribute("inputmode", "numeric");
+
+      await tap(page, phone);
+      await page.keyboard.type("5551234567");
+
+      await expect(phone).toHaveValue("(555) 123-4567");
     });
 
     test("a tap on a text input's clear button empties it", async ({
