@@ -1,6 +1,7 @@
 import { digitValue, isDigit } from "./digits";
 import type { NumberOptions } from "./options";
 import {
+  APOSTROPHES,
   digitSystems,
   fieldSeparators,
   groupingFits,
@@ -22,8 +23,6 @@ export interface CleanedNumber {
 const CURRENCY_SIGN = /\p{Sc}/gu;
 const PERCENT_SIGNS = /[%\u066A\uFE6A]/g;
 const UPPER_WORD = /(?<![A-Za-z])[A-Z]{3}(?![A-Za-z])/g;
-const LETTER = /\p{L}/u;
-const APOSTROPHES = new Set(["'", "\u2019", "\u02BC"]);
 /** The Arabic group separator and comma, which never mark a decimal point. */
 const ARABIC_GROUPS = new Set(["\u066C", "\u060C"]);
 const ARABIC_DECIMAL = "\u066B";
@@ -62,7 +61,11 @@ function characterOf(char: string, symbols: NumberSymbols): Character | null {
   if (isDigit(char)) {
     return { kind: "digit", value: digitValue(char) };
   }
-  if (/\s/u.test(char) || APOSTROPHES.has(char) || ARABIC_GROUPS.has(char)) {
+  if (
+    /\s/u.test(char) ||
+    APOSTROPHES.includes(char) ||
+    ARABIC_GROUPS.has(char)
+  ) {
     return { kind: "group" };
   }
   if (char === ARABIC_DECIMAL) {
@@ -139,7 +142,7 @@ export function cleanPastedNumber(
     symbols,
   );
   const sign = readSign(rest);
-  if (!sign.closed || LETTER.test(sign.body)) {
+  if (!sign.closed) {
     return null;
   }
   const characters: Character[] = [];

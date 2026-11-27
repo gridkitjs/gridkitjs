@@ -47,7 +47,8 @@ export function digitSystems(text: string): string[] {
 }
 
 const SPACES = [" ", "\u00A0", "\u202F", "\u2009"];
-const APOSTROPHES = ["'", "\u2019", "\u02BC"];
+/** The apostrophes typed for an apostrophe group separator, as in `de-CH`. */
+export const APOSTROPHES: readonly string[] = ["'", "\u2019", "\u02BC"];
 const ARABIC_GROUP = "\u066C";
 const ARABIC_DECIMAL = "\u066B";
 

@@ -65,7 +65,7 @@ function isPercent(options: NumberOptions): boolean {
 }
 
 /** The number a field shows for `value`: for a percent, the percent number (12.5 for 0.125). */
-export function shownDecimal(
+function shownDecimal(
   value: NumberLike,
   options: NumberOptions,
 ): DecimalString {
