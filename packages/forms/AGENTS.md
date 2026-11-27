@@ -72,6 +72,18 @@ button, each in a layout effect that detaches it; a hold is cancelled when
 the control loses focus. They hold no lifecycle of their own.
 `forms-number-input.spec.tsx` covers them.
 
+`NumberRangeInput` (`src/number/NumberRangeInput.tsx`) is the first input
+made of parts. It calls `useCompositeInput` (`src/useCompositeInput.tsx`),
+which does for forms-core's composite controller what `useFieldInput`
+does for a field controller (the two share the settings, lifecycle,
+messages and `Field` report helpers in `src/useFieldInput.tsx`) and
+attaches forms-dom's `attachFocusGroup` to the root in a layout effect
+that detaches it. Each end attaches the text pipeline to its part through
+`usePartControl`, and forms-dom's step keys, each in a layout effect that
+detaches it. The number kind both share with `NumberControl` is in
+`src/number/numberKind.ts`. It holds no lifecycle of its own.
+`forms-number-range-input.spec.tsx` covers it.
+
 `Checkbox` and `Switch` (`src/toggle/`) share one internal `ToggleInput`,
 which calls `useFieldInput` with the `toggle` option: the hook then
 attaches forms-dom's `attachToggle` in place of the text pipeline, turns

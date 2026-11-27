@@ -4,7 +4,8 @@ Framework-free form-input logic: values and drafts, the field lifecycle and
 its reducer, event objects and their order, the parse and format contract,
 validators, messages and their catalogue, and reading and writing numbers in
 every locale with exact decimals (`src/number/`, on `Intl` alone, with no
-number library). Plain TypeScript with no DOM.
+number library), and the range model every range input shares
+(`src/range/`). Plain TypeScript with no DOM.
 Private until its first release: `"private": true` keeps it out of the
 release, pack and docs tooling. Read the root
 [Structure](../../AGENTS.md#structure) section for how it fits with
@@ -43,6 +44,13 @@ queue, the `ReadWait` timer and the pending check's promise. After every
 request it releases what the state no longer needs (a wait for text that is
 no longer unread, a check the field stopped waiting for); `destroy` releases
 both, and a check's answer that arrives after either is ignored.
+
+`src/field/createCompositeController.ts` drives an input made of parts
+(a range's two ends) with no lifecycle of its own: each part and the
+field the app sees are `createFieldController`s, and the composite only
+relays part edits to the field and pushes the field's value back into the
+parts. The part a request is about is held for that request alone.
+`src/field/createCompositeController.test.ts` covers it.
 
 ## Commands
 
