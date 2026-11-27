@@ -18,6 +18,14 @@ export interface AnyFieldEvent {
     readonly isComposing: boolean;
   } | null;
   readonly nativeEvent: { readonly type: string } | null;
+  /** A number input's details. */
+  readonly decimal?: string | null;
+  readonly formatted?: string;
+  readonly reading?: object | null;
+  /** A step's. */
+  readonly direction?: string;
+  readonly size?: string;
+  readonly via?: string;
 }
 
 /** One handler call as the log keeps it: plain data a spec can read back. */
@@ -36,6 +44,12 @@ export interface LoggedEvent {
   readonly inputType?: string | null;
   readonly data?: string | null;
   readonly isComposing?: boolean;
+  readonly decimal?: string | null;
+  readonly formatted?: string;
+  readonly reading?: object | null;
+  readonly direction?: string;
+  readonly size?: string;
+  readonly via?: string;
   /** The native event's type, `null` for a change the app made. */
   readonly native: string | null;
 }
