@@ -87,11 +87,20 @@ export {
   type NumberTextForm,
 } from "./number/formatNumber";
 export {
+  fixedFractionDigits,
+  filterNumberEdit,
+  numberCaret,
+  type NumberEntry,
+  type NumberEntryOptions,
+} from "./number/numberEntry";
+export {
   numberDetails,
   numberFormatter,
   numberParser,
+  stepNumberValue,
   type NumberDetails,
   type NumberFieldOptions,
+  type NumberStep,
 } from "./number/numberField";
 export {
   numberFractionDigits,

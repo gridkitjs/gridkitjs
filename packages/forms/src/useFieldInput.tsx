@@ -9,9 +9,11 @@ import {
   type FieldMessage,
   type FieldMessageInput,
   type FieldOptions,
+  type ChangeCause,
   type FieldPhase,
   type FieldState,
   type FormatContext,
+  type InputFilter,
   type Formatter,
   type FormsMessages,
   type NoDetails,
@@ -69,7 +71,7 @@ export interface InputHandle<V> {
 }
 
 /** How an input reads, writes and submits its value. */
-export interface FieldInputKind<V> {
+export interface FieldInputKind<V, D extends object = NoDetails> {
   /** The input's own reading of text, which a `parse` prop can wrap. */
   readonly defaultParse: (
     text: string,
@@ -85,6 +87,16 @@ export interface FieldInputKind<V> {
    * Never called with `null`, which submits `""`.
    */
   readonly serialize: (value: V) => string;
+  /** Whether two values are one; `Object.is` by default. Never called with `null`. */
+  readonly equals?: ((a: V, b: V) => boolean) | undefined;
+  /** The input's own details, added to every event it fires. */
+  readonly details?:
+    ((current: FieldState<V>, previous: FieldState<V>) => D) | undefined;
+  /**
+   * The input's own judgement of each edit the app's `onBeforeInput` lets
+   * through: a number input refusing letters and typing its decimals.
+   */
+  readonly filterInput?: InputFilter<Event> | undefined;
 }
 
 /** The props `useFieldInput` reads; an input passes on its own. */
@@ -194,6 +206,13 @@ export interface FieldInput<V, E extends TextControl = HTMLInputElement> {
   readonly severity: Severity | null;
   /** Fires `onClear`, then empties the field and commits it (`source` and `trigger` `"clear"`). */
   readonly clear: (nativeEvent: Event | null) => void;
+  /** The value now, read at the moment of the call rather than at render. */
+  readonly getValue: () => V | null;
+  /**
+   * The change chain to `value`, with `cause`'s source and native event,
+   * and no commit: a step, a part of a composite input.
+   */
+  readonly change: (value: V | null, cause: ChangeCause<Event>) => void;
   /** The props', the `Field`'s or the form's. */
   readonly mode: FieldMode;
   /** The value as text, to draw in place of the control in display mode. */
@@ -207,7 +226,7 @@ export interface FieldInput<V, E extends TextControl = HTMLInputElement> {
 const NO_MESSAGES: readonly FieldMessage[] = [];
 
 /** Whether the control has focus, from where the field is in an edit. */
-function isFocused(phase: FieldPhase<unknown>): boolean {
+export function isFocused(phase: FieldPhase<unknown>): boolean {
   switch (phase.kind) {
     case "editing":
     case "leaving":
@@ -283,7 +302,7 @@ export function useFieldInput<
   D extends object = NoDetails,
 >(
   props: FieldInputProps<V, E, D>,
-  kind: FieldInputKind<V>,
+  kind: FieldInputKind<V, D>,
   options: FieldInputOptions = {},
 ): FieldInput<V, E> {
   const field = useFieldContext();
@@ -313,6 +332,9 @@ export function useFieldInput<
     format: props.format,
     defaultParse: kind.defaultParse,
     defaultFormat: kind.defaultFormat,
+    equals: kind.equals,
+    details: kind.details,
+    filterInput: kind.filterInput,
     validators: validatorsOf(props.validate),
     schedule: scheduleTimeout,
     changeDelay: options.changeDelay,
@@ -381,6 +403,8 @@ export function useFieldInput<
     selectOnFocus: options.selectOnFocus,
     escape: options.escape,
     onClear: fireClear,
+    mapCaret: options.mapCaret,
+    decimalKey: options.decimalKey,
   };
   const toggleOptions: ToggleOptions = { ...options.toggle, readOnly };
   const behaviour = useRef<AttachedBehaviour | null>(null);
@@ -487,6 +511,8 @@ export function useFieldInput<
       fireClear(nativeEvent);
       controller.clear(nativeEvent);
     },
+    getValue: () => controller.getState().value,
+    change: controller.change,
     mode,
     displayValue: <DisplayValue text={text} emptyText={messages.emptyValue} />,
     controlProps: {

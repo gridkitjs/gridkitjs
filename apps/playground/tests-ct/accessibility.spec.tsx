@@ -14,6 +14,7 @@ import FieldGroupHarness from "./support/forms/FieldGroupHarness";
 import FieldHarness from "./support/forms/FieldHarness";
 import FormHarness from "./support/forms/FormHarness";
 import LayoutHarness from "./support/forms/LayoutHarness";
+import NumberInputHarness from "./support/forms/NumberInputHarness";
 import SearchInputHarness from "./support/forms/SearchInputHarness";
 import SummaryHarness from "./support/forms/SummaryHarness";
 import TextInputHarness from "./support/forms/TextInputHarness";
@@ -825,6 +826,63 @@ const fieldScans: readonly {
   readonly name: string;
   readonly field: () => React.JSX.Element;
 }[] = [
+  {
+    name: "an empty number input, a spinbutton with no value",
+    field: () => <NumberInputHarness locale="en-US" />,
+  },
+  {
+    name: "a number input with a currency and stacked stepper buttons at a limit",
+    field: () => (
+      <NumberInputHarness
+        locale="de-DE"
+        currency="EUR"
+        stepper="end"
+        max={10}
+        defaultValue={10}
+      />
+    ),
+  },
+  {
+    name: "an invalid number input with split stepper buttons",
+    field: () => (
+      <NumberInputHarness
+        locale="en-US"
+        stepper="split"
+        message="Above the credit limit"
+        defaultValue={5}
+      />
+    ),
+  },
+  {
+    name: "a number input without stepping, its unit a description",
+    field: () => (
+      <NumberInputHarness locale="en-US" unit="kilogram" stepping="none" />
+    ),
+  },
+  {
+    name: "a read-only percent input with stepper buttons",
+    field: () => (
+      <NumberInputHarness
+        label="Rate"
+        percent="fraction"
+        locale="tr-TR"
+        stepper="end"
+        readOnly
+        defaultValue={0.125}
+      />
+    ),
+  },
+  {
+    name: "a number input in display mode",
+    field: () => (
+      <NumberInputHarness
+        locale="de-DE"
+        currency="EUR"
+        mode="display"
+        defaultValue={-1234.5}
+      />
+    ),
+  },
   ...(["error", "warning", "info", "success"] as const).map((severity) => ({
     name: `a field with ${severity === "info" ? "an" : "a"} ${severity} message`,
     field: () => (

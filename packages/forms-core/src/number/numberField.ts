@@ -25,6 +25,7 @@ import {
 import { parseNumber, type NumberUnreadableReason } from "./parseNumber";
 import type { NumberReadingInfo } from "./reading";
 import { numberSymbols } from "./symbols";
+import { stepNumber, type StepDirection, type StepSize } from "./stepNumber";
 
 /** How a number field reads and writes, and the value type it holds. */
 export interface NumberFieldOptions<
@@ -171,6 +172,58 @@ export function numberDetails<V extends NumberLike>(
     reading:
       draft.kind === "text" ? (pasted ?? readingOf(draft.text, options)) : null,
   };
+}
+
+/** A step a number field takes, its numbers in the field's value units. */
+export interface NumberStep {
+  readonly direction: StepDirection;
+  readonly size: StepSize;
+  /** Above zero. */
+  readonly step: NumberLike;
+  readonly largeStep: NumberLike;
+  readonly min: NumberLike | null;
+  readonly max: NumberLike | null;
+}
+
+/**
+ * The value a step takes a number field to, as `stepNumber` works it out
+ * exactly, rounded to the field's maximum fraction digits (of the number
+ * shown, for a percent) and held as its value type. At a limit it is the
+ * value the field has; from empty, the starting point.
+ */
+export function stepNumberValue<T extends NumberValueType = "number">(
+  value: NumberValue<T> | null,
+  step: NumberStep,
+  options: NumberFieldOptions<T> = {},
+): NumberValue<T> | null {
+  const limit = (bound: NumberLike | null) =>
+    bound === null ? null : decimalOf(bound);
+  const next = stepNumber({
+    value: value === null ? null : decimalOf(value),
+    direction: step.direction,
+    size: step.size,
+    step: decimalOf(step.step),
+    largeStep: decimalOf(step.largeStep),
+    min: limit(step.min),
+    max: limit(step.max),
+  });
+  if (next === null) {
+    return null;
+  }
+  const { minimum, maximum } = numberFractionDigits(options);
+  const shift = percentShift(options);
+  const rounded =
+    maximum === null
+      ? next
+      : roundDecimal(
+          next,
+          maximum + shift,
+          options.roundingMode ?? "halfExpand",
+        );
+  if (options.valueType === "decimal") {
+    return decimalOf(rounded, minimum + shift) as NumberValue<T>;
+  }
+  return decimalToNumber(rounded).number as NumberValue<T>;
 }
 
 function readingOf(

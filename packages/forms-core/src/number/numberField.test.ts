@@ -9,7 +9,9 @@ import {
   numberDetails,
   numberFormatter,
   numberParser,
+  stepNumberValue,
   type NumberDetails,
+  type NumberStep,
 } from "./numberField";
 
 function parseContext<V>(locale: string): ParseContext<V> {
@@ -290,5 +292,52 @@ describe("a number field on the controller", () => {
       messages: defaultFormsMessages,
     });
     expect(field.getText()).toBe("0");
+  });
+});
+
+describe("stepNumberValue", () => {
+  const up: NumberStep = {
+    direction: "up",
+    size: "step",
+    step: "0.1",
+    largeStep: "1",
+    min: null,
+    max: null,
+  };
+
+  test("steps exactly, in the value type", () => {
+    expect(stepNumberValue(0.1, up)).toBe(0.2);
+    expect(stepNumberValue("0.1", up, { valueType: "decimal" })).toBe("0.2");
+    expect(
+      stepNumberValue("0.1", up, {
+        valueType: "decimal",
+        minimumFractionDigits: 2,
+      }),
+    ).toBe("0.20");
+  });
+
+  test("starts from empty, and stays at a limit", () => {
+    expect(stepNumberValue(null, up)).toBe(0);
+    expect(stepNumberValue(5, { ...up, step: 1, max: 5 })).toBe(5);
+    expect(stepNumberValue(5, { ...up, size: "edge", step: 1, max: 9 })).toBe(
+      9,
+    );
+  });
+
+  test("rounds to the fraction digits kept, of the number shown for a percent", () => {
+    expect(
+      stepNumberValue(
+        1,
+        { ...up, step: "0.005" },
+        { maximumFractionDigits: 2 },
+      ),
+    ).toBe(1.01);
+    expect(
+      stepNumberValue(
+        0.12,
+        { ...up, step: "0.001" },
+        { style: "percent", maximumFractionDigits: 1 },
+      ),
+    ).toBe(0.121);
   });
 });

@@ -24,9 +24,10 @@ and into the docs as described under [Docs](#docs).
 
 ## State and teardown
 
-| Machine             | File                          | States                                                   | Tests                                                 |
-| ------------------- | ----------------------------- | -------------------------------------------------------- | ----------------------------------------------------- |
-| `TextPipelineState` | `src/text/attachTextInput.ts` | `ready`, `editing`, `composing`, `rewriting`, `detached` | `forms-events.spec.tsx`, `forms-field-input.spec.tsx` |
+| Machine             | File                           | States                                                   | Tests                                                 |
+| ------------------- | ------------------------------ | -------------------------------------------------------- | ----------------------------------------------------- |
+| `TextPipelineState` | `src/text/attachTextInput.ts`  | `ready`, `editing`, `composing`, `rewriting`, `detached` | `forms-events.spec.tsx`, `forms-field-input.spec.tsx` |
+| `HoldRepeatState`   | `src/step/attachHoldRepeat.ts` | `idle`, `waiting`, `repeating`, `detached`               | `forms-number-input.spec.tsx`                         |
 
 The specs are in `apps/playground/tests-ct/`. The convention is in the root
 [State](../../AGENTS.md#state) section. Every behaviour releases what it
@@ -41,6 +42,14 @@ own lifecycle is the forms-core controller's. Its listeners share one
 Space `keydown` whose `click` is coming, cleared by that click, a pointer
 press or blur; its `detach` removes the listeners. `forms-checkbox.spec.tsx`
 and `forms-switch.spec.tsx` cover it.
+
+`attachHoldRepeat` holds, while a stepper button is pressed, the
+pointer's capture and the timer of the next step; letting go, cancelling,
+losing capture, leaving the button, a step that changes nothing, `cancel`
+and `detach` each clear the timer and release the capture.
+`attachStepKeys` (`src/step/attachStepKeys.ts`) holds its listeners and
+the wheel travel not yet stepped on; its `detach` removes them.
+`forms-number-input.spec.tsx` covers both.
 
 `attachEnterNavigation` (`src/form/formControls.ts`) holds one `keydown`
 listener on the form and no state; its `detach` removes it.

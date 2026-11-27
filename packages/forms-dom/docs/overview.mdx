@@ -1,6 +1,6 @@
 ---
 title: "Overview"
-description: "Framework-free browser behaviours for GridKit form inputs: the text-input pipeline, toggles, Enter navigation and focus helpers."
+description: "Framework-free browser behaviours for GridKit form inputs: the text-input pipeline, stepping, toggles, Enter navigation and focus helpers."
 ---
 
 @gridkitjs/forms-dom holds every browser behaviour a form input needs that is not drawing: reading what the user types and pastes into a control, toggles, auto-grow, Enter navigation and moving focus. @gridkitjs/forms-core decides what a field does and runs without a DOM; @gridkitjs/forms-dom connects it to real controls, with no framework; a renderer such as @gridkitjs/forms draws the markup and attaches these behaviours to it.
@@ -28,13 +28,14 @@ cancel();
 
 Every export of `@gridkitjs/forms-dom`:
 
-| Export                                                                                      | Kind            | Description                                                                                                                           | Page                                               |
-| ------------------------------------------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| `attachTextInput`, `AttachedTextInput`, `TextControl`, `TextInputOptions`                   | function, types | Connects a native `<input>` or `<textarea>` to a forms-core field controller.                                                         | [Text pipeline](/docs/forms-dom/text-pipeline)     |
-| `attachAutoGrow`, `AttachedAutoGrow`, `AutoGrowOptions`                                     | function, types | Grows a `<textarea>` with its text between a minimum and a maximum number of lines.                                                   | [Auto-grow](/docs/forms-dom/auto-grow)             |
-| `attachToggle`, `AttachedToggle`, `ToggleOptions`                                           | function, types | Connects a native checkbox or switch to a forms-core field controller holding a boolean.                                              | [Toggles](/docs/forms-dom/toggles)                 |
-| `attachEnterNavigation`, `findFirstInvalidControl`, `focusTargetIn`, `compareDocumentOrder` | functions       | Enter moving from field to field, the first invalid control of a form, the control a link should focus, document order.               | [Form navigation](/docs/forms-dom/form-navigation) |
-| `scheduleTimeout`                                                                           | function        | The browser's timers as a forms-core [`Schedule`](/docs/forms-core/overview#exports): runs a callback once after a delay, cancelable. | This page                                          |
+| Export                                                                                                                                    | Kind             | Description                                                                                                                           | Page                                               |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `attachTextInput`, `AttachedTextInput`, `TextControl`, `TextInputOptions`                                                                 | function, types  | Connects a native `<input>` or `<textarea>` to a forms-core field controller.                                                         | [Text pipeline](/docs/forms-dom/text-pipeline)     |
+| `attachAutoGrow`, `AttachedAutoGrow`, `AutoGrowOptions`                                                                                   | function, types  | Grows a `<textarea>` with its text between a minimum and a maximum number of lines.                                                   | [Auto-grow](/docs/forms-dom/auto-grow)             |
+| `attachStepKeys`, `AttachedStepKeys`, `StepKeysOptions`, `attachHoldRepeat`, `AttachedHoldRepeat`, `HoldRepeatOptions`, `HoldRepeatState` | functions, types | A number control stepped by keys and the wheel; a stepper button that repeats while held.                                             | [Stepping](/docs/forms-dom/stepping)               |
+| `attachToggle`, `AttachedToggle`, `ToggleOptions`                                                                                         | function, types  | Connects a native checkbox or switch to a forms-core field controller holding a boolean.                                              | [Toggles](/docs/forms-dom/toggles)                 |
+| `attachEnterNavigation`, `findFirstInvalidControl`, `focusTargetIn`, `compareDocumentOrder`                                               | functions        | Enter moving from field to field, the first invalid control of a form, the control a link should focus, document order.               | [Form navigation](/docs/forms-dom/form-navigation) |
+| `scheduleTimeout`                                                                                                                         | function         | The browser's timers as a forms-core [`Schedule`](/docs/forms-core/overview#exports): runs a callback once after a delay, cancelable. | This page                                          |
 
 ## Stability
 
@@ -44,6 +45,7 @@ This package is in the forms renderer tier: a minor release may change it, with 
 
 - [Text pipeline](/docs/forms-dom/text-pipeline) for connecting a text control to a field.
 - [Auto-grow](/docs/forms-dom/auto-grow) for a textarea that grows with its text.
+- [Stepping](/docs/forms-dom/stepping) for number controls stepped by keys and held buttons.
 - [Form navigation](/docs/forms-dom/form-navigation) for Enter navigation and finding a form's first problem.
 - [Forms core overview](/docs/forms-core/overview) for the logic these behaviours attach to.
 - [Forms overview](/docs/forms/overview) for the React components built on them.

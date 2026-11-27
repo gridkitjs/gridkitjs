@@ -38,6 +38,13 @@ export type {
   LabelPosition,
   NecessityIndicator,
 } from "./settings";
+export {
+  NumberInput,
+  type NumberInputProps,
+  type NumberLimit,
+  type NumberStepEvent,
+} from "./number/NumberInput";
+export { PercentInput, type PercentInputProps } from "./number/PercentInput";
 export { SearchInput, type SearchInputProps } from "./text/SearchInput";
 export { TextInput, type TextInputProps } from "./text/TextInput";
 export type {
@@ -67,6 +74,7 @@ export {
   unreadable,
   type ChangeSource,
   type CommitTrigger,
+  type DecimalString,
   type FieldDraft,
   type FieldMessage,
   type FieldMessageInput,
@@ -75,11 +83,20 @@ export {
   type FormatContext,
   type Formatter,
   type FormsMessages,
+  type NegativeStyle,
+  type NumberDetails,
+  type NumberReadingInfo,
+  type NumberValue,
+  type NumberValueType,
   type NoDetails,
   type ParseContext,
   type ParseResult,
   type Parser,
+  type PercentScale,
+  type RoundingMode,
   type Severity,
+  type StepDirection,
+  type StepSize,
   type TextInputDetails,
   type TextParseOptions,
   type TextReading,

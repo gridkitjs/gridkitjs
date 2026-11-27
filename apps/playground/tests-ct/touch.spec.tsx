@@ -7,6 +7,7 @@ import type { ColumnDefinition } from "@gridkitjs/core";
 import { DataGrid, type DataGridProps } from "@gridkitjs/react";
 import { expect, test } from "./support/coverage";
 import RightToLeft from "./support/RightToLeft";
+import NumberInputHarness from "./support/forms/NumberInputHarness";
 import TextInputHarness from "./support/forms/TextInputHarness";
 import ToggleHarness from "./support/forms/ToggleHarness";
 import ToolbarGrid from "./support/ToolbarGrid";
@@ -435,6 +436,43 @@ test.describe("touch", { tag: "@touch" }, () => {
       await tap(page, control);
 
       await expect(control).toBeChecked();
+    });
+
+    test("a number input asks for the decimal keypad, and a tap on its stepper buttons steps", async ({
+      mount,
+      page,
+    }) => {
+      const root = await mount(
+        <NumberInputHarness locale="en-US" stepper="end" density="compact" />,
+      );
+      const amount = root.getByRole("spinbutton", { name: "Amount" });
+      const increase = root.getByRole("button", { name: "Increase" });
+      await expect(amount).toHaveAttribute("inputmode", "decimal");
+      await expectTappable(increase);
+      await expectTappable(root.getByRole("button", { name: "Decrease" }));
+
+      await tap(page, increase);
+      await tap(page, increase);
+
+      await expect(amount).toHaveValue("1");
+      await expect(amount).toBeFocused();
+    });
+
+    test("a fixed-decimal field types its decimals from a phone keyboard", async ({
+      mount,
+      page,
+    }) => {
+      const root = await mount(
+        <NumberInputHarness locale="de-DE" fractionDigits={2} />,
+      );
+      const amount = root.getByRole("spinbutton", { name: "Amount" });
+
+      await tap(page, amount);
+      // A phone set to English types "." for the decimal key, which jumps
+      // into the decimals of a German field as "," does.
+      await page.keyboard.type("12.5");
+
+      await expect(amount).toHaveValue("12,50");
     });
 
     test("a tap on a text input's clear button empties it", async ({

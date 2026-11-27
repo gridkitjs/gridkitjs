@@ -63,6 +63,15 @@ multiline input attaches forms-dom's `attachAutoGrow` in a layout effect
 that detaches it. A later input copies this shape.
 `forms-text-input.spec.tsx` and `forms-search-input.spec.tsx` cover them.
 
+`NumberInput` and `PercentInput` (`src/number/`) share one internal
+`NumberControl`, which calls `useFieldInput` with a number `kind` (forms-core's
+number parser and formatter, an exact `equals`, `NumberDetails`, and
+`filterNumberEdit` as its `filterInput`) and attaches forms-dom's
+`attachStepKeys` to the control and `attachHoldRepeat` to each stepper
+button, each in a layout effect that detaches it; a hold is cancelled when
+the control loses focus. They hold no lifecycle of their own.
+`forms-number-input.spec.tsx` covers them.
+
 `Checkbox` and `Switch` (`src/toggle/`) share one internal `ToggleInput`,
 which calls `useFieldInput` with the `toggle` option: the hook then
 attaches forms-dom's `attachToggle` in place of the text pipeline, turns

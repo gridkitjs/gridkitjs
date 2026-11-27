@@ -81,17 +81,19 @@ export function App() {
 | `handleRef`            | `Ref<InputHandle<V>>`                          |           | The handle below.                                                                               |
 | `onFocus` ... `onBlur` | handlers                                       |           | The nine [events](/docs/forms/events).                                                          |
 
-`kind` is a `FieldInputKind<V>`: `defaultParse` and `defaultFormat` (the input's own reading and writing, which `parse` and `format` can wrap) and `serialize` (the value as its hidden input submits it, the same in every locale; `null` submits `""`). `textParser` and `formatText` are a text input's.
+`kind` is a `FieldInputKind<V, D>`: `defaultParse` and `defaultFormat` (the input's own reading and writing, which `parse` and `format` can wrap) and `serialize` (the value as its hidden input submits it, the same in every locale; `null` submits `""`). `textParser` and `formatText` are a text input's. Three members are optional: `equals` (whether two values are one, `Object.is` by default: a decimal input compares exactly), `details` (the input's own details `D`, added to every event it fires, as a number input adds `NumberDetails`) and `filterInput` (the input's judgement of each edit the app's `onBeforeInput` lets through: refuse it, rewrite it, or replace the whole text and place the caret).
 
 `options` is a `FieldInputOptions`, the input's own behaviour, which the latest render passes on:
 
-| Option           | Type                            | Default    | Description                                                                                                                                                                    |
-| ---------------- | ------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `startAdornment` | `boolean`                       | `false`    | Something sits at the control's start, so a floating label stays raised.                                                                                                       |
-| `changeDelay`    | `number`                        | `0`        | Milliseconds typing must pause before the text is read, for a search box.                                                                                                      |
-| `selectOnFocus`  | `boolean`                       | `false`    | Selects all the text on focus from the keyboard or from code.                                                                                                                  |
-| `escape`         | `"revert" \| "clear" \| "none"` | `"revert"` | What <Kbd>Escape</Kbd> does: puts back the last commit, clears the field (after `onClear`), or nothing.                                                                        |
-| `toggle`         | `{ threeState?: boolean }`      |            | The control is a checkbox, flipped whole: forms-dom's [toggle behaviour](/docs/forms-dom/toggles) drives it, every flip commits, and a `Field`'s floating label sits above it. |
+| Option           | Type                                        | Default               | Description                                                                                                                                                                    |
+| ---------------- | ------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `startAdornment` | `boolean`                                   | `false`               | Something sits at the control's start, so a floating label stays raised.                                                                                                       |
+| `changeDelay`    | `number`                                    | `0`                   | Milliseconds typing must pause before the text is read, for a search box.                                                                                                      |
+| `selectOnFocus`  | `boolean`                                   | `false`               | Selects all the text on focus from the keyboard or from code.                                                                                                                  |
+| `escape`         | `"revert" \| "clear" \| "none"`             | `"revert"`            | What <Kbd>Escape</Kbd> does: puts back the last commit, clears the field (after `onClear`), or nothing.                                                                        |
+| `mapCaret`       | `(previousText, caret, nextText) => number` | distance from the end | Where the caret goes when the field's text is written into the focused control.                                                                                                |
+| `decimalKey`     | `string`                                    |                       | What the keypad's decimal key types, whatever the keyboard layout.                                                                                                             |
+| `toggle`         | `{ threeState?: boolean }`                  |                       | The control is a checkbox, flipped whole: forms-dom's [toggle behaviour](/docs/forms-dom/toggles) drives it, every flip commits, and a `Field`'s floating label sits above it. |
 
 ## What it returns
 
@@ -103,6 +105,8 @@ export function App() {
 | `messages`             | The messages to show: your `message`, and the field's own from the first commit attempt or `revealMessages()` on, live as the user types.                                                       |
 | `severity`             | The most serious message shown, under the input or in the `Field` around it, or `"error"` for `invalid`: the box's border colour.                                                               |
 | `clear(nativeEvent)`   | Fires `onClear`, then empties the field and commits it, with `source` and `trigger` `"clear"`: a clear button's action.                                                                         |
+| `getValue()`           | The value at the moment of the call, for a handler outside React's render.                                                                                                                      |
+| `change(value, cause)` | The change chain to `value`, with `cause`'s `source` and native event, and no commit: a step, a part of a composite input.                                                                      |
 | `text`, `state`        | The text on screen, and the whole field state (`value`, `draft`, `phase`, ...).                                                                                                                 |
 
 ## Behaviour
