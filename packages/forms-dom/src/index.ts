@@ -9,6 +9,17 @@ export {
 } from "./form/formControls";
 export { scheduleTimeout } from "./scheduleTimeout";
 export {
+  attachHoldRepeat,
+  type AttachedHoldRepeat,
+  type HoldRepeatOptions,
+  type HoldRepeatState,
+} from "./step/attachHoldRepeat";
+export {
+  attachStepKeys,
+  type AttachedStepKeys,
+  type StepKeysOptions,
+} from "./step/attachStepKeys";
+export {
   attachAutoGrow,
   type AttachedAutoGrow,
   type AutoGrowOptions,

@@ -1,0 +1,88 @@
+---
+title: "Stepping"
+description: "attachStepKeys and attachHoldRepeat: a number control stepped by the arrow keys, PageUp and PageDown, Home and End, the wheel, and stepper buttons that repeat while held."
+---
+
+`attachStepKeys(control, options)` steps a number control from the keyboard, as the WAI-ARIA spinbutton pattern does, and from the mouse wheel when asked. `attachHoldRepeat(button, options)` makes a stepper button step once when pressed and keep stepping, faster and faster, while it is held.
+
+<Callout type="note" title="First iteration">
+  This API is a first iteration and may change before the first release.
+</Callout>
+
+## When to use it
+
+Only to write a forms renderer of your own. [`NumberInput`](/docs/forms/number-input) and [`PercentInput`](/docs/forms/percent-input) attach both for you. Neither works out the value: each reports that a step was asked for, and the renderer takes it with forms-core's [`stepNumberValue`](/docs/forms-core/numbers#limits-and-steps) and the controller's `change` request, `source: "step"`.
+
+## Example
+
+```ts
+import { stepNumberValue } from "@gridkitjs/forms-core";
+import { attachHoldRepeat, attachStepKeys } from "@gridkitjs/forms-dom";
+
+const control = document.getElementById("quantity") as HTMLInputElement;
+const increaseButton = document.getElementById("increase") as HTMLButtonElement;
+let value: number | null = null;
+const limits = { step: 1, largeStep: 10, min: 0, max: 99 };
+
+function step(direction: "up" | "down", size: "step" | "large" | "edge") {
+  const next = stepNumberValue(value, { direction, size, ...limits });
+  if (next === value) {
+    return false; // at a limit: nothing changed
+  }
+  value = next;
+  control.value = String(value);
+  return true;
+}
+
+const keys = attachStepKeys(control, {
+  onStep: (direction, size) => step(direction, size),
+  edges: { min: true, max: true },
+});
+const hold = attachHoldRepeat(increaseButton, {
+  onRepeat: () => step("up", "step"),
+});
+
+// When they leave the page:
+keys.detach();
+hold.detach();
+```
+
+## Keys and the wheel
+
+| Key                                    | Asks for                                                                    |
+| -------------------------------------- | --------------------------------------------------------------------------- |
+| <Kbd>↑</Kbd>, <Kbd>↓</Kbd>             | One step up or down                                                         |
+| <Kbd>PageUp</Kbd>, <Kbd>PageDown</Kbd> | A large step up or down                                                     |
+| <Kbd>Home</Kbd>, <Kbd>End</Kbd>        | The lower or upper limit, when `edges` says it is set; else the caret moves |
+
+A key it steps on is prevented. Keys held with <Kbd>Ctrl</Kbd>, <Kbd>Alt</Kbd> or <Kbd>Meta</Kbd>, keys an input method is using and keys another listener prevented are left alone; a held arrow repeats by the keyboard's own repeat.
+
+With `wheel: true`, the wheel steps while the control has focus and the pointer is over it: up for a wheel turned away from the user, one step per 50 pixels of travel (or per line or page), so a trackpad's small movements add up. Meanwhile the page does not scroll. Without it, the wheel is the page's.
+
+| Option   | Type                                     | Description                                                   |
+| -------- | ---------------------------------------- | ------------------------------------------------------------- |
+| `onStep` | `(direction, size, nativeEvent) => void` | A key or a wheel tick asked for a step.                       |
+| `edges`  | `{ min: boolean; max: boolean }`         | Which limits are set, for <Kbd>Home</Kbd> and <Kbd>End</Kbd>. |
+| `wheel`  | `boolean`                                | The wheel steps. Off by default.                              |
+
+## Holding a button
+
+A press of the primary button, a touch or a pen steps once at once. Held, it steps again after `delay`, then every `interval`, then every `fastInterval` once `fastAfter` steps have been taken.
+
+| Option         | Default | Description                                                                 |
+| -------------- | ------- | --------------------------------------------------------------------------- |
+| `onRepeat`     |         | One step, given the press's `pointerdown`; `false` when it changed nothing. |
+| `delay`        | `400`   | Milliseconds from the press to the first repeat.                            |
+| `interval`     | `60`    | Milliseconds between repeats.                                               |
+| `fastInterval` | `30`    | Milliseconds between repeats once `fastAfter` have been taken.              |
+| `fastAfter`    | `20`    | Repeats before they speed up.                                               |
+
+The hold ends when the pointer is let go or cancelled, loses capture or leaves the button, when a step changes nothing (a limit), on `cancel()` and on `detach()`. Every end clears the timer and releases the pointer's capture. A long touch opens no context menu. The renderer keeps focus in its control (by preventing `mousedown`, so a tap still clicks) and draws the button's disabled state.
+
+The press moves through one state union, `HoldRepeatState`: `idle`, `waiting` (one step taken, waiting for `delay`), `repeating`, and `detached`.
+
+## See also
+
+- [Text pipeline](/docs/forms-dom/text-pipeline) for the text the control holds.
+- [Numbers](/docs/forms-core/numbers) for the values a step goes to.
+- [NumberInput](/docs/forms/number-input) for the input built on both.
