@@ -28,7 +28,7 @@ describe("numberSymbols", () => {
   test("fr-FR groups with a narrow no-break space", () => {
     expect(numberSymbols("fr-FR")).toMatchObject({
       decimal: ",",
-      group: " ",
+      group: "\u202F",
     });
   });
 

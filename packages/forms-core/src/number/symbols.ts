@@ -33,9 +33,10 @@ export interface NumberSymbolOverrides {
 }
 
 /** Marks Intl puts around a sign to keep it in place in right-to-left text. */
-export const DIRECTION_MARKS = /[‎‏؜‪-‮⁦-⁩]/g;
+export const DIRECTION_MARKS =
+  /[\u200E\u200F\u061C\u202A-\u202E\u2066-\u2069]/g;
 
-const RIGHT_TO_LEFT_MARK = /[؜‏]/;
+const RIGHT_TO_LEFT_MARK = /[\u061C\u200F]/;
 
 /**
  * Symbols already read, one per locale and overrides: building an
