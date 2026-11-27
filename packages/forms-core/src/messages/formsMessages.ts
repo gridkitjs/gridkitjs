@@ -28,6 +28,18 @@ export interface FormsMessages {
   patternMismatch: string;
   /** A custom parser's fallback when the text cannot be read. */
   unreadable: string;
+  /** A number field's text is not a number. */
+  notANumber: string;
+  /** A number field's text groups digits where the field does not; names its separators. */
+  numberGrouping: (decimal: string, group: string) => string;
+  /** A number field holding JS numbers was given more digits than one keeps exactly. */
+  numberTooPrecise: string;
+  /** A number is below `min`, written as the field writes numbers. */
+  rangeUnderflow: (min: string) => string;
+  /** A number is above `max`, written as the field writes numbers. */
+  rangeOverflow: (max: string) => string;
+  /** A number is off its step, written as the field writes numbers. */
+  stepMismatch: (step: string) => string;
   /** A commit refused without a message, or a check that failed. */
   checkFailed: string;
   /** The clear button's accessible name. */
@@ -131,6 +143,13 @@ export function createDefaultFormsMessages(
     tooLong: (max) => `Enter no more than ${counted(n, max, characters)}`,
     patternMismatch: "Enter a value in the expected format",
     unreadable: "This value can't be read",
+    notANumber: "Enter a number",
+    numberGrouping: (decimal, group) =>
+      `Use “${decimal}” for decimals and “${group}” between thousands`,
+    numberTooPrecise: "This number has more digits than can be kept exactly",
+    rangeUnderflow: (min) => `Enter ${min} or more`,
+    rangeOverflow: (max) => `Enter ${max} or less`,
+    stepMismatch: (step) => `Enter a multiple of ${step}`,
     checkFailed: "This value could not be checked",
     clear: "Clear",
     showPassword: "Show password",

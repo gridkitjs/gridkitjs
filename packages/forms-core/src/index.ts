@@ -76,6 +76,36 @@ export {
   type RoundingMode,
 } from "./number/decimal";
 export {
+  formatNumber,
+  formatNumberRange,
+  numberAffixes,
+  type NumberAffixes,
+  type NumberTextForm,
+} from "./number/formatNumber";
+export {
+  numberDetails,
+  numberFormatter,
+  numberParser,
+  type NumberDetails,
+  type NumberFieldOptions,
+} from "./number/numberField";
+export {
+  numberFractionDigits,
+  type FractionDigits,
+  type NegativeStyle,
+  type NumberOptions,
+  type NumberStyle,
+  type NumberValue,
+  type NumberValueType,
+  type PercentScale,
+} from "./number/options";
+export {
+  parseNumber,
+  type NumberReading,
+  type NumberUnreadableReason,
+} from "./number/parseNumber";
+export type { NumberReadingInfo } from "./number/reading";
+export {
   numberSymbols,
   type NumberSymbolOverrides,
   type NumberSymbols,

@@ -285,11 +285,18 @@ export function decimalToNumber(value: DecimalString): {
   };
 }
 
-/** `value` as a decimal in normal form, whichever value type it is. */
-export function decimalOf(value: NumberLike): DecimalString {
-  return typeof value === "number"
-    ? numberToDecimal(value)
-    : writeDecimal(toDecimal(value));
+/**
+ * `value` as a decimal in normal form, whichever value type it is, its
+ * fraction padded to `minimumFractionDigits`.
+ */
+export function decimalOf(
+  value: NumberLike,
+  minimumFractionDigits = 0,
+): DecimalString {
+  return writeDecimal(
+    toDecimal(typeof value === "number" ? numberToDecimal(value) : value),
+    minimumFractionDigits,
+  );
 }
 
 /** How many digits `value` has after the point, trailing zeros not counted. */
