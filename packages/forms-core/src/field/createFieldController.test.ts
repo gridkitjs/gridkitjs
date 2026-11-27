@@ -597,6 +597,33 @@ describe("an input method", () => {
     controller.endComposition(null);
     expect(controller.getText()).toBe("a");
   });
+
+  test("filterComposition asks the input's own filter alone, with the text from before composing", () => {
+    const seen: { text: string; before: string }[] = [];
+    const field = textField({
+      filterInput: (edit, before) => {
+        seen.push({ text: edit.text, before });
+        return { kind: "replace", text: edit.text.toUpperCase(), caret: 2 };
+      },
+    });
+    const { controller } = field;
+    controller.focus(null);
+    controller.input(typed("ab", true));
+    field.clear();
+
+    const decision = controller.filterComposition(typed("ab"), "");
+
+    expect(decision).toEqual({ kind: "replace", text: "AB", caret: 2 });
+    expect(seen).toEqual([{ text: "ab", before: "" }]);
+    expect(field.names()).toEqual([]);
+  });
+
+  test("filterComposition allows the text of an input with no filter", () => {
+    const { controller } = textField();
+    expect(controller.filterComposition(typed("か"), "")).toEqual({
+      kind: "allow",
+    });
+  });
 });
 
 describe("a request made from inside a handler", () => {

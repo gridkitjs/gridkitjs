@@ -70,6 +70,14 @@ export interface FormsMessages {
   rangeTooLong: (span: string) => string;
   /** A range input's span, shown after its end. */
   rangeSpanLabel: (span: string) => string;
+  /** A masked field's text leaves required slots empty. */
+  maskIncomplete: string;
+  /** An IBAN has the wrong length for its country, or fails its check digits. */
+  ibanInvalid: string;
+  /** A card number fails its check digit. */
+  cardNumberInvalid: string;
+  /** An IPv4 address has a part above 255, or one with a leading zero. */
+  ipv4Invalid: string;
   /** The visible character counter. */
   counter: (count: number, max: number) => string;
   /** The counter's description, read with the control. */
@@ -189,6 +197,10 @@ export function createDefaultFormsMessages(
     rangeTooShort: (span) => `The range must span at least ${span}`,
     rangeTooLong: (span) => `The range must span no more than ${span}`,
     rangeSpanLabel: (span) => `Span: ${span}`,
+    maskIncomplete: "Complete this field",
+    ibanInvalid: "Enter a valid IBAN",
+    cardNumberInvalid: "Enter a valid card number",
+    ipv4Invalid: "Enter a valid IPv4 address",
     counter: (count, max) => `${n(count)}/${n(max)}`,
     counterLabel: (max) => `Up to ${counted(n, max, characters)}`,
     charactersLeft: (left) => `${counted(n, left, characters)} left`,

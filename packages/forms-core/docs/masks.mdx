@@ -1,0 +1,151 @@
+---
+title: "Masks"
+description: "A mask engine on the .NET-style token grammar: custom tokens, optional sections, several patterns, a function, and presets for IBANs, cards and postal codes."
+---
+
+forms-core lays typed text into a mask: `compileMask` reads a pattern on the .NET-style token grammar that ERP developers know, `applyMaskEdit` works out what a browser edit does to the masked text and where the caret goes, and `formatMasked` lays a value into the mask. The engine is pure and keeps no state between edits, so a value from the app, a controlled change and an undo all go through the same functions.
+
+<Callout type="note" title="First iteration">
+  This API is a first iteration and may change before the first release.
+</Callout>
+
+## When to use it
+
+To write a masked input of your own, or to lay codes into a fixed shape outside one. A mask suits codes with a fixed shape: postal codes, IBANs, card numbers, part numbers. Numbers and dates have their own inputs, which follow the locale; a mask never changes shape with the locale.
+
+## Example
+
+```ts
+import {
+  applyMaskEdit,
+  createFieldController,
+  defaultFormsMessages,
+  filterMaskEdit,
+  formatMasked,
+  maskFormatter,
+  maskParser,
+  type MaskOptions,
+} from "@gridkitjs/forms-core";
+
+const phone: MaskOptions = { mask: ["(000) 000-0000", "+0 (000) 000-0000"] };
+
+formatMasked(phone, "", true); // { text: "(___) ___-____", caret: 1, raw: "", ... }
+applyMaskEdit(
+  phone,
+  { text: "(555) ___-____", selectionStart: 6, selectionEnd: 6 },
+  { inputType: "insertText", data: "1" },
+  true,
+); // { text: "(555) 1__-____", caret: 7, raw: "5551", complete: false, accepted: true, ... }
+
+// A field whose value is the raw digits, once all ten are typed.
+const field = createFieldController<string>({
+  defaultParse: maskParser(phone),
+  defaultFormat: maskFormatter(phone),
+  filterInput: (edit, before) => filterMaskEdit(edit, before, phone),
+  messages: defaultFormsMessages,
+});
+```
+
+## Options
+
+| Option            | Type                                                     | Default     | Description                                                                                   |
+| ----------------- | -------------------------------------------------------- | ----------- | --------------------------------------------------------------------------------------------- |
+| `mask`            | `string \| readonly string[] \| (raw: string) => string` | required    | A pattern, several tried in order as the text grows, or a function picking one.               |
+| `tokens`          | `Record<string, RegExp \| MaskTokenDefinition>`          | none        | One-character tokens of the app's own, beside the built-in ones, which they replace.          |
+| `promptCharacter` | `string`                                                 | `"_"`       | One character shown in empty slots while focused; `""` for none.                              |
+| `locale`          | `Intl.LocalesArgument`                                   | the field's | Whose rules `>` and `<` change case by; the runtime's when the functions are called directly. |
+
+## The grammar
+
+| Token         | Accepts                                                                        | Required |
+| ------------- | ------------------------------------------------------------------------------ | -------- |
+| `0`           | a digit                                                                        | yes      |
+| `9`           | a digit                                                                        | no       |
+| `#`           | a digit, `+` or `-`                                                            | no       |
+| `L`           | a letter                                                                       | yes      |
+| `?`           | a letter                                                                       | no       |
+| `&`           | any character but a space                                                      | yes      |
+| `C`           | any character                                                                  | no       |
+| `A`           | a letter or a digit                                                            | yes      |
+| `a`           | a letter or a digit                                                            | no       |
+| `>`           | letters from here on are upper-cased, in the mask's locale                     |          |
+| `<`           | letters from here on are lower-cased                                           |          |
+| `\|`          | letters from here on are kept as typed                                         |          |
+| `\`           | the next character is a literal: `\0`, `\\`, `\[`                              |          |
+| `[` ... `]`   | an optional section: it appears once one of its slots is filled                |          |
+| anything else | a literal, shown as it is: `.` `,` `:` `/` `$` are not the locale's separators |          |
+
+A digit is any Unicode decimal digit, kept as its ASCII digit, and full-width characters from an input method become ASCII first. A letter is any Unicode letter; a mask that needs ASCII letters says so with a custom token.
+
+| Pattern              | Takes                                              |
+| -------------------- | -------------------------------------------------- |
+| `00000[-0000]`       | `12345` or `12345-6789`                            |
+| `>L0L 0L0`           | `K1A 0B1`, typed as `k1a0b1`                       |
+| `099.099.099.099`    | `192.168.1.1`, a typed `.` moving to the next part |
+| `\#>HHHHHH` with `H` | `#FF00AA`, given `tokens: { H: /[0-9a-f]/i }`      |
+
+`compileMask(pattern, tokens?)` returns `{ kind: "compiled", mask }` or `{ kind: "error", message, position }` for an unclosed, nested or stray bracket, an empty section, a trailing `\`, a pattern with no slot, or a token named with more than one character. The other functions throw on a malformed pattern, so an input checks its patterns with `compileMask` first.
+
+A custom token is a regular expression tested against one character, or a `MaskTokenDefinition`: `{ accept, optional?, transform? }`, where `transform` changes the character before it is kept (the case tokens still apply after).
+
+## Several patterns, and a function
+
+With several patterns, the one in use is the first that holds every character typed, each in a slot that accepts it. Typing past a short pattern's last slot moves to the next one and deleting moves back; completeness is judged on the pattern in use. A paste goes to the pattern that keeps the most of its characters.
+
+A function gets the raw text an edit leaves and returns the pattern, so the shape can follow the first characters: a card number by its prefix, an IBAN by its country.
+
+## Editing
+
+`applyMaskEdit(options, { text, selectionStart, selectionEnd }, { inputType, data }, focused)` returns a `MaskResult`: `text`, `caret`, `raw`, `formatted`, `complete`, `pattern` and `accepted`, false when the edit changes nothing the mask takes.
+
+- **Typing** fills the slots from the caret, each character the next slot that accepts it; one that no slot takes, or that would push another character out, refuses the whole edit. A character equal to the next literal moves past it, leaving the optional slots before it empty: `.` after `19` in an IPv4 mask.
+- **Pasting** (a paste, a drop, autofill or text an input method composed) is lenient: characters that fit nowhere are dropped, so `555.123.4567` and `(555) 123-4567` both read as `5551234567`.
+- **Deleting** a selection removes the characters in it; <Kbd>Backspace</Kbd> removes the character before the caret and <Kbd>Delete</Kbd> the one after it, stepping over literals. The characters after move back, each checked against its new slot.
+- **The caret** goes after the last character inserted and past the literals after it, so typing goes on at the next slot; after a deletion, to where the removed character was.
+
+`filterMaskEdit(edit, before, options)` is the same as a field's [`filterInput`](/docs/forms-core/field-state): it replaces the whole text and places the caret, or refuses the edit. An app's own change and undo stand as they are.
+
+## Value and completeness
+
+While focused the text shows the prompt in each empty slot; otherwise, and in the formatted value, it ends after the last character typed. `maskParser(options, valueFormat?)` reads it: nothing typed is `null`, complete text is its raw characters (or its formatted text with `"formatted"`), and incomplete text is unreadable with the `maskIncomplete` message, so the field keeps its last complete value. A whole-value regular expression, such as [`patternRule`](/docs/forms-core/validation), only checks a complete value; it never drives the mask.
+
+| Function                              | Returns                                                                                            |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `formatMasked(options, raw, focused)` | A raw or formatted value laid into the mask, the caret at the first empty slot.                    |
+| `maskFormatter(options)`              | A field's own writing: the template with prompts while focused, the formatted text otherwise.      |
+| `maskDetails(options, text)`          | `{ raw, formatted, complete, pattern }` for the text on screen.                                    |
+| `isValidMaskStart(options, raw)`      | Whether some pattern can still take `raw` and be completed by typing more.                         |
+| `maskInputHints(options)`             | `{ inputMode, upperCase }`: `"numeric"` when every slot is `0` or `9`, and whether it upper-cases. |
+
+## Presets
+
+`maskPresets` holds ready-made masks, each `{ options, validate?, inputMode, autoComplete?, valueFormat }`.
+
+| Preset         | Pattern                                                             | Value                         | Check      |
+| -------------- | ------------------------------------------------------------------- | ----------------------------- | ---------- |
+| `iban`         | groups of four, sized by the country; up to 34 when unknown         | raw: `DE89370400440532013000` | `ibanRule` |
+| `cardNumber`   | `0000 000000 00000` for 34 and 37, else `0000 0000 0000 0000[ 000]` | raw digits                    | `luhnRule` |
+| `ipv4`         | `099.099.099.099`                                                   | formatted: `192.168.1.1`      | `ipv4Rule` |
+| `postalCodeUS` | `00000[-0000]`                                                      | formatted                     |            |
+| `postalCodeCA` | `>L0L 0L0`                                                          | formatted                     |            |
+| `postalCodeGB` | the six UK shapes, `>L0 0LL` to `>LL0L 0LL`                         | formatted                     |            |
+| `postalCodeDE` | `00000`                                                             | formatted                     |            |
+| `postalCodeNL` | `0000 >LL`                                                          | formatted                     |            |
+| `postalCodeBR` | `00000-000`                                                         | formatted                     |            |
+| `postalCodeJP` | `000-0000`                                                          | formatted                     |            |
+
+`ibanRule()` checks the country's length and the check digits (mod 97), `luhnRule()` a card number's check digit, and `ipv4Rule()` that each part is 0 to 255 with no leading zero. Phone numbers are not a preset: a pattern such as the one in the example covers a single country.
+
+## Messages
+
+| Key                 | English default              |
+| ------------------- | ---------------------------- |
+| `maskIncomplete`    | "Complete this field"        |
+| `ibanInvalid`       | "Enter a valid IBAN"         |
+| `cardNumberInvalid` | "Enter a valid card number"  |
+| `ipv4Invalid`       | "Enter a valid IPv4 address" |
+
+## See also
+
+- [Field state](/docs/forms-core/field-state) for the controller and its `filterInput`.
+- [Validation](/docs/forms-core/validation) for validators and the messages catalogue.

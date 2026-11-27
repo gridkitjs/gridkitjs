@@ -177,6 +177,7 @@
     .gridkit-forms-search-input,
     .gridkit-forms-number-input,
     .gridkit-forms-number-range-input,
+    .gridkit-forms-masked-input,
     .gridkit-forms-checkbox,
     .gridkit-forms-switch
   ),
@@ -191,6 +192,7 @@
       .gridkit-forms-search-input,
       .gridkit-forms-number-input,
       .gridkit-forms-number-range-input,
+      .gridkit-forms-masked-input,
       .gridkit-forms-checkbox,
       .gridkit-forms-switch
     )
@@ -206,6 +208,7 @@
       .gridkit-forms-search-input,
       .gridkit-forms-number-input,
       .gridkit-forms-number-range-input,
+      .gridkit-forms-masked-input,
       .gridkit-forms-checkbox,
       .gridkit-forms-switch
     )
@@ -221,6 +224,7 @@
       .gridkit-forms-search-input,
       .gridkit-forms-number-input,
       .gridkit-forms-number-range-input,
+      .gridkit-forms-masked-input,
       .gridkit-forms-checkbox,
       .gridkit-forms-switch
     )
@@ -239,6 +243,7 @@
       .gridkit-forms-search-input,
       .gridkit-forms-number-input,
       .gridkit-forms-number-range-input,
+      .gridkit-forms-masked-input,
       .gridkit-forms-checkbox,
       .gridkit-forms-switch
     )
@@ -259,6 +264,7 @@
       .gridkit-forms-search-input,
       .gridkit-forms-number-input,
       .gridkit-forms-number-range-input,
+      .gridkit-forms-masked-input,
       .gridkit-forms-checkbox,
       .gridkit-forms-switch
     )
@@ -584,7 +590,8 @@
   .gridkit-forms-text-input,
   .gridkit-forms-search-input,
   .gridkit-forms-number-input,
-  .gridkit-forms-number-range-input {
+  .gridkit-forms-number-range-input,
+  .gridkit-forms-masked-input {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     min-inline-size: 0;
@@ -641,7 +648,8 @@
     > :is(
         .gridkit-forms-text-input-control,
         .gridkit-forms-search-input-control,
-        .gridkit-forms-number-input-control
+        .gridkit-forms-number-input-control,
+        .gridkit-forms-masked-input-control
       ):focus
   ) {
     outline-width: var(--gridkit-focus-ring-width);
@@ -687,7 +695,8 @@
    */
   .gridkit-forms-text-input-control,
   .gridkit-forms-search-input-control,
-  .gridkit-forms-number-input-control {
+  .gridkit-forms-number-input-control,
+  .gridkit-forms-masked-input-control {
     flex: 1 1 auto;
     align-self: stretch;
     min-inline-size: 0;
@@ -704,7 +713,8 @@
 
   .gridkit-forms-text-input-control::placeholder,
   .gridkit-forms-search-input-control::placeholder,
-  .gridkit-forms-number-input-control::placeholder {
+  .gridkit-forms-number-input-control::placeholder,
+  .gridkit-forms-masked-input-control::placeholder {
     color: var(--gridkit-fg-muted);
     opacity: 1;
   }
@@ -852,6 +862,31 @@
     ).is-align-start:dir(rtl)
     .gridkit-forms-number-input-control {
     text-align: right;
+  }
+
+  /*
+   * A mask is always written left to right, so it sits at the field's
+   * start by the root's direction, not the control's: physical sides, for
+   * that reason. `monospace` lines the slots up down a column of fields.
+   */
+  .gridkit-forms-masked-input-control {
+    font-variant-numeric: tabular-nums;
+    text-align: left;
+  }
+
+  .gridkit-forms-masked-input:dir(rtl) .gridkit-forms-masked-input-control {
+    text-align: right;
+  }
+
+  .gridkit-forms-masked-input.is-monospace .gridkit-forms-masked-input-control {
+    font-family: var(
+      --gridkit-forms-mask-font-family,
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Consolas,
+      monospace
+    );
   }
 
   /*
@@ -1459,6 +1494,7 @@
       .gridkit-forms-search-input,
       .gridkit-forms-number-input,
       .gridkit-forms-number-range-input,
+      .gridkit-forms-masked-input,
       .gridkit-forms-message-summary
     )
     :is(
@@ -1468,6 +1504,7 @@
       .gridkit-forms-search-input,
       .gridkit-forms-number-input,
       .gridkit-forms-number-range-input,
+      .gridkit-forms-masked-input,
       .gridkit-forms-message-summary
     ) {
     font-size: inherit;

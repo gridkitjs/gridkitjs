@@ -1,0 +1,118 @@
+---
+title: "MaskedInput"
+description: "MaskedInput: text laid into a mask as it is typed, for postal codes, IBANs, card numbers and part numbers, with presets that bring their checks."
+---
+
+`MaskedInput` lays what is typed into a mask: typing fills the slots and steps over the literals, a paste keeps the characters that fit, and while the field has focus each empty slot shows a prompt character, `(555) 1__-____`. The value is a string, only once the mask is complete, and `null` when empty. Presets bring the pattern, check and keyboard of IBANs, card numbers, IPv4 addresses and postal codes.
+
+<Callout type="note" title="First iteration">
+  This component is a first iteration and may change before the first release.
+</Callout>
+
+## When to use it
+
+For codes with a fixed shape: postal codes, IBANs, card numbers, part and order numbers, licence plates. Not for numbers, amounts or dates, which have their own inputs that follow the locale; a mask never changes shape with the locale.
+
+## Example
+
+```tsx title="App.tsx"
+import { Field, Form, MaskedInput, maskPresets } from "@gridkitjs/forms";
+
+export function App() {
+  return (
+    <Form>
+      <Field label="Phone" description="10 digits, as (555) 123-4567">
+        <MaskedInput name="phone" mask="(000) 000-0000" />
+      </Field>
+      <Field label="ZIP code">
+        <MaskedInput name="zip" mask={maskPresets.postalCodeUS} />
+      </Field>
+      <Field label="IBAN">
+        <MaskedInput name="iban" mask={maskPresets.iban} monospace required />
+      </Field>
+      <Field label="Colour" description="Six hex digits">
+        <MaskedInput
+          name="colour"
+          mask="\#>HHHHHH"
+          tokens={{ H: /[0-9a-f]/i }}
+          valueFormat="formatted"
+        />
+      </Field>
+      <button type="submit">Save</button>
+    </Form>
+  );
+}
+```
+
+## Props
+
+Besides the props every text input takes (see [TextInput](/docs/forms/text-input#props): `value`, `defaultValue`, `parse`, `format`, `validate`, `required`, `name`, `message`, `invalid`, `mode`, `readOnly`, `disabled`, `prefix`, `suffix`, `clearable`, `loading`, `density`, the handlers and the refs):
+
+| Prop              | Type                                                                   | Default                          | Description                                                                                                                             |
+| ----------------- | ---------------------------------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `mask`            | `string \| readonly string[] \| (raw: string) => string \| MaskPreset` | required                         | A pattern on the [mask grammar](/docs/forms-core/masks#the-grammar), several tried in order as the text grows, a function, or a preset. |
+| `tokens`          | `Record<string, RegExp \| MaskTokenDefinition>`                        |                                  | One-character tokens of your own, beside the built-in ones (laid over a preset's).                                                      |
+| `promptCharacter` | `string`                                                               | `"_"`                            | Shown in each empty slot while focused; `""` for none.                                                                                  |
+| `valueFormat`     | `"raw" \| "formatted"`                                                 | `"raw"`, or the preset's         | The characters typed alone (`5551234567`), or the text with its literals (`(555) 123-4567`).                                            |
+| `monospace`       | `boolean`                                                              | `false`                          | A fixed-width font, so the slots line up down a column of fields.                                                                       |
+| `placeholder`     | `string`                                                               | the template, `(___) ___-____`   | Shown while empty and not focused.                                                                                                      |
+| `inputMode`       |                                                                        | `"numeric"` for digit-only masks | The phone keyboard: `"numeric"` when every slot of every pattern is `0` or `9`, a preset's own, else `"text"`.                          |
+| `autoComplete`    |                                                                        | `"off"`, or the preset's         | What the browser's autofill offers: `"postal-code"`, `"cc-number"`.                                                                     |
+| `selectOnFocus`   | `boolean`                                                              | `false`                          | Focus from the keyboard or from code selects the text.                                                                                  |
+| `revertOnEscape`  | `boolean`                                                              | `true`                           | <Kbd>Escape</Kbd> puts back the last committed value.                                                                                   |
+
+A malformed pattern warns once in development, with the position of the mistake, and the input takes plain text.
+
+## Presets
+
+`maskPresets` holds ready-made masks; pass one as `mask`. Each brings its pattern, its check (which joins `validate`), its keyboard and its value format.
+
+| Preset                                                                                                         | Takes                                               | Value                         | Check                                          |
+| -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------- | ---------------------------------------------- |
+| `iban`                                                                                                         | an IBAN in groups of four, sized by its country     | raw: `DE89370400440532013000` | the country's length and check digits (mod 97) |
+| `cardNumber`                                                                                                   | 16 to 19 digits in fours; American Express as 4-6-5 | raw digits                    | the Luhn check digit                           |
+| `ipv4`                                                                                                         | `192.168.1.1`; a typed `.` moves to the next part   | formatted                     | each part 0 to 255, no leading zero            |
+| `postalCodeUS`, `postalCodeCA`, `postalCodeGB`, `postalCodeDE`, `postalCodeNL`, `postalCodeBR`, `postalCodeJP` | that country's postal codes, letters upper-cased    | formatted: `K1A 0B1`          |                                                |
+
+Phone numbers are not a preset: a pattern such as `(000) 000-0000` covers one country, and several patterns (`["(000) 000-0000", "+0 (000) 000-0000"]`) take a country code too.
+
+## Behaviour
+
+- **Typing** fills the next slot that takes the character and steps over literals; a character no slot takes is refused, and fires `onBeforeInput` only. Typing a literal moves past it: `.` after `19` in an IPv4 address goes to the next part.
+- **Deleting**: <Kbd>Backspace</Kbd> and <Kbd>Delete</Kbd> step over literals, and the characters after close up.
+- **Pasting, dropping and autofill** keep what fits and drop the rest: `555.123.4567` pastes as `(555) 123-4567`.
+- **Input methods** (Chinese, Japanese, Korean, and the predictive keyboards of phones, which compose whole words): the composed text shows as typed until composition ends, then it is laid into the mask as one paste.
+- **The caret** goes after each character typed and past the literals that follow; focus on an empty field, or a click past the text typed, puts it in the first empty slot.
+- **Value**: incomplete text is unreadable, with "Complete this field" shown on commit, and the value stays the last complete one; `onChange` fires once, when the text completes. An optional section left empty (`00000[-0000]`) does not count against it.
+- **Undo** steps back one masked edit.
+
+## Events
+
+Every event carries `MaskDetails`: `raw` (the characters typed), `formatted` (with the literals, without prompts), `complete` and `pattern` (the pattern in use, for several patterns or a function).
+
+## Accessibility
+
+The control is a native `<input type="text">`, always `dir="ltr"`: a mask reads left to right in a right-to-left page too, aligned to the field's start. `autocapitalize="characters"` is set when the mask upper-cases, with `autocorrect` and spell checking off. Screen readers read prompt characters as symbols ("underscore"), so give the field a `description` naming the format, as the example does.
+
+## States
+
+- **Display mode** shows the formatted text, or the empty dash.
+- **Read-only**, **disabled**, **invalid** with its severity, **loading** and the densities: as [TextInput](/docs/forms/text-input#behaviour).
+
+## Class names
+
+| Class                                 | Element   | Description                                                 |
+| ------------------------------------- | --------- | ----------------------------------------------------------- |
+| `.gridkit-forms-masked-input`         | `<div>`   | The root. States: is-monospace, is-compact, is-comfortable. |
+| `.gridkit-forms-masked-input-control` | `<input>` | The control.                                                |
+
+The box and its adornments are [TextInput](/docs/forms/text-input#class-names)'s. With `monospace` the control reads `--gridkit-forms-mask-font-family` when set.
+
+## Messages and localization
+
+From `FormsMessages`: `maskIncomplete`, `patternMismatch` (text no slot takes, after an undo), `required`, and the presets' `ibanInvalid`, `cardNumberInvalid` and `ipv4Invalid`. The locale (the prop's, the `Field`'s, the form's or the [`FormsProvider`](/docs/forms/form)'s) decides only how `>` and `<` change case; presets upper-case the same everywhere.
+
+## See also
+
+- [Masks](/docs/forms-core/masks) for the grammar, several patterns, functions and the engine behind the input.
+- [Events](/docs/forms/events) for the order the events fire in.

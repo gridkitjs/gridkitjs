@@ -14,6 +14,7 @@ import FieldGroupHarness from "./support/forms/FieldGroupHarness";
 import FieldHarness from "./support/forms/FieldHarness";
 import FormHarness from "./support/forms/FormHarness";
 import LayoutHarness from "./support/forms/LayoutHarness";
+import MaskedInputHarness from "./support/forms/MaskedInputHarness";
 import NumberInputHarness from "./support/forms/NumberInputHarness";
 import NumberRangeInputHarness from "./support/forms/NumberRangeInputHarness";
 import SearchInputHarness from "./support/forms/SearchInputHarness";
@@ -918,6 +919,40 @@ const fieldScans: readonly {
         mode="display"
         defaultValue={{ start: 10, end: 20 }}
       />
+    ),
+  },
+  {
+    name: "an empty masked input, its template the placeholder",
+    field: () => <MaskedInputHarness label="Phone" />,
+  },
+  {
+    name: "an invalid, monospace IBAN in a masked input",
+    field: () => (
+      <MaskedInputHarness
+        label="IBAN"
+        preset="iban"
+        monospace
+        message="Not an account we know"
+        defaultValue="DE89370400440532013000"
+      />
+    ),
+  },
+  {
+    name: "a read-only masked input with a floating label",
+    field: () => (
+      <MaskedInputHarness
+        label="ZIP code"
+        preset="postalCodeUS"
+        labelPosition="floating"
+        readOnly
+        defaultValue="12345-6789"
+      />
+    ),
+  },
+  {
+    name: "a masked input in display mode",
+    field: () => (
+      <MaskedInputHarness mode="display" defaultValue="5551234567" />
     ),
   },
   ...(["error", "warning", "info", "success"] as const).map((severity) => ({

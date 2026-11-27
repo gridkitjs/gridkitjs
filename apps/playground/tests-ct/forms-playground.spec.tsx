@@ -340,6 +340,29 @@ test.describe("forms playground page", () => {
     await expect(to).toHaveValue("30");
   });
 
+  test("the masked input section logs the value once the mask is complete", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<FormsPlayground />);
+    const rows = root
+      .getByRole("table", { name: "Event log" })
+      .locator("tbody tr");
+    const phone = root.getByRole("textbox", { name: "Phone number" });
+
+    await phone.focus();
+    await expect(phone).toHaveValue("(___) ___-____");
+    await page.keyboard.type("555123456");
+    await expect(rows.filter({ hasText: "onChange" })).toHaveCount(0);
+    await page.keyboard.type("7");
+
+    await expect(phone).toHaveValue("(555) 123-4567");
+    await expect(rows.filter({ hasText: "onChange" })).toHaveCount(1);
+    await expect(rows.filter({ hasText: "onChange" })).toContainText(
+      '"5551234567"',
+    );
+  });
+
   test("the page's locale and density reach every component", async ({
     mount,
     page,

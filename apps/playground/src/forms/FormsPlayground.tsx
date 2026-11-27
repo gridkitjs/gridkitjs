@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { FormsProvider } from "@gridkitjs/forms";
 import { FieldDemo } from "./demos/FieldDemo";
 import { FormStructureDemo } from "./demos/FormStructureDemo";
+import { MaskedInputDemo } from "./demos/MaskedInputDemo";
 import { NumberInputDemo, PercentInputDemo } from "./demos/NumberInputDemo";
 import { NumberRangeInputDemo } from "./demos/NumberRangeInputDemo";
 import { SearchInputDemo } from "./demos/SearchInputDemo";
@@ -56,6 +57,7 @@ export function FormsPlayground() {
                 <NumberInputDemo />
                 <PercentInputDemo />
                 <NumberRangeInputDemo />
+                <MaskedInputDemo />
                 <CheckboxDemo />
                 <SwitchDemo />
                 <FieldDemo />

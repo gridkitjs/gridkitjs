@@ -4,6 +4,7 @@
 import type { MountResult } from "@playwright/experimental-ct-react";
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./support/coverage";
+import { compose } from "./support/forms/compose";
 import { eventItems, loggedEvents } from "./support/forms/loggedEvents";
 import NumberInputHarness from "./support/forms/NumberInputHarness";
 import { typeInto } from "./support/forms/typeInto";
@@ -249,6 +250,38 @@ test.describe("NumberInput: typing", () => {
     await page.mouse.click(startBox.x + 1, startBox.y + startBox.height / 2);
 
     expect(await textWithCaret(amount(start))).toBe("|1234567.5");
+  });
+});
+
+test.describe("NumberInput: input methods", () => {
+  test("composed letters are taken back once composition ends", async ({
+    mount,
+    page,
+    browserName,
+  }) => {
+    const root = await mount(<NumberInputHarness locale="en-US" />);
+    await typeInto(amount(root), "12");
+
+    await compose(page, browserName, amount(root), ["a"], "ab");
+
+    await expect(amount(root)).toHaveValue("12");
+    expect(await lastChange(root)).toBe(12);
+  });
+
+  test("composed full-width digits are typed into fixed decimals", async ({
+    mount,
+    page,
+    browserName,
+  }) => {
+    const root = await mount(
+      <NumberInputHarness locale="de-DE" fractionDigits={2} />,
+    );
+    await amount(root).click();
+
+    await compose(page, browserName, amount(root), ["１"], "１２");
+
+    await expect(amount(root)).toHaveValue("12,00");
+    expect(await lastChange(root)).toBe(12);
   });
 });
 

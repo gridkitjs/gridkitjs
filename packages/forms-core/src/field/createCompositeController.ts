@@ -116,6 +116,7 @@ export type PartController<T, N = unknown> = Pick<
   | "beforeInput"
   | "input"
   | "endComposition"
+  | "filterComposition"
   | "focus"
   | "commit"
   | "blur"
@@ -466,6 +467,7 @@ export function createCompositeController<
           field.endComposition(nativeEvent);
         });
       },
+      filterComposition: part.filterComposition,
       focus: (nativeEvent) => {
         part.focus(nativeEvent);
         field.focus(nativeEvent);
