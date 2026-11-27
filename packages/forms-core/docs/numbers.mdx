@@ -143,7 +143,7 @@ Delete mirrors Backspace; a selection is removed (integer digits go, decimals tu
 
 A decimal string is written without passing through a JS number, so a 20-digit amount keeps every digit. Nothing is written as "-0". `display` and `edit` drop Intl's direction marks; `full` keeps them. With `negative: "parentheses"` the full text is "(1.234,50 €)", with `"trailingMinus"` "1.234,50- €".
 
-`numberAffixes(options, value?)` gives the currency, percent sign or unit before and after the number, for an input to draw beside its text: `{ prefix: "$" }` in `en-US`, `{ suffix: "€" }` in `de-DE`, `{ prefix: "%" }` in `tr-TR`. `formatNumberRange(start, end, options)` writes Intl's range text, "10,00–20,00 €".
+`numberAffixes(options, value?)` gives the currency, percent sign or unit before and after the number, for an input to draw beside its text: `{ prefix: "$" }` in `en-US`, `{ suffix: "€" }` in `de-DE`, `{ prefix: "%" }` in `tr-TR`. `formatNumberRange(start, end, options)` writes Intl's range text, "10,00–20,00 €"; ends that write the same are written once ("10", where Intl writes "~10"), and with a `negative` style other than the minus a negative end is written whole on each side of the locale's separator, "(10) – 20". [Ranges](/docs/forms-core/ranges) has the range model and the number range kinds.
 
 ## Exact decimals and value types
 

@@ -1,0 +1,206 @@
+---
+title: "Ranges"
+description: "The range model every GridKit range input shares: open ends, half-open or closed bounds, reversed entry, span limits, and inputs made of parts."
+---
+
+A range input holds one value, a `Range<T, F>`: a `start` and an `end`, either of which may be `null` (an open end), with the flags its type carries beside them. Everything that depends on the type comes from a `RangeKind` the type supplies, so number, date and time ranges share `orderRange`, `rangeSpan`, the span rules and the event details, and differ only in their kinds. `createCompositeController` drives an input made of parts, such as a range's two ends, as one field.
+
+<Callout type="note" title="First iteration">
+  The range model and the composite controller are a first iteration. The
+  composite controller's API is expected to change as more inputs use it.
+</Callout>
+
+## When to use it
+
+To build a range input of your own, or a new kind of range (a time range, a range of a custom type). An app using [`NumberRangeInput`](/docs/forms/number-range-input) reads the value and its events, and needs only [The value](#the-value) and [Events](#events).
+
+## Example
+
+```ts
+import {
+  defaultFormsMessages,
+  numberRangeKind,
+  orderRange,
+  rangeSpan,
+} from "@gridkitjs/forms-core";
+
+orderRange(numberRangeKind, 20, 10, {}, undefined);
+// { kind: "range", range: { start: 10, end: 20 }, swapped: true }
+
+orderRange(numberRangeKind, 20, 10, { reversed: "error" }, undefined);
+// { kind: "unreadable", reason: "reversed" }
+
+rangeSpan(numberRangeKind, { start: 0.1, end: 0.3 }, undefined); // 0.2
+console.log(defaultFormsMessages.rangeReversed); // "The end comes before the start"
+```
+
+## The value
+
+```ts
+type Range<T, F extends object = NoFlags> = {
+  readonly start: T | null;
+  readonly end: T | null;
+} & Readonly<F>;
+```
+
+A range with only a start, or only an end, is open at the other end. A range with both ends open is no range: an input holding one holds `null`. The value an input emits is always ordered; a reversed entry is swapped or refused, never stored reversed.
+
+`F` is the type's own flags, carried in the value beside the ends, so `{ start: "22:00", end: "06:00", overnight: true }` is one plain object an app can store. A flag is never named `start`, `end` or `rule`. A type with relative rules ("the last 7 days") holds a `RangeValue`: fixed ends, or a `RelativeRange` (`{ kind: "relative", rule }`) that `resolveRange` turns into ends when asked.
+
+## Bounds
+
+`bounds` says whether the stored end belongs to the range:
+
+| Bounds | Means                                                                                        | 10 to 10                             |
+| ------ | -------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `"[)"` | Half-open: the end is the first value after the range. The model's default.                  | Empty: refused, unless `allowEmpty`. |
+| `"[]"` | Closed: the end is in the range. `NumberRangeInput`'s default, what "10–20" means to people. | One value.                           |
+
+For a date, half-open is a conversion: a range picked as 1 to 31 March is stored up to 1 April. That is the kind's `toStoredEnd`, applied by `orderRange` to a half-open range's end, and its inverse `toShownEnd`, applied by `shownEnd` when the input shows a stored range. Numbers have neither: the end typed is the end stored, and the bounds only change what the range holds (`rangeIncludes`). An app that wants another end stores it from `onBeforeChange` with `event.setValue`; for a date range shown inclusive, `bounds="[]"` is the way to store an inclusive end, since a hand-made inclusive end would be shown through `toShownEnd` as the day before.
+
+## Range kinds
+
+```ts
+interface RangeKind<
+  T,
+  F extends object = NoFlags,
+  S = number,
+  C = undefined,
+  R = never,
+> {
+  compare: (a: T, b: T) => number;
+  orient: (start: T, end: T, context: C) => RangeOrientation<F>;
+  openFlags: F;
+  span: (start: T, end: T, flags: F, context: C) => S;
+  compareSpans: (a: S, b: S) => number;
+  toStoredEnd?: (shown: T, context: C) => T;
+  toShownEnd?: (stored: T, context: C) => T;
+  resolve?: (rule: R, context: C) => Range<T, F>;
+}
+```
+
+| Member                      | Does                                                                                                                                             |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `compare`                   | Orders two values: negative, 0 or positive.                                                                                                      |
+| `orient`                    | How an end stands to its start: `{ kind: "ordered", flags }` or `{ kind: "reversed" }`. A time range may call an earlier end ordered, overnight. |
+| `openFlags`                 | The flags of a range with an open end.                                                                                                           |
+| `span`, `compareSpans`      | The length from start to stored end, of the kind's own span type `S` (a number, a duration), and how two spans compare.                          |
+| `toStoredEnd`, `toShownEnd` | The half-open conversion between the end shown and the end stored. Absent: they are one.                                                         |
+| `resolve`                   | The ends a rule stands for now. Required for a type with rules.                                                                                  |
+
+`C` is the context the kind's functions need, passed in by the input: a time zone for a date-time range, so a day across a daylight-saving change spans 23 or 25 hours; whether the `overnight` prop is on for a time range, so the same kind serves both. A kind needing none takes `undefined`.
+
+`numberRangeKind` (JS numbers) and `decimalRangeKind` (exact decimal strings) are the number kinds: values compared exactly, the span `end - start` worked out exactly, so 0.1 to 0.3 spans 0.2. `numberRangeKindOf(valueType)` picks the one for a number field's value type.
+
+A time range over midnight, as a kind:
+
+```ts
+import type { RangeKind } from "@gridkitjs/forms-core";
+
+const minutesOf = (time: string) => {
+  const [hours = "0", minutes = "0"] = time.split(":");
+  return Number(hours) * 60 + Number(minutes);
+};
+
+export const timeRangeKind: RangeKind<
+  string,
+  { readonly overnight: boolean },
+  number,
+  { readonly overnight: boolean }
+> = {
+  compare: (a, b) => minutesOf(a) - minutesOf(b),
+  orient: (start, end, { overnight }) => {
+    if (minutesOf(end) >= minutesOf(start)) {
+      return { kind: "ordered", flags: { overnight: false } };
+    }
+    return overnight
+      ? { kind: "ordered", flags: { overnight: true } }
+      : { kind: "reversed" };
+  },
+  openFlags: { overnight: false },
+  span: (start, end, { overnight }) =>
+    minutesOf(end) - minutesOf(start) + (overnight ? 24 * 60 : 0),
+  compareSpans: (a, b) => a - b,
+};
+```
+
+With `overnight` on, 22:00 to 06:00 is `{ start: "22:00", end: "06:00", overnight: true }`, spanning 480 minutes; with it off, the same entry is reversed, so it is swapped or refused.
+
+## Functions
+
+| Function                                         | Does                                                                                                                                                             |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `orderRange(kind, start, end, options, context)` | Two ends as shown made into a `RangeReading`: `none` (both open), `range` (with `swapped`), or `unreadable` with `"reversed"` or `"empty"`. See the table below. |
+| `shownEnd(kind, range, bounds, context)`         | The end a stored range shows.                                                                                                                                    |
+| `rangeSpan(kind, range, context)`                | The span, through the kind; `null` while an end is open.                                                                                                         |
+| `rangeIncludes(kind, range, value, bounds)`      | Whether a value lies in the range. An open end reaches as far as values go; a range whose end comes before its start (overnight) wraps.                          |
+| `resolveRange(kind, value, context)`             | The ends a `RangeValue` stands for: itself, or its rule resolved.                                                                                                |
+| `isRelativeRange(value)`                         | Whether a value is a rule.                                                                                                                                       |
+| `sameRange(kind, a, b)`                          | Whether two ranges are one: ends compared by the kind, and the same flags.                                                                                       |
+| `rangeFlags(range)`                              | A range's flags, without its ends.                                                                                                                               |
+
+`RangeOptions` holds `bounds` (`"[)"` by default), `reversed` (`"swap"` by default, or `"error"`), `allowEmpty`, `minSpan` and `maxSpan`.
+
+| Start | End                                  | `orderRange` gives                      |
+| ----- | ------------------------------------ | --------------------------------------- |
+| empty | empty                                | `none`: the input holds `null`          |
+| `x`   | empty                                | `{ start: x, end: null, ...openFlags }` |
+| empty | `y`                                  | `{ start: null, end: y, ...openFlags }` |
+| `x`   | `y`, ordered                         | `{ start: x, end: y, ...flags }`        |
+| `x`   | `y`, reversed, `reversed: "swap"`    | `{ start: y, end: x }`, `swapped: true` |
+| `x`   | `y`, reversed, `reversed: "error"`   | `unreadable`, `"reversed"`              |
+| `x`   | `x`, `bounds: "[)"`, no `allowEmpty` | `unreadable`, `"empty"`                 |
+
+Emptiness is judged on the stored end, so a date range shown 1 to 1 March is stored up to 2 March and is not empty.
+
+## Span limits
+
+`minSpanRule(kind, minSpan, context, formatSpan)` and `maxSpanRule` are [validators](/docs/forms-core/validation): a range shorter than `minSpan`, or longer than `maxSpan`, measured by the kind, is `messages.rangeTooShort` or `messages.rangeTooLong`, the limit written by `formatSpan(span, validatorContext)` ("10", "14 days"). `context` is a function, so the rule reads the kind's context when it runs. A range with an open end passes.
+
+`endsRule(rule)` runs a validator of one value on each present end, so a number range's `min` and `max` bound both ends; a message both ends earn is given once.
+
+## Inputs made of parts
+
+`createCompositeController(options)` drives an input made of parts (both ends of a range, an amount and its currency) as one field. Each part is a field of its own, with a parser, a formatter and a filter but no app handlers, which a renderer attaches a control to as it would a field (`composite.parts.start`). The composite relays every part edit to the field the app sees (`composite.field`) as an edit of the joined text, so the app's `onBeforeInput` and `onInput` fire with the part's edit, then the field reads its value from the parts through `assemble` and runs the change chain.
+
+| Option                                | Does                                                                                                            |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `parts`                               | Each part's `defaultParse`, `defaultFormat`, `parse`, `format`, `equals`, `filterInput` and `locale`, in order. |
+| `assemble(parts, context)`            | The value the parts' values make, or why they make none (an end before its start).                              |
+| `split(value)`                        | Each part's value within a value.                                                                               |
+| `join(texts)`                         | The field's text, which events carry: the parts' texts joined.                                                  |
+| `details(current, previous, context)` | The input's own details; `context` holds the part that changed and each part's state and text.                  |
+
+The field's other options (value, validators, handlers, messages) are a field's. For a range, `readRangeEnds(kind, ends, options, context, assembleContext)` is the `assemble`, `rangeEnds(kind, range, bounds, context)` the `split`, `sameRange` the `equals`, and `rangeDetails` the details.
+
+How it behaves:
+
+- **A part that cannot be read** makes the field unreadable with that part's message, the first part in order; `assemble` adds its own (reversed, empty).
+- **A value the field takes whole** (`setValue` in `onBeforeChange`, a controlled value, a revert, a clear) is pushed into the parts by `split`. A part whose text already reads as its value keeps it while the user types, and every part shows its value formatted once the field commits, so a swapped range's texts change places on commit.
+- **Commits.** <Kbd>Tab</Kbd> from part to part commits only the part, normalizing its text; nothing public fires. <Kbd>Enter</Kbd> in a part commits the field, <Kbd>Escape</Kbd> reverts it. Focus entering a part of an idle field fires `onFocus`; focus leaving the whole input is the renderer's to report through `composite.leave("tab" | "blur", nativeEvent)` (forms-dom's [`attachFocusGroup`](/docs/forms-dom/form-navigation#focus-groups) tells the two apart), which commits the field, then `onBlur`.
+- **Steps.** `part.change(value, cause)` sets a part's value (a step) and relays it as an edit, so the field fires `onInput` and the change chain with the step's source.
+- `composite.getState()` is `{ field, parts }`, one object until any of them changes, and `composite.subscribe` hears all of them.
+
+## Events
+
+`RangeDetails` is what a range input adds to every event:
+
+| Field                  | Type                                 | Description                                                                                                                                                                                                    |
+| ---------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `changedEnd`           | `"start" \| "end" \| "both" \| null` | The end typed in; `"both"` for a value set whole (`setValue`, a controlled value, a revert or clear); on a commit, the end that differs from the last commit, `"both"` when both do, `null` when neither does. |
+| `resolved`             | `Range<T, F> \| null`                | The ends the value stands for: the value, or its rule resolved.                                                                                                                                                |
+| `span`                 | `S \| null`                          | From start to end; `null` while an end is open.                                                                                                                                                                |
+| `bounds`               | `RangeBounds`                        | The input's bounds.                                                                                                                                                                                            |
+| `startText`, `endText` | `string`                             | Each end's text as shown.                                                                                                                                                                                      |
+| `rule`                 | `R \| null`                          | The rule, when the value is one.                                                                                                                                                                               |
+
+## Messages
+
+From `FormsMessages`: `rangeReversed` ("The end comes before the start"), `rangeEmpty` ("The range is empty"), `rangeTooShort(span)` and `rangeTooLong(span)`; for a range input to draw, `rangeStart` and `rangeEnd` (each end's name, "From" and "To"), `rangeSeparator` ("–"), `rangeFrom(start)` and `rangeUpTo(end)` (an open range in display mode, "from 10", "up to 20") and `rangeSpanLabel(span)` ("Span: 10").
+
+## See also
+
+- [NumberRangeInput](/docs/forms/number-range-input), the first input built on the model.
+- [Numbers](/docs/forms-core/numbers) for the number logic each end uses.
+- [Field state](/docs/forms-core/field-state) for the field the composite builds on.
+- [Form navigation](/docs/forms-dom/form-navigation#focus-groups) for the focus group that reports leaving.
