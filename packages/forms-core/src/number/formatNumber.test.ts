@@ -320,7 +320,7 @@ describe("formatNumberRange", () => {
         style: "currency",
         currency: "EUR",
       }),
-    ).toBe("1,00 €");
+    ).toBe("1,00\u00A0€");
   });
 
   test("writes a negative end in the field's negative style", () => {
