@@ -62,6 +62,10 @@ export {
 } from "./messages/formsMessages";
 export { mostSevere, type Severity } from "./messages/severity";
 export {
+  cleanPastedNumber,
+  type CleanedNumber,
+} from "./number/cleanPastedNumber";
+export {
   addDecimals,
   compareDecimals,
   decimalToNumber,
@@ -105,6 +109,13 @@ export {
   type NumberUnreadableReason,
 } from "./number/parseNumber";
 export type { NumberReadingInfo } from "./number/reading";
+export { maxRule, minRule, stepRule } from "./number/rules";
+export {
+  stepNumber,
+  type StepDirection,
+  type StepRequest,
+  type StepSize,
+} from "./number/stepNumber";
 export {
   numberSymbols,
   type NumberSymbolOverrides,
