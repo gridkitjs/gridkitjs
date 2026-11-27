@@ -1,9 +1,9 @@
 ---
 title: "Form navigation"
-description: "Enter moving from field to field, finding a form's first invalid control, and the focus helpers a forms renderer uses on submit."
+description: "Enter moving from field to field, a form's first invalid control, the focus helpers a renderer uses on submit, and focus groups."
 ---
 
-The behaviours a form needs around its fields: `attachEnterNavigation` makes Enter move from field to field, `findFirstInvalidControl` finds where a refused submit should send focus, `focusTargetIn` picks the control a link to a field should focus, and `compareDocumentOrder` sorts elements as they come in the page.
+The behaviours a form needs around its fields: `attachEnterNavigation` makes Enter move from field to field, `findFirstInvalidControl` finds where a refused submit should send focus, `focusTargetIn` picks the control a link to a field should focus, `compareDocumentOrder` sorts elements as they come in the page, and `attachFocusGroup` tells focus moving between the parts of one input from focus leaving it.
 
 <Callout type="note" title="First iteration">
   These functions are a first iteration and may change before the first release.
@@ -55,7 +55,12 @@ With `attachEnterNavigation`:
 
 Enter with a modifier, while an input method is composing, or already handled (a field that refused its commit prevents the key) is left alone, as is Enter in a textarea, a select, a button or a link.
 
+## Focus groups
+
+An input made of parts (the two ends of a range) commits when focus leaves the whole input, which no part's own blur can tell. `attachFocusGroup(root, { onLeave })` listens on the element around the parts: a `focusout` whose `relatedTarget` is outside `root`, or none (the window losing focus), calls `onLeave(by, nativeEvent)`, with `by` `"tab"` when a <Kbd>Tab</Kbd> nothing prevented was pressed in the group just before, else `"blur"`. Focus moving from part to part calls nothing. The returned object has `setOptions` and `detach`, which removes its listeners. Pass `onLeave` straight to a forms-core composite controller's `leave`; see [Ranges](/docs/forms-core/ranges#inputs-made-of-parts).
+
 ## See also
 
 - [Form](/docs/forms/form) for the component built on these.
+- [NumberRangeInput](/docs/forms/number-range-input), the first input with a focus group.
 - [Text pipeline](/docs/forms-dom/text-pipeline) for what a field does with Enter first.
