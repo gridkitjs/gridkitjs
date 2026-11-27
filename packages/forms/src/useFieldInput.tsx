@@ -49,8 +49,12 @@ import {
 } from "react";
 import { DisplayValue } from "./DisplayValue";
 import type { FieldClearEvent, FieldHandlers } from "./events";
-import { useFieldContext } from "./field/fieldContext";
-import { useFormContext } from "./form/formContext";
+import {
+  useFieldContext,
+  type FieldContextValue,
+  type FieldControlState,
+} from "./field/fieldContext";
+import { useFormContext, type FormContextValue } from "./form/formContext";
 import { setRef } from "./refs";
 import { useFormSettings, type FieldMode } from "./settings";
 
@@ -274,6 +278,143 @@ export function validatorsOf<V>(
   return typeof validate === "function" ? [validate] : validate;
 }
 
+/** The settings an input takes from its own props, its `Field` and its form. */
+export function useInputSettings(
+  props: Pick<
+    FieldInputProps<unknown>,
+    "readOnly" | "disabled" | "mode" | "locale" | "messages"
+  >,
+) {
+  const field = useFieldContext();
+  const form = useFormContext();
+  const formSettings = useFormSettings();
+  const ownId = useId();
+  const settings = field?.settings ?? formSettings;
+  const locale = props.locale ?? settings.locale;
+  const messages = useMemo(
+    () =>
+      props.messages === undefined && props.locale === undefined
+        ? settings.messages
+        : resolveFormsMessages(
+            { ...settings.messageOverrides, ...props.messages },
+            locale,
+          ),
+    [props.messages, props.locale, settings, locale],
+  );
+  return {
+    field,
+    form,
+    settings,
+    ownId,
+    readOnly: props.readOnly === true || settings.readOnly,
+    disabled: props.disabled === true || settings.disabled,
+    mode: props.mode ?? settings.mode,
+    locale,
+    messages,
+  };
+}
+
+/**
+ * Passes a controlled `value` to the field after every render, takes a
+ * form's reveal for the field while it is in one, and cancels what the
+ * field waits for on unmount.
+ */
+export function useControllerLifecycle<V>(
+  controller: Pick<FieldController<V>, "sync" | "reveal" | "destroy">,
+  value: V | null | undefined,
+  form: FormContextValue | null,
+): void {
+  useLayoutEffect(() => {
+    if (value !== undefined) {
+      controller.sync(value);
+    }
+  });
+  useEffect(
+    () => () => {
+      controller.destroy();
+    },
+    [controller],
+  );
+  useLayoutEffect(
+    () => form?.registry.addRevealer(controller.reveal),
+    [form, controller],
+  );
+}
+
+/**
+ * The messages an input shows (`own`, the field's, and the app's
+ * `message`) and the most serious among them and the `Field`'s, or
+ * `"error"` for `invalid`.
+ */
+export function useShownMessages(
+  own: readonly FieldMessage[],
+  message: FieldInputProps<unknown>["message"],
+  invalid: boolean | undefined,
+  field: FieldContextValue | null,
+): {
+  readonly shown: readonly FieldMessage[];
+  readonly severity: Severity | null;
+} {
+  const shown = useMemo(
+    () =>
+      message === undefined
+        ? own
+        : sortFieldMessages([...own, ...toFieldMessages(message, "app")]),
+    [own, message],
+  );
+  const fieldSeverity = field?.severity ?? null;
+  const severity =
+    invalid === true
+      ? "error"
+      : mostSevere([
+          ...shown.map((shownMessage) => shownMessage.severity),
+          ...(fieldSeverity === null ? [] : [fieldSeverity]),
+        ]);
+  return { shown, severity };
+}
+
+/** Tells the `Field` around an input its shown messages and its control's state, until it goes. */
+export function useFieldReport(
+  field: FieldContextValue | null,
+  ownId: string,
+  shown: readonly FieldMessage[],
+  {
+    focused,
+    empty,
+    required = false,
+    startAdornment = false,
+    labelBeside = false,
+  }: FieldControlState,
+): void {
+  const setControlMessages = field?.setControlMessages;
+  useLayoutEffect(() => {
+    if (setControlMessages === undefined) {
+      return undefined;
+    }
+    setControlMessages(ownId, shown);
+    return () => {
+      setControlMessages(ownId, NO_MESSAGES);
+    };
+  }, [setControlMessages, ownId, shown]);
+
+  const setControlState = field?.setControlState;
+  useLayoutEffect(() => {
+    if (setControlState === undefined) {
+      return undefined;
+    }
+    setControlState({
+      focused,
+      empty,
+      required,
+      startAdornment,
+      labelBeside,
+    });
+    return () => {
+      setControlState(null);
+    };
+  }, [setControlState, focused, empty, required, startAdornment, labelBeside]);
+}
+
 /**
  * Binds a native text control, or with `options.toggle` a checkbox, to a
  * field: the value and draft model, the
@@ -305,26 +446,9 @@ export function useFieldInput<
   kind: FieldInputKind<V, D>,
   options: FieldInputOptions = {},
 ): FieldInput<V, E> {
-  const field = useFieldContext();
-  const form = useFormContext();
-  const formSettings = useFormSettings();
-  const ownId = useId();
-  const settings = field?.settings ?? formSettings;
-  const readOnly = props.readOnly === true || settings.readOnly;
-  const disabled = props.disabled === true || settings.disabled;
-  const mode = props.mode ?? settings.mode;
+  const { field, form, ownId, readOnly, disabled, mode, locale, messages } =
+    useInputSettings(props);
   const toggle = options.toggle !== undefined;
-  const locale = props.locale ?? settings.locale;
-  const messages = useMemo(
-    () =>
-      props.messages === undefined && props.locale === undefined
-        ? settings.messages
-        : resolveFormsMessages(
-            { ...settings.messageOverrides, ...props.messages },
-            locale,
-          ),
-    [props.messages, props.locale, settings, locale],
-  );
   const fieldOptions: FieldOptions<V, D, Event> = {
     value: props.value,
     defaultValue: props.defaultValue,
@@ -359,22 +483,7 @@ export function useFieldInput<
     controller.getState,
   );
 
-  const { value } = props;
-  useLayoutEffect(() => {
-    if (value !== undefined) {
-      controller.sync(value);
-    }
-  });
-  useEffect(
-    () => () => {
-      controller.destroy();
-    },
-    [controller],
-  );
-  useLayoutEffect(
-    () => form?.registry.addRevealer(controller.reveal),
-    [form, controller],
-  );
+  useControllerLifecycle(controller, props.value, form);
 
   // The control in state, not a ref, so that a new `ref` prop rebinds the
   // app's ref without detaching the pipeline mid-edit.
@@ -453,54 +562,20 @@ export function useFieldInput<
   // A disabled field is not validated, so it shows none of its own messages.
   const own =
     state.revealed && !disabled ? controller.getMessages() : NO_MESSAGES;
-  const { message } = props;
-  const shown = useMemo(
-    () =>
-      message === undefined
-        ? own
-        : sortFieldMessages([...own, ...toFieldMessages(message, "app")]),
-    [own, message],
+  const { shown, severity } = useShownMessages(
+    own,
+    props.message,
+    props.invalid,
+    field,
   );
-  const fieldSeverity = field?.severity ?? null;
-  const severity =
-    props.invalid === true
-      ? "error"
-      : mostSevere([
-          ...shown.map((shownMessage) => shownMessage.severity),
-          ...(fieldSeverity === null ? [] : [fieldSeverity]),
-        ]);
-
-  const setControlMessages = field?.setControlMessages;
-  useLayoutEffect(() => {
-    if (setControlMessages === undefined) {
-      return undefined;
-    }
-    setControlMessages(ownId, shown);
-    return () => {
-      setControlMessages(ownId, NO_MESSAGES);
-    };
-  }, [setControlMessages, ownId, shown]);
-
-  const setControlState = field?.setControlState;
-  const focused = isFocused(state.phase);
-  const empty = text === "";
   const required = props.required === true;
-  const startAdornment = options.startAdornment === true;
-  useLayoutEffect(() => {
-    if (setControlState === undefined) {
-      return undefined;
-    }
-    setControlState({
-      focused,
-      empty,
-      required,
-      startAdornment,
-      labelBeside: toggle,
-    });
-    return () => {
-      setControlState(null);
-    };
-  }, [setControlState, focused, empty, required, startAdornment, toggle]);
+  useFieldReport(field, ownId, shown, {
+    focused: isFocused(state.phase),
+    empty: text === "",
+    required,
+    startAdornment: options.startAdornment === true,
+    labelBeside: toggle,
+  });
 
   return {
     state,
