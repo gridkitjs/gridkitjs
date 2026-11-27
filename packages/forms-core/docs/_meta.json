@@ -1,3 +1,10 @@
 {
-  "order": ["overview", "field-state", "validation", "numbers", "ranges"]
+  "order": [
+    "overview",
+    "field-state",
+    "validation",
+    "numbers",
+    "ranges",
+    "masks"
+  ]
 }

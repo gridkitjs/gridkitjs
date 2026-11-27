@@ -71,25 +71,26 @@ Validators run when the field is created, after every value change, after a cont
 
 `FormsMessages` works like the grid's `GridMessages`: one key per string, a function where a message names a number. `createDefaultFormsMessages(locale)` prints counts in the locale's digits, `defaultFormsMessages` is the runtime locale's, and `resolveFormsMessages(partial, locale)` lays an app's partial set over the defaults, returning the same object for the same locale when given none. A minor release may add keys; a translation without one shows its English default.
 
-| Key                                                                | English default                                                                                                                          |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `required`                                                         | "Enter a value"                                                                                                                          |
-| `requiredChecked`, `requiredOn`                                    | "Check this box to continue", "Turn this on to continue"                                                                                 |
-| `tooShort(min)`, `tooLong(max)`                                    | "Enter at least {min} characters", "Enter no more than {max} characters"                                                                 |
-| `patternMismatch`                                                  | "Enter a value in the expected format"                                                                                                   |
-| `unreadable`                                                       | "This value can't be read"                                                                                                               |
-| `checkFailed`                                                      | "This value could not be checked"                                                                                                        |
-| `notANumber`, `numberGrouping(decimal, group)`, `numberTooPrecise` | "Enter a number", "Use “{decimal}” for decimals and “{group}” between thousands", "This number has more digits than can be kept exactly" |
-| `rangeUnderflow(min)`, `rangeOverflow(max)`, `stepMismatch(step)`  | "Enter {min} or more", "Enter {max} or less", "Enter a multiple of {step}"                                                               |
-| `clear`, `showPassword`, `fieldHelp`                               | "Clear", "Show password", "More information"                                                                                             |
-| `increase`, `decrease`                                             | "Increase", "Decrease"                                                                                                                   |
-| `counter(count, max)`, `counterLabel(max)`                         | "{count}/{max}", "Up to {max} characters"                                                                                                |
-| `charactersLeft(left)`, `charactersOver(over)`                     | "{left} characters left", "{over} characters too many"                                                                                   |
-| `loading`, `emptyValue`, `optional`, `searchPlaceholder`           | "Loading", "No value", "optional", "Search"                                                                                              |
-| `displayChecked`, `displayUnchecked`, `displayOn`, `displayOff`    | "Yes", "No", "On", "Off"                                                                                                                 |
-| `severityLabel(severity)`                                          | "Error", "Warning", "Information", "Success"                                                                                             |
-| `severityCount(severity, count)`                                   | "1 error", "2 warnings", "1 note", "3 confirmations"                                                                                     |
-| `messageSummaryTitle(count)`                                       | "There is 1 problem with this form", "There are {count} problems with this form"                                                         |
+| Key                                                                 | English default                                                                                                                          |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `required`                                                          | "Enter a value"                                                                                                                          |
+| `requiredChecked`, `requiredOn`                                     | "Check this box to continue", "Turn this on to continue"                                                                                 |
+| `tooShort(min)`, `tooLong(max)`                                     | "Enter at least {min} characters", "Enter no more than {max} characters"                                                                 |
+| `patternMismatch`                                                   | "Enter a value in the expected format"                                                                                                   |
+| `unreadable`                                                        | "This value can't be read"                                                                                                               |
+| `checkFailed`                                                       | "This value could not be checked"                                                                                                        |
+| `notANumber`, `numberGrouping(decimal, group)`, `numberTooPrecise`  | "Enter a number", "Use “{decimal}” for decimals and “{group}” between thousands", "This number has more digits than can be kept exactly" |
+| `rangeUnderflow(min)`, `rangeOverflow(max)`, `stepMismatch(step)`   | "Enter {min} or more", "Enter {max} or less", "Enter a multiple of {step}"                                                               |
+| `maskIncomplete`, `ibanInvalid`, `cardNumberInvalid`, `ipv4Invalid` | "Complete this field", "Enter a valid IBAN", "Enter a valid card number", "Enter a valid IPv4 address"                                   |
+| `clear`, `showPassword`, `fieldHelp`                                | "Clear", "Show password", "More information"                                                                                             |
+| `increase`, `decrease`                                              | "Increase", "Decrease"                                                                                                                   |
+| `counter(count, max)`, `counterLabel(max)`                          | "{count}/{max}", "Up to {max} characters"                                                                                                |
+| `charactersLeft(left)`, `charactersOver(over)`                      | "{left} characters left", "{over} characters too many"                                                                                   |
+| `loading`, `emptyValue`, `optional`, `searchPlaceholder`            | "Loading", "No value", "optional", "Search"                                                                                              |
+| `displayChecked`, `displayUnchecked`, `displayOn`, `displayOff`     | "Yes", "No", "On", "Off"                                                                                                                 |
+| `severityLabel(severity)`                                           | "Error", "Warning", "Information", "Success"                                                                                             |
+| `severityCount(severity, count)`                                    | "1 error", "2 warnings", "1 note", "3 confirmations"                                                                                     |
+| `messageSummaryTitle(count)`                                        | "There is 1 problem with this form", "There are {count} problems with this form"                                                         |
 
 ## See also
 
