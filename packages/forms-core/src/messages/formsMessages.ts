@@ -46,6 +46,10 @@ export interface FormsMessages {
   clear: string;
   /** The password reveal button's accessible name. */
   showPassword: string;
+  /** A number input's stepper button that steps up. */
+  increase: string;
+  /** A number input's stepper button that steps down. */
+  decrease: string;
   /** The visible character counter. */
   counter: (count: number, max: number) => string;
   /** The counter's description, read with the control. */
@@ -153,6 +157,8 @@ export function createDefaultFormsMessages(
     checkFailed: "This value could not be checked",
     clear: "Clear",
     showPassword: "Show password",
+    increase: "Increase",
+    decrease: "Decrease",
     counter: (count, max) => `${n(count)}/${n(max)}`,
     counterLabel: (max) => `Up to ${counted(n, max, characters)}`,
     charactersLeft: (left) => `${counted(n, left, characters)} left`,

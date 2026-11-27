@@ -107,6 +107,30 @@ For a percent, the fraction digit options count the digits of the number shown (
 
 The text comes back in the field's digits with its decimal separator, no grouping, and every digit kept; rounding happens when it is read.
 
+## Typing
+
+`filterNumberEdit(edit, before, options)` is a number input's judgement of each edit, its field's `filterInput`. It returns `{ decision, pasted }`: what forms-dom does with the edit, and how clean-up read a paste it inserts. Its options add three to `NumberOptions`: `negatives` (false refuses a sign, for a field whose `min` is 0 or above), `limitFractionDigits` (refuses a digit past the maximum instead of rounding it) and `decimalEntry`.
+
+Free entry keeps what can still become a number: digits, the decimal separator once (none with `maximumFractionDigits: 0`), a group separator where the grouping allows ("." after "1234" is refused in `de-DE`), a sign at the start. Letters, `e`, currency and percent signs are refused; deletions and undo always stand; a paste or drop is cleaned by `cleanPastedNumber` and inserted in its place, or refused.
+
+A field with fixed decimals (`fixedFractionDigits(options)`: a minimum equal to a maximum above zero, such as a currency's minor units) types the way accounting fields do, unless `decimalEntry` is `"free"`. Every edit replaces the whole text:
+
+| In `de-DE` with two decimals                        | Before    | Key       | After     |
+| --------------------------------------------------- | --------- | --------- | --------- |
+| The decimals show as soon as there is a value       | `\|`      | 5         | `5\|,00`  |
+| Digits go before the decimals                       | `5\|,00`  | 1         | `51\|,00` |
+| The decimal separator, or `.` or `,`, jumps         | `51\|,00` | ,         | `51,\|00` |
+| Decimals are typed over                             | `51,\|00` | 4         | `51,4\|0` |
+| and never grow                                      | `51,45\|` | 6         | refused   |
+| Backspace turns a decimal to zero                   | `51,45\|` | Backspace | `51,4\|0` |
+| From the first decimal, it deletes an integer digit | `51,\|45` | Backspace | `5\|,45`  |
+| The last integer digit leaves a zero                | `5\|,45`  | Backspace | `0\|,45`  |
+| With no digit left that counts, the field empties   | `5\|,00`  | Backspace | `\|`      |
+
+Delete mirrors Backspace; a selection is removed (integer digits go, decimals turn to zero, the separator stays) before the key is typed; select all and delete empties the field. A paste is cleaned, rounded to the decimals and shown with them, the caret at the end of its integer part.
+
+`numberCaret(options)` gives the caret rule for text written into a focused number field: after as many digits, separators and signs as before, so grouping that comes or goes on focus does not move it.
+
 ## Writing
 
 `formatNumber(value, options, form)` writes a `number` or a decimal string in one of three forms:
@@ -157,6 +181,8 @@ A field holds a JS `number` by default, or an exact `DecimalString` (`"1234.50"`
 `minRule(min, options?)`, `maxRule(max, options?)` and `stepRule(step, base?, options?)` are [validators](/docs/forms-core/validation) for either value type, compared as exact decimals: a decimal-string `max` such as `"99999999999999999.99"` keeps every digit, and 0.15 is three steps of 0.05. Their messages write the limit as the field writes numbers, "Enter 1.000,00 € or less", so they take the field's `options`.
 
 `stepNumber({ value, direction, size, step, largeStep, min, max })` gives the value one step on, every number a decimal string. From empty it starts at 0 (or at a limit that leaves 0 out); a value on the step grid (multiples of `step` from `min`, or from 0) moves one step or one large step, and a value off it goes to the grid value that way first, as native number inputs do: 1.37 with step 0.5 goes up to 1.5. `size: "edge"` goes to the limit. It never passes `min` or `max`.
+
+`stepNumberValue(value, step, options)` takes a number field there: the same step in the field's value units, rounded to its maximum fraction digits (of the number shown, for a percent) and held as its value type, so 0.1 stepped by 0.1 is exactly 0.2 or `"0.2"`.
 
 ## Events
 
