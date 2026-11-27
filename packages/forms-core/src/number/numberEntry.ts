@@ -31,8 +31,8 @@ export interface NumberEntry {
 
 const ALLOW = { kind: "allow" } as const;
 const PREVENT = { kind: "prevent" } as const;
-const SIGNS = new Set(["-", "−", "+", "(", ")"]);
-const MINUS_SIGNS = new Set(["-", "−", "﹣"]);
+const SIGNS = new Set(["-", "\u2212", "+", "(", ")"]);
+const MINUS_SIGNS = new Set(["-", "\u2212", "\uFE63"]);
 
 function entry(
   decision: InputFilterDecision,
