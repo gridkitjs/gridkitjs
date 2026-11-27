@@ -84,6 +84,15 @@ detaches it. The number kind both share with `NumberControl` is in
 `src/number/numberKind.ts`. It holds no lifecycle of its own.
 `forms-number-range-input.spec.tsx` covers it.
 
+`MaskedInput` (`src/mask/`) calls `useFieldInput` with a mask `kind`
+(forms-core's mask parser, formatter and `filterMaskEdit` as its
+`filterInput`, `MaskDetails`) built in `src/mask/maskKind.ts`, which also
+resolves a preset and checks the patterns, falling back to plain text on a
+malformed one. forms-dom lays composed text into the mask at
+`compositionend` and keeps a clicked caret before the first empty slot
+(`lastCaret`). It holds no lifecycle of its own.
+`forms-masked-input.spec.tsx` covers it.
+
 `Checkbox` and `Switch` (`src/toggle/`) share one internal `ToggleInput`,
 which calls `useFieldInput` with the `toggle` option: the hook then
 attaches forms-dom's `attachToggle` in place of the text pipeline, turns
