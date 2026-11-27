@@ -62,6 +62,12 @@ export interface TextInputOptions {
    * keyboard types "," in a German field.
    */
   readonly decimalKey?: string | undefined;
+  /**
+   * The furthest a click may leave the caret in the text: a mask's first
+   * empty slot. A click that places the caret past it moves it there; a
+   * selection is left alone.
+   */
+  readonly lastCaret?: ((text: string) => number) | undefined;
 }
 
 export interface AttachedTextInput {
@@ -203,6 +209,8 @@ function errorText(messages: readonly FieldMessage[]): string {
  *   `filterInput` judges the composed text as one insert over the range
  *   the composition replaced (`filterComposition`), and its replacement,
  *   rewrite or refusal is written as for any edit.
+ * - With `options.lastCaret`, a click that leaves the caret past it moves
+ *   the caret there.
  * - Enter commits (in a `<textarea>`, Ctrl+Enter or Cmd+Enter, since Enter
  *   is a new line); Tab commits and, when `onBeforeCommit` refuses at once,
  *   keeps focus by preventing the key; Escape puts back the last committed
@@ -644,6 +652,24 @@ export function attachTextInput<V, D extends object>(
     pointerFocus = false;
   }
 
+  /** Moves a caret a click left past `options.lastCaret` back to it. */
+  function limitCaret(): void {
+    const { lastCaret } = options;
+    const { selectionStart, selectionEnd } = control;
+    if (
+      lastCaret === undefined ||
+      selectionStart === null ||
+      selectionStart !== selectionEnd ||
+      !hasFocus(control)
+    ) {
+      return;
+    }
+    const last = lastCaret(control.value);
+    if (selectionStart > last) {
+      control.setSelectionRange(last, last);
+    }
+  }
+
   // On the document, so the app's own listeners have had their say first.
   function onReset(event: Event): void {
     if (event.defaultPrevented || event.target !== control.form) {
@@ -668,6 +694,7 @@ export function attachTextInput<V, D extends object>(
     "click",
     () => {
       pointerFocus = false;
+      limitCaret();
     },
     { signal },
   );

@@ -60,6 +60,7 @@ The controller is a forms-core `FieldController`, or one part of a composite inp
 | `onClear`       | `(nativeEvent: Event) => void`                                      |                       | Called just before <Kbd>Escape</Kbd> empties the field, so the renderer can fire its own `onClear`.                 |
 | `mapCaret`      | `(previousText: string, caret: number, nextText: string) => number` | distance from the end | Where the caret goes when the field's text is written into the focused control (see [The caret](#the-caret)).       |
 | `decimalKey`    | `string`                                                            |                       | What the keypad's decimal key types, whatever the keyboard layout gives: a number field's decimal separator.        |
+| `lastCaret`     | `(text: string) => number`                                          |                       | The furthest a click may leave the caret: a mask's first empty slot. A caret clicked past it moves there.           |
 
 ## The events it reads
 
