@@ -89,6 +89,8 @@ export {
   maskParser,
   type MaskInputHints,
 } from "./mask/maskField";
+export { maskPresets, type MaskPreset, type MaskPresets } from "./mask/presets";
+export { ibanRule, ipv4Rule, luhnRule } from "./mask/rules";
 export {
   hasError,
   sortFieldMessages,
