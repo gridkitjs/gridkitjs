@@ -34,6 +34,8 @@ export type {
   BeforeInputDecision,
   ChangeCause,
   CommitOutcome,
+  InputFilter,
+  InputFilterDecision,
   TextEdit,
 } from "./field/plan";
 export {
@@ -60,9 +62,70 @@ export {
 } from "./messages/formsMessages";
 export { mostSevere, type Severity } from "./messages/severity";
 export {
+  cleanPastedNumber,
+  type CleanedNumber,
+} from "./number/cleanPastedNumber";
+export {
+  addDecimals,
+  compareDecimals,
+  decimalToNumber,
+  isDecimalString,
+  normalizeDecimal,
+  numberToDecimal,
+  roundDecimal,
+  shiftDecimal,
+  subtractDecimals,
+  type DecimalString,
+  type NumberLike,
+  type RoundingMode,
+} from "./number/decimal";
+export {
+  formatNumber,
+  formatNumberRange,
+  numberAffixes,
+  type NumberAffixes,
+  type NumberTextForm,
+} from "./number/formatNumber";
+export {
+  numberDetails,
+  numberFormatter,
+  numberParser,
+  type NumberDetails,
+  type NumberFieldOptions,
+} from "./number/numberField";
+export {
+  numberFractionDigits,
+  type FractionDigits,
+  type NegativeStyle,
+  type NumberOptions,
+  type NumberStyle,
+  type NumberValue,
+  type NumberValueType,
+  type PercentScale,
+} from "./number/options";
+export {
+  parseNumber,
+  type NumberReading,
+  type NumberUnreadableReason,
+} from "./number/parseNumber";
+export type { NumberReadingInfo } from "./number/reading";
+export { maxRule, minRule, stepRule } from "./number/rules";
+export {
+  stepNumber,
+  type StepDirection,
+  type StepRequest,
+  type StepSize,
+} from "./number/stepNumber";
+export {
+  numberSymbols,
+  type NumberSymbolOverrides,
+  type NumberSymbols,
+} from "./number/symbols";
+export {
   parsed,
   unreadable,
   type FormatContext,
+  type FormatPurpose,
   type Formatter,
   type ParseContext,
   type ParseResult,

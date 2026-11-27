@@ -56,6 +56,7 @@ field.getText(); // "Ada": the commit normalized the text
 | `parse`                | `Parser<V>`                             |             | The app's reading; `context.defaultParse` is the input's own, to fall back on. |
 | `format`               | `Formatter<V>`                          |             | The app's writing; `context.defaultFormat` is the input's own.                 |
 | `equals`               | `(a: V, b: V) => boolean`               | `Object.is` | When two values are one, so that typing a trailing zero fires no `onChange`.   |
+| `filterInput`          | `InputFilter<N>`                        |             | The input's own judgement of each edit, after `onBeforeInput`; see below.      |
 | `validators`           | `readonly Validator<V>[]`               | `[]`        | See [Validation](/docs/forms-core/validation).                                 |
 | `details`              | `(current, previous) => D`              |             | The input's own details, added to every event.                                 |
 | `changeDelay`          | `number`                                | `0`         | Milliseconds typing must pause before the text is read; needs `schedule`.      |
@@ -63,6 +64,10 @@ field.getText(); // "Ada": the commit normalized the text
 | `commitOnLeave`        | `boolean`                               | `true`      | False for a toggle, which commits as it flips.                                 |
 | `locale`, `messages`   | `Intl.LocalesArgument`, `FormsMessages` |             | For parsing, formatting and messages. `messages` is required.                  |
 | `onFocus` ... `onBlur` | handlers                                |             | The nine handlers below.                                                       |
+
+`filterInput(edit, before)` runs after the app's `onBeforeInput` lets an edit through, outside an input method's composition (which cannot be refused). `edit.text` is the text the edit would leave, the app's rewrite included, and `before` the text before it. It returns an `InputFilterDecision`: `allow` (the app's decision stands), `prevent`, `rewrite` with the data to insert instead, or `replace` with the whole `text` and the `caret`. A number input refuses letters this way and cleans a paste.
+
+Both formatters receive `context.purpose`: `"edit"` while the field has focus (`editing`, `leaving`, or `checking` before focus went), `"display"` otherwise. So `getText()` and each event's `text` are the text for their moment: `onFocus` and a commit by Enter carry the edit form, a commit by blur and `onBlur` the display form.
 
 ## The order events fire in
 
@@ -75,7 +80,7 @@ While typing, per edit: `onBeforeInput`, the edit, `onInput`, then reading the t
 | `getState()`, `getText()`, `getMessages()`  | The state, the text on screen, and every message in display order (the same array until the state changes).                                               |
 | `subscribe(listener)`                       | Called once after each request that changed the state. Returns the unsubscribe function.                                                                  |
 | `setOptions(options)`                       | The latest options, silently.                                                                                                                             |
-| `beforeInput(edit)`                         | `onBeforeInput`; returns `allow`, `prevent` or `rewrite` with the data to insert.                                                                         |
+| `beforeInput(edit)`                         | `onBeforeInput`, then `filterInput`; returns `allow`, `prevent`, `rewrite` with the data to insert, or the filter's `replace`.                            |
 | `input(edit)`                               | The text changed. Read at once, after `changeDelay`, or when an input method ends composing. On an idle field it is autofill: read and committed at once. |
 | `endComposition(nativeEvent)`               | Composition ended: the text is read.                                                                                                                      |
 | `focus(nativeEvent)`, `blur(nativeEvent)`   | Focus came or went. A blur commits unless Tab already did.                                                                                                |
@@ -83,6 +88,7 @@ While typing, per edit: `onBeforeInput`, the edit, `onInput`, then reading the t
 | `revert(nativeEvent)`                       | Escape: back to the last commit. False when there is nothing to put back.                                                                                 |
 | `clear(nativeEvent)`                        | Empties the field, then commits.                                                                                                                          |
 | `pick(value, source, trigger, nativeEvent)` | A value chosen whole (a toggle, an option), then a commit.                                                                                                |
+| `change(value, cause)`                      | A value set whole (a step, a part of a composite input): the change chain with the cause's `source` and native event; no commit.                          |
 | `setValue(value)`, `reset()`                | The change chain with `source: "api"`; no commit.                                                                                                         |
 | `sync(value)`                               | The controlled value; see below.                                                                                                                          |
 | `reveal()`                                  | Messages show from now on.                                                                                                                                |

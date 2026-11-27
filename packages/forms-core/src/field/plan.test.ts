@@ -6,7 +6,6 @@ import { runValidators, type Validator } from "../validation/validators";
 import type { ChangeSource, FieldHandlers, TextInputDetails } from "./events";
 import { fieldReducer } from "./fieldReducer";
 import {
-  runApiChange,
   runAutofill,
   runBeforeInput,
   runBlur,
@@ -17,7 +16,9 @@ import {
   runPick,
   runRead,
   runRevert,
+  runValueChange,
   type FieldEnv,
+  type InputFilter,
   type TextEdit,
 } from "./plan";
 import { createFieldState, fieldText, type FieldState } from "./state";
@@ -36,6 +37,7 @@ interface Setup {
   readonly format?: (value: number | null) => string;
   readonly validators?: readonly Validator<number>[];
   readonly commitOnLeave?: boolean;
+  readonly filterInput?: InputFilter<string>;
   /** Behaviour behind the recording handlers. */
   readonly on?: Handlers;
 }
@@ -100,6 +102,7 @@ function setup(config: Setup = {}) {
     get: () => state,
     dispatch: (action) => (state = fieldReducer(state, action)),
     handlers,
+    filterInput: config.filterInput,
     parse: (text) => {
       if (text === "") {
         return parsed(null);
@@ -336,6 +339,104 @@ describe("onBeforeInput", () => {
     expect(
       runBeforeInput(field.env, { ...field.typed("12"), cancelable: false }),
     ).toEqual({ kind: "allow" });
+  });
+});
+
+describe("an input's filter", () => {
+  /** A filter that records what it saw, then refuses letters. */
+  function digitsOnly() {
+    const seen: { text: string; data: string | null; before: string }[] = [];
+    const filter: InputFilter<string> = (edit, before) => {
+      seen.push({ text: edit.text, data: edit.input?.data ?? null, before });
+      return /^\d*$/.test(edit.text) ? { kind: "allow" } : { kind: "prevent" };
+    };
+    return { seen, filter };
+  }
+
+  test("runs after onBeforeInput, on the proposed text and the text before", () => {
+    const { seen, filter } = digitsOnly();
+    const order: string[] = [];
+    const field = setup({
+      filterInput: (edit, before) => {
+        order.push("filter");
+        return filter(edit, before);
+      },
+      on: {
+        onBeforeInput: () => {
+          order.push("onBeforeInput");
+        },
+      },
+    });
+    expect(
+      runBeforeInput(field.env, { ...field.typed("12"), cancelable: true }),
+    ).toEqual({ kind: "allow" });
+    expect(order).toEqual(["onBeforeInput", "filter"]);
+    expect(seen).toEqual([{ text: "12", data: "2", before: "1" }]);
+    expect(
+      runBeforeInput(field.env, { ...field.typed("1a"), cancelable: true }),
+    ).toEqual({ kind: "prevent" });
+  });
+
+  test("judges the app's rewrite, and keeps it when it allows", () => {
+    const { seen, filter } = digitsOnly();
+    const field = setup({
+      filterInput: filter,
+      on: {
+        onBeforeInput: (event) => {
+          event.setData(event.input?.data === "a" ? "7" : "x");
+        },
+      },
+    });
+    expect(
+      runBeforeInput(field.env, { ...field.typed("1a"), cancelable: true }),
+    ).toEqual({ kind: "rewrite", data: "7" });
+    expect(seen).toEqual([{ text: "17", data: "7", before: "1" }]);
+    expect(
+      runBeforeInput(field.env, { ...field.typed("1b"), cancelable: true }),
+    ).toEqual({ kind: "prevent" });
+  });
+
+  test("its own rewrite or replace wins over the app's allow", () => {
+    const rewrite = setup({
+      filterInput: () => ({ kind: "rewrite", data: "5" }),
+    });
+    expect(
+      runBeforeInput(rewrite.env, {
+        ...rewrite.typed("1,5"),
+        cancelable: true,
+      }),
+    ).toEqual({ kind: "rewrite", data: "5" });
+
+    const replace = setup({
+      filterInput: () => ({ kind: "replace", text: "(1)", caret: 2 }),
+    });
+    expect(
+      runBeforeInput(replace.env, { ...replace.typed("1a"), cancelable: true }),
+    ).toEqual({ kind: "replace", text: "(1)", caret: 2 });
+  });
+
+  test("is not asked about an edit the app prevented, or a composition", () => {
+    const { seen, filter } = digitsOnly();
+    const prevented = setup({
+      filterInput: filter,
+      on: {
+        onBeforeInput: (event) => {
+          event.preventDefault();
+        },
+      },
+    });
+    runBeforeInput(prevented.env, {
+      ...prevented.typed("12"),
+      cancelable: true,
+    });
+    const composing = setup({ filterInput: filter });
+    expect(
+      runBeforeInput(composing.env, {
+        ...composing.typed("1a"),
+        cancelable: false,
+      }),
+    ).toEqual({ kind: "allow" });
+    expect(seen).toEqual([]);
   });
 });
 
@@ -749,10 +850,12 @@ describe("a pick", () => {
   });
 });
 
-describe("setValue", () => {
-  test("runs the change chain with source api, and no commit", () => {
+describe("a value change", () => {
+  const API = { source: "api", nativeEvent: null, input: null } as const;
+
+  test("runs the change chain with its cause, and no commit", () => {
     const field = setup({ phase: "idle" });
-    runApiChange(field.env, 7);
+    runValueChange(field.env, 7, API);
     expect(field.names()).toEqual(["onBeforeChange", "onChange", "onValidate"]);
     expect(field.event("onChange")).toMatchObject({
       value: 7,
@@ -764,13 +867,38 @@ describe("setValue", () => {
     expect(field.state.value).toBe(7);
   });
 
+  test("reports a step's source and key", () => {
+    const field = setup();
+    runValueChange(field.env, 2, {
+      source: "step",
+      nativeEvent: "keydown ArrowUp",
+      input: null,
+    });
+    expect(field.names()).toEqual(["onBeforeChange", "onChange", "onValidate"]);
+    expect(field.event("onBeforeChange")).toMatchObject({
+      value: 2,
+      source: "step",
+      nativeEvent: "keydown ArrowUp",
+    });
+    expect(field.state.phase.kind).toBe("editing");
+  });
+
   test("replaces typed text, and fires nothing for the value held", () => {
     const field = setup();
     field.type("12.0");
     field.clear();
-    runApiChange(field.env, 12);
+    runValueChange(field.env, 12, API);
     expect(field.calls).toEqual([]);
     expect(field.state.draft).toEqual({ kind: "current" });
+  });
+
+  test("replaces unreadable text even when the value stays", () => {
+    const field = setup();
+    field.type("1x");
+    field.clear();
+    runValueChange(field.env, 1, API);
+    expect(field.state.draft).toEqual({ kind: "current" });
+    expect(field.names()).toEqual(["onValidate"]);
   });
 });
 

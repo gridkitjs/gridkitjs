@@ -5,6 +5,7 @@ import {
   createFieldState,
   fieldMessages,
   fieldText,
+  formatPurpose,
   shownMessages,
   type FieldState,
 } from "./state";
@@ -73,6 +74,23 @@ describe("fieldMessages", () => {
       },
       refusal,
     ]);
+  });
+});
+
+describe("formatPurpose", () => {
+  test("writes for editing while the field has focus", () => {
+    const values = { initialValue: 1, committedValue: 1 };
+    expect(formatPurpose({ kind: "idle" })).toBe("display");
+    expect(formatPurpose({ kind: "editing", ...values })).toBe("edit");
+    expect(formatPurpose({ kind: "leaving", ...values })).toBe("edit");
+    const checking = {
+      kind: "checking",
+      ...values,
+      trigger: "enter",
+      attempt: 1,
+    } as const;
+    expect(formatPurpose({ ...checking, leaving: false })).toBe("edit");
+    expect(formatPurpose({ ...checking, leaving: true })).toBe("display");
   });
 });
 

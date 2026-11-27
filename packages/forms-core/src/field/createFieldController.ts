@@ -2,6 +2,7 @@ import type { FieldMessage } from "../messages/fieldMessage";
 import type { FormsMessages } from "../messages/formsMessages";
 import type {
   FormatContext,
+  FormatPurpose,
   Formatter,
   ParseContext,
   ParseResult,
@@ -18,7 +19,6 @@ import type {
 import { fieldReducer } from "./fieldReducer";
 import {
   CHECKING,
-  runApiChange,
   runAutofill,
   runBeforeInput,
   runBlur,
@@ -32,11 +32,13 @@ import {
   runRevert,
   runSettle,
   runSync,
-  type BeforeInputDecision,
+  runValueChange,
   type ChangeCause,
   type CommitOutcome,
   type CommitStep,
   type FieldEnv,
+  type InputFilter,
+  type InputFilterDecision,
   type PendingCheck,
   type TextEdit,
 } from "./plan";
@@ -44,6 +46,7 @@ import {
   createFieldState,
   fieldMessages,
   fieldText,
+  formatPurpose,
   type FieldDraft,
   type FieldState,
 } from "./state";
@@ -78,6 +81,12 @@ export interface FieldOptions<
   ) => string;
   /** Whether two values are one; `Object.is` by default. Never called with `null`. */
   readonly equals?: ((a: V, b: V) => boolean) | undefined;
+  /**
+   * The input's own judgement of each edit the app's `onBeforeInput` lets
+   * through, outside a composition: a number input refusing letters, or
+   * cleaning a paste.
+   */
+  readonly filterInput?: InputFilter<N> | undefined;
   readonly validators?: readonly Validator<V>[] | undefined;
   /** The input's own details, added to every event it fires. */
   readonly details?:
@@ -113,10 +122,13 @@ export interface FieldController<V, D extends object = NoDetails, N = unknown> {
   readonly subscribe: (listener: () => void) => () => void;
   /** Replaces the options, silently: no listener is called. */
   readonly setOptions: (options: FieldOptions<V, D, N>) => void;
-  /** `onBeforeInput` for an edit about to happen, and what to do with it. */
+  /**
+   * `onBeforeInput` for an edit about to happen, then the input's
+   * `filterInput`, and what to do with it.
+   */
   readonly beforeInput: (
     edit: TextEdit<N> & { readonly cancelable: boolean },
-  ) => BeforeInputDecision;
+  ) => InputFilterDecision;
   /**
    * The text changed. Read at once, after `changeDelay`, or, while an input
    * method composes (`input.isComposing`), once composition ends. While the
@@ -144,7 +156,14 @@ export interface FieldController<V, D extends object = NoDetails, N = unknown> {
     trigger: CommitTrigger,
     nativeEvent: N | null,
   ) => CommitOutcome;
-  /** The change chain to `value`, with `source: "api"`. */
+  /**
+   * A value set whole without a commit (a step, a part of a composite
+   * input): the change chain to `value`, with `cause`'s source and native
+   * event. Typed text gives way to the value formatted, even when the value
+   * stays.
+   */
+  readonly change: (value: V | null, cause: ChangeCause<N>) => void;
+  /** `change` to `value` with `source: "api"`. */
   readonly setValue: (value: V | null) => void;
   /** The change chain back to `defaultValue` (or `null`), with `source: "api"`. */
   readonly reset: () => void;
@@ -184,6 +203,13 @@ interface CheckWait<N> {
 
 const NO_READ = { kind: "none" } as const;
 
+/** A change made from code: `setValue` and `reset`. */
+const API: ChangeCause<never> = {
+  source: "api",
+  nativeEvent: null,
+  input: null,
+};
+
 /** The source a commit reports, by what triggered it. */
 const COMMIT_SOURCES: Readonly<Record<CommitTrigger, ChangeSource>> = {
   enter: "typing",
@@ -196,16 +222,21 @@ const COMMIT_SOURCES: Readonly<Record<CommitTrigger, ChangeSource>> = {
   autofill: "autofill",
 };
 
+/** Writes a value for what `purpose` says the text is for when it is called. */
 function formatterOf<V, D extends object, N>(
   options: FieldOptions<V, D, N>,
+  purpose: () => FormatPurpose,
 ): (value: V | null) => string {
   const format = options.format ?? options.defaultFormat;
-  const context: FormatContext<V> = {
-    defaultFormat: (value) => options.defaultFormat(value, context),
-    locale: options.locale,
-    messages: options.messages,
+  return (value) => {
+    const context: FormatContext<V> = {
+      defaultFormat: (shown) => options.defaultFormat(shown, context),
+      locale: options.locale,
+      messages: options.messages,
+      purpose: purpose(),
+    };
+    return format(value, context);
   };
-  return (value) => format(value, context);
 }
 
 function parserOf<V, D extends object, N>(
@@ -249,7 +280,10 @@ export function createFieldController<
       : options.value;
   let state = createFieldState<V>(
     startValue,
-    validatorOf(options)(startValue, formatterOf(options)(startValue)),
+    validatorOf(options)(
+      startValue,
+      formatterOf(options, () => "display")(startValue),
+    ),
   );
   const listeners = new Set<() => void>();
   let read: ReadWait<V, N> = NO_READ;
@@ -261,14 +295,16 @@ export function createFieldController<
   // An input that declares details passes `details`; without it, `D` is
   // `NoDetails` and an empty object is all of them.
   const noDetails = (): D => ({}) as D;
+  const purposeNow = (): FormatPurpose => formatPurpose(state.phase);
 
   function env(): FieldEnv<V, D, N> {
     return {
       get: () => state,
       dispatch: (action) => (state = fieldReducer(state, action)),
       handlers: options,
+      filterInput: options.filterInput,
       parse: parserOf(options),
-      format: formatterOf(options),
+      format: formatterOf(options, purposeNow),
       same: (a, b) =>
         a === null || b === null
           ? a === b
@@ -412,7 +448,7 @@ export function createFieldController<
 
   return {
     getState: () => state,
-    getText: () => fieldText(state, formatterOf(options)),
+    getText: () => fieldText(state, formatterOf(options, purposeNow)),
     getMessages: () => {
       if (shown?.state !== state) {
         shown = { state, messages: fieldMessages(state) };
@@ -499,14 +535,19 @@ export function createFieldController<
           ),
         CHECKING,
       ),
+    change: (value, cause) => {
+      perform(() => {
+        runValueChange(env(), value, cause);
+      });
+    },
     setValue: (value) => {
       perform(() => {
-        runApiChange(env(), value);
+        runValueChange(env(), value, API);
       });
     },
     reset: () => {
       perform(() => {
-        runApiChange(env(), options.defaultValue ?? null);
+        runValueChange(env(), options.defaultValue ?? null, API);
       });
     },
     sync: (value) => {

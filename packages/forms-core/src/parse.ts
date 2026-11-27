@@ -27,12 +27,20 @@ export type Parser<V> = (
   context: ParseContext<V>,
 ) => ParseResult<V>;
 
+/**
+ * What a value is written for: `edit` while the field has focus, `display`
+ * otherwise and in display mode. A number input writes plain digits to
+ * edit and grouped digits to display; a text input writes the same for both.
+ */
+export type FormatPurpose = "display" | "edit";
+
 /** What a formatter knows beside the value. */
 export interface FormatContext<V> {
   /** The input's own formatting, to fall back on. */
   readonly defaultFormat: (value: V | null) => string;
   readonly locale: Intl.LocalesArgument;
   readonly messages: FormsMessages;
+  readonly purpose: FormatPurpose;
 }
 
 /** Writes a value as the text a field shows, `null` included. */

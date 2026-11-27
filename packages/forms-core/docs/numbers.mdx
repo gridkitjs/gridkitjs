@@ -1,0 +1,178 @@
+---
+title: "Numbers"
+description: "Reading and writing numbers the way each locale writes them, exactly: separators, digits, rounding, exact decimals, percent, currency, units and pastes."
+---
+
+forms-core reads and writes numbers the way every locale writes them, exactly. `parseNumber` reads typed text strictly by the field's locale, `cleanPastedNumber` turns foreign pasted text into the field's own, `formatNumber` writes a value for editing, for display or in full with its currency, and a small decimal module steps, rounds and compares values without binary rounding. Every symbol comes from `Intl` at run time, since browsers ship different versions of the locale data; there is no number library.
+
+<Callout type="note" title="First iteration">
+  This API is a first iteration and may change before the first release.
+</Callout>
+
+## When to use it
+
+To write a number input of your own, or to read and write numbers in a field's locale outside one. The forms number inputs are built on these functions, and so will be the grid's typed filters and cell editors.
+
+## Example
+
+```ts
+import {
+  cleanPastedNumber,
+  createFieldController,
+  defaultFormsMessages,
+  formatNumber,
+  numberFormatter,
+  numberParser,
+  parseNumber,
+} from "@gridkitjs/forms-core";
+
+const euros = { locale: "de-DE", style: "currency", currency: "EUR" } as const;
+
+parseNumber("1.234,5", { locale: "de-DE" }); // { kind: "number", decimal: "1234.5", info: {...} }
+parseNumber("1.5", { locale: "de-DE" }); // { kind: "unreadable", reason: "grouping" }
+cleanPastedNumber("$1,234.50", { locale: "de-DE" }); // { text: "1234,50", info: {...} }
+formatNumber(-1234.5, euros); // "-1.234,50"
+formatNumber(-1234.5, euros, "edit"); // "-1234,50"
+formatNumber(-1234.5, euros, "full"); // "-1.234,50 €"
+
+// A field holding an exact decimal string, rounded to the currency's cents.
+const amount = createFieldController<string>({
+  defaultParse: numberParser({ ...euros, valueType: "decimal" }),
+  defaultFormat: numberFormatter(euros),
+  locale: "de-DE",
+  messages: defaultFormsMessages,
+});
+amount.focus(null);
+amount.input({
+  text: "1234,567",
+  source: "typing",
+  nativeEvent: null,
+  input: null,
+});
+amount.commit("enter", null);
+amount.getText(); // "1234,57": the value was rounded as the text was read
+```
+
+## Options
+
+`NumberOptions` names what Intl's `NumberFormatOptions` also has with Intl's meaning, so a grid column's `format` can be passed on.
+
+| Option                                             | Type                                                       | Default                      | Description                                                                                 |
+| -------------------------------------------------- | ---------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------- |
+| `locale`                                           | `Intl.LocalesArgument`                                     | the runtime's                | Whose symbols to read and write with.                                                       |
+| `style`                                            | `"decimal" \| "percent" \| "currency" \| "unit"`           | `"decimal"`                  | As Intl; `currency` and `unit` take effect with their style.                                |
+| `currency`, `currencyDisplay`                      | `string`, `"symbol" \| "narrowSymbol" \| "code" \| "name"` | none, `"symbol"`             | An ISO 4217 code and how it is shown.                                                       |
+| `unit`, `unitDisplay`                              | `string`, `"short" \| "narrow" \| "long"`                  | none, `"short"`              | An Intl unit (`"kilogram"`, `"kilometer-per-hour"`) and how it is shown.                    |
+| `minimumFractionDigits`                            | `number`                                                   | 0 (currency: minor units)    | Pads the written text and the decimal value's normal form.                                  |
+| `maximumFractionDigits`                            | `number`                                                   | none (currency: minor units) | The value is rounded to it; with none, every digit typed is kept.                           |
+| `roundingMode`                                     | `RoundingMode`                                             | `"halfExpand"`               | Intl's modes, below.                                                                        |
+| `useGrouping`                                      | `boolean`                                                  | `true`                       | Groups the integer digits in display text.                                                  |
+| `negative`                                         | `"minus" \| "parentheses" \| "trailingMinus"`              | `"minus"`                    | How display text writes a negative number. All three are read in every field.               |
+| `percentScale`                                     | `"fraction" \| "percent"`                                  | `"fraction"`                 | Whether 12.5 % is stored as 0.125 (as Intl and the grid's percent columns) or as 12.5.      |
+| `decimalSeparator`, `groupSeparator`, `groupSizes` | `string`, `string`, `[number, number]`                     | the locale's                 | Override the locale's; `groupSeparator: ""` writes no grouping.                             |
+| `numberingSystem`                                  | `string`                                                   | the locale's                 | The digits written: `"latn"` keeps Latin digits in `ar-EG`. Every script's digits are read. |
+
+For a percent, the fraction digit options count the digits of the number shown (12.5 for 0.125). `numberFractionDigits(options)` returns the `{ minimum, maximum }` they come to, with a currency's minor units from Intl (JPY 0, KWD 3); a field has fixed decimals when the two are equal.
+
+## Locale symbols
+
+`numberSymbols(locale, overrides)` reads how a locale writes numbers from `Intl.NumberFormat#formatToParts`, cached per locale and overrides: `decimal`, `group` (`""` for none), `groupSizes` (`[3, 2]` for lakh grouping in `en-IN`), `minimumGroupingDigits` (2 where "1234" stays ungrouped, as in `es-ES`), `digits` and `numberingSystem` (`"arab"` in `ar-EG`), `minus` and `percent` without their direction marks, and `numbersLeftToRight`, whether numbers run left to right inside right-to-left text (true in `he-IL`, false in `ar-EG`). Overrides that would clash, such as two equal separators, are ignored.
+
+## Reading typed text
+
+`parseNumber(text, options)` returns `{ kind: "empty" }`, `{ kind: "number", decimal, info }` with the exact decimal as typed, or `{ kind: "unreadable", reason }`. It never rounds and never guesses: guessing while typing would flip a value as the user types.
+
+- Any Unicode decimal digits read: `١٢٣` is 123 in `en-US`, and full-width text from an input method reads as its ASCII.
+- The field's decimal separator, once, and its group separator between integer digits where the locale groups, each with its lookalikes: any space for a space group, any apostrophe for `de-CH`.
+- A leading `-` or `+`, a trailing `-`, or parentheses; "-0" is 0.
+- The field's own currency sign or code, percent sign or unit at either end, so its full text reads back.
+
+| `reason`     | For                                                                                    |
+| ------------ | -------------------------------------------------------------------------------------- |
+| `notANumber` | A letter, a second decimal separator, a group separator after it, "1e5".               |
+| `incomplete` | A sign or separator with no digit ("-", ","), an unclosed parenthesis.                 |
+| `grouping`   | A group separator where the locale does not group: "1,5" in `en-US`, "1.5" in `de-DE`. |
+| `tooPrecise` | More digits than a JS number keeps, in a field holding numbers (`numberParser`).       |
+
+`info` says how the text was read: `decimalSeparator` (the character taken as the point, as typed), `grouped`, `negative` (the style a negative number was written in), `digits` (the numbering systems met, `["latn", "fullwide"]`) and `cleaned`. `NumberUnreadableReason` may grow in a minor release.
+
+## Pasted text
+
+`cleanPastedNumber(text, options)` turns pasted or dropped text into the field's edit text, `{ text, info }`, or returns `null` to refuse it. Currency signs and codes, percent signs and the field's unit are dropped; any other letter refuses the paste, since dropping it could change the number.
+
+- Both `.` and `,`: the one that comes last is the decimal point. "$1,234.50" becomes "1234,50" in `de-DE`.
+- One mark, several times: it groups. "1.234.567" is 1234567 in every locale.
+- One mark, once: the field's decimal separator is the point; another mark groups when the locale's grouping fits it and is the point when it does not. "1,5" is 1.5 in `en-US`, "3.14" is 3,14 in `de-DE`, and "1.234" is 1234 in `de-DE`: the field's locale wins.
+- Spaces and apostrophes always group.
+
+The text comes back in the field's digits with its decimal separator, no grouping, and every digit kept; rounding happens when it is read.
+
+## Writing
+
+`formatNumber(value, options, form)` writes a `number` or a decimal string in one of three forms:
+
+| Form      | Writes                                                                                        | `de-DE`, EUR, -1234.5 |
+| --------- | --------------------------------------------------------------------------------------------- | --------------------- |
+| `display` | What a field shows without focus: grouped, padded, the negative style, no currency.           | `-1.234,50`           |
+| `edit`    | What a focused field shows: no grouping, a leading minus, the digits the value has, padded.   | `-1234,50`            |
+| `full`    | Intl's whole text with the currency, percent sign or unit: display mode, events, a grid cell. | `-1.234,50 €`         |
+
+A decimal string is written without passing through a JS number, so a 20-digit amount keeps every digit. Nothing is written as "-0". `display` and `edit` drop Intl's direction marks; `full` keeps them. With `negative: "parentheses"` the full text is "(1.234,50 €)", with `"trailingMinus"` "1.234,50- €".
+
+`numberAffixes(options, value?)` gives the currency, percent sign or unit before and after the number, for an input to draw beside its text: `{ prefix: "$" }` in `en-US`, `{ suffix: "€" }` in `de-DE`, `{ prefix: "%" }` in `tr-TR`. `formatNumberRange(start, end, options)` writes Intl's range text, "10,00–20,00 €".
+
+## Exact decimals and value types
+
+A field holds a JS `number` by default, or an exact `DecimalString` (`"1234.50"`) with `valueType: "decimal"`. Either way, values are stepped, rounded and compared as decimals, so 0.1 + 0.2 is 0.3, and a `number` goes through its shortest decimal digits, as Intl itself does: 1.005 rounds to 1.01, where `toFixed` gives 1.00.
+
+| Function                                      | Does                                                                                                       |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `isDecimalString(text)`                       | Whether `text` is `[+-]digits[.digits]` or `.digits`.                                                      |
+| `normalizeDecimal(text, minDigits?)`          | The normal form: no leading zeros, no trailing ones beyond the minimum, no "-0"; `null` for anything else. |
+| `compareDecimals(a, b)`                       | -1, 0 or 1; `"12.5"` and `"12.50"` are equal.                                                              |
+| `addDecimals(a, b)`, `subtractDecimals(a, b)` | Exact sums.                                                                                                |
+| `roundDecimal(value, digits, mode)`           | Rounded as Intl rounds the same text.                                                                      |
+| `shiftDecimal(value, places)`                 | Times 10 to the `places`: percent scaling.                                                                 |
+| `numberToDecimal(n)`                          | The shortest decimal that reads back as `n`, with no exponent.                                             |
+| `decimalToNumber(text)`                       | `{ number, exact }`: whether the number keeps every digit.                                                 |
+
+`numberParser(options)` is a number field's own reading: `parseNumber`, then the value rounded to the maximum fraction digits (so `onChange` carries the value that will be stored, while the text keeps the digits typed until a commit), scaled for a percent, and held as the value type. In `number` mode, text whose digits a number cannot keep exactly, such as "9007199254740993", is unreadable with the `numberTooPrecise` message rather than silently changed: use `valueType: "decimal"` for long amounts. `numberFormatter(options)` writes the `edit` form while the field has focus and the `display` form otherwise, by the [format context's `purpose`](/docs/forms-core/field-state).
+
+## Rounding
+
+`roundingMode` takes Intl's mode names, so the value and its text round by the same rule.
+
+| Mode         | Rounds                            | 2.345 to 2 digits | 2.5 to 0 digits | -2.5 to 0 digits |
+| ------------ | --------------------------------- | ----------------- | --------------- | ---------------- |
+| `halfExpand` | Ties away from zero (half up)     | 2.35              | 3               | -3               |
+| `halfEven`   | Ties to the even digit (banker's) | 2.34              | 2               | -2               |
+| `trunc`      | Toward zero                       | 2.34              | 2               | -2               |
+| `halfCeil`   | Ties toward positive infinity     | 2.35              | 3               | -2               |
+| `floor`      | Toward negative infinity          | 2.34              | 2               | -3               |
+
+`ceil`, `expand`, `halfFloor` and `halfTrunc` are there too, as Intl defines them.
+
+## Limits and steps
+
+`minRule(min, options?)`, `maxRule(max, options?)` and `stepRule(step, base?, options?)` are [validators](/docs/forms-core/validation) for either value type, compared as exact decimals: a decimal-string `max` such as `"99999999999999999.99"` keeps every digit, and 0.15 is three steps of 0.05. Their messages write the limit as the field writes numbers, "Enter 1.000,00 € or less", so they take the field's `options`.
+
+`stepNumber({ value, direction, size, step, largeStep, min, max })` gives the value one step on, every number a decimal string. From empty it starts at 0 (or at a limit that leaves 0 out); a value on the step grid (multiples of `step` from `min`, or from 0) moves one step or one large step, and a value off it goes to the grid value that way first, as native number inputs do: 1.37 with step 0.5 goes up to 1.5. `size: "edge"` goes to the limit. It never passes `min` or `max`.
+
+## Events
+
+A number input adds `NumberDetails` to every event: `decimal` (the value as an exact decimal string, whatever the value type), `formatted` (the full text) and `reading` (how the text on screen reads, `null` while it shows the value formatted). `numberDetails(state, options, pasted?)` computes them for a field's state; `pasted` is the `info` of a paste the input remembers until the next edit.
+
+## Messages
+
+| Key                                         | English default                                                |
+| ------------------------------------------- | -------------------------------------------------------------- |
+| `notANumber`                                | "Enter a number"                                               |
+| `numberGrouping(decimal, group)`            | "Use “{decimal}” for decimals and “{group}” between thousands" |
+| `numberTooPrecise`                          | "This number has more digits than can be kept exactly"         |
+| `rangeUnderflow(min)`, `rangeOverflow(max)` | "Enter {min} or more", "Enter {max} or less"                   |
+| `stepMismatch(step)`                        | "Enter a multiple of {step}"                                   |
+
+## See also
+
+- [Validation](/docs/forms-core/validation) for validators and the messages catalogue.
+- [Field state](/docs/forms-core/field-state) for the controller a number field runs on, and the format context's `purpose`.
