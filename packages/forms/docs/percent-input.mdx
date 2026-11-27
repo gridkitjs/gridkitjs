@@ -1,0 +1,69 @@
+---
+title: "PercentInput"
+description: "PercentInput: a NumberInput for percentages, with the percent sign where the locale puts it and the value stored as a fraction or as the percent number."
+---
+
+`PercentInput` is a [`NumberInput`](/docs/forms/number-input) for a percentage: the percent sign is drawn where the locale puts it (after the number in `en-US` and `fr-FR`, before it in `tr-TR`), and the value is stored as a fraction, 0.125 for 12.5 %, or with `scale="percent"` as the percent number itself, 12.5.
+
+<Callout type="note" title="First iteration">
+  This component is a first iteration and may change before the first release.
+</Callout>
+
+## When to use it
+
+For rates, discounts and shares. Pick the scale your data uses: a fraction is what Intl and most calculations take; the percent number is what many databases store.
+
+## Example
+
+```tsx title="App.tsx"
+import { Field, Form, PercentInput } from "@gridkitjs/forms";
+
+export function App() {
+  return (
+    <Form>
+      <Field label="Discount">
+        <PercentInput
+          name="discount"
+          min={0}
+          max={1}
+          maximumFractionDigits={1}
+        />
+      </Field>
+      <Field label="VAT">
+        <PercentInput
+          name="vat"
+          scale="percent"
+          defaultValue={20}
+          stepper="end"
+        />
+      </Field>
+      <button type="submit">Save</button>
+    </Form>
+  );
+}
+```
+
+## Props
+
+Every prop of [`NumberInput`](/docs/forms/number-input#props) except `currency`, `currencyDisplay`, `unit` and `unitDisplay`, plus:
+
+| Prop    | Type                      | Default      | Description                                              |
+| ------- | ------------------------- | ------------ | -------------------------------------------------------- |
+| `scale` | `"fraction" \| "percent"` | `"fraction"` | `"fraction"`: 0.12 is shown as 12 %. `"percent"`: 12 is. |
+
+`value`, `defaultValue`, `min`, `max` and `step` are in the value's units, as the app stores them; the default step is one percentage point (0.01 with `"fraction"`, 1 with `"percent"`). Fraction digit props count the digits of the number shown: `maximumFractionDigits={1}` keeps 12.5 %, which is 0.125.
+
+## Behaviour
+
+As `NumberInput`'s. A fraction is scaled exactly, so 12.3 % is 0.123, never 0.12300000000000001. The percent sign is never typed: it is drawn beside the number, and a key that would type it is refused; a paste of "12 %" is cleaned to 12. A percent above 100 or below 0 is allowed unless `min` or `max` say otherwise.
+
+The events carry `NumberDetails`: `decimal` is the value's decimal ("0.125") and `formatted` the full text ("12,5 %" in `fr-FR`). `aria-valuenow` is the value as stored (0.125) and `aria-valuetext` the full text, which is what a screen reader says.
+
+## Class names
+
+The root carries `.gridkit-forms-percent-input` beside `.gridkit-forms-number-input`; everything else is [NumberInput](/docs/forms/number-input#class-names)'s, the percent sign being its `.gridkit-forms-number-input-affix`.
+
+## See also
+
+- [NumberInput](/docs/forms/number-input) for the props and behaviour it shares.
+- [Numbers](/docs/forms-core/numbers) for how percents are read and written.

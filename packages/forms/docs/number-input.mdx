@@ -1,0 +1,141 @@
+---
+title: "NumberInput"
+description: "NumberInput: locale-aware number entry with exact decimals on request, fixed-decimal typing, a currency or unit beside the number, and stepping by keys and stepper buttons."
+---
+
+`NumberInput` is a number field whose value is a JS `number`, or with `valueType="decimal"` an exact decimal string (`"1234.50"`), `null` when empty. It reads and writes numbers the way the field's locale does, shows plain digits while it has focus and the number grouped once it leaves, steps by the arrow keys and optional stepper buttons, and fires the forms [events](/docs/forms/events) with the number's details on each.
+
+<Callout type="note" title="First iteration">
+  This component is a first iteration and may change before the first release.
+</Callout>
+
+## When to use it
+
+For quantities, prices, amounts and rates people type. Put it in a [`Field`](/docs/forms/field) for its label, help text and messages. For a percentage use [`PercentInput`](/docs/forms/percent-input), which stores 12 % as 0.12 or as 12.
+
+## Example
+
+```tsx title="App.tsx"
+import { Field, Form, NumberInput } from "@gridkitjs/forms";
+
+export function App() {
+  return (
+    <Form locale="de-DE">
+      <Field label="Quantity">
+        <NumberInput name="quantity" integer min={0} stepper="end" />
+      </Field>
+      <Field label="Price">
+        <NumberInput name="price" currency="EUR" min={0} />
+      </Field>
+      <Field label="Total" description="Exact to the cent">
+        <NumberInput name="total" valueType="decimal" fractionDigits={2} />
+      </Field>
+      <button type="submit">Save</button>
+    </Form>
+  );
+}
+```
+
+## Props
+
+Besides the props every text input takes (see [TextInput](/docs/forms/text-input#props): `value`, `defaultValue`, `parse`, `format`, `validate`, `required`, `name`, `message`, `invalid`, `mode`, `readOnly`, `disabled`, `prefix`, `suffix`, `clearable`, `loading`, `density`, `placeholder`, the handlers and the refs):
+
+| Prop                                                                  | Type                                                     | Default                                 | Description                                                                                                                                               |
+| --------------------------------------------------------------------- | -------------------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `valueType`                                                           | `"number" \| "decimal"`                                  | `"number"`                              | The value as a JS number, or as an exact decimal string for amounts past about 15 significant digits.                                                     |
+| `fractionDigits`                                                      | `number`                                                 |                                         | Fixed decimals: always shown, kept, and typed in place (see [Fixed decimals](#fixed-decimals)).                                                           |
+| `minimumFractionDigits`, `maximumFractionDigits`                      | `number`                                                 | `0`, none                               | Decimals always written, and decimals kept (more are rounded). A currency defaults both to its minor units.                                               |
+| `integer`                                                             | `boolean`                                                | `false`                                 | Whole numbers only: no decimal separator, a numeric keyboard.                                                                                             |
+| `roundingMode`                                                        | Intl's modes                                             | `"halfExpand"`                          | How extra decimals round.                                                                                                                                 |
+| `limitFractionDigits`                                                 | `boolean`                                                | `false`                                 | Refuses a digit past `maximumFractionDigits` instead of rounding it.                                                                                      |
+| `decimalEntry`                                                        | `"fixed" \| "free"`                                      | `"fixed"`                               | With fixed decimals, `"free"` types them as any other field does.                                                                                         |
+| `currency`, `currencyDisplay`                                         | `string`, Intl's                                         |                                         | An ISO 4217 code: its sign is drawn beside the number where the locale puts it.                                                                           |
+| `unit`, `unitDisplay`                                                 | `string`, Intl's                                         |                                         | An Intl unit (`"kilogram"`), drawn beside the number.                                                                                                     |
+| `useGrouping`, `negative`                                             | `boolean`, `"minus" \| "parentheses" \| "trailingMinus"` | `true`, `"minus"`                       | How the number is shown without focus.                                                                                                                    |
+| `decimalSeparator`, `groupSeparator`, `groupSizes`, `numberingSystem` |                                                          | the locale's                            | Overrides of the locale's symbols and digits.                                                                                                             |
+| `min`, `max`                                                          | `number` (decimal mode: or a decimal string)             |                                         | Limits: outside them the field shows "Enter 10 or more"; typed text is never changed. Stepping stays inside. A `min` of 0 or more refuses the minus sign. |
+| `step`, `largeStep`                                                   | as `min`                                                 | `1`, ten steps                          | What the arrow keys and stepper buttons add, and what <Kbd>PageUp</Kbd> and <Kbd>PageDown</Kbd> add. `step` does not make other values invalid.           |
+| `stepping`                                                            | `"keys" \| "none"`                                       | `"keys"`                                | A spinbutton the keys step, or a plain text box.                                                                                                          |
+| `stepper`                                                             | `"none" \| "end" \| "split"`                             | `"none"`                                | Stepper buttons: stacked at the end, or decrease at the start and increase at the end.                                                                    |
+| `wheel`                                                               | `boolean`                                                | `false`                                 | The mouse wheel steps while the field has focus.                                                                                                          |
+| `cleanInput`                                                          | `boolean`                                                | `true`                                  | Refuses keys that cannot be part of a number and cleans pastes; off for an app whose own `parse` reads other text.                                        |
+| `align`                                                               | `"start" \| "end"`                                       | `"end"`                                 | Where the number sits in the box.                                                                                                                         |
+| `selectOnFocus`                                                       | `boolean`                                                | `true`                                  | Focus from the keyboard or from code selects the text, so the first key replaces it.                                                                      |
+| `inputMode`                                                           |                                                          | `"decimal"`, `"numeric"` with `integer` | The phone keyboard. iPhone's decimal keypad has no minus: give a field that takes negatives `inputMode="text"`.                                           |
+| `revertOnEscape`                                                      | `boolean`                                                | `true`                                  | <Kbd>Escape</Kbd> puts back the last committed value.                                                                                                     |
+| `onStep`                                                              | `(event: NumberStepEvent<V>) => void`                    |                                         | A step is about to be taken: `direction`, `size`, `via` (`"key"`, `"button"`, `"wheel"`), `value`, `previousValue`.                                       |
+
+## Value types
+
+The value is a `number`, or with `valueType="decimal"` a string in normal form with the minimum decimals (`"1234.50"`). Either way values are stepped, rounded and compared as exact decimals, so 0.1 stepped by 0.1 is 0.2, never 0.30000000000000004. As a `number`, text whose digits a number cannot keep ("9007199254740993") cannot be read and says so; use the decimal string for long amounts. The hidden input submits the value in the same form in every locale, `1234.5`.
+
+## Typing
+
+While the field has focus it shows plain digits and the decimal separator, `-1234,5` in `de-DE`; once it leaves, the number grouped and padded, `-1.234,50`, with a currency or unit drawn beside the box's text. Keys that cannot be part of a number are refused before they show: letters, `e`, currency and percent signs, a second decimal separator, a group separator where the grouping does not allow it. Pastes are cleaned: "$1,234.50" pasted into a `de-DE` field becomes `1234,50`. Text that still cannot be read ("1.5" in `de-DE`) stays as typed with its message, and the value stays the last one read. Extra decimals round, and the rounded text is written on commit.
+
+The keypad's decimal key types the field's separator on any keyboard layout, so the keypad "." of a US keyboard types "," in a German field.
+
+## Fixed decimals
+
+With fixed decimals (`fractionDigits`, or a currency's minor units) the field types the way accounting fields do:
+
+- The decimals show as soon as there is a value: typing 5 gives `5,00`, the caret before the separator.
+- Digits go before the decimals; the decimal separator, or the keypad's decimal key, or either `.` or `,`, moves the caret to the first decimal and types nothing.
+- Decimals are typed over and never grow: once the caret reaches the end, more digits are refused.
+- Backspace turns a decimal to 0 and moves back; from the first decimal it deletes the last integer digit. <Kbd>Delete</Kbd> mirrors it. Deleting the last digit that counts, or selecting all and deleting, empties the field.
+- A paste is rounded to the decimals, the caret at the end of its integer part.
+
+`decimalEntry="free"` types them as any other field does.
+
+## Stepping
+
+| Key                                    | Does                                                         |
+| -------------------------------------- | ------------------------------------------------------------ |
+| <Kbd>↑</Kbd>, <Kbd>↓</Kbd>             | One step up or down, within `min` and `max`.                 |
+| <Kbd>PageUp</Kbd>, <Kbd>PageDown</Kbd> | A large step.                                                |
+| <Kbd>Home</Kbd>, <Kbd>End</Kbd>        | To `min` or `max` when it is set; otherwise the caret moves. |
+| <Kbd>Enter</Kbd>                       | Commits.                                                     |
+| <Kbd>Escape</Kbd>                      | Puts back the last committed value when the text differs.    |
+| <Kbd>Tab</Kbd>                         | Commits, then focus moves on.                                |
+
+From empty the first step sets 0 (or a limit that leaves 0 out); a value off the step grid goes to the grid first, as native number inputs do. A step fires `onStep`, then `onBeforeChange`, `onChange` and `onValidate` with `source: "step"`, and no commit: leaving commits. At a limit a step does nothing and fires nothing.
+
+A stepper button steps once when pressed and repeats while held: after 400 ms, every 60 ms, and every 30 ms after 20 steps. The hold ends when it is let go, when the pointer leaves the button, when the field loses focus and at a limit. The buttons never take focus, and focus the field when it does not have it, so leaving commits. At a limit, and in a read-only field, they are drawn disabled.
+
+## Events
+
+Every event carries `NumberDetails`: `decimal` (the value as an exact decimal string, whatever the value type), `formatted` (the full text, "1.234,50 €") and `reading` (how the text on screen reads: the decimal separator taken, whether it grouped, the negative style, the digits typed, whether a paste was cleaned; `null` while it shows the value formatted). A typed trailing 0 after the decimal separator fires `onInput` but not `onChange`: the value is the same. In a fixed-decimal field, a digit typed over the same digit leaves the text as it was and fires nothing.
+
+## Accessibility
+
+The control is a native `<input type="text">` with `role="spinbutton"`, `aria-valuenow` (absent while empty), `aria-valuemin` and `aria-valuemax` when set, and `aria-valuetext` with the full text, so a screen reader says the currency. With `stepping="none"` it is a plain text box and the currency or unit is read as its description. Where the locale writes numbers left to right the control is `dir="ltr"`, so "-1234" keeps its minus on the left in a Hebrew field; in `ar-EG` it follows the field. VoiceOver on iOS changes a spinbutton by swipes that send no keys, so those swipes do nothing there; its users type.
+
+## States
+
+- **Display mode** shows the full text, "1.234,50 €", or the empty dash.
+- **Read-only**: the text can be selected; keys and buttons do not step.
+- **Disabled**, **invalid** with its severity, **loading** and the densities: as [TextInput](/docs/forms/text-input#behaviour).
+
+## Class names
+
+| Class                                 | Element    | Description                                                                                     |
+| ------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------- |
+| `.gridkit-forms-number-input`         | `<div>`    | The root. States: is-align-start, is-stepper-end, is-stepper-split, is-compact, is-comfortable. |
+| `.gridkit-forms-number-input-control` | `<input>`  | The control.                                                                                    |
+| `.gridkit-forms-number-input-affix`   | `<span>`   | The currency sign, percent sign or unit. States: is-start, is-end.                              |
+| `.gridkit-forms-stepper`              | `<span>`   | The stacked stepper buttons.                                                                    |
+| `.gridkit-forms-stepper-button`       | `<button>` | A stepper button. States: is-increment, is-decrement, is-disabled.                              |
+| `.gridkit-forms-stepper-icon`         | `<svg>`    | Its chevron.                                                                                    |
+
+The box and its adornments are [TextInput](/docs/forms/text-input#class-names)'s. The stepper column reads `--gridkit-forms-stepper-width` and the affix `--gridkit-forms-affix-color` when set. Under a coarse pointer the stacked buttons sit side by side, each big enough to tap.
+
+## Messages and localization
+
+From `FormsMessages`: `notANumber`, `numberGrouping`, `numberTooPrecise`, `rangeUnderflow`, `rangeOverflow`, `required`, and `increase` and `decrease` for the stepper buttons. The locale is the prop's, the `Field`'s, the form's or the [`FormsProvider`](/docs/forms/overview)'s; the number logic is forms-core's [Numbers](/docs/forms-core/numbers).
+
+## See also
+
+- [PercentInput](/docs/forms/percent-input) for a percentage.
+- [Numbers](/docs/forms-core/numbers) for how numbers are read, written and rounded.
+- [Stepping](/docs/forms-dom/stepping) for the keys and held buttons behind it.
+- [Events](/docs/forms/events) for what it fires, and in what order.
