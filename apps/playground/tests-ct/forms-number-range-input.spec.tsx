@@ -453,6 +453,26 @@ test.describe("NumberRangeInput: states", () => {
     await expect(end(root)).toBeFocused();
   });
 
+  test("keeps both ends on one line in a narrow column, as at 200% zoom", async ({
+    mount,
+  }) => {
+    const root = await mount(
+      <div style={{ inlineSize: "180px" }}>
+        <NumberRangeInputHarness
+          locale="en-US"
+          showSpan
+          defaultValue={{ start: 1000, end: 2500 }}
+        />
+      </div>,
+    );
+
+    const startBox = await start(root).boundingBox();
+    const endBox = await end(root).boundingBox();
+    expect(Math.round(startBox?.y ?? 0)).toBe(Math.round(endBox?.y ?? -1));
+    expect(startBox?.width ?? 0).toBeGreaterThan(10);
+    expect(endBox?.width ?? 0).toBeGreaterThan(10);
+  });
+
   test("clicking the label focuses the start", async ({ mount }) => {
     const root = await mount(<NumberRangeInputHarness locale="en-US" bare />);
 
