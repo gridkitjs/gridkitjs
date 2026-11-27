@@ -10,6 +10,7 @@ import {
   FormLayout,
   FormSection,
   MessageSummary,
+  NumberRangeInput,
   Switch,
   useFieldInput,
   type FieldInputKind,
@@ -272,5 +273,51 @@ describe("a toggle on the server", () => {
     expect(
       renderToString(<Switch label="Alerts" mode="display" defaultValue />),
     ).toContain('<span class="gridkit-forms-display-value">On</span>');
+  });
+});
+
+describe("a number range on the server", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("renders both ends in a group, each named From or To, and submits each end", () => {
+    const error = vi.spyOn(console, "error");
+    const html = renderToString(
+      <NumberRangeInput
+        id="price"
+        label="Price"
+        locale="en-US"
+        name="price"
+        defaultValue={{ start: 1200, end: null }}
+      />,
+    );
+    expect(html).toContain(
+      'class="gridkit-forms-number-range-input" role="group" aria-labelledby="price-label"',
+    );
+    expect(html).toContain(
+      'id="price" class="gridkit-forms-number-input-control gridkit-forms-range-start"',
+    );
+    expect(html).toContain('value="1,200"');
+    expect(html).toContain('aria-labelledby="price-label price-start-label"');
+    expect(html).toContain('aria-labelledby="price-label price-end-label"');
+    expect(html).toContain(
+      '<input type="hidden" name="price.start" value="1200"/>',
+    );
+    expect(html).toContain('<input type="hidden" name="price.end" value=""/>');
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it("shows an open range in display mode", () => {
+    expect(
+      renderToString(
+        <NumberRangeInput
+          label="Price"
+          locale="en-US"
+          mode="display"
+          defaultValue={{ start: null, end: 20 }}
+        />,
+      ),
+    ).toContain('<span class="gridkit-forms-display-value">up to 20</span>');
   });
 });
