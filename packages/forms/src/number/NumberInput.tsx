@@ -1,26 +1,18 @@
 import {
   compareDecimals,
-  filterNumberEdit,
   formatNumber,
   maxRule,
   minRule,
-  normalizeDecimal,
   numberAffixes,
   numberCaret,
-  numberDetails,
-  numberFormatter,
-  numberParser,
   numberSymbols,
-  numberToDecimal,
   requiredRule,
-  shiftDecimal,
   stepNumberValue,
   type ChangeCause,
   type DecimalString,
   type NegativeStyle,
   type NumberDetails,
   type NumberOptions,
-  type NumberReadingInfo,
   type NumberValue,
   type NumberValueType,
   type PercentScale,
@@ -30,11 +22,8 @@ import {
 } from "@gridkitjs/forms-core";
 import {
   attachHoldRepeat,
-  attachStepKeys,
   type AttachedHoldRepeat,
-  type AttachedStepKeys,
   type HoldRepeatOptions,
-  type StepKeysOptions,
 } from "@gridkitjs/forms-dom";
 import {
   useEffect,
@@ -45,7 +34,6 @@ import {
   type ReactNode,
   type Ref,
 } from "react";
-import { warnOnce } from "../dev";
 import { DisplayValue } from "../DisplayValue";
 import { useFieldContext } from "../field/fieldContext";
 import { classNames } from "../field/parts";
@@ -62,12 +50,17 @@ import {
   useOwnMessagesId,
 } from "../text/parts";
 import type { TextInputBaseProps } from "../text/textInputProps";
+import { isFocused, useFieldInput, validatorsOf } from "../useFieldInput";
 import {
-  isFocused,
-  useFieldInput,
-  validatorsOf,
-  type FieldInputKind,
-} from "../useFieldInput";
+  numberKind,
+  sameNumber,
+  stepSizes,
+  takesNegatives,
+  toDecimal,
+  useLimitsWarning,
+  useNumberOptions,
+  useStepKeys,
+} from "./numberKind";
 
 /** A limit or step: a number, or in decimal mode also an exact decimal string. */
 export type NumberLimit<T extends NumberValueType> = T extends "decimal"
@@ -155,66 +148,8 @@ export interface NumberVariant {
   readonly rootClassName: string;
 }
 
-function toDecimal(value: number | string): DecimalString {
-  return typeof value === "number"
-    ? numberToDecimal(value)
-    : (normalizeDecimal(value) ?? value);
-}
-
-/** Whether two numbers are the same, compared exactly. */
-function sameNumber(a: number | string, b: number | string): boolean {
-  return compareDecimals(toDecimal(a), toDecimal(b)) === 0;
-}
-
-const supported = new Map<string, boolean>();
-
-/** Whether Intl knows the currency code or unit; a dev warning otherwise. */
-function isSupported(style: "currency" | "unit", code: string): boolean {
-  const key = `${style}:${code}`;
-  let known = supported.get(key);
-  if (known === undefined) {
-    try {
-      new Intl.NumberFormat("en", { style, [style]: code });
-      known = true;
-    } catch {
-      known = false;
-      warnOnce(
-        key,
-        `NumberInput: ${style} "${code}" is not one Intl knows, so it is ignored.`,
-      );
-    }
-    supported.set(key, known);
-  }
-  return known;
-}
-
-/** The style a number field writes in: a percent, else a currency (which wins over a unit), else a unit. */
-function numberStyle(
-  percentScale: PercentScale | undefined,
-  currency: string | undefined,
-  unit: string | undefined,
-): NumberOptions["style"] {
-  if (percentScale !== undefined) {
-    return "percent";
-  }
-  if (currency !== undefined && unit !== undefined) {
-    warnOnce(
-      "number-currency-unit",
-      "NumberInput: both currency and unit are set; the currency is shown.",
-    );
-  }
-  if (currency !== undefined && isSupported("currency", currency)) {
-    return "currency";
-  }
-  if (unit !== undefined && isSupported("unit", unit)) {
-    return "unit";
-  }
-  return "decimal";
-}
-
 /** Options to attach with, before a render's own reach them. */
 const NO_REPEAT: HoldRepeatOptions = { onRepeat: () => false };
-const NO_STEP_KEYS: StepKeysOptions = { onStep: () => undefined };
 
 function ChevronIcon({ direction }: { readonly direction: StepDirection }) {
   return (
@@ -365,92 +300,40 @@ export function NumberControl<T extends NumberValueType = "number">({
   const settings = field?.settings ?? formSettings;
   const locale = props.locale ?? settings.locale;
   const needsValue = required === true || field?.required === true;
-  const resolvedStyle = numberStyle(percentScale, currency, unit);
-
-  const numberOptions = useMemo<NumberOptions>(
-    () => ({
-      locale,
-      style: resolvedStyle,
-      currency,
-      currencyDisplay,
-      unit,
-      unitDisplay,
-      minimumFractionDigits: integer
-        ? 0
-        : (fractionDigits ?? minimumFractionDigits),
-      maximumFractionDigits: integer
-        ? 0
-        : (fractionDigits ?? maximumFractionDigits),
-      roundingMode,
-      useGrouping,
-      negative,
-      percentScale,
-      decimalSeparator,
-      groupSeparator,
-      groupSizes,
-      numberingSystem,
-    }),
-    [
-      locale,
-      resolvedStyle,
-      currency,
-      currencyDisplay,
-      unit,
-      unitDisplay,
-      integer,
+  const numberOptions = useNumberOptions(
+    {
       fractionDigits,
       minimumFractionDigits,
       maximumFractionDigits,
+      integer,
       roundingMode,
       useGrouping,
       negative,
-      percentScale,
       decimalSeparator,
       groupSeparator,
       groupSizes,
       numberingSystem,
-    ],
+      currency,
+      currencyDisplay,
+      unit,
+      unitDisplay,
+    },
+    locale,
+    percentScale,
   );
   const symbols = numberSymbols(locale, numberOptions);
-  const negatives =
-    min === undefined || compareDecimals(toDecimal(min), "0") < 0;
+  const negatives = takesNegatives(min);
+  useLimitsWarning("NumberInput", min, max);
 
-  useEffect(() => {
-    if (
-      min !== undefined &&
-      max !== undefined &&
-      compareDecimals(toDecimal(min), toDecimal(max)) > 0
-    ) {
-      warnOnce(
-        "number-min-max",
-        "NumberInput: min is above max, so no value can satisfy both.",
-      );
-    }
-  }, [min, max]);
-
-  // How clean-up read the paste on screen, until the next edit.
-  const pasted = useRef<NumberReadingInfo | null>(null);
-  const kind = useMemo<FieldInputKind<V, NumberDetails>>(
-    () => ({
-      defaultParse: numberParser<T>({ ...numberOptions, valueType }),
-      defaultFormat: numberFormatter<V>(numberOptions),
-      serialize: (value) => toDecimal(value),
-      equals: sameNumber,
-      details: (current) =>
-        numberDetails(current, numberOptions, pasted.current),
-      filterInput: cleanInput
-        ? (edit, before) => {
-            const result = filterNumberEdit(edit, before, {
-              ...numberOptions,
-              negatives,
-              limitFractionDigits,
-              decimalEntry,
-            });
-            pasted.current = result.pasted;
-            return result.decision;
-          }
-        : undefined,
-    }),
+  const kind = useMemo(
+    () =>
+      numberKind<T>(numberOptions, {
+        valueType,
+        cleanInput,
+        negatives,
+        limitFractionDigits,
+        decimalEntry,
+      }),
     [
       numberOptions,
       valueType,
@@ -498,14 +381,8 @@ export function NumberControl<T extends NumberValueType = "number">({
   const focused = isFocused(state.phase);
   const spinbutton = stepping === "keys";
 
-  const defaultStep: DecimalString = percentScale === "fraction" ? "0.01" : "1";
-  const stepSize = step === undefined ? defaultStep : toDecimal(step);
   const limits = {
-    step: stepSize,
-    largeStep:
-      largeStep === undefined
-        ? shiftDecimal(stepSize, 1)
-        : toDecimal(largeStep),
+    ...stepSizes(step, largeStep, percentScale),
     min: min ?? null,
     max: max ?? null,
   };
@@ -551,9 +428,7 @@ export function NumberControl<T extends NumberValueType = "number">({
     return now === null || previous === null || !sameNumber(now, previous);
   }
 
-  const stepKeys = useRef<AttachedStepKeys | null>(null);
-  const keysOn = spinbutton && editable && !display;
-  const keyOptions: StepKeysOptions = {
+  useStepKeys(element, spinbutton && editable && !display, {
     onStep: (direction, size, nativeEvent) => {
       takeStep(
         direction,
@@ -564,21 +439,6 @@ export function NumberControl<T extends NumberValueType = "number">({
     },
     edges: { min: min !== undefined, max: max !== undefined },
     wheel,
-  };
-  useLayoutEffect(() => {
-    if (element === null || !keysOn) {
-      return undefined;
-    }
-    const attached = attachStepKeys(element, NO_STEP_KEYS);
-    stepKeys.current = attached;
-    return () => {
-      attached.detach();
-      stepKeys.current = null;
-    };
-  }, [element, keysOn]);
-  // As for the stepper buttons: the latest options, straight after attaching.
-  useLayoutEffect(() => {
-    stepKeys.current?.setOptions(keyOptions);
   });
 
   const { value } = state;

@@ -313,6 +313,33 @@ test.describe("forms playground page", () => {
     ).toContainText("13");
   });
 
+  test("the number range section logs which end each change is about", async ({
+    mount,
+    page,
+  }) => {
+    const root = await mount(<FormsPlayground />);
+    const rows = root
+      .getByRole("table", { name: "Event log" })
+      .locator("tbody tr");
+    const from = root.getByRole("spinbutton", { name: "Price range From" });
+    const to = root.getByRole("spinbutton", { name: "Price range To" });
+
+    await typeInto(from, "30");
+    await page.keyboard.press("Tab");
+    await expect(to).toBeFocused();
+    await page.keyboard.type("10");
+    await page.keyboard.press("Enter");
+
+    await expect(
+      rows.filter({ hasText: "onChange" }).filter({ hasText: "end: start" }),
+    ).not.toHaveCount(0);
+    await expect(
+      rows.filter({ hasText: "onCommit" }).filter({ hasText: "end: both" }),
+    ).toContainText('{"start":10,"end":30}');
+    await expect(from).toHaveValue("10");
+    await expect(to).toHaveValue("30");
+  });
+
   test("the page's locale and density reach every component", async ({
     mount,
     page,

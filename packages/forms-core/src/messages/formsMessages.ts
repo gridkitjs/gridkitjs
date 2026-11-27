@@ -50,6 +50,26 @@ export interface FormsMessages {
   increase: string;
   /** A number input's stepper button that steps down. */
   decrease: string;
+  /** A range input's first end, read with the field's label. */
+  rangeStart: string;
+  /** A range input's second end, read with the field's label. */
+  rangeEnd: string;
+  /** Drawn between a range input's two ends. */
+  rangeSeparator: string;
+  /** A range with only a start, in display mode; `start` as the input writes it. */
+  rangeFrom: (start: string) => string;
+  /** A range with only an end, in display mode; `end` as the input writes it. */
+  rangeUpTo: (end: string) => string;
+  /** A range's end comes before its start, and the input does not swap them. */
+  rangeReversed: string;
+  /** A half-open range's start is its end, so it holds nothing. */
+  rangeEmpty: string;
+  /** A range spans less than its minimum, written as the input writes spans. */
+  rangeTooShort: (span: string) => string;
+  /** A range spans more than its maximum, written as the input writes spans. */
+  rangeTooLong: (span: string) => string;
+  /** A range input's span, shown after its end. */
+  rangeSpanLabel: (span: string) => string;
   /** The visible character counter. */
   counter: (count: number, max: number) => string;
   /** The counter's description, read with the control. */
@@ -159,6 +179,16 @@ export function createDefaultFormsMessages(
     showPassword: "Show password",
     increase: "Increase",
     decrease: "Decrease",
+    rangeStart: "From",
+    rangeEnd: "To",
+    rangeSeparator: "–",
+    rangeFrom: (start) => `from ${start}`,
+    rangeUpTo: (end) => `up to ${end}`,
+    rangeReversed: "The end comes before the start",
+    rangeEmpty: "The range is empty",
+    rangeTooShort: (span) => `The range must span at least ${span}`,
+    rangeTooLong: (span) => `The range must span no more than ${span}`,
+    rangeSpanLabel: (span) => `Span: ${span}`,
     counter: (count, max) => `${n(count)}/${n(max)}`,
     counterLabel: (max) => `Up to ${counted(n, max, characters)}`,
     charactersLeft: (left) => `${counted(n, left, characters)} left`,

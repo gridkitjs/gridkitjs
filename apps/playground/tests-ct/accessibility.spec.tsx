@@ -15,6 +15,7 @@ import FieldHarness from "./support/forms/FieldHarness";
 import FormHarness from "./support/forms/FormHarness";
 import LayoutHarness from "./support/forms/LayoutHarness";
 import NumberInputHarness from "./support/forms/NumberInputHarness";
+import NumberRangeInputHarness from "./support/forms/NumberRangeInputHarness";
 import SearchInputHarness from "./support/forms/SearchInputHarness";
 import SummaryHarness from "./support/forms/SummaryHarness";
 import TextInputHarness from "./support/forms/TextInputHarness";
@@ -880,6 +881,42 @@ const fieldScans: readonly {
         currency="EUR"
         mode="display"
         defaultValue={-1234.5}
+      />
+    ),
+  },
+  {
+    name: "an empty number range input, two spinbuttons in a group",
+    field: () => <NumberRangeInputHarness locale="en-US" />,
+  },
+  {
+    name: "a number range input with a currency, its span shown",
+    field: () => (
+      <NumberRangeInputHarness
+        locale="de-DE"
+        currency="EUR"
+        showSpan
+        defaultValue={{ start: 10, end: 25 }}
+      />
+    ),
+  },
+  {
+    name: "an invalid, read-only number range input",
+    field: () => (
+      <NumberRangeInputHarness
+        locale="en-US"
+        readOnly
+        message="Outside the price list"
+        defaultValue={{ start: 10, end: null }}
+      />
+    ),
+  },
+  {
+    name: "a number range input in display mode",
+    field: () => (
+      <NumberRangeInputHarness
+        locale="en-US"
+        mode="display"
+        defaultValue={{ start: 10, end: 20 }}
       />
     ),
   },

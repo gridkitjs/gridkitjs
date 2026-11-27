@@ -176,6 +176,7 @@
     .gridkit-forms-text-input,
     .gridkit-forms-search-input,
     .gridkit-forms-number-input,
+    .gridkit-forms-number-range-input,
     .gridkit-forms-checkbox,
     .gridkit-forms-switch
   ),
@@ -189,6 +190,7 @@
       .gridkit-forms-text-input,
       .gridkit-forms-search-input,
       .gridkit-forms-number-input,
+      .gridkit-forms-number-range-input,
       .gridkit-forms-checkbox,
       .gridkit-forms-switch
     )
@@ -203,6 +205,7 @@
       .gridkit-forms-text-input,
       .gridkit-forms-search-input,
       .gridkit-forms-number-input,
+      .gridkit-forms-number-range-input,
       .gridkit-forms-checkbox,
       .gridkit-forms-switch
     )
@@ -217,6 +220,7 @@
       .gridkit-forms-text-input,
       .gridkit-forms-search-input,
       .gridkit-forms-number-input,
+      .gridkit-forms-number-range-input,
       .gridkit-forms-checkbox,
       .gridkit-forms-switch
     )
@@ -234,6 +238,7 @@
       .gridkit-forms-text-input,
       .gridkit-forms-search-input,
       .gridkit-forms-number-input,
+      .gridkit-forms-number-range-input,
       .gridkit-forms-checkbox,
       .gridkit-forms-switch
     )
@@ -253,6 +258,7 @@
       .gridkit-forms-text-input,
       .gridkit-forms-search-input,
       .gridkit-forms-number-input,
+      .gridkit-forms-number-range-input,
       .gridkit-forms-checkbox,
       .gridkit-forms-switch
     )
@@ -577,7 +583,8 @@
    */
   .gridkit-forms-text-input,
   .gridkit-forms-search-input,
-  .gridkit-forms-number-input {
+  .gridkit-forms-number-input,
+  .gridkit-forms-number-range-input {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     min-inline-size: 0;
@@ -829,15 +836,50 @@
     text-align: right;
   }
 
-  .gridkit-forms-number-input:dir(rtl) .gridkit-forms-number-input-control,
-  .gridkit-forms-number-input.is-align-start:dir(ltr)
+  :is(.gridkit-forms-number-input, .gridkit-forms-number-range-input):dir(rtl)
+    .gridkit-forms-number-input-control,
+  :is(
+      .gridkit-forms-number-input,
+      .gridkit-forms-number-range-input
+    ).is-align-start:dir(ltr)
     .gridkit-forms-number-input-control {
     text-align: left;
   }
 
-  .gridkit-forms-number-input.is-align-start:dir(rtl)
+  :is(
+      .gridkit-forms-number-input,
+      .gridkit-forms-number-range-input
+    ).is-align-start:dir(rtl)
     .gridkit-forms-number-input-control {
     text-align: right;
+  }
+
+  /*
+   * A range: both ends share one box, the separator between them with
+   * `--gridkit-forms-range-gap` on each side, and the span muted after
+   * the end. The ends share the room left and shrink to a few characters
+   * each, so the box stays one line when zoomed in.
+   */
+  .gridkit-forms-range-control {
+    gap: var(--gridkit-forms-range-gap, var(--gridkit-spacing));
+  }
+
+  .gridkit-forms-range-control > .gridkit-forms-number-input-control {
+    flex: 1 1 0;
+    min-inline-size: 3ch;
+  }
+
+  .gridkit-forms-range-separator {
+    flex: none;
+    color: var(--gridkit-fg-muted);
+  }
+
+  .gridkit-forms-range-span {
+    flex: none;
+    font-size: var(--gridkit-hint-font-size);
+    font-variant-numeric: tabular-nums;
+    color: var(--gridkit-fg-muted);
+    white-space: nowrap;
   }
 
   /* The currency sign, percent sign or unit beside the number. */
@@ -1416,6 +1458,7 @@
       .gridkit-forms-text-input,
       .gridkit-forms-search-input,
       .gridkit-forms-number-input,
+      .gridkit-forms-number-range-input,
       .gridkit-forms-message-summary
     )
     :is(
@@ -1424,6 +1467,7 @@
       .gridkit-forms-text-input,
       .gridkit-forms-search-input,
       .gridkit-forms-number-input,
+      .gridkit-forms-number-range-input,
       .gridkit-forms-message-summary
     ) {
     font-size: inherit;
@@ -1563,6 +1607,11 @@
     .gridkit-forms-stepper,
     .gridkit-forms-stepper-button {
       border-color: CanvasText;
+    }
+
+    .gridkit-forms-range-separator,
+    .gridkit-forms-range-span {
+      color: CanvasText;
     }
 
     /*

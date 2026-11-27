@@ -312,6 +312,24 @@ describe("formatNumberRange", () => {
     ).toBe("10,00–20,00\u00A0€");
   });
 
+  test("writes ends that write the same once, with no approximation sign", () => {
+    expect(formatNumberRange(10, 10, { locale: "en-US" })).toBe("10");
+    expect(
+      formatNumberRange(1.001, 1.004, {
+        locale: "de-DE",
+        style: "currency",
+        currency: "EUR",
+      }),
+    ).toBe("1,00\u00A0€");
+  });
+
+  test("writes a negative end in the field's negative style", () => {
+    expect(
+      formatNumberRange(-10, 20, { locale: "en-US", negative: "parentheses" }),
+    ).toBe("(10) – 20");
+    expect(formatNumberRange(-10, 20, { locale: "en-US" })).toBe("-10 – 20");
+  });
+
   test("keeps both ends exact and writes the field's separators", () => {
     expect(
       formatNumberRange("0.5", "12345678901234567890.25", {

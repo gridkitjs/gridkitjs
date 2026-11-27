@@ -54,6 +54,11 @@ the wheel travel not yet stepped on; its `detach` removes them.
 `attachEnterNavigation` (`src/form/formControls.ts`) holds one `keydown`
 listener on the form and no state; its `detach` removes it.
 
+`attachFocusGroup` (`src/form/attachFocusGroup.ts`) holds its listeners
+and whether the last key pressed in the group was a Tab, cleared by the
+next `focusout`, key or pointer press; its `detach` removes the
+listeners. `forms-number-range-input.spec.tsx` covers it.
+
 `attachAutoGrow` (`src/text/attachAutoGrow.ts`) holds one `input` listener
 and a `ResizeObserver` on the textarea, the last width it measured, and
 the animation frame a width change sets the height in; its `detach`

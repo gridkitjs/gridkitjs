@@ -326,8 +326,10 @@ export function numberAffixes(
 
 /**
  * Intl's text for the range from `start` to `end`, in the `full` form:
- * "10–20", "10,00–20,00 €". A negative end is written with a minus,
- * whatever `negative` says.
+ * "10–20", "10,00–20,00 €". Ends that write the same are written once
+ * ("10", where Intl writes "~10"). A negative end in another `negative`
+ * style than the minus writes each end whole around the locale's range
+ * separator: "(10)–20".
  */
 export function formatNumberRange(
   start: NumberLike,
@@ -348,15 +350,33 @@ export function formatNumberRange(
       grouping,
     ),
   );
-  return withFieldSymbols(
-    format.formatRangeToParts(
-      intlValue(start, options),
-      intlValue(end, options),
-    ),
-    options,
-    symbols,
-    grouping,
-  )
+  const parts = format.formatRangeToParts(
+    intlValue(start, options),
+    intlValue(end, options),
+  );
+  if (!parts.some((part) => part.source === "endRange")) {
+    return formatNumber(start, options, "full");
+  }
+  if (
+    (options.negative ?? "minus") !== "minus" &&
+    parts.some((part) => part.type === "minusSign")
+  ) {
+    const lastStart = parts.findLastIndex(
+      (part) => part.source === "startRange",
+    );
+    const firstEnd = parts.findIndex((part) => part.source === "endRange");
+    const separator = parts
+      .slice(lastStart + 1, firstEnd)
+      .filter((part) => part.type === "literal")
+      .map((part) => part.value)
+      .join("");
+    return (
+      formatNumber(start, options, "full") +
+      separator +
+      formatNumber(end, options, "full")
+    );
+  }
+  return withFieldSymbols(parts, options, symbols, grouping)
     .map((part) => part.value)
     .join("");
 }

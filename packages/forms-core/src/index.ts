@@ -9,6 +9,19 @@ export {
   type BooleanWords,
 } from "./boolean";
 export {
+  createCompositeController,
+  type AssembleContext,
+  type CompositeController,
+  type CompositeDetailsContext,
+  type CompositeFieldOptions,
+  type CompositeState,
+  type PartChange,
+  type PartController,
+  type PartOptions,
+  type PartTexts,
+  type PartValues,
+} from "./field/createCompositeController";
+export {
   createFieldController,
   type FieldController,
   type FieldOptions,
@@ -117,6 +130,11 @@ export {
   type NumberReading,
   type NumberUnreadableReason,
 } from "./number/parseNumber";
+export {
+  decimalRangeKind,
+  numberRangeKind,
+  numberRangeKindOf,
+} from "./number/numberRange";
 export type { NumberReadingInfo } from "./number/reading";
 export { maxRule, minRule, stepRule } from "./number/rules";
 export {
@@ -140,6 +158,39 @@ export {
   type ParseResult,
   type Parser,
 } from "./parse";
+export {
+  isRelativeRange,
+  orderRange,
+  rangeFlags,
+  rangeIncludes,
+  rangeSpan,
+  resolveRange,
+  sameRange,
+  shownEnd,
+  type NoFlags,
+  type Range,
+  type RangeBounds,
+  type RangeEnd,
+  type RangeKind,
+  type RangeOptions,
+  type RangeOrientation,
+  type RangeReading,
+  type RangeValue,
+  type RelativeRange,
+} from "./range/range";
+export {
+  rangeDetails,
+  rangeEnds,
+  readRangeEnds,
+  type RangeDetails,
+  type RangeEnds,
+} from "./range/rangeField";
+export {
+  endsRule,
+  maxSpanRule,
+  minSpanRule,
+  type SpanFormatter,
+} from "./range/rules";
 export {
   createFieldRegistry,
   summarizeMessages,

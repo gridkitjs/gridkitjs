@@ -3,6 +3,7 @@ import { FormsProvider } from "@gridkitjs/forms";
 import { FieldDemo } from "./demos/FieldDemo";
 import { FormStructureDemo } from "./demos/FormStructureDemo";
 import { NumberInputDemo, PercentInputDemo } from "./demos/NumberInputDemo";
+import { NumberRangeInputDemo } from "./demos/NumberRangeInputDemo";
 import { SearchInputDemo } from "./demos/SearchInputDemo";
 import { TextInputDemo } from "./demos/TextInputDemo";
 import { CheckboxDemo, SwitchDemo } from "./demos/ToggleDemo";
@@ -54,6 +55,7 @@ export function FormsPlayground() {
                 <SearchInputDemo />
                 <NumberInputDemo />
                 <PercentInputDemo />
+                <NumberRangeInputDemo />
                 <CheckboxDemo />
                 <SwitchDemo />
                 <FieldDemo />

@@ -1,0 +1,124 @@
+---
+title: "NumberRangeInput"
+description: "NumberRangeInput: two number fields under one label holding one range, with open ends, reversed entry swapped or refused, and span limits."
+---
+
+`NumberRangeInput` is two number fields under one label holding one value, a range `{ start, end }`, either end `null` when it is left open, and `null` when both are. Each end types, pastes and steps as a [`NumberInput`](/docs/forms/number-input); an end typed before its start is swapped or refused (`reversed`); `min` and `max` bound both ends and `minSpan` and `maxSpan` the span, which `showSpan` writes after the end. It fires one set of forms [events](/docs/forms/events), each saying which end it is about.
+
+<Callout type="note" title="First iteration">
+  This component is a first iteration and may change before the first release.
+</Callout>
+
+## When to use it
+
+For a span of numbers a person types: a price range in a search, an order size band, years of experience. Put it in a [`Field`](/docs/forms/field) for its label, help text and messages. The range model behind it, which date and time ranges will share, is forms-core's [Ranges](/docs/forms-core/ranges).
+
+## Example
+
+```tsx title="App.tsx"
+import { Field, Form, NumberRangeInput } from "@gridkitjs/forms";
+
+export function App() {
+  return (
+    <Form locale="en-US">
+      <Field label="Price" description="Leave an end empty for no limit">
+        <NumberRangeInput
+          name="price"
+          currency="USD"
+          min={0}
+          maxSpan={1000}
+          showSpan
+          onChange={({ value, changedEnd }) => {
+            console.log(changedEnd, value);
+          }}
+        />
+      </Field>
+      <button type="submit">Search</button>
+    </Form>
+  );
+}
+```
+
+## Props
+
+Besides the props every input takes (see [TextInput](/docs/forms/text-input#props): `value`, `defaultValue`, `validate`, `required`, `name`, `message`, `invalid`, `mode`, `readOnly`, `disabled`, `clearable`, `loading`, `density`, the handlers and `handleRef`), the number props a `NumberInput` takes, each applying to both ends (`valueType`, `fractionDigits`, `minimumFractionDigits`, `maximumFractionDigits`, `integer`, `roundingMode`, `limitFractionDigits`, `decimalEntry`, `useGrouping`, `negative`, the separators, `numberingSystem`, `currency`, `unit`, `min`, `max`, `step`, `largeStep`, `stepping`, `cleanInput`, `align`, `selectOnFocus`, `inputMode`, `revertOnEscape`), and:
+
+| Prop                                 | Type                                         | Default  | Description                                                                               |
+| ------------------------------------ | -------------------------------------------- | -------- | ----------------------------------------------------------------------------------------- |
+| `bounds`                             | `"[]" \| "[)"`                               | `"[]"`   | Whether the end belongs to the range. With `"[)"` it does not, so 10 to 10 holds nothing. |
+| `reversed`                           | `"swap" \| "error"`                          | `"swap"` | An end typed before its start: the ends are swapped, or the field shows an error.         |
+| `allowEmpty`                         | `boolean`                                    | `false`  | With `bounds="[)"`, allows a start equal to its end.                                      |
+| `minSpan`, `maxSpan`                 | `number` (decimal mode: or a decimal string) |          | The shortest and longest span, `end - start`. Outside them the field shows a message.     |
+| `showSpan`                           | `boolean`                                    | `false`  | Writes the span after the end ("Span: 15"), read with the end.                            |
+| `startPlaceholder`, `endPlaceholder` | `string`                                     |          | Each end's placeholder.                                                                   |
+| `startRef`, `endRef`                 | `Ref<HTMLInputElement>`                      |          | Each end's native control. `handleRef`'s `focus` moves to the start.                      |
+
+It takes no `prefix`, `suffix`, `parse` or `format`, and no stepper buttons: two pairs in one box would crowd it, and the keys step each end.
+
+## The value
+
+The value is always ordered. With `reversed="swap"` an end typed before its start swaps at once in the value, so `onChange` never carries a reversed range, while the texts stay where they were typed until the range commits, then change places: typing 20, then 5 in the end, gives `{ start: 5, end: 20 }` and shows "5 – 20" once focus leaves. With `reversed="error"` the field shows "The end comes before the start" and keeps the last value.
+
+The end belongs to the range by default (`bounds="[]"`), which is what "10–20" means to most people. `bounds="[)"` stores it half-open, as date ranges do: 20 is left out of 10–20, and 10 to 10 is empty. For numbers the bounds change only what the range holds; the end typed is the end stored. [Ranges](/docs/forms-core/ranges#bounds) explains bounds in full.
+
+An app that wants to store another range rewrites it in `onBeforeChange` with `event.setValue(...)`; the rewritten range reaches `onChange` and both ends' texts.
+
+With `name`, each end submits under `name.start` and `name.end`, as an exact decimal in the same form in every locale, `""` for an open end.
+
+## Events
+
+The forms events, once for the whole input: `onInput` for each keystroke in either end (`text` is both ends' texts joined by the separator, "10–25"), `onChange` when the range changes, `onCommit` once when focus leaves both ends, or on <Kbd>Enter</Kbd>, and `onFocus` and `onBlur` as focus enters and leaves the input. Every event carries `NumberRangeDetails`:
+
+| Field                        | Type                                 | Description                                                                                                                                                                                           |
+| ---------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `changedEnd`                 | `"start" \| "end" \| "both" \| null` | The end typed in or stepped; `"both"` for a value set whole (a revert, a clear, `setValue`); on a commit, the end that differs from the last commit, `"both"` when both do, `null` when neither does. |
+| `span`                       | `number \| null`                     | `end - start`, exact; `null` while an end is open.                                                                                                                                                    |
+| `resolved`, `bounds`         |                                      | The range, and the bounds.                                                                                                                                                                            |
+| `startText`, `endText`       | `string`                             | Each end's text as shown.                                                                                                                                                                             |
+| `startDetails`, `endDetails` | `NumberDetails`                      | Each end's [number details](/docs/forms/number-input#events).                                                                                                                                         |
+
+A step fires `onInput` too, then the change chain with `source: "step"`.
+
+## Keyboard
+
+| Key                                    | Does                                                                                                                                             |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| <Kbd>↑</Kbd>, <Kbd>↓</Kbd>             | Steps the end, within `min` and `max`, and stops at the other end.                                                                               |
+| <Kbd>PageUp</Kbd>, <Kbd>PageDown</Kbd> | A large step.                                                                                                                                    |
+| <Kbd>Home</Kbd>, <Kbd>End</Kbd>        | To `min` or `max` when it is set.                                                                                                                |
+| <Kbd>Tab</Kbd>                         | From the start to the end, normalizing the start's text, with no commit; from the end, commits and leaves. <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd> back. |
+| <Kbd>Enter</Kbd>                       | Commits the range.                                                                                                                               |
+| <Kbd>Escape</Kbd>                      | Puts back the last committed range in both ends.                                                                                                 |
+
+## Accessibility
+
+The root is a `role="group"` named by the field's label, and each end a spinbutton named by the label and its own "From" or "To", so a screen reader says "Price, From". The span describes the end. A message about one end (text that cannot be read, a number outside `min` and `max`) sets `aria-invalid` on that end; a message about the range (reversed, empty, a span limit, required) on both. Clicking the label focuses the start. Numbers stay left to right in a right-to-left field where the locale writes them so; the start sits at the inline start.
+
+## States
+
+- **Display mode** shows the range as one text, "10–20" or "$10.00 – $20.00", an open range as "from 10" or "up to 20", or the empty dash.
+- **Read-only**: the text can be selected; the keys do not step.
+- **Disabled**, **invalid** with its severity, **loading** and the densities: as [TextInput](/docs/forms/text-input#behaviour), on the one box.
+
+## Class names
+
+| Class                                                    | Element   | Description                                                                                                                    |
+| -------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `.gridkit-forms-number-range-input`                      | `<div>`   | The root. States: is-align-start, is-compact, is-comfortable.                                                                  |
+| `.gridkit-forms-range-control`                           | `<div>`   | The box holding both ends, beside `gridkit-forms-control`.                                                                     |
+| `.gridkit-forms-range-start`, `.gridkit-forms-range-end` | `<input>` | Each end, beside `gridkit-forms-number-input-control`.                                                                         |
+| `.gridkit-forms-number-input-affix`                      | `<span>`  | The currency sign or unit beside each end, as [NumberInput](/docs/forms/number-input#class-names)'s. States: is-start, is-end. |
+| `.gridkit-forms-range-separator`                         | `<span>`  | The separator between the ends.                                                                                                |
+| `.gridkit-forms-range-span`                              | `<span>`  | The span, with `showSpan`.                                                                                                     |
+
+The `gridkit-forms-range-*` classes are shared with the date and time ranges to come. The gap on either side of the separator reads `--gridkit-forms-range-gap` when set. In a narrow column each end shrinks to a few characters and the box stays one line.
+
+## Messages and localization
+
+From `FormsMessages`: `rangeStart` and `rangeEnd` (each end's name), `rangeSeparator`, `rangeReversed`, `rangeEmpty`, `rangeTooShort`, `rangeTooLong`, `rangeSpanLabel`, and `rangeFrom` and `rangeUpTo` for an open range in display mode; each end's number messages as [NumberInput](/docs/forms/number-input#messages-and-localization)'s. The locale is the prop's, the `Field`'s, the form's or the [`FormsProvider`](/docs/forms/overview)'s.
+
+## See also
+
+- [Ranges](/docs/forms-core/ranges) for the range model and the composite controller behind it.
+- [NumberInput](/docs/forms/number-input) for how each end types and steps.
+- [Events](/docs/forms/events) for what it fires, and in what order.

@@ -44,6 +44,12 @@ export {
   type NumberLimit,
   type NumberStepEvent,
 } from "./number/NumberInput";
+export {
+  NumberRangeInput,
+  type NumberRange,
+  type NumberRangeDetails,
+  type NumberRangeInputProps,
+} from "./number/NumberRangeInput";
 export { PercentInput, type PercentInputProps } from "./number/PercentInput";
 export { SearchInput, type SearchInputProps } from "./text/SearchInput";
 export { TextInput, type TextInputProps } from "./text/TextInput";
@@ -89,10 +95,15 @@ export {
   type NumberValue,
   type NumberValueType,
   type NoDetails,
+  type NoFlags,
   type ParseContext,
   type ParseResult,
   type Parser,
   type PercentScale,
+  type Range,
+  type RangeBounds,
+  type RangeDetails,
+  type RangeEnd,
   type RoundingMode,
   type Severity,
   type StepDirection,

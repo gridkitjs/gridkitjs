@@ -2,6 +2,11 @@
 // Each one owns its listeners and reports through callbacks or a forms-core
 // controller, so it names no framework's types.
 export {
+  attachFocusGroup,
+  type AttachedFocusGroup,
+  type FocusGroupOptions,
+} from "./form/attachFocusGroup";
+export {
   attachEnterNavigation,
   compareDocumentOrder,
   findFirstInvalidControl,
@@ -28,6 +33,7 @@ export {
   attachTextInput,
   type AttachedTextInput,
   type TextControl,
+  type TextInputController,
   type TextInputOptions,
 } from "./text/attachTextInput";
 export {

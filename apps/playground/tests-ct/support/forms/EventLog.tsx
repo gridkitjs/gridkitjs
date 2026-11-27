@@ -26,6 +26,9 @@ export interface AnyFieldEvent {
   readonly direction?: string;
   readonly size?: string;
   readonly via?: string;
+  /** A range input's details. */
+  readonly changedEnd?: string | null;
+  readonly span?: unknown;
 }
 
 /** One handler call as the log keeps it: plain data a spec can read back. */
@@ -50,6 +53,8 @@ export interface LoggedEvent {
   readonly direction?: string;
   readonly size?: string;
   readonly via?: string;
+  readonly changedEnd?: string | null;
+  readonly span?: unknown;
   /** The native event's type, `null` for a change the app made. */
   readonly native: string | null;
 }
