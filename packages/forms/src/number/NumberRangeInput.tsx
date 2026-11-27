@@ -7,6 +7,7 @@ import {
   maxSpanRule,
   minRule,
   minSpanRule,
+  numberAffixes,
   numberCaret,
   numberRangeKindOf,
   numberSymbols,
@@ -608,8 +609,28 @@ function NumberRangeControl<T extends NumberValueType = "number">({
     ariaLabelledBy,
     ariaLabel !== undefined && nameId,
   );
+  // The currency sign or unit beside each end: hidden from a spinbutton,
+  // whose value text says it, and a description of a plain text box.
+  const affixes = numberAffixes(numberOptions);
+  const { spinbutton } = endSettings;
+  const affixId = (end: RangeEnd, side: "start" | "end") =>
+    `${id}-${end}-affix-${side}`;
+  const affix = (end: RangeEnd, side: "start" | "end") => {
+    const text = side === "start" ? affixes.prefix : affixes.suffix;
+    return text === "" ? null : (
+      <span
+        className={`gridkit-forms-number-input-affix is-${side}`}
+        id={spinbutton ? undefined : affixId(end, side)}
+        aria-hidden={spinbutton || undefined}
+      >
+        {text}
+      </span>
+    );
+  };
   const describedBy = (end: RangeEnd) =>
     joinIds(
+      !spinbutton && affixes.prefix !== "" && affixId(end, "start"),
+      !spinbutton && affixes.suffix !== "" && affixId(end, "end"),
       fieldDescribedBy,
       ownMessagesId,
       end === "end" && span !== null && spanId,
@@ -649,6 +670,7 @@ function NumberRangeControl<T extends NumberValueType = "number">({
             : null
         }
       >
+        {affix("start", "start")}
         <RangeEndControl<V>
           end="start"
           part={composite.parts.start}
@@ -661,9 +683,11 @@ function NumberRangeControl<T extends NumberValueType = "number">({
           placeholder={startPlaceholder}
           settings={endSettings}
         />
+        {affix("start", "end")}
         <span className="gridkit-forms-range-separator" aria-hidden="true">
           {strings.rangeSeparator}
         </span>
+        {affix("end", "start")}
         <RangeEndControl<V>
           end="end"
           part={composite.parts.end}
@@ -675,6 +699,7 @@ function NumberRangeControl<T extends NumberValueType = "number">({
           placeholder={endPlaceholder}
           settings={endSettings}
         />
+        {affix("end", "end")}
         {span !== null && (
           <span className="gridkit-forms-range-span" id={spanId}>
             {strings.rangeSpanLabel(formatNumber(span, numberOptions, "full"))}
