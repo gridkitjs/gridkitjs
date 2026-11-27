@@ -93,6 +93,7 @@ export function App() {
 | `escape`         | `"revert" \| "clear" \| "none"`             | `"revert"`            | What <Kbd>Escape</Kbd> does: puts back the last commit, clears the field (after `onClear`), or nothing.                                                                        |
 | `mapCaret`       | `(previousText, caret, nextText) => number` | distance from the end | Where the caret goes when the field's text is written into the focused control.                                                                                                |
 | `decimalKey`     | `string`                                    |                       | What the keypad's decimal key types, whatever the keyboard layout.                                                                                                             |
+| `lastCaret`      | `(text) => number`                          |                       | The furthest a click may leave the caret: a mask's first empty slot.                                                                                                           |
 | `toggle`         | `{ threeState?: boolean }`                  |                       | The control is a checkbox, flipped whole: forms-dom's [toggle behaviour](/docs/forms-dom/toggles) drives it, every flip commits, and a `Field`'s floating label sits above it. |
 
 ## What it returns

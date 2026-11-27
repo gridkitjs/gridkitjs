@@ -9,6 +9,8 @@ import {
   Form,
   FormLayout,
   FormSection,
+  MaskedInput,
+  maskPresets,
   MessageSummary,
   NumberRangeInput,
   Switch,
@@ -319,5 +321,54 @@ describe("a number range on the server", () => {
         />,
       ),
     ).toContain('<span class="gridkit-forms-display-value">up to 20</span>');
+  });
+});
+
+describe("a masked input on the server", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("renders the value laid into the mask, the template as its placeholder, and submits the raw value", () => {
+    const error = vi.spyOn(console, "error");
+    const html = renderToString(
+      <MaskedInput
+        id="phone"
+        label="Phone"
+        name="phone"
+        mask="(000) 000-0000"
+        defaultValue="5551234567"
+      />,
+    );
+    expect(html).toContain('class="gridkit-forms-masked-input"');
+    expect(html).toContain('value="(555) 123-4567"');
+    expect(html).toContain('placeholder="(___) ___-____"');
+    expect(html).toContain('dir="ltr"');
+    expect(html).toContain('inputMode="numeric"');
+    expect(html).toContain(
+      '<input type="hidden" name="phone" value="5551234567"/>',
+    );
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it("takes a preset's keyboard and autocomplete, and upper-cases on phones", () => {
+    const html = renderToString(
+      <MaskedInput aria-label="Postal code" mask={maskPresets.postalCodeCA} />,
+    );
+    expect(html).toContain('autoCapitalize="characters"');
+    expect(html).toContain('inputMode="text"');
+    expect(html).toContain('autoComplete="postal-code"');
+  });
+
+  it("warns about a malformed mask and takes plain text", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const html = renderToString(
+      <MaskedInput aria-label="Code" mask="00[0" defaultValue="12a" />,
+    );
+    expect(html).toContain('value="12a"');
+    expect(html).not.toContain("placeholder");
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('MaskedInput: the mask "00[0" is malformed'),
+    );
   });
 });

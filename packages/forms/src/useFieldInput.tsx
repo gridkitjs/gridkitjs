@@ -514,6 +514,7 @@ export function useFieldInput<
     onClear: fireClear,
     mapCaret: options.mapCaret,
     decimalKey: options.decimalKey,
+    lastCaret: options.lastCaret,
   };
   const toggleOptions: ToggleOptions = { ...options.toggle, readOnly };
   const behaviour = useRef<AttachedBehaviour | null>(null);

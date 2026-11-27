@@ -38,6 +38,7 @@ export type {
   LabelPosition,
   NecessityIndicator,
 } from "./settings";
+export { MaskedInput, type MaskedInputProps } from "./mask/MaskedInput";
 export {
   NumberInput,
   type NumberInputProps,
@@ -75,6 +76,7 @@ export {
 } from "./useFieldInput";
 export {
   formatText,
+  maskPresets,
   parsed,
   textParser,
   unreadable,
@@ -89,6 +91,14 @@ export {
   type FormatContext,
   type Formatter,
   type FormsMessages,
+  type MaskDetails,
+  type MaskOptions,
+  type MaskPreset,
+  type MaskPresets,
+  type MaskSource,
+  type MaskTokenDefinition,
+  type MaskTokens,
+  type MaskValueFormat,
   type NegativeStyle,
   type NumberDetails,
   type NumberReadingInfo,
